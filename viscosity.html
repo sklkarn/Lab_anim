@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Terminal Velocity Lab – Dark Mode</title>
+  <style>
+    /* Dark Theme Base */
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #12181f; /* Deep Dark Background */
+      margin: 20px;
+      color: #e0e6ed;
+    }
+
+    h1, h2 { color: #64b5f6; text-align: center; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #1c252e; /* Card Background */
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid #2d3d4d;
+    }
+
+    /* Tube Simulation Styling */
+    .simulation {
+      position: relative;
+      width: 140px;
+      height: 520px;
+      margin: 30px auto;
+      border: 6px solid #455a64;
+      border-radius: 14px 14px 0 0;
+      /* Darker fluid appearance with inner glow */
+      background: linear-gradient(to bottom, #1a2a3a 0%, #0d1a26 100%);
+      overflow: hidden;
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.8), 0 0 15px rgba(100, 181, 246, 0.1);
+    }
+
+    .liquid-label {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 51, 0.85);
+      color: #64b5f6;
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      z-index: 15;
+      border: 1px solid #37474f;
+    }
+
+    .ruler {
+      position: absolute;
+      right: -38px;
+      top: 0;
+      bottom: 0;
+      width: 34px;
+      background: repeating-linear-gradient(to bottom,
+        transparent 0px, transparent 9px,
+        #546e7a 9px, #546e7a 10px
+      );
+      font-size: 0.72rem;
+      color: #90a4ae;
+      text-align: right;
+      padding-right: 4px;
+      line-height: 10px;
+    }
+
+    .timing-mark {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ff5252; /* Neon red for visibility */
+      opacity: 0.8;
+      z-index: 5;
+      box-shadow: 0 0 5px rgba(255, 82, 82, 0.5);
+    }
+
+    .timing-label {
+      position: absolute;
+      right: -65px;
+      font-size: 0.85rem;
+      color: #ff5252;
+      font-weight: bold;
+      pointer-events: none;
+      line-height: 20px;
+    }
+
+    .bottom-label {
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      color: #90a4ae;
+      font-weight: bold;
+    }
+
+    /* Ball Styling - Refined for Dark Mode */
+    .ball {
+      position: absolute;
+      left: 50%;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+      transition: top 0.06s linear;
+      z-index: 10;
+    }
+    .steel { background: radial-gradient(circle at 38% 38%, #ffffff, #9e9e9e, #212121); }
+    .glass { background: radial-gradient(circle at 38% 38%, #e3f2fd, #42a5f5, #0d47a1); border: 1px solid #1e88e5; }
+
+    /* Controls & Cards */
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin: 25px 0;
+    }
+    .card {
+      background: #263238;
+      padding: 18px;
+      border-radius: 10px;
+      border: 1px solid #37474f;
+    }
+    label { font-weight: 600; display: block; margin-bottom: 8px; color: #cfd8dc; }
+    
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #455a64;
+      background: #1c252e;
+      color: white;
+      font-size: 1rem;
+    }
+
+    /* Timer Display */
+    #timer {
+      font-size: 3.8rem;
+      font-family: Consolas, monospace;
+      text-align: center;
+      margin: 20px 0;
+      color: #64b5f6;
+      background: #101921;
+      padding: 18px;
+      border-radius: 12px;
+      border: 1px solid #37474f;
+      text-shadow: 0 0 10px rgba(100, 181, 246, 0.3);
+    }
+
+    /* Buttons */
+    .timer-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      min-width: 110px;
+      transition: opacity 0.2s;
+    }
+    #startBtn   { background: #2e7d32; color: white; }
+    #stopBtn    { background: #c62828; color: white; }
+    #resetBtn   { background: #455a64; color: white; }
+    button:hover { opacity: 0.85; }
+
+    /* Results */
+    .result-box {
+      padding: 20px;
+      border-radius: 10px;
+      margin: 25px 0;
+      font-size: 1.3rem;
+      text-align: center;
+      min-height: 80px;
+      border: 1px solid #37474f;
+    }
+    .info    { background: #263238; color: #cfd8dc; }
+    .stopped { background: #3e2723; color: #ffccbc; border-color: #5d4037; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+      font-size: 1.05rem;
+    }
+    th, td {
+      border: 1px solid #37474f;
+      padding: 12px;
+      text-align: center;
+    }
+    th { background: #101921; color: #64b5f6; }
+    tr:nth-child(even) { background: #222d36; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Terminal Velocity Lab</h1>
+  <h2>100 cm Tube – Experimental Simulation</h2> 
+   <strong>Instructor:</strong>
+        <span id="instrName">Prof. S Karna</span>
+        
+
+  <div class="simulation" id="tube">
+    <div class="liquid-label" id="fluidName">Glycerol</div>
+    <div class="ruler"></div>
+
+    <div class="timing-mark" style="top: 0px;"><div class="timing-label">0 cm</div></div>
+    <div class="timing-mark" style="top: 260px;"><div class="timing-label">50 cm</div></div>
+    <div class="timing-mark" style="top: 312px;"><div class="timing-label">60 cm</div></div>
+    <div class="timing-mark" style="top: 416px;"><div class="timing-label">80 cm</div></div>
+
+    <div class="bottom-label">100 cm (bottom)</div>
+    <div class="ball steel" id="fallingBall"></div>
+  </div>
+
+  <div id="timer">00.00 s</div>
+
+  <div class="timer-buttons">
+    <button id="startBtn" onclick="startFall()">Start</button>
+    <button id="stopBtn"  onclick="stopFall()">Stop</button>
+    <button id="resetBtn" onclick="resetExperiment()">Reset</button>
+  </div>
+
+  <div class="controls">
+    <div class="card">
+      <label>Fluid Type</label>
+      <select id="fluid">
+        <option value="0.001">Water (20°C)</option>
+        <option value="0.89" selected>Glycerol (pure)</option>
+        <option value="0.22">Honey (approx.)</option>
+        <option value="0.05">Olive oil</option>
+        <option value="0.006">Engine oil (SAE 30)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label>Ball material</label>
+      <select id="ballType">
+        <option value="steel">Steel (7.85 g/cm³)</option>
+        <option value="glass">Glass (2.5 g/cm³)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label>Ball diameter (mm)</label>
+      <select id="diameter">
+        <option value="4">4 mm</option>
+        <option value="6" selected>6 mm</option>
+        <option value="8">8 mm</option>
+        <option value="10">10 mm</option>
+        <option value="12">12 mm</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="resultBox" class="result-box info">
+    Press Start → press Stop when ball reaches desired mark
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fluid</th>
+        <th>Ball</th>
+        <th>Diam (mm)</th>
+        <th>Time (s)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="resultsTable"></tbody>
+  </table>
+
+</div>
+
+<script>
+  // [Logic remains identical to original for functional consistency]
+  const g = 9.81;
+  const rho_fluids = {
+    "0.001":  { name:"Water",    rho:1000, eta:0.001  },
+    "0.89":   { name:"Glycerol", rho:1260, eta:0.89   },
+    "0.22":   { name:"Honey",    rho:1420, eta:0.22   },
+    "0.05":   { name:"Olive oil",rho:910,  eta:0.05   },
+    "0.006":  { name:"Engine oil",rho:880, eta:0.006  }
+  };
+  const rho_steel = 7850;
+  const rho_glass = 2500;
+
+  const tube         = document.getElementById("tube");
+  const ball         = document.getElementById("fallingBall");
+  const timerDisplay = document.getElementById("timer");
+  const resultBox    = document.getElementById("resultBox");
+  const tableBody    = document.getElementById("resultsTable");
+  const fluidSelect  = document.getElementById("fluid");
+  const ballTypeSelect = document.getElementById("ballType");
+  const diamSelect   = document.getElementById("diameter");
+  const fluidName    = document.getElementById("fluidName");
+
+  let isFalling = false;
+  let animationFrameId = null;
+  let startTime = 0;
+  let pausedElapsed = 0;
+  let currentY = 0;
+  let velocityPxPerSec = 0;
+
+  const PX_PER_CM = 5.2;
+  const TUBE_HEIGHT_PX = 520;
+
+  function getParams() {
+    const eta = parseFloat(fluidSelect.value);
+    const fluid = rho_fluids[eta];
+    const rho_ball = ballTypeSelect.value === "steel" ? rho_steel : rho_glass;
+    const d_mm = parseFloat(diamSelect.value);
+    const r = d_mm / 2000;
+    return { eta, fluid, rho_ball, r, d_mm, fluidName: fluid.name };
+  }
+
+  function updateAppearance() {
+    const { fluidName: name, d_mm } = getParams();
+    ball.className = `ball ${ballTypeSelect.value}`;
+    const ballSize = d_mm * 1.4;
+    ball.style.width = ball.style.height = `${ballSize}px`;
+    ball.style.marginLeft = `-${ballSize/2}px`;
+    fluidName.textContent = name;
+  }
+
+  function calculateTerminalVelocity(eta, rho_f, rho_b, r) {
+    if (eta <= 0) return 8;
+    return (2/9) * (rho_b - rho_f) * g * (r * r) / eta;
+  }
+
+  function startFall() {
+    if (isFalling) return;
+    const { eta, rho_ball, r } = getParams();
+    const v_ms = calculateTerminalVelocity(eta, rho_fluids[eta].rho, rho_ball, r);
+    velocityPxPerSec = v_ms * PX_PER_CM * 100;
+
+    if (pausedElapsed === 0) {
+      currentY = -50;
+      ball.style.top = currentY + "px";
+      startTime = performance.now();
+    } else {
+      startTime = performance.now() - pausedElapsed;
+    }
+    isFalling = true;
+
+    function animate(now) {
+      if (!isFalling) return;
+      const elapsed = now - startTime;
+      currentY = -50 + (elapsed / 1000) * velocityPxPerSec;
+      ball.style.top = currentY + "px";
+      timerDisplay.textContent = (elapsed / 1000).toFixed(2).padStart(5, "0") + " s";
+
+      if (currentY > TUBE_HEIGHT_PX + 20) {
+        isFalling = false;
+        resultBox.innerHTML = `Reached bottom in <b>${(elapsed / 1000).toFixed(2)} s</b>`;
+        resultBox.className = "result-box info";
+        return;
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    }
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  function stopFall() {
+    if (!isFalling) return;
+    cancelAnimationFrame(animationFrameId);
+    isFalling = false;
+    const stopElapsed = performance.now() - startTime;
+    pausedElapsed = stopElapsed;
+    resultBox.innerHTML = `Stopped at <b>${(stopElapsed / 1000).toFixed(2)} seconds</b>`;
+    resultBox.className = "result-box stopped";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${fluidName.textContent}</td><td>${ballTypeSelect.value}</td><td>${diamSelect.value}</td><td>${(stopElapsed / 1000).toFixed(2)}</td><td>Stopped</td>`;
+    tableBody.appendChild(row);
+  }
+
+  function resetExperiment() {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    isFalling = false;
+    pausedElapsed = 0;
+    currentY = -50;
+    ball.style.top = currentY + "px";
+    timerDisplay.textContent = "00.00 s";
+    resultBox.innerHTML = "Press Start → press Stop when ball reaches desired mark";
+    resultBox.className = "result-box info";
+    tableBody.innerHTML = "";
+    updateAppearance();
+  }
+
+  fluidSelect.addEventListener("change", resetExperiment);
+  ballTypeSelect.addEventListener("change", updateAppearance);
+  diamSelect.addEventListener("change", updateAppearance);
+  updateAppearance();
+  resetExperiment();
+</script>
+</body>
+</html>

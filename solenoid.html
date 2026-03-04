@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solenoid — Current & Magnetic Field</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,500&display=swap');
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #07090f;
+    color: #c8d8f0;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 18px 12px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.25rem, 3vw, 1.85rem);
+    color: #e8f0ff;
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-bottom: 3px;
+  }
+  .sub {
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #334;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .wrap {
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px;
+    background: #04060e;
+    padding: 4px;
+    box-shadow: 0 0 60px rgba(34,180,255,0.05);
+  }
+
+  canvas {
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* legend row */
+  .legend {
+    display: flex;
+    gap: 22px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: #556;
+  }
+  .legend-item { display:flex; align-items:center; gap:7px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot.wire    { background: #f59e0b; }
+  .dot.field   { background: #22d3ee; }
+  .dot.current-out { background: transparent; border: 2px solid #f59e0b;
+                     display:flex; align-items:center; justify-content:center;
+                     font-size:9px; color:#f59e0b; font-weight:bold; }
+  .dot.current-in  { background: transparent; border: 2px solid #f59e0b;
+                     display:flex; align-items:center; justify-content:center;
+                     font-size:9px; color:#f59e0b; font-weight:bold; }
+
+  /* controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 13px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 7px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: transparent;
+    color: #7888a0;
+    transition: all 0.15s;
+  }
+  button:hover { background: rgba(255,255,255,0.05); color: #cdd; }
+  button.on    { background: rgba(34,211,238,0.10); color: #22d3ee; border-color: rgba(34,211,238,0.35); }
+  button.rev   { color: #f59e0b; border-color: rgba(245,158,11,0.25); }
+  button.rev:hover { background: rgba(245,158,11,0.08); }
+
+  .slider-group {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.60rem; color: #445; letter-spacing: 0.1em;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 90px; height: 3px;
+    background: #1a2535; border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width:12px; height:12px; border-radius:50%;
+    background: #22d3ee; cursor: pointer;
+  }
+  .slval { color: #22d3ee; min-width: 18px; }
+
+  .formula-bar {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: #3a5a6a;
+    margin-top: 10px;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<h1>Solenoid — Current in Wire &amp; Magnetic Field</h1>
+<p class="sub">Right-hand rule · B = μ₀nI inside · uniform axial field</p>
+
+<div class="wrap">
+  <canvas id="sol" width="780" height="420"></canvas>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot wire"></div>Coil wire (copper)</div>
+  <div class="legend-item"><div class="dot current-out">·</div>Current out of page (top)</div>
+  <div class="legend-item"><div class="dot current-in">×</div>Current into page (bottom)</div>
+  <div class="legend-item"><div class="dot field"></div>Magnetic field B (inside)</div>
+</div>
+
+<div class="controls">
+  <button id="btnPlay" class="on">Pause</button>
+  <button id="btnRev" class="rev">⇌ Reverse Current</button>
+  <div class="slider-group">
+    TURNS
+    <input type="range" id="slTurns" min="6" max="16" value="10">
+    <span class="slval" id="vTurns">10</span>
+  </div>
+  <div class="slider-group">
+    SPEED
+    <input type="range" id="slSpeed" min="1" max="6" value="3">
+    <span class="slval" id="vSpeed">3</span>
+  </div>
+</div>
+
+<p class="formula-bar">B = μ₀ · n · I &nbsp;&nbsp;·&nbsp;&nbsp; n = N/L &nbsp;&nbsp;·&nbsp;&nbsp; field uniform &amp; axial inside</p>
+
+<script>
+// ─── canvas setup ───────────────────────────────────────────────
+const cv  = document.getElementById('sol');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+// ─── layout constants ───────────────────────────────────────────
+const CY = H / 2 + 10;          // vertical centre
+const SL = 115, SR = 665;       // solenoid left/right x
+const SLEN = SR - SL;
+const SR_Y = 78;                // solenoid half-height (tube radius)
+const WIRE_W = 9;               // visual thickness of each turn arc
+
+// ─── state ──────────────────────────────────────────────────────
+let running  = true;
+let dir      = 1;               // +1 = current right-hand → B rightward
+let nTurns   = 10;
+let spd      = 3;
+let t        = 0;               // animation tick
+
+// ─── current particles on wire turns ────────────────────────────
+// Each particle rides along the coil wire path (helical projection)
+// We model it as: travel along top → right arc → bottom → left arc
+const CUR_PER_TURN = 3;        // particles per turn
+let curParts = [];              // { turn, phase(0-1), speed }
+
+function buildCurrentParticles() {
+  curParts = [];
+  for (let k = 0; k < nTurns; k++) {
+    for (let j = 0; j < CUR_PER_TURN; j++) {
+      curParts.push({
+        turn:  k,
+        phase: (k * CUR_PER_TURN + j) / (nTurns * CUR_PER_TURN), // stagger
+      });
+    }
+  }
+}
+buildCurrentParticles();
+
+// Map (turn, phase) → canvas (x, y)
+// A turn is an ellipse of half-axes (WIRE_W, SR_Y) at x = turnX(k)
+// phase 0 = top of ellipse, goes CW (seen as CCW current when dir=+1 → B rightward)
+function turnX(k) {
+  return SL + (k + 0.5) * (SLEN / nTurns);
+}
+
+function phaseToXY(k, phase, dirSign) {
+  // When dir=+1: current flows CCW around each turn (right-hand → B goes right)
+  //   Top wire: left→right, Bottom wire: right→left
+  //   We model as a full ellipse traversal
+  //   phase 0 = rightmost point of ellipse
+  const angle = phase * Math.PI * 2 * (-dirSign); // CCW for dir=+1
+  const tx = turnX(k);
+  const x  = tx + Math.cos(angle) * WIRE_W;
+  const y  = CY + Math.sin(angle) * SR_Y;
+  return { x, y };
+}
+
+// ─── field particles inside solenoid ────────────────────────────
+const NFIELD = 35;
+let fParts = [];
+
+function buildFieldParticles() {
+  fParts = [];
+  // Spread across y levels inside tube
+  const rows = 7;
+  const yLevels = [-52, -36, -20, 0, 20, 36, 52];
+  const perRow  = Math.ceil(NFIELD / rows);
+  yLevels.forEach((dy, ri) => {
+    for (let j = 0; j < perRow; j++) {
+      fParts.push({
+        x: SL + Math.random() * SLEN,
+        y: CY + dy,
+        dy,
+        baseSpd: 0.55 + Math.random() * 0.45,
+      });
+    }
+  });
+}
+buildFieldParticles();
+
+// ─── helpers ────────────────────────────────────────────────────
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+// ─── draw background glow ───────────────────────────────────────
+function drawBg() {
+  // inner glow along solenoid axis
+  const g = ctx.createLinearGradient(SL, CY - SR_Y, SL, CY + SR_Y);
+  g.addColorStop(0, 'rgba(5,20,45,0)');
+  g.addColorStop(0.5, 'rgba(10,35,60,0.55)');
+  g.addColorStop(1, 'rgba(5,20,45,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(SL, CY - SR_Y, SLEN, SR_Y * 2);
+}
+
+// ─── draw solenoid tube ends ─────────────────────────────────────
+function drawTube() {
+  // tube body fill
+  ctx.save();
+  const tg = ctx.createLinearGradient(0, CY - SR_Y, 0, CY + SR_Y);
+  tg.addColorStop(0,   'rgba(10,25,50,0.7)');
+  tg.addColorStop(0.45,'rgba(15,35,65,0.8)');
+  tg.addColorStop(0.55,'rgba(15,35,65,0.8)');
+  tg.addColorStop(1,   'rgba(10,25,50,0.7)');
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.rect(SL, CY - SR_Y, SLEN, SR_Y * 2);
+  ctx.fill();
+
+  // top & bottom border lines
+  ctx.strokeStyle = 'rgba(80,110,160,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(SL, CY - SR_Y); ctx.lineTo(SR, CY - SR_Y);
+  ctx.moveTo(SL, CY + SR_Y); ctx.lineTo(SR, CY + SR_Y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ─── draw axis dashed line ───────────────────────────────────────
+function drawAxis() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([7, 7]);
+  ctx.beginPath();
+  ctx.moveTo(40, CY); ctx.lineTo(W - 40, CY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.textAlign = 'left';
+  ctx.fillText('axis', W - 78, CY - 5);
+  ctx.restore();
+}
+
+// ─── draw one coil turn ──────────────────────────────────────────
+// Each turn: back-half arc (dim), then front-half arc (bright)
+// with dot/cross markers at top and bottom
+function drawTurns() {
+  for (let k = 0; k < nTurns; k++) {
+    const tx = turnX(k);
+
+    // — back half (behind axis, y < CY) rendered BEFORE field particles
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(tx, CY, WIRE_W, SR_Y, 0, Math.PI, Math.PI * 2); // top half (y < CY = "back")
+    ctx.strokeStyle = 'rgba(210,140,20,0.28)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawTurnsFront() {
+  for (let k = 0; k < nTurns; k++) {
+    const tx = turnX(k);
+
+    // — front half (y > CY) rendered AFTER field particles
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(tx, CY, WIRE_W, SR_Y, 0, 0, Math.PI); // bottom half (y > CY = "front")
+    ctx.strokeStyle = 'rgba(245,158,11,0.85)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    // Dot · at top (current direction depends on dir)
+    // dir=+1, CCW → top wire goes rightward → dot (out of page)
+    const topSym    = dir > 0 ? '·' : '×';
+    const bottomSym = dir > 0 ? '×' : '·';
+    const topCol    = 'rgba(245,158,11,0.90)';
+
+    // dot/cross circle at top
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(tx, CY - SR_Y, 7, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(6,10,22,0.9)';
+    ctx.strokeStyle = 'rgba(245,158,11,0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = topCol;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(topSym, tx, CY - SR_Y);
+    ctx.restore();
+
+    // dot/cross circle at bottom
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(tx, CY + SR_Y, 7, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(6,10,22,0.9)';
+    ctx.strokeStyle = 'rgba(245,158,11,0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = topCol;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bottomSym, tx, CY + SR_Y);
+    ctx.restore();
+  }
+}
+
+// ─── draw current particles on wire ─────────────────────────────
+function updateCurrentParticles(dt) {
+  curParts.forEach(p => {
+    p.phase += (spd * 0.003) * dt;
+    if (p.phase >= 1) p.phase -= 1;
+    if (p.phase <  0) p.phase += 1;
+  });
+}
+
+function drawCurrentParticles() {
+  curParts.forEach(p => {
+    const { x, y } = phaseToXY(p.turn, p.phase, dir);
+
+    // Only render if in "front" zone (front half of ellipse)
+    // front = bottom half of turn, i.e. y > CY − a small threshold
+    // back  = top    half of turn, i.e. y < CY
+    // We check sin(angle) > 0 → front half
+    const angle = p.phase * Math.PI * 2 * (-dir);
+    const inFront = Math.sin(angle) > -0.15;
+
+    const alpha = inFront ? 0.95 : 0.22;
+
+    // glow
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 8);
+    g.addColorStop(0, `rgba(255,200,60,${alpha * 0.7})`);
+    g.addColorStop(1, `rgba(255,200,60,0)`);
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // core dot
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,220,80,${alpha})`;
+    ctx.fill();
+  });
+}
+
+// ─── draw magnetic field particles inside ───────────────────────
+function updateFieldParticles(dt) {
+  fParts.forEach(p => {
+    p.x += dir * p.baseSpd * spd * 0.38 * dt;
+    // wrap inside solenoid
+    if (dir > 0 && p.x > SR + 4) p.x = SL - 4;
+    if (dir < 0 && p.x < SL - 4) p.x = SR + 4;
+  });
+}
+
+function drawFieldParticles() {
+  fParts.forEach(p => {
+    // fade near top/bottom of tube
+    const normY = Math.abs(p.dy) / (SR_Y - 10);
+    const alpha = Math.max(0.05, 0.85 - normY * 0.6);
+
+    // fade near ends
+    const edgeFade = Math.min(
+      (p.x - SL) / 30,
+      (SR - p.x) / 30,
+      1
+    );
+    const a = alpha * Math.max(0, Math.min(1, edgeFade));
+
+    // glow
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 7);
+    g.addColorStop(0, `rgba(34,211,238,${a * 0.65})`);
+    g.addColorStop(1, `rgba(34,211,238,0)`);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // core
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(34,211,238,${a})`;
+    ctx.fill();
+  });
+}
+
+// ─── draw static field line arrows on axis ───────────────────────
+function drawFieldArrows() {
+  const ys   = [-52, -36, -20, 0, 20, 36, 52];
+  const xs   = [160, 240, 320, 400, 480, 560, 620];
+  ys.forEach(dy => {
+    const y = CY + dy;
+    xs.forEach(x => {
+      if (x < SL + 10 || x > SR - 10) return;
+      ctx.save();
+      ctx.translate(x, y);
+      if (dir < 0) ctx.scale(-1, 1);
+      ctx.beginPath();
+      ctx.moveTo(7, 0);
+      ctx.lineTo(-4, 3.5);
+      ctx.lineTo(-4, -3.5);
+      ctx.closePath();
+      const alpha = Math.max(0.08, 0.30 - Math.abs(dy) / 280);
+      ctx.fillStyle = `rgba(34,211,238,${alpha})`;
+      ctx.fill();
+      ctx.restore();
+    });
+  });
+}
+
+// ─── draw pole labels (N/S) ──────────────────────────────────────
+function drawPoles() {
+  // dir=+1 → B goes rightward → right end = North
+  const northX = dir > 0 ? SR + 22 : SL - 22;
+  const southX = dir > 0 ? SL - 22 : SR + 22;
+
+  ctx.save();
+  ctx.font = 'bold 15px Share Tech Mono, monospace';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#60a5fa';
+  ctx.textAlign = dir > 0 ? 'left' : 'right';
+  ctx.fillText('N', northX, CY);
+
+  ctx.fillStyle = '#f87171';
+  ctx.textAlign = dir > 0 ? 'right' : 'left';
+  ctx.fillText('S', southX, CY);
+  ctx.restore();
+}
+
+// ─── draw right-hand rule thumb ──────────────────────────────────
+function drawRHR() {
+  ctx.save();
+  ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(245,158,11,0.30)';
+  ctx.textAlign = 'center';
+  ctx.fillText('right-hand rule →', W / 2, CY + SR_Y + 38);
+  ctx.fillStyle = 'rgba(34,211,238,0.22)';
+  ctx.fillText(`B direction: ${dir > 0 ? '→  rightward' : '←  leftward'}`, W / 2, CY + SR_Y + 52);
+  ctx.restore();
+}
+
+// ─── draw B label ────────────────────────────────────────────────
+function drawBLabel() {
+  ctx.save();
+  ctx.font = 'italic 500 13px Cormorant Garamond, serif';
+  ctx.fillStyle = 'rgba(34,211,238,0.28)';
+  ctx.textAlign = 'center';
+  ctx.fillText('B  (uniform inside)', W / 2, CY - SR_Y - 30);
+  ctx.restore();
+
+  // big B arrow on axis
+  const mx = W / 2, my = CY;
+  const len = 60;
+  const ex = mx + dir * len;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(34,211,238,0.55)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(mx - dir * len, my);
+  ctx.lineTo(ex, my);
+  ctx.stroke();
+  ctx.translate(ex, my);
+  ctx.rotate(dir > 0 ? 0 : Math.PI);
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(-10, 5); ctx.lineTo(-10, -5);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(34,211,238,0.7)';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = 'italic 500 15px Cormorant Garamond, serif';
+  ctx.fillStyle = 'rgba(34,211,238,0.55)';
+  ctx.textAlign = dir > 0 ? 'left' : 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('B', W / 2 + dir * (len + 14), CY - 10);
+  ctx.restore();
+}
+
+// ─── main render ─────────────────────────────────────────────────
+let last = null;
+function render(now) {
+  const dt = last ? Math.min((now - last) / 16, 3) : 1;
+  last = now;
+
+  // clear
+  ctx.clearRect(0, 0, W, H);
+
+  // deep bg
+  ctx.fillStyle = '#04060e';
+  ctx.fillRect(0, 0, W, H);
+
+  drawBg();
+  drawAxis();
+  drawTube();
+
+  // back halves of turns (so field particles appear "inside" the coil)
+  drawTurns();
+
+  // field (inside)
+  drawFieldArrows();
+  if (running) updateFieldParticles(dt);
+  drawFieldParticles();
+
+  // current particles (behind front arcs drawn partly dim)
+  if (running) updateCurrentParticles(dt);
+  drawCurrentParticles();
+
+  // front halves of turns + dot/cross
+  drawTurnsFront();
+
+  drawBLabel();
+  drawPoles();
+  drawRHR();
+
+  if (running) t += dt;
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// ─── controls ────────────────────────────────────────────────────
+document.getElementById('btnPlay').addEventListener('click', function() {
+  running = !running;
+  this.textContent = running ? 'Pause' : 'Resume';
+  this.classList.toggle('on', running);
+});
+
+document.getElementById('btnRev').addEventListener('click', () => {
+  dir *= -1;
+});
+
+const slTurns = document.getElementById('slTurns');
+const vTurns  = document.getElementById('vTurns');
+slTurns.addEventListener('input', function() {
+  nTurns = parseInt(this.value);
+  vTurns.textContent = nTurns;
+  buildCurrentParticles();
+  buildFieldParticles();
+});
+
+const slSpeed = document.getElementById('slSpeed');
+const vSpeed  = document.getElementById('vSpeed');
+slSpeed.addEventListener('input', function() {
+  spd = parseInt(this.value);
+  vSpeed.textContent = spd;
+});
+</script>
+</body>
+</html>

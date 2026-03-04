@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Additive Color Mixing — Dr. S Karna</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .header {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 36px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #ddd;
+    margin-bottom: 4px;
+  }
+  .subtitle { font-size: 0.78rem; color: #555; letter-spacing: 0.1em; }
+  .instructor-card {
+    text-align: right;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 10px 16px;
+    white-space: nowrap;
+  }
+  .instructor-label { font-size: 0.6rem; color: #555; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+  .instructor-name { font-size: 0.95rem; font-weight: 600; color: #ccc; letter-spacing: 0.04em; }
+  .venn-container { width: 420px; height: 420px; margin-bottom: 40px; }
+  svg { overflow: visible; }
+  .patches-title { font-size: 0.62rem; color: #444; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+  .patches-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    max-width: 600px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+  .patch-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .patch-swatch {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    margin: 0 auto 8px;
+  }
+  .patch-name { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 3px; }
+  .patch-wl { font-size: 0.58rem; color: #666; line-height: 1.4; }
+  table { max-width: 600px; width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #555; padding: 8px 14px; text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  td { padding: 11px 14px; font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .dot {
+    display: inline-block; width: 9px; height: 9px;
+    border-radius: 50%; margin-right: 5px; vertical-align: middle;
+  }
+  .plus { color: #444; margin: 0 5px; }
+  .arrow { color: #444; }
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+  }
+  .wl-cell { font-size: 0.72rem; color: #666; font-style: italic; }
+  .footer {
+    margin-top: 36px; font-size: 0.6rem;
+    color: #2a2a2a; letter-spacing: 0.1em; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <h1>Additive Color Mixing</h1>
+    <p class="subtitle">RGB Light — How primary colors combine</p>
+  </div>
+  <div class="instructor-card">
+    <div class="instructor-label">Instructor</div>
+    <div class="instructor-name">Dr. S Karna</div>
+  </div>
+</div>
+
+<!-- Venn Diagram -->
+<div class="venn-container">
+  <svg viewBox="0 0 420 420" width="420" height="420" xmlns="http://www.w3.org/2000/svg">
+    <g style="isolation:isolate">
+      <circle cx="197" cy="155" r="128" fill="rgb(255,0,0)" style="mix-blend-mode:screen" opacity="0.85"/>
+      <circle cx="274" cy="285" r="128" fill="rgb(0,255,0)" style="mix-blend-mode:screen" opacity="0.85"/>
+      <circle cx="120" cy="285" r="128" fill="rgb(0,0,255)" style="mix-blend-mode:screen" opacity="0.85"/>
+    </g>
+
+    <!-- RED -->
+    <text x="197" y="43" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="2" fill="rgb(255,120,120)">RED</text>
+    <text x="197" y="57" text-anchor="middle" font-size="9" fill="rgba(255,160,160,0.75)" letter-spacing="1">620–750 nm</text>
+
+    <!-- GREEN -->
+    <text x="326" y="362" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="2" fill="rgb(80,255,80)">GREEN</text>
+    <text x="326" y="375" text-anchor="middle" font-size="9" fill="rgba(100,255,100,0.75)" letter-spacing="1">495–570 nm</text>
+
+    <!-- BLUE -->
+    <text x="68" y="362" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="2" fill="rgb(110,140,255)">BLUE</text>
+    <text x="68" y="375" text-anchor="middle" font-size="9" fill="rgba(140,170,255,0.75)" letter-spacing="1">450–495 nm</text>
+
+    <!-- YELLOW zone -->
+    <text x="258" y="181" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.95)">YELLOW</text>
+    <text x="258" y="193" text-anchor="middle" font-size="8" fill="rgba(255,255,180,0.75)" letter-spacing="0.5">570–590 nm</text>
+
+    <!-- MAGENTA zone -->
+    <text x="134" y="181" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.95)">MAGENTA</text>
+    <text x="134" y="193" text-anchor="middle" font-size="8" fill="rgba(255,200,255,0.75)" letter-spacing="0.5">~400+700 nm</text>
+
+    <!-- CYAN zone -->
+    <text x="197" y="326" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.95)">CYAN</text>
+    <text x="197" y="338" text-anchor="middle" font-size="8" fill="rgba(180,255,255,0.75)" letter-spacing="0.5">490–500 nm</text>
+
+    <!-- WHITE center -->
+    <text x="197" y="234" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#fff">WHITE</text>
+    <text x="197" y="246" text-anchor="middle" font-size="7.5" fill="rgba(255,255,255,0.6)" letter-spacing="0.5">all visible</text>
+  </svg>
+</div>
+
+<!-- Color Patch Reference -->
+<div style="max-width:600px;width:100%">
+  <div class="patches-title">Color Wavelength Reference</div>
+  <div class="patches-grid">
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#ff2200,#ff6644);box-shadow:0 0 14px rgba(255,60,0,0.6)"></div>
+      <div class="patch-name" style="color:#ff7755">Red</div>
+      <div class="patch-wl">620–750 nm</div>
+    </div>
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#00cc44,#44ff88);box-shadow:0 0 14px rgba(0,255,80,0.5)"></div>
+      <div class="patch-name" style="color:#44ff88">Green</div>
+      <div class="patch-wl">495–570 nm</div>
+    </div>
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#0033ff,#4488ff);box-shadow:0 0 14px rgba(60,100,255,0.6)"></div>
+      <div class="patch-name" style="color:#6699ff">Blue</div>
+      <div class="patch-wl">450–495 nm</div>
+    </div>
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#ffee00,#ffd700);box-shadow:0 0 14px rgba(255,230,0,0.5)"></div>
+      <div class="patch-name" style="color:#ffee00">Yellow</div>
+      <div class="patch-wl">570–590 nm</div>
+    </div>
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#ff00ff,#cc00cc);box-shadow:0 0 14px rgba(255,0,255,0.5)"></div>
+      <div class="patch-name" style="color:#ff66ff">Magenta</div>
+      <div class="patch-wl">~400+700 nm</div>
+    </div>
+    <div class="patch-item">
+      <div class="patch-swatch" style="background:linear-gradient(135deg,#00ffff,#00cccc);box-shadow:0 0 14px rgba(0,255,255,0.5)"></div>
+      <div class="patch-name" style="color:#00ffff">Cyan</div>
+      <div class="patch-wl">490–500 nm</div>
+    </div>
+  </div>
+</div>
+
+<!-- Formula Table -->
+<table>
+  <thead>
+    <tr>
+      <th>Primary Colors</th>
+      <th></th>
+      <th>Result</th>
+      <th>Wavelength</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <span class="dot" style="background:#ff4444"></span>Red
+        <span class="plus">+</span>
+        <span class="dot" style="background:#44ff44"></span>Green
+      </td>
+      <td class="arrow">→</td>
+      <td><span class="pill" style="background:rgba(255,255,0,0.15);color:#ffff00;border:1px solid rgba(255,255,0,0.4)">● Yellow</span></td>
+      <td class="wl-cell">570–590 nm</td>
+    </tr>
+    <tr>
+      <td>
+        <span class="dot" style="background:#ff4444"></span>Red
+        <span class="plus">+</span>
+        <span class="dot" style="background:#4466ff"></span>Blue
+      </td>
+      <td class="arrow">→</td>
+      <td><span class="pill" style="background:rgba(255,0,255,0.15);color:#ff66ff;border:1px solid rgba(255,0,255,0.4)">● Magenta</span></td>
+      <td class="wl-cell">~400+700 nm</td>
+    </tr>
+    <tr>
+      <td>
+        <span class="dot" style="background:#44ff44"></span>Green
+        <span class="plus">+</span>
+        <span class="dot" style="background:#4466ff"></span>Blue
+      </td>
+      <td class="arrow">→</td>
+      <td><span class="pill" style="background:rgba(0,255,255,0.15);color:#00ffff;border:1px solid rgba(0,255,255,0.4)">● Cyan</span></td>
+      <td class="wl-cell">490–500 nm</td>
+    </tr>
+    <tr>
+      <td>
+        <span class="dot" style="background:#ff4444"></span>Red
+        <span class="plus">+</span>
+        <span class="dot" style="background:#44ff44"></span>Green
+        <span class="plus">+</span>
+        <span class="dot" style="background:#4466ff"></span>Blue
+      </td>
+      <td class="arrow">→</td>
+      <td><span class="pill" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.4)">● White</span></td>
+      <td class="wl-cell">380–750 nm</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Footer -->
+<div class="footer">ADDITIVE COLOR MODEL (RGB) &nbsp;·&nbsp; INSTRUCTOR: DR. S KARNA</div>
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Projectile Lab: Dr. S Karna</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #121212; 
+            color: #e0e0e0;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .instructor { color: #ff7043; font-weight: bold; font-size: 1.1rem; margin-top: 5px; }
+        
+        #sim-container { 
+            position: relative; 
+            width: 800px; 
+            height: 450px; 
+            background: #1e1e1e; 
+            border-bottom: 20px solid #1b5e20; 
+            overflow: hidden; 
+            border-radius: 8px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        canvas { width: 100%; height: 100%; }
+        
+        .controls { 
+            background: #252525; 
+            padding: 25px; 
+            border-radius: 12px; 
+            margin-top: 20px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            width: 750px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .height-toggle { grid-column: span 2; display: flex; gap: 10px; }
+        .height-btn {
+            flex: 1; padding: 10px; background: #333; border: 2px solid #444;
+            color: #888; cursor: pointer; border-radius: 6px; transition: 0.3s;
+        }
+        .height-btn.active { border-color: #d84315; color: white; background: #3d2620; }
+        
+        label { font-weight: bold; color: #bbb; display: block; margin-bottom: 8px; }
+        .val-display { color: #ff7043; font-size: 1.1rem; }
+        
+        #angle-group { display: none; } 
+
+        button#launch-btn { 
+            grid-column: span 1; padding: 15px; font-weight: bold; 
+            cursor: pointer; border: none; border-radius: 6px; 
+            color: white; background: #d84315;
+        }
+        button#clear-btn { 
+            grid-column: span 1; background: #424242; color: #eee;
+            border: none; border-radius: 6px; cursor: pointer;
+        }
+
+        .stats-table { 
+            width: 800px; margin-top: 20px; border-collapse: collapse; 
+            background: #1e1e1e; color: #ccc; font-size: 0.9rem;
+        }
+        th, td { border: 1px solid #333; padding: 10px; text-align: center; }
+        th { background: #263238; color: #ff7043; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Projectile Motion Laboratory</h1>
+        <div class="instructor">Instructor: Dr. S Karna</div>
+    </div>
+
+    <div id="sim-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <div class="height-toggle">
+            <button class="height-btn" onclick="setHeight(0)" id="btn-0">Ground Launch</button>
+            <button class="height-btn active" onclick="setHeight(1)" id="btn-1">Elevated (1m) Launch</button>
+        </div>
+
+        <div class="control-group">
+            <label>Initial Velocity (v₀): <span id="v-val" class="val-display">15</span> m/s</label>
+            <input type="range" id="v0" min="5" max="35" value="15" style="width:100%">
+        </div>
+
+        <div class="control-group" id="angle-group">
+            <label>Launch Angle (θ): <span id="angle-val" class="val-display">45</span>°</label>
+            <input type="range" id="angle-input" min="0" max="75" value="45" style="width:100%">
+        </div>
+        
+        <div class="control-group" id="fixed-angle-msg" style="text-align: right; color: #888;">
+            <label>Angle Fixed: <span style="color:#ff7043">0° (Horizontal)</span></label>
+            <small>Gravity (g) = 9.81 m/s²</small>
+        </div>
+                
+        <button id="launch-btn" onclick="launch()">FIRE CANNON</button>
+        <button id="clear-btn" onclick="clearSim()">RESET DATA</button>
+    </div>
+
+    <table class="stats-table" id="data-table">
+        <thead>
+            <tr>
+                <th>Trial</th>
+                <th>Height (h)</th>
+                <th>Angle (θ)</th>
+                <th>Range (R)</th>
+                <th>Time (t)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const v0Input = document.getElementById('v0');
+    const angleInput = document.getElementById('angle-input');
+    const tableBody = document.querySelector('#data-table tbody');
+
+    canvas.width = 800;
+    canvas.height = 450;
+
+    const g = 9.81;
+    let hMeters = 1.0; 
+    let trials = 0;
+
+    v0Input.oninput = () => document.getElementById('v-val').innerText = v0Input.value;
+    angleInput.oninput = () => {
+        document.getElementById('angle-val').innerText = angleInput.value;
+        drawWorld();
+    };
+
+    function setHeight(h) {
+        hMeters = h;
+        document.getElementById('btn-0').classList.toggle('active', h === 0);
+        document.getElementById('btn-1').classList.toggle('active', h === 1);
+        document.getElementById('angle-group').style.display = (h === 0) ? 'block' : 'none';
+        document.getElementById('fixed-angle-msg').style.display = (h === 0) ? 'none' : 'block';
+        drawWorld();
+    }
+
+    function drawWorld() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const startX = 50;
+        const scale = 250;
+        const launchY = canvas.height - (hMeters * scale);
+
+        if (hMeters > 0) {
+            ctx.fillStyle = "#37474f";
+            ctx.fillRect(0, launchY, startX, hMeters * scale);
+        }
+                
+        const angle = (hMeters === 0) ? angleInput.value : 0;
+        const rad = angle * Math.PI / 180;
+        
+        ctx.save();
+        ctx.translate(startX, launchY - 5);
+        ctx.rotate(-rad);
+        ctx.fillStyle = "#ff7043";
+        ctx.fillRect(-15, -10, 40, 15);
+        ctx.restore();
+    }
+
+    function launch() {
+        const v0 = parseFloat(v0Input.value);
+        const angleDeg = (hMeters === 0) ? parseFloat(angleInput.value) : 0;
+        const angleRad = angleDeg * Math.PI / 180;
+        let t = 0;
+        const dt = 0.01;
+        trials++;
+
+        const startX = 50;
+        const scale = 250;
+        const startY = canvas.height - (hMeters * scale) - 5;
+
+        ctx.beginPath();
+        ctx.strokeStyle = `hsl(${trials * 137.5}, 80%, 60%)`; 
+        ctx.lineWidth = 2;
+        ctx.moveTo(startX, startY);
+
+        function frame() {
+            t += dt;
+            let x = v0 * Math.cos(angleRad) * t;
+            let y = (v0 * Math.sin(angleRad) * t) - (0.5 * g * t * t);
+            let currentX = startX + (x * 15); 
+            let currentY = startY - (y * 15);
+
+            if (currentY <= canvas.height && currentX <= canvas.width) {
+                ctx.lineTo(currentX, currentY);
+                ctx.stroke();
+                requestAnimationFrame(frame);
+            } else {
+                const a = -0.5 * g;
+                const b = v0 * Math.sin(angleRad);
+                const c = hMeters;
+                const t_final = (hMeters === 0 && angleDeg === 0) ? 0 : (-b - Math.sqrt(b*b - 4*a*c)) / (2*a);
+                const range = v0 * Math.cos(angleRad) * t_final;
+                
+                const row = `<tr>
+                    <td>${trials}</td>
+                    <td>${hMeters.toFixed(1)} m</td>
+                    <td>${angleDeg}°</td>
+                    <td>${range.toFixed(2)} m</td>
+                    <td>${t_final.toFixed(3)} s</td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('afterbegin', row);
+            }
+        }
+        frame();
+    }
+
+    function clearSim() {
+        tableBody.innerHTML = "";
+        trials = 0;
+        drawWorld();
+    }
+
+    drawWorld();
+</script>
+</body>
+</html>

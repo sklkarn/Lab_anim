@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double Slit Wave Physics Simulation</title>
+    <style>
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        canvas { display: block; cursor: crosshair; }
+        .ui { position: absolute; top: 20px; left: 20px; background: rgba(0, 20, 0, 0.85); padding: 20px; border: 1px solid #0f0; border-radius: 4px; width: 220px; }
+        h2 { margin: 0 0 15px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; }
+        label { display: block; margin-top: 15px; font-size: 11px; color: #8f8; }
+        input[type=range] { width: 100%; accent-color: #0f0; }
+        .legend { margin-top: 20px; font-size: 10px; color: #5a5; }
+    </style>
+</head>
+<body>
+
+<div class="ui">
+    <h2>Interference Lab</h2>
+    <label>Wavelength (λ)</label>
+    <input type="range" id="wl" min="15" max="60" value="30">
+    <label>Slit Gap (d)</label>
+    <input type="range" id="sep" min="20" max="100" value="45">
+    <div class="legend">
+        - Light radiates from Source<br>
+        - Diffracts through Main Slit<br>
+        - Interferes through Double Slits
+    </div>
+</div>
+
+<canvas id="sim"></canvas>
+
+<script>
+const canvas = document.getElementById('sim');
+const ctx = canvas.getContext('2d');
+const wlInput = document.getElementById('wl');
+const sepInput = document.getElementById('sep');
+
+let width, height, time = 0;
+const resolution = 5; // Size of "wave pixels" (Lower is prettier but slower)
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function getDist(x1, y1, x2, y2) {
+    return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
+}
+
+function animate() {
+    // Clear background
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, width, height);
+
+    const L = parseFloat(wlInput.value);
+    const d = parseFloat(sepInput.value);
+    const k = (2 * Math.PI) / L; // Wave number
+    
+    // Positions
+    const sourceX = 80;
+    const mainSlitX = 280;
+    const doubleSlitX = 500;
+    const screenX = width - 100;
+    const centerY = height / 2;
+
+    time += 0.2; // Frequency control
+
+    // Render the Wave Field
+    for (let x = sourceX; x < screenX; x += resolution) {
+        for (let y = 0; y < height; y += resolution) {
+            let amplitude = 0;
+
+            if (x < mainSlitX) {
+                // Zone 1: Single Source
+                let r = getDist(x, y, sourceX, centerY);
+                amplitude = Math.sin(k * r - time);
+            } 
+            else if (x < doubleSlitX) {
+                // Zone 2: Diffraction from the first single slit
+                let r = getDist(x, y, mainSlitX, centerY);
+                amplitude = Math.sin(k * r - time);
+            } 
+            else {
+                // Zone 3: THE FIX - Adding two separate waves from the two slits
+                let r1 = getDist(x, y, doubleSlitX, centerY - d);
+                let r2 = getDist(x, y, doubleSlitX, centerY + d);
+                
+                // Superposition principle: Sum of individual wave functions
+                amplitude = (Math.sin(k * r1 - time) + Math.sin(k * r2 - time)) / 2;
+            }
+
+            // Draw the wave intensity
+            const intensity = (amplitude + 1) / 2; // Normalize to 0-1
+            ctx.fillStyle = `rgba(0, 255, 150, ${intensity * 0.4})`;
+            ctx.fillRect(x, y, resolution, resolution);
+        }
+    }
+
+    // DRAW BARRIERS
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+
+    // Main Slit Barrier
+    ctx.beginPath();
+    ctx.moveTo(mainSlitX, 0); ctx.lineTo(mainSlitX, centerY - 15);
+    ctx.moveTo(mainSlitX, centerY + 15); ctx.lineTo(mainSlitX, height);
+    // Double Slit Barrier
+    ctx.moveTo(doubleSlitX, 0); ctx.lineTo(doubleSlitX, centerY - d - 10);
+    ctx.moveTo(doubleSlitX, centerY - d + 10); ctx.lineTo(doubleSlitX, centerY + d - 10);
+    ctx.moveTo(doubleSlitX, centerY + d + 10); ctx.lineTo(doubleSlitX, height);
+    ctx.stroke();
+
+    // DRAW INTENSITY ON SCREEN
+    ctx.fillStyle = '#111';
+    ctx.fillRect(screenX, 0, 80, height);
+    
+    for (let sy = 0; sy < height; sy += 2) {
+        let r1 = getDist(screenX, sy, doubleSlitX, centerY - d);
+        let r2 = getDist(screenX, sy, doubleSlitX, centerY + d);
+        let amp = (Math.sin(k * r1 - time) + Math.sin(k * r2 - time)) / 2;
+        
+        // Intensity is proportional to the square of the amplitude
+        let brightness = Math.pow(amp, 2); 
+        ctx.fillStyle = `rgb(0, ${brightness * 255}, ${brightness * 100})`;
+        ctx.fillRect(screenX, sy, 80, 2);
+    }
+
+    // Labels
+    ctx.fillStyle = "white";
+    ctx.font = "10px Arial";
+    ctx.fillText("SOURCE", sourceX - 20, centerY - 20);
+    ctx.fillText("SCREEN INTERFERENCE", screenX - 50, 30);
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

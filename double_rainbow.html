@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double Rainbow — Light Scattering</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(180deg, #080c22 0%, #132d5e 38%, #1e5580 68%, #5fa8b0 100%);
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .stars { position: absolute; inset: 0; pointer-events: none; }
+  .star {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: white; opacity: 0;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle { 0%,100%{opacity:0} 50%{opacity:.8} }
+
+  .ground {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 16%;
+    background: linear-gradient(180deg, #1a5c2e 0%, #0d3a1a 100%);
+    border-radius: 50% 50% 0 0 / 10% 10% 0 0;
+  }
+
+  .rain-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .raindrop {
+    position: absolute; top: -20px; width: 1.5px;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(180deg, rgba(180,220,255,0) 0%, rgba(180,220,255,.5) 100%);
+    animation: fall linear infinite;
+  }
+  @keyframes fall { to { transform: translateY(105vh); } }
+
+  #scene { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .arc { fill: none; }
+  .arc-group { opacity: 0; animation: fadeIn 3s ease forwards; }
+  .arc-group.primary   { animation-delay: .4s; }
+  .arc-group.secondary { animation-delay: 1s; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .info {
+    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,.85); font-size: clamp(14px,2vw,19px);
+    font-style: italic; font-weight: 300; letter-spacing: .06em;
+    text-align: center; line-height: 1.7; pointer-events: none;
+    opacity: 0; animation: fadeIn 2s ease 3s forwards;
+  }
+  .info span { display:block; font-size:.68em; opacity:.6; font-style:normal; margin-top:3px; }
+
+  .droplets-row {
+    position: absolute;
+    bottom: 19%;
+    left: 50%; transform: translateX(-50%);
+    display: flex; gap: 50px;
+    align-items: flex-end;
+  }
+  .drop-card {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    opacity: 0; animation: fadeIn 1s ease forwards;
+  }
+  .drop-card:nth-child(1) { animation-delay: 1.8s; }
+  .drop-card:nth-child(2) { animation-delay: 2.3s; }
+  .drop-card label {
+    color: rgba(255,255,255,.72); font-size: 11px;
+    letter-spacing: .13em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="ground"></div>
+<div class="rain-layer" id="rain"></div>
+
+<!-- Main rainbow SVG -->
+<svg id="scene" viewBox="0 0 1000 580" preserveAspectRatio="xMidYMax meet">
+  <defs>
+    <filter id="glow1">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow2">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Alexander's dark band -->
+  <path d="M-60 580 A 540 540 0 0 1 1060 580"
+        fill="none" stroke="rgba(0,0,25,.3)" stroke-width="100" filter="url(#glow2)"/>
+  <!-- PRIMARY (42°) violet inner → red outer -->
+  <g class="arc-group primary" filter="url(#glow1)">
+    <path class="arc" d="M 18 580 A 482 482 0 0 1 982 580" stroke="rgba(148,0,211,.52)" stroke-width="13"/>
+    <path class="arc" d="M 36 580 A 464 464 0 0 1 964 580" stroke="rgba(0,80,255,.50)"  stroke-width="12"/>
+    <path class="arc" d="M 54 580 A 446 446 0 0 1 946 580" stroke="rgba(0,200,60,.48)"  stroke-width="12"/>
+    <path class="arc" d="M 72 580 A 428 428 0 0 1 928 580" stroke="rgba(255,240,0,.50)" stroke-width="11"/>
+    <path class="arc" d="M 88 580 A 412 412 0 0 1 912 580" stroke="rgba(255,127,0,.50)" stroke-width="12"/>
+    <path class="arc" d="M104 580 A 396 396 0 0 1 896 580" stroke="rgba(255,0,0,.55)"   stroke-width="14"/>
+  </g>
+  <!-- SECONDARY (51°) red inner → violet outer -->
+  <g class="arc-group secondary" filter="url(#glow2)">
+    <path class="arc" d="M -44 580 A 544 544 0 0 1 1044 580" stroke="rgba(148,0,211,.28)" stroke-width="10"/>
+    <path class="arc" d="M -30 580 A 530 530 0 0 1 1030 580" stroke="rgba(0,80,255,.26)"  stroke-width="9"/>
+    <path class="arc" d="M -16 580 A 516 516 0 0 1 1016 580" stroke="rgba(0,200,60,.26)"  stroke-width="9"/>
+    <path class="arc" d="M  -2 580 A 502 502 0 0 1 1002 580" stroke="rgba(255,240,0,.27)" stroke-width="9"/>
+    <path class="arc" d="M  12 580 A 488 488 0 0 1  988 580" stroke="rgba(255,127,0,.28)" stroke-width="9"/>
+    <path class="arc" d="M  26 580 A 474 474 0 0 1  974 580" stroke="rgba(255,0,0,.30)"   stroke-width="10"/>
+  </g>
+</svg>
+
+<!-- Droplet diagrams -->
+<div class="droplets-row">
+
+  <!-- ══ DROP 1: Primary — 1 internal reflection ══ -->
+  <div class="drop-card">
+    <svg width="230" height="250" viewBox="-20 -10 270 270">
+      <defs>
+        <radialGradient id="g1" cx="35%" cy="30%" r="65%">
+          <stop offset="0%"   stop-color="#e8f6ff" stop-opacity=".95"/>
+          <stop offset="55%"  stop-color="#5ab0e0" stop-opacity=".80"/>
+          <stop offset="100%" stop-color="#1060a0" stop-opacity=".92"/>
+        </radialGradient>
+        <filter id="ds1">
+          <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0a2a6a" flood-opacity=".5"/>
+        </filter>
+      </defs>
+
+      <!-- Sun label -->
+      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9" font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
+
+      <!-- ── Incident beam 1 (hits upper part of sphere) ── -->
+      <line x1="-18" y1="44" x2="52" y2="64"
+            stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="52,64 38,57 41,68" fill="white" opacity=".85"/>
+
+      <!-- ── Incident beam 2 (hits lower part of sphere) ── -->
+      <line x1="-18" y1="106" x2="30" y2="101"
+            stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="30,101 15,95 17,106" fill="white" opacity=".85"/>
+
+      <!-- ── Sphere (perfectly circular) ── -->
+      <circle cx="110" cy="110" r="92" fill="url(#g1)" filter="url(#ds1)"/>
+      <!-- interior volume hint -->
+      <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(200,240,255,.18)" stroke-width="1"/>
+      <!-- specular highlights -->
+      <ellipse cx="80" cy="68" rx="26" ry="13" fill="white" opacity=".22" transform="rotate(-30,80,68)"/>
+      <ellipse cx="72" cy="60" rx="11" ry="5"  fill="white" opacity=".44" transform="rotate(-30,72,60)"/>
+
+      <!-- ── Ray path inside sphere — beam 1 ── -->
+      <!-- refraction at entry point (upper left ~52°) -->
+      <line x1="52"  y1="64"  x2="148" y2="152"
+            stroke="rgba(255,255,255,.55)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <!-- single internal reflection at back wall -->
+      <line x1="148" y1="152" x2="66"  y2="174"
+            stroke="rgba(255,255,255,.50)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <!-- refraction at exit (right side) -->
+      <line x1="66"  y1="174" x2="198" y2="146"
+            stroke="rgba(255,255,255,.40)" stroke-width="1.6" stroke-dasharray="5 3"/>
+
+      <!-- ── Ray path inside sphere — beam 2 ── -->
+      <line x1="30"  y1="101" x2="160" y2="140"
+            stroke="rgba(255,255,255,.45)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="160" y1="140" x2="76"  y2="194"
+            stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="76"  y1="194" x2="200" y2="176"
+            stroke="rgba(255,255,255,.35)" stroke-width="1.6" stroke-dasharray="5 3"/>
+
+      <!-- ── Dispersed exit colours — beam 1 (fan, red at top = smaller angle) ── -->
+      <g opacity=".92">
+        <line x1="198" y1="146" x2="238" y2="117" stroke="#ff0000" stroke-width="3.2"/>
+        <line x1="198" y1="146" x2="239" y2="126" stroke="#ff8000" stroke-width="2.8"/>
+        <line x1="198" y1="146" x2="239" y2="135" stroke="#ffe000" stroke-width="2.8"/>
+        <line x1="198" y1="146" x2="237" y2="145" stroke="#00cc44" stroke-width="2.8"/>
+        <line x1="198" y1="146" x2="234" y2="154" stroke="#0055ff" stroke-width="2.8"/>
+        <line x1="198" y1="146" x2="230" y2="163" stroke="#8800cc" stroke-width="3"/>
+      </g>
+
+      <!-- ── Dispersed exit colours — beam 2 ── -->
+      <g opacity=".72">
+        <line x1="200" y1="176" x2="238" y2="148" stroke="#ff0000" stroke-width="2.5"/>
+        <line x1="200" y1="176" x2="239" y2="157" stroke="#ff8000" stroke-width="2.2"/>
+        <line x1="200" y1="176" x2="239" y2="167" stroke="#ffe000" stroke-width="2.2"/>
+        <line x1="200" y1="176" x2="237" y2="177" stroke="#00cc44" stroke-width="2.2"/>
+        <line x1="200" y1="176" x2="233" y2="187" stroke="#0055ff" stroke-width="2.2"/>
+        <line x1="200" y1="176" x2="228" y2="196" stroke="#8800cc" stroke-width="2.5"/>
+      </g>
+
+      <!-- angle arc & label at exit -->
+      <path d="M216 140 A18 18 0 0 1 227 157" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+      <text x="218" y="136" fill="rgba(255,255,255,.8)" font-size="10.5" font-family="Cormorant Garamond,serif">42°</text>
+
+      <!-- badge -->
+      <rect x="52" y="216" width="116" height="19" rx="5" fill="rgba(0,0,0,.42)"/>
+      <text x="110" y="229" fill="rgba(255,255,255,.75)" font-size="9.5"
+            font-family="Cormorant Garamond,serif" text-anchor="middle">1 internal reflection</text>
+    </svg>
+    <label>Primary Rainbow · 42°</label>
+  </div>
+
+  <!-- ══ DROP 2: Secondary — 2 internal reflections ══ -->
+  <div class="drop-card">
+    <svg width="230" height="250" viewBox="-20 -10 270 270">
+      <defs>
+        <radialGradient id="g2" cx="35%" cy="30%" r="65%">
+          <stop offset="0%"   stop-color="#ddeeff" stop-opacity=".92"/>
+          <stop offset="55%"  stop-color="#48a0cc" stop-opacity=".78"/>
+          <stop offset="100%" stop-color="#0a5090" stop-opacity=".90"/>
+        </radialGradient>
+        <filter id="ds2">
+          <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0a2a6a" flood-opacity=".5"/>
+        </filter>
+      </defs>
+
+      <!-- Sun label -->
+      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9" font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
+
+      <!-- ── Incident beam 1 ── -->
+      <line x1="-18" y1="48" x2="52" y2="62"
+            stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="52,62 38,55 41,66" fill="white" opacity=".85"/>
+
+      <!-- ── Incident beam 2 ── -->
+      <line x1="-18" y1="100" x2="30" y2="97"
+            stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="30,97 15,91 17,102" fill="white" opacity=".85"/>
+
+      <!-- ── Sphere ── -->
+      <circle cx="110" cy="110" r="92" fill="url(#g2)" filter="url(#ds2)"/>
+      <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(200,240,255,.18)" stroke-width="1"/>
+      <ellipse cx="80" cy="68" rx="26" ry="13" fill="white" opacity=".20" transform="rotate(-30,80,68)"/>
+      <ellipse cx="72" cy="60" rx="11" ry="5"  fill="white" opacity=".40" transform="rotate(-30,72,60)"/>
+
+      <!-- ── Ray inside — beam 1 — TWO internal reflections ── -->
+      <!-- entry refraction -->
+      <line x1="52"  y1="62"  x2="164" y2="86"
+            stroke="rgba(255,255,255,.52)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <!-- 1st reflection (back-right) -->
+      <line x1="164" y1="86"  x2="142" y2="192"
+            stroke="rgba(255,255,255,.47)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <!-- 2nd reflection (bottom) -->
+      <line x1="142" y1="192" x2="44"  y2="178"
+            stroke="rgba(255,255,255,.42)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <!-- exit refraction — LEFT side -->
+      <line x1="44"  y1="178" x2="-20" y2="148"
+            stroke="rgba(255,255,255,.38)" stroke-width="1.6" stroke-dasharray="5 3"/>
+
+      <!-- ── Ray inside — beam 2 ── -->
+      <line x1="30"  y1="97"  x2="158" y2="130"
+            stroke="rgba(255,255,255,.44)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="158" y1="130" x2="122" y2="200"
+            stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="122" y1="200" x2="40"  y2="162"
+            stroke="rgba(255,255,255,.36)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="40"  y1="162" x2="-20" y2="178"
+            stroke="rgba(255,255,255,.32)" stroke-width="1.6" stroke-dasharray="5 3"/>
+
+      <!-- ── Exit spectrum — beam 1 (exits left, ORDER REVERSED: violet top, red bottom) ── -->
+      <g opacity=".90">
+        <line x1="-20" y1="148" x2="-57" y2="124" stroke="#8800cc" stroke-width="3.2"/>
+        <line x1="-20" y1="148" x2="-57" y2="134" stroke="#0055ff" stroke-width="2.8"/>
+        <line x1="-20" y1="148" x2="-58" y2="145" stroke="#00cc44" stroke-width="2.8"/>
+        <line x1="-20" y1="148" x2="-57" y2="154" stroke="#ffe000" stroke-width="2.8"/>
+        <line x1="-20" y1="148" x2="-55" y2="163" stroke="#ff8000" stroke-width="2.8"/>
+        <line x1="-20" y1="148" x2="-52" y2="172" stroke="#ff0000" stroke-width="3.2"/>
+      </g>
+
+      <!-- ── Exit spectrum — beam 2 ── -->
+      <g opacity=".70">
+        <line x1="-20" y1="178" x2="-56" y2="154" stroke="#8800cc" stroke-width="2.5"/>
+        <line x1="-20" y1="178" x2="-57" y2="164" stroke="#0055ff" stroke-width="2.2"/>
+        <line x1="-20" y1="178" x2="-57" y2="175" stroke="#00cc44" stroke-width="2.2"/>
+        <line x1="-20" y1="178" x2="-56" y2="185" stroke="#ffe000" stroke-width="2.2"/>
+        <line x1="-20" y1="178" x2="-54" y2="194" stroke="#ff8000" stroke-width="2.2"/>
+        <line x1="-20" y1="178" x2="-50" y2="203" stroke="#ff0000" stroke-width="2.5"/>
+      </g>
+
+      <!-- angle arc & label -->
+      <path d="M-33 143 A18 18 0 0 0 -44 160" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+      <text x="-62" y="141" fill="rgba(255,255,255,.8)" font-size="10.5" font-family="Cormorant Garamond,serif">51°</text>
+
+      <!-- badge -->
+      <rect x="52" y="216" width="116" height="19" rx="5" fill="rgba(0,0,0,.42)"/>
+      <text x="110" y="229" fill="rgba(255,255,255,.75)" font-size="9.5"
+            font-family="Cormorant Garamond,serif" text-anchor="middle">2 internal reflections</text>
+    </svg>
+    <label>Secondary Rainbow · 51°</label>
+  </div>
+
+</div>
+
+<!-- Info -->
+<div class="info">
+  Double Rainbow
+  <span>Light dispersed by spherical water droplets &nbsp;·&nbsp; 42° primary &nbsp;·&nbsp; 51° secondary</span>
+</div>
+
+<script>
+  // Stars
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random()*100+'%';
+    s.style.top  = Math.random()*52+'%';
+    s.style.animationDelay = Math.random()*4+'s';
+    s.style.animationDuration = (2+Math.random()*3)+'s';
+    starsEl.appendChild(s);
+  }
+
+  // Rain
+  const rainEl = document.getElementById('rain');
+  for (let i = 0; i < 110; i++) {
+    const r = document.createElement('div');
+    r.className = 'raindrop';
+    r.style.left = Math.random()*100+'%';
+    r.style.animationDuration = (.55+Math.random()*.75)+'s';
+    r.style.animationDelay   = -(Math.random()*3)+'s';
+    r.style.height = (10+Math.random()*14)+'px';
+    r.style.opacity = .2+Math.random()*.4;
+    rainEl.appendChild(r);
+  }
+
+  // Arc draw animation
+  document.querySelectorAll('.arc').forEach(arc => {
+    try {
+      const len = arc.getTotalLength();
+      arc.style.strokeDasharray  = len;
+      arc.style.strokeDashoffset = len;
+      arc.style.transition = 'stroke-dashoffset 2.6s cubic-bezier(.4,0,.2,1)';
+      setTimeout(() => { arc.style.strokeDashoffset = '0'; }, 600);
+    } catch(e) {}
+  });
+</script>
+</body>
+</html>

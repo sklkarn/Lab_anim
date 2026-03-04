@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism Light Dispersion Simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital@0;1&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#07080e;
+  color:#c8d4e8;
+  font-family:'Space Mono',monospace;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:16px 12px 28px;
+  gap:14px;
+}
+h1{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.2rem,3vw,1.9rem);
+  font-weight:400;
+  background:linear-gradient(120deg,#88ccff,#fff,#ffaa55);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.sub{
+  font-size:0.6rem;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:rgba(180,200,230,0.38);
+  margin-top:3px;
+  text-align:center;
+}
+canvas{
+  display:block;
+  border:1px solid rgba(100,160,255,0.14);
+  border-radius:8px;
+  max-width:100%;
+  cursor:ns-resize;
+}
+.controls{
+  width:100%;
+  max-width:860px;
+  background:#0d0f1a;
+  border:1px solid rgba(100,160,255,0.13);
+  border-radius:8px;
+  padding:16px 22px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:16px 28px;
+}
+.cg{display:flex;flex-direction:column;gap:7px}
+.cg label{font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(180,200,230,0.38)}
+.cg .val{font-size:0.82rem;color:#4af;font-weight:700}
+input[type=range]{
+  -webkit-appearance:none;
+  width:100%;height:3px;
+  background:rgba(100,160,255,0.18);
+  border-radius:2px;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:13px;height:13px;border-radius:50%;
+  background:#4af;cursor:pointer;
+  box-shadow:0 0 7px rgba(68,170,255,0.7);
+}
+.infobar{
+  width:100%;max-width:860px;
+  display:flex;flex-wrap:wrap;
+  gap:6px 18px;
+  font-size:0.58rem;letter-spacing:0.13em;
+  color:rgba(180,200,230,0.38);
+  text-transform:uppercase;
+}
+.infobar b{color:#c8d4e8}
+</style>
+</head>
+<body>
+
+<h1>Prism Light Dispersion</h1>
+<p class="sub">Interactive Simulation · Snell's Law · Chromatic Dispersion</p>
+
+<canvas id="c" width="860" height="480"></canvas>
+
+<div class="controls">
+  <div class="cg">
+    <label>Angle of Incidence</label>
+    <input type="range" id="sAngle" min="5" max="75" value="40" step="0.5">
+    <div class="val"><span id="vAngle">40.0</span>°</div>
+  </div>
+  <div class="cg">
+    <label>Prism Apex Angle α</label>
+    <input type="range" id="sApex" min="30" max="75" value="60" step="1">
+    <div class="val"><span id="vApex">60</span>°</div>
+  </div>
+  <div class="cg">
+    <label>Refractive Index n₀</label>
+    <input type="range" id="sN" min="1.40" max="1.85" value="1.52" step="0.01">
+    <div class="val">n = <span id="vN">1.52</span></div>
+  </div>
+  <div class="cg">
+    <label>Screen Distance</label>
+    <input type="range" id="sDist" min="60" max="260" value="150" step="5">
+    <div class="val"><span id="vDist">150</span> units</div>
+  </div>
+</div>
+
+<div class="infobar">
+  <span>Dispersion spread: <b id="iDisp">—</b></span>
+  <span>Min deviation: <b id="iDev">—</b></span>
+  <span>TIR: <b id="iTIR">0 rays</b></span>
+  <span>Drag canvas to change angle</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  PRISM DISPERSION SIMULATION  — complete rewrite
+//  Light travels LEFT → RIGHT, hits left face of prism
+// ═══════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// UI
+const sAngle = document.getElementById('sAngle');
+const sApex  = document.getElementById('sApex');
+const sN     = document.getElementById('sN');
+const sDist  = document.getElementById('sDist');
+
+// 7 spectral wavelengths — dispersion exaggerated for clear visual separation
+const SPECTRUM = [
+  {label:'Violet', wl:410, dn:+0.090, color:'#aa00ff'},
+  {label:'Indigo', wl:445, dn:+0.065, color:'#4433ff'},
+  {label:'Blue',   wl:475, dn:+0.044, color:'#0077ff'},
+  {label:'Green',  wl:530, dn:+0.022, color:'#00cc44'},
+  {label:'Yellow', wl:580, dn:+0.007, color:'#ddee00'},
+  {label:'Orange', wl:620, dn:-0.010, color:'#ff8800'},
+  {label:'Red',    wl:680, dn:-0.028, color:'#ff1a00'},
+];
+
+// ── Pure math ──────────────────────────────────────────────
+
+const D2R = Math.PI/180;
+
+// Intersect ray (P + t·D) with segment (A→B), returns t > 0 or null
+function intersectRaySeg(px,py,dx,dy, ax,ay,bx,by){
+  const ex=bx-ax, ey=by-ay;
+  const den = dx*ey - dy*ex;
+  if(Math.abs(den)<1e-12) return null;
+  const t = ((ax-px)*ey - (ay-py)*ex) / den;
+  const u = ((ax-px)*dy - (ay-py)*dx) / den;
+  if(t>1e-5 && u>=-1e-5 && u<=1+1e-5) return t;
+  return null;
+}
+
+// Snell's law refraction.
+// d = incoming unit direction, n = surface outward normal
+// n1, n2 = refractive indices
+// Returns refracted direction (unit) or null if TIR
+function refractRay(dx,dy, nx,ny, n1,n2){
+  // Ensure normal points against incoming ray
+  if(dx*nx+dy*ny > 0){ nx=-nx; ny=-ny; }
+  const cosI = -(dx*nx + dy*ny);
+  const r    = n1/n2;
+  const k    = 1 - r*r*(1-cosI*cosI);
+  if(k<0) return null; // TIR
+  const cosT = Math.sqrt(k);
+  return { x: r*dx + (r*cosI-cosT)*nx,
+           y: r*dy + (r*cosI-cosT)*ny };
+}
+
+// Compute outward normal for segment A→B, pointing away from (cx,cy)
+function outNormal(ax,ay,bx,by, cx,cy){
+  const len = Math.hypot(bx-ax, by-ay);
+  let nx = -(by-ay)/len;
+  let ny =  (bx-ax)/len;
+  // flip if pointing toward interior
+  const mx = (ax+bx)/2, my = (ay+by)/2;
+  if(nx*(mx-cx)+ny*(my-cy) < 0){ nx=-nx; ny=-ny; }
+  return {nx,ny};
+}
+
+// ── Prism geometry ─────────────────────────────────────────
+// Apex pointing UP, base at bottom
+// Light enters LEFT face, exits RIGHT face
+// Prism center around (W*0.40, H*0.50)
+
+function buildPrism(apexDeg){
+  const alpha = apexDeg * D2R;
+  // Place apex top-center of prism region
+  const PCX = W*0.40, PCY = H*0.50;
+  const HALF_H = H*0.26; // half-height of prism
+
+  // apex at top, base corners at bottom
+  const apex = { x: PCX,              y: PCY - HALF_H      };
+  const bl   = { x: PCX - HALF_H*Math.tan(alpha/2), y: PCY + HALF_H*0.5 };
+  const br   = { x: PCX + HALF_H*Math.tan(alpha/2), y: PCY + HALF_H*0.5 };
+
+  // centroid
+  const cx = (apex.x+bl.x+br.x)/3;
+  const cy = (apex.y+bl.y+br.y)/3;
+
+  // 3 faces: left (entry), right (exit), base
+  const faces = [
+    {a:bl,   b:apex, name:'left' },  // left face: bottom-left → apex
+    {a:apex, b:br,   name:'right'},  // right face: apex → bottom-right
+    {a:br,   b:bl,   name:'base' },  // base
+  ];
+
+  // precompute outward normals
+  faces.forEach(f=>{
+    const {nx,ny}=outNormal(f.a.x,f.a.y,f.b.x,f.b.y,cx,cy);
+    f.nx=nx; f.ny=ny;
+  });
+
+  return {apex,bl,br,cx,cy,faces};
+}
+
+// ── Drawing helpers ────────────────────────────────────────
+
+function glow(x1,y1,x2,y2,color,alpha,lw,blur){
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=lw;
+  ctx.lineCap='round';
+  ctx.shadowColor=color;
+  ctx.shadowBlur=blur;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPrism(prism, apexDeg){
+  const {apex,bl,br}=prism;
+  ctx.save();
+
+  // Glass fill
+  ctx.beginPath();
+  ctx.moveTo(apex.x,apex.y);
+  ctx.lineTo(bl.x,bl.y);
+  ctx.lineTo(br.x,br.y);
+  ctx.closePath();
+
+  const g = ctx.createLinearGradient(bl.x,apex.y,br.x,bl.y);
+  g.addColorStop(0,  'rgba(80,140,255,0.10)');
+  g.addColorStop(0.5,'rgba(160,210,255,0.20)');
+  g.addColorStop(1,  'rgba(60,110,220,0.08)');
+  ctx.fillStyle=g;
+  ctx.fill();
+
+  // Edges
+  ctx.strokeStyle='rgba(160,215,255,0.85)';
+  ctx.lineWidth=2;
+  ctx.shadowColor='rgba(130,195,255,0.5)';
+  ctx.shadowBlur=12;
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Labels
+  ctx.font='italic 12px "Playfair Display",serif';
+  ctx.fillStyle='rgba(160,215,255,0.50)';
+  ctx.textAlign='center';
+  ctx.fillText(`α = ${apexDeg}°`, apex.x, apex.y-14);
+
+  ctx.font='11px "Space Mono",monospace';
+  ctx.fillStyle='rgba(150,200,255,0.32)';
+  ctx.fillText('Glass Prism', (bl.x+br.x)/2, (bl.y+apex.y)/2+6);
+
+  ctx.restore();
+}
+
+// ── Main render ────────────────────────────────────────────
+
+function render(){
+  const angleDeg = parseFloat(sAngle.value);
+  const apexDeg  = parseFloat(sApex.value);
+  const n0       = parseFloat(sN.value);
+  const screenD  = parseFloat(sDist.value);
+
+  document.getElementById('vAngle').textContent = angleDeg.toFixed(1);
+  document.getElementById('vApex').textContent  = apexDeg;
+  document.getElementById('vN').textContent     = n0.toFixed(2);
+  document.getElementById('vDist').textContent  = screenD;
+
+  ctx.clearRect(0,0,W,H);
+
+  // ── Background ──
+  ctx.fillStyle='#07080e';
+  ctx.fillRect(0,0,W,H);
+  // Subtle grid
+  ctx.save();
+  ctx.strokeStyle='rgba(70,90,150,0.06)';
+  ctx.lineWidth=1;
+  for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.restore();
+
+  const prism = buildPrism(apexDeg);
+  const {apex,bl,br,cx,cy,faces}=prism;
+
+  // ── Incident ray direction ──
+  // White beam travels LEFT→RIGHT and hits the LEFT FACE of prism
+  // Angle of incidence is measured from the left-face OUTWARD normal
+  // Left face outward normal points to the left (away from prism)
+  const leftFace = faces[0]; // bl→apex
+  const {nx:lnx, ny:lny} = leftFace; // outward normal (points left)
+
+  // Normal angle (pointing left, outward)
+  const normalAngle = Math.atan2(lny, lnx); // e.g. ~180° leftward
+
+  // Incident ray direction: comes FROM the left, so travels right (+x direction mostly)
+  // angle of incidence θᵢ from the INWARD normal
+  // inward normal = -lnx, -lny (points right into prism)
+  // incident ray hits face at angle θᵢ from inward normal
+  // So incident direction = rotate inward normal by +θᵢ
+  const inwardAngle = Math.atan2(-lny, -lnx);
+  const incAngle    = inwardAngle - angleDeg*D2R; // rotate by -θᵢ (coming from upper-left)
+  const iDX = Math.cos(incAngle);
+  const iDY = Math.sin(incAngle);
+
+  // Choose entry point: 55% up the left face (from bl toward apex)
+  const ep = 0.52;
+  const entX = bl.x + (apex.x-bl.x)*ep;
+  const entY = bl.y + (apex.y-bl.y)*ep;
+
+  // Source: start 130px back along incident direction
+  const srcX = entX - iDX*140;
+  const srcY = entY - iDY*140;
+
+  // ── Screen: vertical line to the right of prism ──
+  const screenX  = br.x + screenD;
+  const screenY1 = H*0.04;
+  const screenY2 = H*0.96;
+
+  // ── Draw dashed normal line at entry point ──
+  ctx.save();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle='rgba(200,220,255,0.18)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  // draw along inward+outward normal direction through entry point
+  ctx.moveTo(entX - lnx*70, entY - lny*70);
+  ctx.lineTo(entX + lnx*70, entY + lny*70);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ── Draw incident white beam ──
+  glow(srcX,srcY,entX,entY,'#ffffff',0.9,3,20);
+  glow(srcX,srcY,entX,entY,'#aaddff',0.25,9,40);
+
+  // "White light" label
+  ctx.save();
+  ctx.font='11px "Space Mono",monospace';
+  ctx.fillStyle='rgba(220,235,255,0.55)';
+  // label above beam midpoint
+  const mlx=(srcX+entX)/2, mly=(srcY+entY)/2;
+  ctx.textAlign='center';
+  ctx.fillText('White Light', mlx, mly-12);
+  ctx.restore();
+
+  // Incidence angle arc + label
+  ctx.save();
+  ctx.strokeStyle='rgba(200,220,255,0.35)';
+  ctx.lineWidth=1;
+  const arcR=38;
+  const a1=Math.atan2(-lny,-lnx); // inward normal direction angle
+  const a2=Math.atan2(iDY,iDX);   // incident ray direction angle
+  // Draw arc from inward normal to incident ray (the angle between them = θᵢ)
+  ctx.beginPath();
+  // arc sweep: determine correct direction
+  ctx.arc(entX,entY, arcR, a1, a2, (a2-a1+Math.PI*4)%(Math.PI*2)>Math.PI);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.font='10px "Space Mono",monospace';
+  ctx.fillStyle='rgba(200,220,255,0.5)';
+  const arcMid = (a1+a2)/2;
+  ctx.fillText(`θᵢ=${angleDeg.toFixed(0)}°`, entX + Math.cos(arcMid)*52, entY + Math.sin(arcMid)*52);
+  ctx.restore();
+
+  // ── Trace each spectral ray through prism ──
+  let tirCount=0;
+  const deviations=[];
+  const screenHits=[];
+
+  SPECTRUM.forEach((spec,si)=>{
+    const n = n0 + spec.dn;
+
+    // 1) Refract at left face: air → glass
+    const r1 = refractRay(iDX,iDY, lnx,lny, 1.0,n);
+    if(!r1){ tirCount++; return; }
+
+    // 2) Travel inside prism — find exit face (right or base)
+    let bestT=Infinity, bestFace=null;
+    for(let fi=1; fi<faces.length; fi++){
+      const f=faces[fi];
+      const t=intersectRaySeg(entX,entY,r1.x,r1.y, f.a.x,f.a.y,f.b.x,f.b.y);
+      if(t!==null && t<bestT){ bestT=t; bestFace=f; }
+    }
+    if(!bestFace){ tirCount++; return; }
+
+    const exX=entX+r1.x*bestT;
+    const exY=entY+r1.y*bestT;
+
+    // 3) Refract at exit face: glass → air
+    const r2 = refractRay(r1.x,r1.y, bestFace.nx,bestFace.ny, n,1.0);
+    if(!r2){ tirCount++; return; }
+
+    // Deviation from original direction
+    const cosD = iDX*r2.x + iDY*r2.y;
+    const dev  = Math.acos(Math.max(-1,Math.min(1,cosD)))*180/Math.PI;
+    deviations.push(dev);
+
+    // 4) Draw inside beam (colored, subtle)
+    glow(entX,entY,exX,exY, spec.color, 0.30, 1.8, 5);
+
+    // 5) Trace to screen
+    const tScreen = intersectRaySeg(exX,exY,r2.x,r2.y, screenX,screenY1,screenX,screenY2);
+    let endX, endY;
+    if(tScreen!==null){
+      endX = screenX;
+      endY = exY + r2.y*tScreen;
+      screenHits.push({y:endY, ...spec});
+    } else {
+      // extend ray far enough to be visible
+      endX = exX + r2.x*700;
+      endY = exY + r2.y*700;
+    }
+
+    // 6) Draw exit ray (thick, bright, clearly separated)
+    glow(exX,exY, endX,endY, spec.color, 0.95, 3.5, 22);
+    glow(exX,exY, endX,endY, spec.color, 0.35, 10, 40);
+    glow(exX,exY, endX,endY, spec.color, 0.12, 20, 65);
+  });
+
+  // ── Draw screen ──
+  ctx.save();
+  // Screen backing panel
+  const spg = ctx.createLinearGradient(screenX-20,0,screenX+30,0);
+  spg.addColorStop(0,  'rgba(15,20,45,0)');
+  spg.addColorStop(0.5,'rgba(15,20,45,0.92)');
+  spg.addColorStop(1,  'rgba(15,20,45,0.92)');
+  ctx.fillStyle=spg;
+  ctx.fillRect(screenX-20, screenY1, 80, screenY2-screenY1);
+
+  // Screen line
+  ctx.strokeStyle='rgba(180,210,255,0.65)';
+  ctx.lineWidth=2.5;
+  ctx.shadowColor='rgba(150,195,255,0.45)';
+  ctx.shadowBlur=12;
+  ctx.beginPath();
+  ctx.moveTo(screenX,screenY1);
+  ctx.lineTo(screenX,screenY2);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // "SCREEN" label rotated
+  ctx.translate(screenX+26, H*0.5);
+  ctx.rotate(Math.PI/2);
+  ctx.font='9px "Space Mono",monospace';
+  ctx.fillStyle='rgba(160,200,255,0.38)';
+  ctx.textAlign='center';
+  ctx.fillText('SCREEN',0,0);
+  ctx.restore();
+
+  // ── Draw spectrum bands on screen — each colour clearly separated ──
+  screenHits.sort((a,b)=>a.y-b.y);
+
+  const BAND_H = 26;   // height of each colour band
+  const BAND_W = 42;   // width extending right of screen line
+
+  screenHits.forEach(hit=>{
+    if(hit.y < screenY1-BAND_H || hit.y > screenY2+BAND_H) return;
+    const y0 = hit.y - BAND_H/2;
+
+    // Solid colour band
+    ctx.save();
+    ctx.fillStyle   = hit.color;
+    ctx.globalAlpha = 0.95;
+    ctx.shadowColor = hit.color;
+    ctx.shadowBlur  = 24;
+    ctx.fillRect(screenX, y0, BAND_W, BAND_H);
+    ctx.restore();
+
+    // Bright white centre-line
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 1.8;
+    ctx.globalAlpha = 0.50;
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur  = 8;
+    ctx.beginPath();
+    ctx.moveTo(screenX, hit.y);
+    ctx.lineTo(screenX + BAND_W, hit.y);
+    ctx.stroke();
+    ctx.restore();
+
+    // Glow bleed onto the screen line itself
+    const eg = ctx.createLinearGradient(screenX-20, hit.y, screenX+2, hit.y);
+    eg.addColorStop(0, hit.color+'00');
+    eg.addColorStop(1, hit.color+'bb');
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle   = eg;
+    ctx.fillRect(screenX-20, y0, 22, BAND_H);
+    ctx.restore();
+
+    // Label: name (bold) + wavelength
+    ctx.save();
+    ctx.font        = 'bold 10px "Space Mono",monospace';
+    ctx.fillStyle   = '#ffffff';
+    ctx.globalAlpha = 0.90;
+    ctx.textAlign   = 'left';
+    ctx.shadowColor = hit.color;
+    ctx.shadowBlur  = 8;
+    ctx.fillText(hit.label, screenX + BAND_W + 8, hit.y - 2);
+    ctx.font        = '8px "Space Mono",monospace';
+    ctx.fillStyle   = hit.color;
+    ctx.globalAlpha = 0.80;
+    ctx.shadowBlur  = 0;
+    ctx.fillText(hit.wl+' nm', screenX + BAND_W + 8, hit.y + 10);
+    ctx.restore();
+  });
+
+  // ── Draw prism on top ──
+  drawPrism(prism, apexDeg);
+
+  // ── Info bar ──
+  const disp = deviations.length>=2
+    ? (Math.max(...deviations)-Math.min(...deviations)).toFixed(2)+'°' : '—';
+  const minDev = deviations.length
+    ? Math.min(...deviations).toFixed(1)+'°' : '—';
+  document.getElementById('iDisp').textContent = disp;
+  document.getElementById('iDev').textContent  = minDev;
+  document.getElementById('iTIR').textContent  = tirCount+' ray'+(tirCount!==1?'s':'');
+}
+
+// ── Events ─────────────────────────────────────────────────
+
+[sAngle,sApex,sN,sDist].forEach(s=>s.addEventListener('input',render));
+
+// Drag canvas vertically to change angle
+let isDragging=false, dragY0=0, angleAtDrag=0;
+canvas.addEventListener('mousedown',e=>{
+  isDragging=true;
+  dragY0=e.clientY;
+  angleAtDrag=parseFloat(sAngle.value);
+});
+window.addEventListener('mouseup',()=>isDragging=false);
+window.addEventListener('mousemove',e=>{
+  if(!isDragging) return;
+  const dy=e.clientY-dragY0;
+  const newAngle=Math.max(5,Math.min(75,angleAtDrag+dy*0.35));
+  sAngle.value=newAngle;
+  render();
+});
+canvas.addEventListener('touchstart',e=>{
+  isDragging=true;
+  dragY0=e.touches[0].clientY;
+  angleAtDrag=parseFloat(sAngle.value);
+},{passive:true});
+window.addEventListener('touchend',()=>isDragging=false);
+window.addEventListener('touchmove',e=>{
+  if(!isDragging) return;
+  const dy=e.touches[0].clientY-dragY0;
+  const newAngle=Math.max(5,Math.min(75,angleAtDrag+dy*0.35));
+  sAngle.value=newAngle;
+  render();
+},{passive:true});
+
+render();
+</script>
+</body>
+</html>

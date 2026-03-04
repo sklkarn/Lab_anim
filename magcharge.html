@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnetic Force on Moving Charge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Crimson+Pro:ital,wght@0,300;1,300&display=swap');
+
+  :root {
+    --bg: #080c18;
+    --panel: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.09);
+    --text: #dce8ff;
+    --muted: #556;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  h1 {
+    font-family: 'Crimson Pro', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    color: #c0d4ff;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .scenarios {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 960px;
+    width: 100%;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 18px 14px;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 2px;
+  }
+  .attract .card-title { color:#00e5ff; border:1px solid #00e5ff55; }
+  .repel   .card-title { color:#ff4d6d; border:1px solid #ff4d6d55; }
+
+  canvas {
+    display: block;
+    border-radius: 4px;
+    background: #050810;
+  }
+
+  .legend {
+    font-size: 0.56rem;
+    color: #778;
+    letter-spacing: 0.07em;
+    text-align: center;
+    line-height: 2;
+  }
+  .legend b { color: #99aacc; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  button {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: #99a;
+    transition: all 0.18s;
+  }
+  button:hover { background: rgba(255,255,255,0.07); color:#fff; }
+  button.on { background: rgba(255,255,255,0.08); color:#fff; border-color:#99aacc; }
+
+  .eq {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: #8899bb;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  .b-swatch {
+    display:inline-block; width:22px; height:3px;
+    background: repeating-linear-gradient(90deg,#a78bfa 0,#a78bfa 5px,transparent 5px,transparent 9px);
+    vertical-align:middle; margin-right:4px; border-radius:2px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Magnetic Force on a Moving Charge</h1>
+<p class="subtitle">F = qv × B &nbsp;·&nbsp; Lorentz Force Law &nbsp;·&nbsp; Right-Hand Rule</p>
+
+<div class="scenarios">
+  <div class="card attract">
+    <div class="card-title">Attraction &mdash; F toward wire</div>
+    <canvas id="cA" width="340" height="300"></canvas>
+    <div class="legend">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f0c040;vertical-align:middle;margin-right:4px;"></span>Current I ↑ &nbsp;
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00e5ff;vertical-align:middle;margin-right:4px;"></span>Charge v ↑ (same as I)<br>
+      <span class="b-swatch"></span><b>B field</b> circles CCW &nbsp;·&nbsp; <b>F = qv×B</b> → toward wire
+    </div>
+  </div>
+
+  <div class="card repel">
+    <div class="card-title">Repulsion &mdash; F away from wire</div>
+    <canvas id="cR" width="340" height="300"></canvas>
+    <div class="legend">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f0c040;vertical-align:middle;margin-right:4px;"></span>Current I ↑ &nbsp;
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff4d6d;vertical-align:middle;margin-right:4px;"></span>Charge v ↓ (opposite I)<br>
+      <span class="b-swatch"></span><b>B field</b> circles CCW &nbsp;·&nbsp; <b>F = qv×B</b> → away from wire
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="btnPause" class="on">Pause</button>
+  <button id="btnReset">Reset</button>
+</div>
+
+<p class="eq">B = μ₀I / 2πr &nbsp;(circumferential, right-hand rule)</p>
+
+<script>
+const W = 340, H = 300;
+const WIRE_X = 75;
+const WIRE_Y = H / 2;
+const START_X = 248;
+
+let dashOffset = 0;
+let running = true;
+
+document.getElementById('btnPause').addEventListener('click', function(){
+  running = !running;
+  this.textContent = running ? 'Pause' : 'Resume';
+  this.classList.toggle('on', running);
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  chA.reset(); chR.reset();
+});
+
+// =============================================
+//  Animated dashed B-field rings with CCW arrows
+// =============================================
+function drawBFieldRings(ctx, t) {
+  const rings = [
+    { r: 38,  alpha: 0.90, arrowCount: 4 },
+    { r: 68,  alpha: 0.75, arrowCount: 5 },
+    { r: 100, alpha: 0.58, arrowCount: 6 },
+    { r: 135, alpha: 0.40, arrowCount: 7 },
+    { r: 172, alpha: 0.24, arrowCount: 8 },
+  ];
+
+  rings.forEach(({ r, alpha, arrowCount }) => {
+
+    // === Dashed circle ===
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(WIRE_X, WIRE_Y, r, 0, Math.PI * 2);
+    ctx.setLineDash([8, 6]);
+    // CCW spin: increasing offset means the dashes appear to travel CCW
+    ctx.lineDashOffset = -(t * 0.55);
+    ctx.strokeStyle = `rgba(167,139,250,${alpha})`;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // === CCW arrowheads on the ring ===
+    for (let k = 0; k < arrowCount; k++) {
+      // Evenly spaced angle, slowly rotating with time
+      const baseAngle = (k / arrowCount) * Math.PI * 2;
+      const angle = baseAngle - (t * 0.0006); // slow CCW rotation
+
+      // tangent for CCW direction = angle + π/2
+      const tangent = angle - Math.PI / 2; // CCW tangent
+
+      const px = WIRE_X + Math.cos(angle) * r;
+      const py = WIRE_Y + Math.sin(angle) * r;
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(tangent);
+      ctx.beginPath();
+      ctx.moveTo(5, 0);
+      ctx.lineTo(-4, 3.5);
+      ctx.lineTo(-4, -3.5);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(167,139,250,${alpha})`;
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  // B label
+  ctx.save();
+  ctx.font = 'italic bold 12px Crimson Pro, serif';
+  ctx.fillStyle = 'rgba(167,139,250,0.65)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('B', WIRE_X + 176, WIRE_Y - 10);
+  ctx.restore();
+}
+
+// =============================================
+//  Dot (·) and Cross (×) for B direction
+// =============================================
+function drawDotCross(ctx) {
+  const items = [
+    { x: WIRE_X + 38,  symbol: '·', alpha: 0.60 },
+    { x: WIRE_X + 75,  symbol: '·', alpha: 0.42 },
+    { x: WIRE_X + 115, symbol: '·', alpha: 0.28 },
+    { x: WIRE_X - 38,  symbol: '×', alpha: 0.50 },
+  ];
+  items.forEach(({ x, symbol, alpha }) => {
+    ctx.save();
+    ctx.font = symbol === '·' ? 'bold 22px monospace' : 'bold 16px monospace';
+    ctx.fillStyle = `rgba(167,139,250,${alpha})`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(symbol, x, WIRE_Y);
+    ctx.restore();
+  });
+
+  ctx.save();
+  ctx.font = '8.5px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(167,139,250,0.38)';
+  ctx.textAlign = 'right';
+  ctx.fillText('· out of page  × into page', W - 5, H - 7);
+  ctx.restore();
+}
+
+// =============================================
+//  Wire
+// =============================================
+function drawWire(ctx) {
+  ctx.strokeStyle = '#f0c040';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(WIRE_X, 8);
+  ctx.lineTo(WIRE_X, H - 8);
+  ctx.stroke();
+
+  // Glow
+  const grd = ctx.createLinearGradient(WIRE_X - 7, 0, WIRE_X + 7, 0);
+  grd.addColorStop(0, 'rgba(240,192,64,0)');
+  grd.addColorStop(0.5, 'rgba(240,192,64,0.20)');
+  grd.addColorStop(1, 'rgba(240,192,64,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(WIRE_X - 7, 8, 14, H - 16);
+
+  // Current arrows (upward)
+  [52, 98, 150, 198, 245].forEach(y => {
+    ctx.beginPath();
+    ctx.moveTo(WIRE_X, y);
+    ctx.lineTo(WIRE_X - 6, y + 12);
+    ctx.lineTo(WIRE_X + 6, y + 12);
+    ctx.closePath();
+    ctx.fillStyle = '#f0c040cc';
+    ctx.fill();
+  });
+
+  ctx.font = 'bold 11px Space Mono, monospace';
+  ctx.fillStyle = '#f0c040aa';
+  ctx.textAlign = 'center';
+  ctx.fillText('I', WIRE_X, H - 10);
+}
+
+// =============================================
+//  Charge particle
+// =============================================
+class Charge {
+  constructor(canvasId, color, dirY, attracted) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.color = color;
+    this.dirY = dirY;
+    this.attracted = attracted;
+    this.reset();
+  }
+
+  reset() {
+    this.x = START_X;
+    this.y = WIRE_Y;
+    this.vx = 0;
+    this.vy = 1.5 * this.dirY;
+    this.trail = [];
+    this.done = false;
+  }
+
+  step() {
+    if (this.done) return;
+    const dist = Math.abs(this.x - WIRE_X);
+    const forceMag = 20 / Math.max(dist, 14);
+    const fx = this.attracted ? -forceMag : +forceMag;
+    this.vx += fx * 0.042;
+    this.x  += this.vx;
+    this.y  += this.vy;
+    const spd = Math.hypot(this.vx, this.vy);
+    if (spd > 4.3) { this.vx *= 4.3/spd; this.vy *= 4.3/spd; }
+    this.trail.push({ x: this.x, y: this.y });
+    if (this.trail.length > 70) this.trail.shift();
+    if (this.x < WIRE_X + 9 || this.x > W + 25 || this.y < -15 || this.y > H + 15) {
+      this.done = true;
+      setTimeout(() => this.reset(), 700);
+    }
+  }
+
+  draw() {
+    const ctx = this.ctx;
+
+    // Trail
+    this.trail.forEach((p, i) => {
+      const a = (i / this.trail.length) * 0.55;
+      const hex = Math.floor(a * 255).toString(16).padStart(2,'0');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = this.color + hex;
+      ctx.fill();
+    });
+
+    if (this.done) return;
+
+    // Halo glow
+    const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 20);
+    grd.addColorStop(0, this.color + 'bb');
+    grd.addColorStop(1, this.color + '00');
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 20, 0, Math.PI*2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // Body
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 8, 0, Math.PI*2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffffaa';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // + sign
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('+', this.x, this.y);
+
+    // Velocity arrow (v)
+    const vAngle = Math.atan2(this.vy, this.vx);
+    this._arrow(ctx, this.x, this.y, vAngle, 28, this.color + 'dd', 'v');
+
+    // Force arrow (F)
+    const fDir = this.attracted ? -1 : 1;
+    const fAngle = fDir < 0 ? Math.PI : 0;
+    this._arrow(ctx, this.x, this.y + 22, fAngle, 30, '#ffffffbb', 'F');
+  }
+
+  _arrow(ctx, x, y, angle, len, color, label) {
+    const ex = x + Math.cos(angle) * len;
+    const ey = y + Math.sin(angle) * len;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(-7,3); ctx.lineTo(-7,-3);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+    const lx = ex + Math.cos(angle) * 11;
+    const ly = ey + Math.sin(angle) * 11;
+    ctx.font = 'italic bold 11px Crimson Pro, serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, lx, ly);
+  }
+}
+
+const chA = new Charge('cA', '#00e5ff', -1, true);
+const chR = new Charge('cR', '#ff4d6d',  1, false);
+
+// =============================================
+//  Render loop
+// =============================================
+let t = 0;
+function render() {
+  if (running) t++;
+
+  [chA, chR].forEach(ch => {
+    const ctx = ch.ctx;
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 32) {
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    }
+    for (let y = 0; y <= H; y += 32) {
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+
+    drawBFieldRings(ctx, t);
+    drawDotCross(ctx);
+    drawWire(ctx);
+    ch.draw();
+    if (running) ch.step();
+  });
+
+  requestAnimationFrame(render);
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moment of a Force — Lab</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@700;900&display=swap');
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #1c2330;
+  --border:    #2a3444;
+  --text:      #cdd9e5;
+  --text-dim:  #768a9e;
+  --red:       #ff6b6b;
+  --red-dim:   #8b2a2a;
+  --blue:      #6bb5ff;
+  --blue-dim:  #1e3a6e;
+  --gold:      #e3b341;
+  --green:     #3fb950;
+  --green-dim: #1a3a1e;
+  --shadow:    rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Crimson Pro', Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 48px;
+  overflow-x: hidden;
+  color: var(--text);
+}
+
+/* Subtle grid overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(255,255,255,0.01) 31px, rgba(255,255,255,0.01) 32px);
+}
+
+/* ── Header ──────────────────────────────────────── */
+.header {
+  width: 100%; max-width: 900px;
+  padding: 28px 32px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.lab-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem;
+  color: var(--gold);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.lab-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: #e6edf3;
+  line-height: 1.1;
+}
+.lab-sub {
+  font-size: .97rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-style: italic;
+}
+.instructor-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem;
+  color: #4a6070;
+  letter-spacing: .08em;
+  margin-top: 7px;
+}
+
+/* ── Canvas card ─────────────────────────────────── */
+.canvas-card {
+  width: 100%; max-width: 900px;
+  background: #0a0e14;
+  border: 1px solid var(--border);
+  border-top: none;
+  box-shadow: 0 8px 32px var(--shadow);
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 340px;
+}
+
+/* ── Controls grid ───────────────────────────────── */
+.controls {
+  width: 100%; max-width: 900px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-top: none;
+  box-shadow: 0 4px 20px var(--shadow);
+  margin-bottom: 14px;
+}
+
+.hanger-panel {
+  background: var(--surface);
+  padding: 18px 22px;
+}
+
+.panel-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin-bottom: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+}
+.panel-left  .panel-title .dot { background: var(--red);  box-shadow: 0 0 6px var(--red); }
+.panel-right .panel-title .dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ctrl-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  width: 76px;
+  flex-shrink: 0;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  flex: 1; height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.panel-left  input[type=range] { background: linear-gradient(90deg, #2a1010, var(--red-dim)); }
+.panel-right input[type=range] { background: linear-gradient(90deg, #10182a, var(--blue-dim)); }
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 2px solid #0d1117;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+.panel-left  input[type=range]::-webkit-slider-thumb { background: var(--red); }
+.panel-right input[type=range]::-webkit-slider-thumb { background: var(--blue); }
+
+.ctrl-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
+  font-weight: 600;
+  width: 54px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.panel-left  .ctrl-val { color: var(--red); }
+.panel-right .ctrl-val { color: var(--blue); }
+
+/* Mass buttons */
+.mass-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.mass-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: all .12s;
+  letter-spacing: .03em;
+}
+.panel-left  .mass-btn { border-color: var(--red-dim);  color: var(--red); }
+.panel-right .mass-btn { border-color: var(--blue-dim); color: var(--blue); }
+.panel-left  .mass-btn:hover,
+.panel-left  .mass-btn.active { background: var(--red);  color: #0d1117; border-color: var(--red); }
+.panel-right .mass-btn:hover,
+.panel-right .mass-btn.active { background: var(--blue); color: #0d1117; border-color: var(--blue); }
+
+/* ── Results card ────────────────────────────────── */
+.results-card {
+  width: 100%; max-width: 900px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px var(--shadow);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+}
+
+.results-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.balance-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem;
+  padding: 3px 11px;
+  border-radius: 20px;
+  letter-spacing: .07em;
+  font-weight: 600;
+}
+.balance-badge.balanced   { background: #12281a; border: 1px solid var(--green); color: var(--green); }
+.balance-badge.unbalanced { background: #281212; border: 1px solid var(--red);   color: var(--red); }
+
+.moments-display {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 0;
+}
+
+.moment-box {
+  padding: 14px 16px;
+  border-radius: 6px;
+  text-align: center;
+}
+.moment-box.left  { background: #1c1014; border: 1px solid #3a1c1c; }
+.moment-box.right { background: #101418; border: 1px solid #1c2e3a; }
+
+.moment-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 4px;
+}
+.moment-box.left  .moment-label { color: var(--red); }
+.moment-box.right .moment-label { color: var(--blue); }
+
+.moment-formula {
+  font-size: .85rem;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.moment-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.moment-box.left  .moment-value { color: var(--red); }
+.moment-box.right .moment-value { color: var(--blue); }
+.moment-unit {
+  font-size: .72rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.equals-sign {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  color: var(--text-dim);
+  padding: 0 14px;
+  text-align: center;
+}
+
+/* Data log */
+.data-log { margin-top: 14px; }
+.log-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .62rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 8px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .72rem;
+}
+th {
+  background: var(--surface2);
+  color: #8ba0b8;
+  padding: 6px 10px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: .06em;
+  font-size: .62rem;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 5px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+tr.eq-row td { background: #0e1f12 !important; color: var(--green); font-weight: 600; }
+tr.ne-row td { background: #1f0e0e !important; color: #ff9090; }
+
+.btn-log {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: .95rem;
+  padding: 6px 18px;
+  border-radius: 5px;
+  border: 1px solid var(--gold);
+  cursor: pointer;
+  background: transparent;
+  color: var(--gold);
+  margin-top: 10px;
+  transition: all .15s;
+}
+.btn-log:hover { background: var(--gold); color: #0d1117; }
+
+.btn-clear {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: .95rem;
+  padding: 6px 14px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-dim);
+  margin-top: 10px;
+  margin-left: 8px;
+  transition: all .15s;
+}
+.btn-clear:hover { background: var(--border); color: var(--text); }
+
+/* ── Balance hint ────────────────────────────────── */
+.balance-hint {
+  width: 100%; max-width: 900px;
+  background: #0e1a10;
+  border: 1px solid #244a28;
+  border-left: 3px solid var(--green);
+  border-radius: 4px;
+  padding: 14px 20px;
+  margin-bottom: 14px;
+  display: none;
+}
+.balance-hint.show { display: block; }
+.balance-hint-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: .98rem;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+.balance-hint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .74rem;
+  color: #7ac880;
+}
+.hint-row { display: flex; flex-direction: column; gap: 2px; }
+.hint-lbl { font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; color: #3a7a40; }
+.hint-val { font-size: .9rem; font-weight: 600; color: #80e890; }
+.hint-formula {
+  grid-column: 1 / -1;
+  font-size: .76rem;
+  color: #6ab870;
+  background: rgba(0,100,0,0.1);
+  border: 1px solid #1a4a1e;
+  border-radius: 4px;
+  padding: 6px 10px;
+  line-height: 1.9;
+}
+
+/* ── Theory card ─────────────────────────────────── */
+.theory-card {
+  width: 100%; max-width: 900px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  padding: 14px 20px;
+  font-size: .9rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  border-radius: 0 4px 4px 0;
+}
+.theory-card b { color: #e6edf3; }
+.theory-card code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--gold);
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="lab-tag">Physics Lab · Statics</div>
+  <div class="lab-title">Moment of a Force</div>
+  <div class="lab-sub">Equilibrium of a Meter Stick — Torque Balance</div>
+  <div class="instructor-line">Instructor: Dr. S Karna &nbsp;|&nbsp; Pivot at 50 cm &nbsp;|&nbsp; g = 9.81 m/s²</div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-card">
+  <canvas id="c"></canvas>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="hanger-panel panel-left">
+    <div class="panel-title"><span class="dot"></span> Left Hanger (L)</div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Position</span>
+      <input type="range" id="posL" min="0" max="48" value="20" step="1">
+      <span class="ctrl-val" id="posLVal">30 cm</span>
+    </div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Mass</span>
+      <div class="mass-btns" id="massBtnsL"></div>
+      <span class="ctrl-val" id="massLVal">100 g</span>
+    </div>
+  </div>
+  <div class="hanger-panel panel-right">
+    <div class="panel-title"><span class="dot"></span> Right Hanger (R)</div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Position</span>
+      <input type="range" id="posR" min="0" max="48" value="20" step="1">
+      <span class="ctrl-val" id="posRVal">70 cm</span>
+    </div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Mass</span>
+      <div class="mass-btns" id="massBtnsR"></div>
+      <span class="ctrl-val" id="massRVal">100 g</span>
+    </div>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="results-card">
+  <div class="results-title">
+    <span>Torque Analysis</span>
+    <span class="balance-badge" id="balanceBadge">Balanced ✓</span>
+  </div>
+  <div class="moments-display">
+    <div class="moment-box left">
+      <div class="moment-label">Clockwise Moment (CW)</div>
+      <div class="moment-formula">M<sub>L</sub> = m<sub>L</sub> · g · d<sub>L</sub></div>
+      <div class="moment-value" id="momentL">0.000</div>
+      <div class="moment-unit">N·m</div>
+    </div>
+    <div class="equals-sign" id="eqSign">=</div>
+    <div class="moment-box right">
+      <div class="moment-label">Counter-Clockwise (CCW)</div>
+      <div class="moment-formula">M<sub>R</sub> = m<sub>R</sub> · g · d<sub>R</sub></div>
+      <div class="moment-value" id="momentR">0.000</div>
+      <div class="moment-unit">N·m</div>
+    </div>
+  </div>
+  <div class="data-log">
+    <div class="log-title">Data Log</div>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th><th>m_L (g)</th><th>d_L (cm)</th><th>M_L (N·m)</th>
+          <th>m_R (g)</th><th>d_R (cm)</th><th>M_R (N·m)</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr><td colspan="8" style="color:#3a4a5a;padding:10px">No data recorded yet.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-log" onclick="logData()">+ Record Trial</button>
+    <button class="btn-clear" onclick="clearLog()">Clear</button>
+  </div>
+</div>
+
+<!-- Balance hint -->
+<div class="balance-hint" id="balanceHint">
+  <div class="balance-hint-title">⚖️ How to Achieve Balance</div>
+  <div class="balance-hint-grid">
+    <div class="hint-row">
+      <span class="hint-lbl">Fix Left hanger at</span>
+      <span class="hint-val" id="hintDL">—</span>
+    </div>
+    <div class="hint-row">
+      <span class="hint-lbl">Move Right hanger to</span>
+      <span class="hint-val" id="hintDR">—</span>
+    </div>
+    <div class="hint-row">
+      <span class="hint-lbl">Or move Left hanger to</span>
+      <span class="hint-val" id="hintDL2">—</span>
+    </div>
+    <div class="hint-row">
+      <span class="hint-lbl">Fix Right hanger at</span>
+      <span class="hint-val" id="hintDR2">—</span>
+    </div>
+    <div class="hint-formula" id="hintFormula">—</div>
+  </div>
+</div>
+
+<!-- Theory -->
+<div class="theory-card">
+  <b>Principle of Moments:</b> A body is in rotational equilibrium when the sum of all clockwise moments equals the sum of all counter-clockwise moments about the pivot.
+  &nbsp;&nbsp;<code>Σ M_CW = Σ M_CCW</code>&nbsp;&nbsp;→&nbsp;&nbsp;
+  <code>m_L × d_L = m_R × d_R</code>
+  <br>
+  <b>Moment arm</b> = perpendicular distance from pivot to the line of action of the force.
+  Drag the sliders to move the hangers, or click the mass buttons to change the pan mass.
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const G         = 9.81;
+const PIVOT_CM  = 50;
+const MASSES_G  = [50, 100, 150, 200, 250, 300];
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let state = {
+  L: { mass_g: 100, pos_cm: 30 },
+  R: { mass_g: 100, pos_cm: 70 },
+};
+
+let balanceTargetSide = null;
+let balanceTargetPos  = null;
+
+const armL     = () => Math.abs(state.L.pos_cm - PIVOT_CM);
+const armR     = () => Math.abs(state.R.pos_cm - PIVOT_CM);
+const momentL  = () => (state.L.mass_g / 1000) * G * (armL() / 100);
+const momentR  = () => (state.R.mass_g / 1000) * G * (armR() / 100);
+
+function tiltAngle() {
+  const diff = momentL() - momentR();
+  return Math.tanh(diff / 0.05) * 0.18;
+}
+
+// ═══════════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const DPR    = window.devicePixelRatio || 1;
+let W = 0, H = 0;
+
+function setupCanvas() {
+  const r = canvas.getBoundingClientRect();
+  W = r.width; H = r.height;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+// ── Animation (smooth tilt) ──────────────────────────
+let currentAngle = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  currentAngle += (tiltAngle() - currentAngle) * 0.10;
+  drawScene();
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAW
+// ═══════════════════════════════════════════════════
+function drawScene() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Dark background with subtle radial glow at centre
+  ctx.fillStyle = '#0a0e14';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const grd = ctx.createRadialGradient(cx, H * 0.4, 20, cx, H * 0.4, W * 0.55);
+  grd.addColorStop(0,   'rgba(30,80,150,0.06)');
+  grd.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  const pivotX = W / 2;
+  const pivotY = 55;
+
+  drawCeiling(pivotX);
+  drawRope(pivotX, pivotY);
+
+  ctx.save();
+  ctx.translate(pivotX, pivotY + 44);
+  ctx.rotate(currentAngle);
+
+  drawStick();
+  drawPivotKnot();
+  drawHanger('L', state.L.pos_cm, state.L.mass_g);
+  drawHanger('R', state.R.pos_cm, state.R.mass_g);
+
+  if (balanceTargetSide && balanceTargetPos !== null) {
+    drawBalanceTarget(balanceTargetSide, balanceTargetPos);
+  }
+
+  ctx.restore();
+
+  drawPivotLabel(pivotX, pivotY);
+}
+
+// ── Ceiling ──────────────────────────────────────────
+function drawCeiling(px) {
+  ctx.fillStyle = '#1a2030';
+  ctx.fillRect(px - 44, 0, 88, 20);
+
+  ctx.strokeStyle = '#2a3a50';
+  ctx.lineWidth = 1;
+  for (let x = px - 44; x < px + 44; x += 11) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x - 11, 20);
+    ctx.stroke();
+  }
+
+  // Bracket
+  const bg = ctx.createLinearGradient(px - 9, 10, px + 9, 20);
+  bg.addColorStop(0, '#3a4a60');
+  bg.addColorStop(1, '#1a2030');
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.roundRect(px - 9, 10, 18, 14, 3);
+  ctx.fill();
+  ctx.strokeStyle = '#4a6080';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// ── Rope ─────────────────────────────────────────────
+function drawRope(px, py) {
+  const rg = ctx.createLinearGradient(px - 2, 22, px + 2, py + 44);
+  rg.addColorStop(0, '#4a5a70');
+  rg.addColorStop(1, '#2a3a50');
+  ctx.strokeStyle = rg;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px, 22);
+  ctx.lineTo(px, py + 44);
+  ctx.stroke();
+}
+
+// ── Meter stick ───────────────────────────────────────
+function drawStick() {
+  const halfPx = W * 0.41;
+  const stickH = 18;
+
+  // Stick glow (subtle)
+  const glowG = ctx.createLinearGradient(0, -stickH, 0, stickH * 2);
+  glowG.addColorStop(0, 'rgba(180,140,60,0.06)');
+  glowG.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glowG;
+  ctx.fillRect(-halfPx - 4, -stickH, halfPx * 2 + 8, stickH * 3);
+
+  // Stick body
+  const sg = ctx.createLinearGradient(0, -stickH / 2, 0, stickH / 2);
+  sg.addColorStop(0,   '#b8903a');
+  sg.addColorStop(0.3, '#a07830');
+  sg.addColorStop(0.7, '#886020');
+  sg.addColorStop(1,   '#604010');
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.roundRect(-halfPx, -stickH / 2, halfPx * 2, stickH, 3);
+  ctx.fill();
+
+  // Wood grain
+  ctx.strokeStyle = 'rgba(40,20,0,0.25)';
+  ctx.lineWidth = 0.8;
+  for (let gx = -halfPx + 18; gx < halfPx; gx += 28) {
+    ctx.beginPath();
+    ctx.moveTo(gx, -stickH / 2 + 2);
+    ctx.lineTo(gx + 4, stickH / 2 - 2);
+    ctx.stroke();
+  }
+
+  // Edge highlight
+  ctx.strokeStyle = 'rgba(255,200,80,0.15)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(-halfPx + 4, -stickH / 2 + 1);
+  ctx.lineTo(halfPx - 4,  -stickH / 2 + 1);
+  ctx.stroke();
+
+  // Stick border
+  ctx.strokeStyle = 'rgba(80,50,10,0.6)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.roundRect(-halfPx, -stickH / 2, halfPx * 2, stickH, 3);
+  ctx.stroke();
+
+  // Cm markings
+  const PX_PER_CM = (halfPx * 2) / 100;
+  for (let cm = 0; cm <= 100; cm++) {
+    const x    = -halfPx + cm * PX_PER_CM;
+    const big  = cm % 10 === 0;
+    const med  = cm % 5  === 0;
+    const mH   = big ? 10 : med ? 6 : 3;
+    ctx.strokeStyle = big  ? 'rgba(220,180,80,0.7)'
+                    : med  ? 'rgba(180,140,60,0.45)'
+                    :        'rgba(150,110,40,0.25)';
+    ctx.lineWidth = big ? 1.2 : 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x, -stickH / 2);
+    ctx.lineTo(x, -stickH / 2 + mH);
+    ctx.stroke();
+
+    if (big && cm > 0 && cm < 100) {
+      ctx.font      = "7px 'JetBrains Mono'";
+      ctx.fillStyle = 'rgba(220,180,60,0.65)';
+      ctx.textAlign = 'center';
+      ctx.fillText(cm, x, stickH / 2 - 3);
+    }
+  }
+
+  // Pivot line at 50 cm
+  ctx.strokeStyle = '#ff6060';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, -stickH / 2 - 2);
+  ctx.lineTo(0,  stickH / 2 + 2);
+  ctx.stroke();
+}
+
+// ── Pivot knot ────────────────────────────────────────
+function drawPivotKnot() {
+  const kg = ctx.createRadialGradient(0, -10, 0, 0, -10, 7);
+  kg.addColorStop(0, '#6a7a90');
+  kg.addColorStop(1, '#2a3a50');
+  ctx.fillStyle = kg;
+  ctx.beginPath();
+  ctx.arc(0, -10, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#8aaabb';
+  ctx.lineWidth   = 0.8;
+  ctx.stroke();
+}
+
+// ── Hanger ────────────────────────────────────────────
+function drawHanger(side, pos_cm, mass_g) {
+  const halfPx    = W * 0.41;
+  const PX_PER_CM = (halfPx * 2) / 100;
+  const x         = -halfPx + pos_cm * PX_PER_CM;
+  const stickBot  = 9;
+  const wireH     = 22;
+  const panW      = 36;
+  const panH      = 11;
+
+  const isL   = side === 'L';
+  const col   = isL ? '#ff6b6b' : '#6bb5ff';
+  const colDk = isL ? '#8b1a1a' : '#1a3a6b';
+
+  // Wire glow
+  ctx.strokeStyle = isL ? 'rgba(255,80,80,0.15)' : 'rgba(80,160,255,0.15)';
+  ctx.lineWidth   = 4;
+  ctx.beginPath(); ctx.moveTo(x, stickBot); ctx.lineTo(x, stickBot + wireH); ctx.stroke();
+
+  // Wire
+  ctx.strokeStyle = col;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath(); ctx.moveTo(x, stickBot); ctx.lineTo(x, stickBot + wireH); ctx.stroke();
+
+  // Pan
+  const panY = stickBot + wireH;
+  const pg   = ctx.createLinearGradient(x, panY, x, panY + panH);
+  pg.addColorStop(0, isL ? '#cc3030' : '#3080cc');
+  pg.addColorStop(1, isL ? '#6a0808' : '#0a1a5a');
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  ctx.roundRect(x - panW / 2, panY, panW, panH, 3);
+  ctx.fill();
+  ctx.strokeStyle = isL ? 'rgba(255,100,100,0.4)' : 'rgba(100,180,255,0.4)';
+  ctx.lineWidth   = 1;
+  ctx.stroke();
+
+  // Mass discs
+  const numDiscs = Math.round(mass_g / 50);
+  const discH    = 7;
+  const discW    = 30;
+  for (let i = 0; i < numDiscs; i++) {
+    const dy = panY - (i + 1) * discH;
+    const dg = ctx.createLinearGradient(x, dy, x, dy + discH);
+    dg.addColorStop(0, isL ? '#e05050' : '#4090e0');
+    dg.addColorStop(1, isL ? '#901818' : '#183090');
+    ctx.fillStyle = dg;
+    ctx.beginPath();
+    ctx.roundRect(x - discW / 2, dy, discW, discH - 1, 2);
+    ctx.fill();
+    ctx.strokeStyle = isL ? 'rgba(255,120,120,0.3)' : 'rgba(120,180,255,0.3)';
+    ctx.lineWidth   = 0.8;
+    ctx.stroke();
+  }
+
+  // Mass label
+  ctx.font      = "bold 9px 'JetBrains Mono'";
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText(mass_g + 'g', x, panY + panH - 2);
+
+  // Arm annotation
+  const armLen = Math.abs(pos_cm - PIVOT_CM);
+  if (armLen > 0) {
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = isL ? 'rgba(255,107,107,0.25)' : 'rgba(107,181,255,0.25)';
+    ctx.lineWidth   = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, -16); ctx.lineTo(0, -16);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const dir = isL ? 1 : -1;
+    ctx.strokeStyle = isL ? 'rgba(255,107,107,0.5)' : 'rgba(107,181,255,0.5)';
+    ctx.lineWidth   = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, -16); ctx.lineTo(x + dir * 5, -20);
+    ctx.moveTo(x, -16); ctx.lineTo(x + dir * 5, -12);
+    ctx.stroke();
+
+    ctx.font      = "8px 'JetBrains Mono'";
+    ctx.fillStyle = isL ? 'rgba(255,107,107,0.7)' : 'rgba(107,181,255,0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText(`d = ${armLen} cm`, x / 2, -22);
+    ctx.restore();
+  }
+}
+
+// ── Balance target marker ─────────────────────────────
+function drawBalanceTarget(side, pos_cm) {
+  const halfPx    = W * 0.41;
+  const PX_PER_CM = (halfPx * 2) / 100;
+  const x         = -halfPx + pos_cm * PX_PER_CM;
+  const stickTop  = -9;
+  const stickBot  = 9;
+  const pulse     = 0.55 + 0.45 * Math.sin(Date.now() / 340);
+
+  ctx.save();
+
+  // Vertical dashed target line
+  ctx.strokeStyle = `rgba(63,185,80,${pulse * 0.7})`;
+  ctx.lineWidth   = 2;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(x, stickTop - 34);
+  ctx.lineTo(x, stickBot + 58);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Glow halo
+  const grd = ctx.createRadialGradient(x, 0, 0, x, 0, 20);
+  grd.addColorStop(0,   `rgba(63,185,80,${0.22 * pulse})`);
+  grd.addColorStop(1,   'rgba(63,185,80,0)');
+  ctx.beginPath();
+  ctx.arc(x, 0, 20, 0, Math.PI * 2);
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  // Diamond
+  ctx.fillStyle   = `rgba(63,185,80,${pulse})`;
+  ctx.strokeStyle = `rgba(200,255,210,${pulse * 0.7})`;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x,       stickTop - 9);
+  ctx.lineTo(x + 7,   stickTop);
+  ctx.lineTo(x,       stickTop + 9);
+  ctx.lineTo(x - 7,   stickTop);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Down arrow
+  ctx.strokeStyle = `rgba(63,185,80,${pulse})`;
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, stickTop - 32);
+  ctx.lineTo(x, stickTop - 13);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 5, stickTop - 19);
+  ctx.lineTo(x,     stickTop - 12);
+  ctx.lineTo(x + 5, stickTop - 19);
+  ctx.stroke();
+
+  // Label pill
+  const label = `→ ${pos_cm.toFixed(1)} cm`;
+  ctx.font     = "bold 9px 'JetBrains Mono'";
+  const tw     = ctx.measureText(label).width;
+  const tagX   = x + 10;
+  const tagY   = stickTop - 20;
+
+  ctx.fillStyle = `rgba(20,60,25,${pulse * 0.95})`;
+  ctx.strokeStyle = `rgba(63,185,80,${pulse * 0.6})`;
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.roundRect(tagX - 3, tagY - 11, tw + 8, 13, 3);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = `rgba(180,255,190,${pulse})`;
+  ctx.textAlign = 'left';
+  ctx.fillText(label, tagX + 1, tagY - 1);
+
+  ctx.restore();
+}
+
+// ── Pivot label (screen space) ────────────────────────
+function drawPivotLabel(px, py) {
+  ctx.font      = "9px 'JetBrains Mono'";
+  ctx.fillStyle = 'rgba(255,90,90,0.55)';
+  ctx.textAlign = 'center';
+  ctx.fillText('▲ pivot (50 cm)', px, py + 56);
+}
+
+// ═══════════════════════════════════════════════════
+//  UI LOGIC
+// ═══════════════════════════════════════════════════
+function buildMassButtons() {
+  ['L', 'R'].forEach(side => {
+    const el = document.getElementById('massBtns' + side);
+    MASSES_G.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className   = 'mass-btn' + (state[side].mass_g === m ? ' active' : '');
+      btn.textContent = m + 'g';
+      btn.onclick     = () => setMass(side, m);
+      el.appendChild(btn);
+    });
+  });
+}
+
+function setMass(side, m) {
+  state[side].mass_g = m;
+  document.querySelectorAll(`#massBtns${side} .mass-btn`)
+    .forEach((btn, i) => btn.classList.toggle('active', MASSES_G[i] === m));
+  document.getElementById('mass' + side + 'Val').textContent = m + ' g';
+  updateResults();
+}
+
+function cmFromSlider(side, val) {
+  return side === 'L' ? 2 + parseInt(val) : 52 + parseInt(val);
+}
+
+function updateResults() {
+  const mL  = momentL(), mR = momentR();
+  const tol = 0.001;
+  const bal = Math.abs(mL - mR) < tol;
+
+  document.getElementById('momentL').textContent = mL.toFixed(3);
+  document.getElementById('momentR').textContent = mR.toFixed(3);
+
+  const badge = document.getElementById('balanceBadge');
+  const eq    = document.getElementById('eqSign');
+  const hint  = document.getElementById('balanceHint');
+
+  if (bal) {
+    badge.textContent = 'Balanced ✓';
+    badge.className   = 'balance-badge balanced';
+    eq.textContent    = '=';
+    eq.style.color    = '#3fb950';
+    hint.classList.remove('show');
+    balanceTargetSide = null;
+    balanceTargetPos  = null;
+  } else {
+    badge.textContent = mL > mR ? 'Left side heavier ↙' : 'Right side heavier ↘';
+    badge.className   = 'balance-badge unbalanced';
+    eq.textContent    = mL > mR ? '>' : '<';
+    eq.style.color    = '#ff6b6b';
+
+    // Solve: keep L fixed → find d_R
+    const dL_cm    = armL();
+    const dR_need  = (state.L.mass_g * dL_cm) / state.R.mass_g;
+    const posR_need = PIVOT_CM + dR_need;
+
+    // Solve: keep R fixed → find d_L
+    const dR_cm    = armR();
+    const dL_need  = (state.R.mass_g * dR_cm) / state.L.mass_g;
+    const posL_need = PIVOT_CM - dL_need;
+
+    const rOk = posR_need >= 51 && posR_need <= 99;
+    const lOk = posL_need >= 1  && posL_need <= 49;
+
+    document.getElementById('hintDL').textContent  = dL_cm + ' cm from pivot (pos: ' + state.L.pos_cm + ' cm)';
+    document.getElementById('hintDR').textContent  = rOk
+      ? posR_need.toFixed(1) + ' cm mark  (arm: ' + dR_need.toFixed(1) + ' cm)'
+      : '⚠ Out of range (' + posR_need.toFixed(1) + ' cm)';
+    document.getElementById('hintDL2').textContent = lOk
+      ? posL_need.toFixed(1) + ' cm mark  (arm: ' + dL_need.toFixed(1) + ' cm)'
+      : '⚠ Out of range (' + posL_need.toFixed(1) + ' cm)';
+    document.getElementById('hintDR2').textContent = dR_cm + ' cm from pivot (pos: ' + state.R.pos_cm + ' cm)';
+
+    document.getElementById('hintFormula').innerHTML =
+      '<b>Formula:</b> m<sub>L</sub> × d<sub>L</sub> = m<sub>R</sub> × d<sub>R</sub><br>' +
+      state.L.mass_g + ' g × ' + dL_cm + ' cm = ' + state.R.mass_g + ' g × d<sub>R</sub>' +
+      ' &nbsp;→&nbsp; d<sub>R</sub> = <b>' + dR_need.toFixed(1) + ' cm</b> from pivot' +
+      '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+      'or: d<sub>L</sub> = <b>' + dL_need.toFixed(1) + ' cm</b> from pivot';
+
+    balanceTargetSide = rOk ? 'R' : (lOk ? 'L' : null);
+    balanceTargetPos  = rOk ? posR_need : (lOk ? posL_need : null);
+
+    hint.classList.add('show');
+  }
+}
+
+function logData() {
+  const tbody = document.getElementById('logBody');
+  const rows  = tbody.querySelectorAll('tr[data-row]');
+  const n     = rows.length + 1;
+  const mL    = momentL(), mR = momentR();
+  const bal   = Math.abs(mL - mR) < 0.001;
+
+  const placeholder = tbody.querySelector('td[colspan]');
+  if (placeholder) placeholder.parentElement.remove();
+
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-row', n);
+  tr.className = bal ? 'eq-row' : 'ne-row';
+  tr.innerHTML = `
+    <td>${n}</td>
+    <td>${state.L.mass_g}</td><td>${armL()}</td><td>${mL.toFixed(3)}</td>
+    <td>${state.R.mass_g}</td><td>${armR()}</td><td>${mR.toFixed(3)}</td>
+    <td>${bal ? '✓ Balanced' : '✗ Not balanced'}</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function clearLog() {
+  document.getElementById('logBody').innerHTML =
+    '<tr><td colspan="8" style="color:#3a4a5a;padding:10px">No data recorded yet.</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+buildMassButtons();
+
+['L', 'R'].forEach(side => {
+  const slider = document.getElementById('pos' + side);
+  const label  = document.getElementById('pos' + side + 'Val');
+  slider.value  = side === 'L' ? state[side].pos_cm - 2 : state[side].pos_cm - 52;
+  label.textContent = state[side].pos_cm + ' cm';
+  slider.addEventListener('input', function () {
+    state[side].pos_cm = cmFromSlider(side, this.value);
+    label.textContent  = state[side].pos_cm + ' cm';
+    updateResults();
+  });
+});
+
+updateResults();
+
+window.addEventListener('resize', () => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  setupCanvas();
+});
+
+setupCanvas();
+animate();
+</script>
+</body>
+</html>

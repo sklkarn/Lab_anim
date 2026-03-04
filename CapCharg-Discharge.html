@@ -1,0 +1,914 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capacitor Charging & Discharging</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #0f1620;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --charge-color: #00d4ff;
+    --discharge-color: #ff6b35;
+    --green: #39ff14;
+    --text: #c8d8e8;
+    --dim: #4a6080;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    background-image: 
+      radial-gradient(circle at 20% 20%, rgba(0,212,255,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255,107,53,0.03) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+
+  .panel-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  /* CIRCUIT */
+  .circuit-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #circuit-svg {
+    width: 100%;
+    height: 200px;
+  }
+
+  /* CONTROLS */
+  .controls-panel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+
+  .control-label {
+    font-size: 0.75rem;
+    color: var(--dim);
+    min-width: 60px;
+  }
+
+  .slider-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .val-display {
+    font-size: 0.8rem;
+    color: var(--accent);
+    min-width: 55px;
+    text-align: right;
+  }
+
+  /* METRICS */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .metric-box {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .metric-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .metric-val.discharge { color: var(--accent2); }
+
+  .metric-name {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* SWITCH */
+  .switch-area {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    align-items: center;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 3px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-charge {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-charge:hover, .btn-charge.active {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  .btn-discharge {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn-discharge:hover, .btn-discharge.active {
+    background: var(--accent2);
+    color: var(--bg);
+    box-shadow: 0 0 20px rgba(255,107,53,0.5);
+  }
+
+  .btn-reset {
+    background: rgba(74,96,128,0.2);
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    flex: 0.5;
+  }
+
+  .btn-reset:hover {
+    background: rgba(74,96,128,0.5);
+    color: var(--text);
+  }
+
+  /* CHART */
+  .chart-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #chart-canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+  }
+
+  /* STATUS */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+  }
+
+  .status-dot.charging { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1s infinite; }
+  .status-dot.discharging { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .status-text {
+    font-size: 0.7rem;
+    color: var(--dim);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.1em;
+  }
+
+  .tau-info {
+    font-size: 0.68rem;
+    color: var(--dim);
+    margin-left: auto;
+  }
+
+  .tau-info span { color: var(--accent); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 0.65rem;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--dim); }
+  .legend-line { width: 20px; height: 2px; border-radius: 1px; }
+
+  @media (max-width: 600px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .circuit-panel { grid-column: 1; grid-row: 1; }
+    .controls-panel { grid-column: 1; grid-row: 2; }
+    .chart-panel { grid-column: 1; grid-row: 3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="lab-box">
+    <div class="header">
+        <h1>Capacitor Charging &amp; Discharging</h1>
+        <div class="instructor">Instructor: Dr. S. Karna</div>
+    </div>
+
+
+<div class="main-grid">
+
+  <!-- CIRCUIT -->
+  <div class="panel circuit-panel">
+    <div class="panel-label">Circuit Diagram</div>
+    <svg id="circuit-svg" viewBox="0 0 340 210">
+      <!--
+        TOPOLOGY:
+        Charging path:  Bat+ → top-rail → R → SW1(closed) → CapTop → CapBot → bottom-rail → Bat−
+        Discharging:    SW1 open, SW2 closed → CapTop → SW2 → bottom-rail → CapBot  (C shorts through R via bottom)
+        Discharge loop: CapTop(x=240,y=30) → right(x=300,y=30) → down SW2 → (x=300,y=180) → left → CapBot(x=240,y=180)
+      -->
+
+      <!-- BASE WIRES (always visible) -->
+      <!-- Top rail left: Bat+ to resistor -->
+      <line x1="30" y1="30" x2="80" y2="30" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Top rail right of resistor: to SW1 left node -->
+      <line x1="133" y1="30" x2="175" y2="30" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Top rail right of SW1: to cap top node -->
+      <line x1="210" y1="30" x2="240" y2="30" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Cap top down-wire -->
+      <line x1="240" y1="30" x2="240" y2="78" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Cap bottom up-wire -->
+      <line x1="240" y1="132" x2="240" y2="180" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Bottom rail: Bat− to cap bottom node -->
+      <line x1="30" y1="180" x2="240" y2="180" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Left: Bat+ to top rail -->
+      <line x1="30" y1="30" x2="30" y2="72" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- Left: Bat− to bottom rail -->
+      <line x1="30" y1="122" x2="30" y2="180" stroke="#1e3a5f" stroke-width="2"/>
+
+      <!-- Discharge short path wires (right side) -->
+      <!-- cap top → right corner -->
+      <line x1="240" y1="30" x2="300" y2="30" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- right side top segment (above SW2) -->
+      <line x1="300" y1="30" x2="300" y2="72" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- right side bottom segment (below SW2) -->
+      <line x1="300" y1="118" x2="300" y2="180" stroke="#1e3a5f" stroke-width="2"/>
+      <!-- right bottom → cap bottom node -->
+      <line x1="240" y1="180" x2="300" y2="180" stroke="#1e3a5f" stroke-width="2"/>
+
+      <!-- === BATTERY (left, vertical) === -->
+      <line x1="16" y1="72"  x2="44" y2="72"  stroke="#c8d8e8" stroke-width="3"/>
+      <line x1="21" y1="84"  x2="39" y2="84"  stroke="#c8d8e8" stroke-width="1.5"/>
+      <line x1="16" y1="97"  x2="44" y2="97"  stroke="#c8d8e8" stroke-width="3"/>
+      <line x1="21" y1="109" x2="39" y2="109" stroke="#c8d8e8" stroke-width="1.5"/>
+      <line x1="16" y1="109" x2="44" y2="109" stroke="#c8d8e8" stroke-width="3"/>
+      <line x1="21" y1="121" x2="39" y2="121" stroke="#c8d8e8" stroke-width="1.5"/>
+      <text x="48" y="78"  fill="#00d4ff" font-size="9" font-family="Share Tech Mono">+</text>
+      <text x="48" y="124" fill="#4a6080" font-size="9" font-family="Share Tech Mono">−</text>
+      <text x="8"  y="100" fill="#00d4ff" font-size="9" font-family="Share Tech Mono" text-anchor="middle">V₀</text>
+
+      <!-- === RESISTOR (top rail, horizontal) === -->
+      <polyline points="80,30 84,19 90,41 96,19 102,41 108,19 114,41 118,30 133,30"
+                fill="none" stroke="#ff6b35" stroke-width="2.5"/>
+      <text x="106" y="13" fill="#ff6b35" font-size="10" font-family="Share Tech Mono" text-anchor="middle">R</text>
+
+      <!-- === SW1 — CHARGE SWITCH (top rail, between R and cap) === -->
+      <circle cx="175" cy="30" r="3.5" fill="#0f1620" stroke="#4a6080" stroke-width="1.5"/>
+      <circle cx="210" cy="30" r="3.5" fill="#0f1620" stroke="#4a6080" stroke-width="1.5"/>
+      <line id="sw1-line" x1="175" y1="30" x2="207" y2="17" stroke="#4a6080" stroke-width="2.5"/>
+      <text id="sw1-label" x="190" y="11" fill="#4a6080" font-size="8" font-family="Share Tech Mono" text-anchor="middle">SW1</text>
+
+      <!-- === SW2 — DISCHARGE SWITCH (right side, vertical short) === -->
+      <circle cx="300" cy="72"  r="3.5" fill="#0f1620" stroke="#4a6080" stroke-width="1.5"/>
+      <circle cx="300" cy="118" r="3.5" fill="#0f1620" stroke="#4a6080" stroke-width="1.5"/>
+      <line id="sw2-line" x1="300" y1="72" x2="313" y2="115" stroke="#4a6080" stroke-width="2.5"/>
+      <text id="sw2-label" x="320" y="98" fill="#4a6080" font-size="8" font-family="Share Tech Mono" text-anchor="start">SW2</text>
+
+      <!-- === CAPACITOR (vertical plates at x=240) === -->
+      <line x1="215" y1="80"  x2="265" y2="80"  stroke="#c8d8e8" stroke-width="3.5"/>
+      <line x1="215" y1="130" x2="265" y2="130" stroke="#c8d8e8" stroke-width="3.5"/>
+      <text x="270" y="109" fill="#c8d8e8" font-size="11" font-family="Share Tech Mono">C</text>
+
+      <!-- Charge fill between plates -->
+      <rect id="cap-fill" x="216" y="81" width="48" height="48" fill="rgba(0,212,255,0.0)" rx="1"/>
+
+      <!-- +/- on cap -->
+      <text id="cap-plus"  x="240" y="76"  fill="#4a6080" font-size="9" font-family="Share Tech Mono" text-anchor="middle"></text>
+      <text id="cap-minus" x="240" y="148" fill="#4a6080" font-size="9" font-family="Share Tech Mono" text-anchor="middle"></text>
+
+      <!-- Voltage label -->
+      <text id="vc-label" x="165" y="108" fill="#00d4ff" font-size="9" font-family="Share Tech Mono" text-anchor="middle">Vc = 0.0V</text>
+
+      <!-- Animated current dot (JS-driven) -->
+      <circle id="cur-dot" cx="-20" cy="-20" r="5" fill="#00d4ff" opacity="0"/>
+    </svg>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="panel controls-panel">
+    <div class="panel-label">Parameters</div>
+
+    <div class="control-row">
+      <span class="control-label">Voltage</span>
+      <div class="slider-wrap">
+        <input type="range" id="sl-voltage" min="1" max="20" value="10" step="1">
+      </div>
+      <span class="val-display" id="dv-voltage">10 V</span>
+    </div>
+
+    <div class="control-row">
+      <span class="control-label">Resistance</span>
+      <div class="slider-wrap">
+        <input type="range" id="sl-resistance" min="1" max="100" value="10" step="1">
+      </div>
+      <span class="val-display" id="dv-resistance">10 kΩ</span>
+    </div>
+
+    <div class="control-row">
+      <span class="control-label">Capacitance</span>
+      <div class="slider-wrap">
+        <input type="range" id="sl-capacitance" min="1" max="100" value="10" step="1">
+      </div>
+      <span class="val-display" id="dv-capacitance">10 μF</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-box">
+        <div class="metric-val" id="mv-tau">0.1 s</div>
+        <div class="metric-name">τ = RC</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="mv-vc">0.00 V</div>
+        <div class="metric-name">Vc (current)</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="mv-ic">0.00 mA</div>
+        <div class="metric-name">I (current)</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="mv-q">0.00 μC</div>
+        <div class="metric-name">Q (charge)</div>
+      </div>
+    </div>
+
+    <div class="switch-area">
+      <button class="btn btn-charge" id="btn-charge" onclick="startCharge()">⚡ Charge</button>
+      <button class="btn btn-discharge" id="btn-discharge" onclick="startDischarge()">↓ Discharge</button>
+      <button class="btn btn-reset" onclick="reset()">↺</button>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="panel chart-panel">
+    <div class="panel-label">Voltage vs Time</div>
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">IDLE</span>
+      <span class="tau-info">τ = <span id="tau-span">0.1</span>s &nbsp; 5τ = <span id="tau5-span">0.5</span>s</span>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#00d4ff"></div>Charging Vc(t) = V₀(1 − e^−t/τ)</div>
+      <div class="legend-item"><div class="legend-line" style="background:#ff6b35"></div>Discharging Vc(t) = V₀·e^−t/τ</div>
+    </div>
+    <canvas id="chart-canvas"></canvas>
+  </div>
+
+</div>
+
+<script>
+// State
+let V0 = 10, R = 10000, C = 10e-6;
+let tau = R * C;
+let mode = 'idle'; // 'charging', 'discharging', 'idle'
+let vc = 0;
+let startTime = null;
+let vcAtStart = 0;
+let animFrame = null;
+
+// Chart data
+let chartData = []; // {t, vc, type}
+
+// Elements
+const slV = document.getElementById('sl-voltage');
+const slR = document.getElementById('sl-resistance');
+const slC = document.getElementById('sl-capacitance');
+const dvV = document.getElementById('dv-voltage');
+const dvR = document.getElementById('dv-resistance');
+const dvC = document.getElementById('dv-capacitance');
+
+const mvTau = document.getElementById('mv-tau');
+const mvVc = document.getElementById('mv-vc');
+const mvIc = document.getElementById('mv-ic');
+const mvQ = document.getElementById('mv-q');
+
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const tauSpan = document.getElementById('tau-span');
+const tau5Span = document.getElementById('tau5-span');
+
+const canvas = document.getElementById('chart-canvas');
+const ctx = canvas.getContext('2d');
+const capFill = document.getElementById('cap-fill');
+const sw1Line = document.getElementById('sw1-line');
+const sw1Label = document.getElementById('sw1-label');
+const sw2Line = document.getElementById('sw2-line');
+const sw2Label = document.getElementById('sw2-label');
+const capPlus  = document.getElementById('cap-plus');
+const capMinus = document.getElementById('cap-minus');
+const curDot   = document.getElementById('cur-dot');
+const btnCharge = document.getElementById('btn-charge');
+const btnDischarge = document.getElementById('btn-discharge');
+
+// Current dot animation along a path
+let dotAnim = null;
+let dotT = 0;
+
+// Charging path waypoints: Bat+(30,30)→R→SW1→CapTop→CapBot→Bat−
+const CHARGE_PATH = [
+  [30,30],[133,30],[210,30],[240,30],[240,78],   // top: left→R→SW1→cap top
+  [240,132],[240,180],[30,180],[30,30]            // down cap, bottom rail, back
+];
+// Discharging path: CapTop→right→SW2→right-bottom→CapBot (loop through R on top)
+const DISCHARGE_PATH = [
+  [240,78],[240,30],[300,30],[300,72],   // up cap top, right, down to SW2 top
+  [300,118],[300,180],[240,180],[240,132] // through SW2, bottom, back to cap bottom
+];
+
+function lerpPath(path, t) {
+  // total length approx
+  let segs = [];
+  let total = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const dx = path[i+1][0]-path[i][0], dy = path[i+1][1]-path[i][1];
+    const len = Math.sqrt(dx*dx+dy*dy);
+    segs.push(len);
+    total += len;
+  }
+  let dist = (t % 1) * total;
+  for (let i = 0; i < segs.length; i++) {
+    if (dist <= segs[i]) {
+      const frac = dist / segs[i];
+      return [
+        path[i][0] + frac*(path[i+1][0]-path[i][0]),
+        path[i][1] + frac*(path[i+1][1]-path[i][1])
+      ];
+    }
+    dist -= segs[i];
+  }
+  return path[path.length-1];
+}
+
+function setSwitches(state) {
+  // state: 'idle' | 'charging' | 'discharging'
+  if (state === 'charging') {
+    // SW1 closed (horizontal)
+    sw1Line.setAttribute('x2', '210'); sw1Line.setAttribute('y2', '30');
+    sw1Line.setAttribute('stroke', '#00d4ff');
+    sw1Label.setAttribute('fill', '#00d4ff');
+    // SW2 open (angled)
+    sw2Line.setAttribute('x2', '313'); sw2Line.setAttribute('y2', '115');
+    sw2Line.setAttribute('stroke', '#4a6080');
+    sw2Label.setAttribute('fill', '#4a6080');
+  } else if (state === 'discharging') {
+    // SW1 open (angled)
+    sw1Line.setAttribute('x2', '207'); sw1Line.setAttribute('y2', '17');
+    sw1Line.setAttribute('stroke', '#4a6080');
+    sw1Label.setAttribute('fill', '#4a6080');
+    // SW2 closed (vertical)
+    sw2Line.setAttribute('x2', '300'); sw2Line.setAttribute('y2', '118');
+    sw2Line.setAttribute('stroke', '#ff6b35');
+    sw2Label.setAttribute('fill', '#ff6b35');
+  } else {
+    // Both open
+    sw1Line.setAttribute('x2', '207'); sw1Line.setAttribute('y2', '17');
+    sw1Line.setAttribute('stroke', '#4a6080');
+    sw1Label.setAttribute('fill', '#4a6080');
+    sw2Line.setAttribute('x2', '313'); sw2Line.setAttribute('y2', '115');
+    sw2Line.setAttribute('stroke', '#4a6080');
+    sw2Label.setAttribute('fill', '#4a6080');
+  }
+}
+
+function animateDot(pathPoints, color) {
+  cancelAnimationFrame(dotAnim);
+  dotT = 0;
+  let last = performance.now();
+  curDot.setAttribute('fill', color);
+  curDot.setAttribute('opacity', '1');
+  function step(now) {
+    const dt = (now - last) / 1000;
+    last = now;
+    dotT += dt * 0.35; // speed: 0.35 loops/sec
+    const [x, y] = lerpPath(pathPoints, dotT);
+    curDot.setAttribute('cx', x);
+    curDot.setAttribute('cy', y);
+    dotAnim = requestAnimationFrame(step);
+  }
+  dotAnim = requestAnimationFrame(step);
+}
+
+function stopDot() {
+  cancelAnimationFrame(dotAnim);
+  curDot.setAttribute('opacity', '0');
+}
+
+function updateParams() {
+  V0 = parseInt(slV.value);
+  R = parseInt(slR.value) * 1000;
+  C = parseInt(slC.value) * 1e-6;
+  tau = R * C;
+  dvV.textContent = V0 + ' V';
+  dvR.textContent = slR.value + ' kΩ';
+  dvC.textContent = slC.value + ' μF';
+  mvTau.textContent = tau.toFixed(2) + ' s';
+  tauSpan.textContent = tau.toFixed(2);
+  tau5Span.textContent = (tau * 5).toFixed(2);
+  drawChart();
+}
+
+slV.addEventListener('input', updateParams);
+slR.addEventListener('input', updateParams);
+slC.addEventListener('input', updateParams);
+
+function startCharge() {
+  if (vc >= V0 * 0.999) return;
+  cancelAnimationFrame(animFrame);
+  mode = 'charging';
+  vcAtStart = vc;
+  startTime = performance.now();
+  statusDot.className = 'status-dot charging';
+  statusText.textContent = 'CHARGING';
+  btnCharge.classList.add('active');
+  btnDischarge.classList.remove('active');
+  setSwitches('charging');
+  animateDot(CHARGE_PATH, '#00d4ff');
+  animate();
+}
+
+function startDischarge() {
+  // If vc is 0 or near 0, start from V0 (fresh discharge demo)
+  if (vc < 0.01) vc = V0;
+  cancelAnimationFrame(animFrame);
+  mode = 'discharging';
+  vcAtStart = vc;
+  startTime = performance.now();
+  statusDot.className = 'status-dot discharging';
+  statusText.textContent = 'DISCHARGING';
+  btnDischarge.classList.add('active');
+  btnCharge.classList.remove('active');
+  setSwitches('discharging');
+  animateDot(DISCHARGE_PATH, '#ff6b35');
+  animate();
+}
+
+function reset() {
+  cancelAnimationFrame(animFrame);
+  mode = 'idle';
+  vc = 0;
+  chartData = [];
+  startTime = null;
+  statusDot.className = 'status-dot';
+  statusText.textContent = 'IDLE';
+  btnCharge.classList.remove('active');
+  btnDischarge.classList.remove('active');
+  setSwitches('idle');
+  stopDot();
+  updateDisplay();
+  drawChart();
+}
+
+function animate() {
+  const now = performance.now();
+  const t = (now - startTime) / 1000;
+  const currentMode = mode; // capture before possible flip to idle
+
+  if (mode === 'charging') {
+    vc = vcAtStart + (V0 - vcAtStart) * (1 - Math.exp(-t / tau));
+    if (vc >= V0 * 0.9999) {
+      vc = V0;
+      mode = 'idle';
+      stopDot();
+      setSwitches('idle');
+      statusDot.className = 'status-dot';
+      statusText.textContent = 'FULLY CHARGED';
+      btnCharge.classList.remove('active');
+    }
+  } else if (mode === 'discharging') {
+    vc = vcAtStart * Math.exp(-t / tau);
+    if (vc <= V0 * 0.0001) {
+      vc = 0;
+      mode = 'idle';
+      stopDot();
+      setSwitches('idle');
+      statusDot.className = 'status-dot';
+      statusText.textContent = 'FULLY DISCHARGED';
+      btnDischarge.classList.remove('active');
+    }
+  }
+
+  // Record data point every ~40ms, tag with currentMode (before idle flip)
+  const lastPoint = chartData[chartData.length - 1];
+  if (!lastPoint || (now - lastPoint.wallTime) > 40) {
+    chartData.push({
+      t: Date.now(),
+      vc,
+      type: currentMode === 'charging' ? 'charge' : 'discharge',
+      wallTime: now
+    });
+    if (chartData.length > 600) chartData.shift();
+  }
+
+  updateDisplay();
+  drawChart();
+
+  if (mode !== 'idle') {
+    animFrame = requestAnimationFrame(animate);
+  }
+}
+
+function updateDisplay() {
+  const I = (mode === 'idle') ? 0 : (mode === 'charging' ? (V0 - vc) / R : vc / R);
+  const Q = C * vc * 1e6;
+  mvVc.textContent = vc.toFixed(2) + ' V';
+  mvVc.className = 'metric-val ' + (mode === 'discharging' ? 'discharge' : '');
+  mvIc.textContent = (Math.abs(I) * 1000).toFixed(3) + ' mA';
+  mvQ.textContent = Q.toFixed(2) + ' μC';
+
+  // Capacitor visual fill
+  const fillAmt = vc / V0;
+  capFill.setAttribute('fill', `rgba(0,212,255,${fillAmt * 0.35})`);
+
+  // +/- labels on plates when charged
+  if (vc > 0.1) {
+    capPlus.textContent  = '+';
+    capMinus.textContent = '−';
+    capPlus.setAttribute('fill',  '#00d4ff');
+    capMinus.setAttribute('fill', '#4a6080');
+  } else {
+    capPlus.textContent  = '';
+    capMinus.textContent = '';
+  }
+
+  // Voltage label
+  document.getElementById('vc-label').textContent = `Vc = ${vc.toFixed(1)}V`;
+}
+
+function drawChart() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { left: 45, right: 15, top: 10, bottom: 35 };
+  const pw = W - pad.left - pad.right;
+  const ph = H - pad.top - pad.bottom;
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(30,58,95,0.5)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = pad.left + (pw / 10) * i;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + (ph / 5) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(74,96,128,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top);
+  ctx.lineTo(pad.left, pad.top + ph);
+  ctx.lineTo(pad.left + pw, pad.top + ph);
+  ctx.stroke();
+
+  // Y labels
+  ctx.fillStyle = '#4a6080';
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = (V0 / 5) * (5 - i);
+    const y = pad.top + (ph / 5) * i;
+    ctx.fillText(val.toFixed(1) + 'V', pad.left - 4, y + 4);
+  }
+
+  // X label
+  ctx.fillStyle = '#4a6080';
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Time (s)', pad.left + pw / 2, H - 4);
+
+  if (chartData.length < 2) {
+    // Draw theoretical curves as preview
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
+    const timeSpan = tau * 5;
+
+    // Charge curve
+    ctx.strokeStyle = 'rgba(0,212,255,0.25)';
+    ctx.beginPath();
+    for (let px = 0; px <= pw; px++) {
+      const t = (px / pw) * timeSpan;
+      const v = V0 * (1 - Math.exp(-t / tau));
+      const x = pad.left + px;
+      const y = pad.top + ph - (v / V0) * ph;
+      px === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Discharge curve
+    ctx.strokeStyle = 'rgba(255,107,53,0.25)';
+    ctx.beginPath();
+    for (let px = 0; px <= pw; px++) {
+      const t = (px / pw) * timeSpan;
+      const v = V0 * Math.exp(-t / tau);
+      const x = pad.left + px;
+      const y = pad.top + ph - (v / V0) * ph;
+      px === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+
+  // Real data
+  const tStart = chartData[0].t;
+  const tEnd = chartData[chartData.length - 1].t;
+  const tRange = Math.max((tEnd - tStart) / 1000, tau * 5);
+
+  // X labels
+  ctx.fillStyle = '#4a6080';
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const t = (tRange / 5) * i;
+    const x = pad.left + (t / tRange) * pw;
+    ctx.fillText(t.toFixed(1), x, pad.top + ph + 18);
+  }
+
+  // Draw data — split into segments by type, connect transition point
+  ctx.setLineDash([]);
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // Group into continuous segments
+  const segments = [];
+  let seg = null;
+  for (let i = 0; i < chartData.length; i++) {
+    const d = chartData[i];
+    if (!seg || d.type !== seg.type) {
+      if (seg) segments.push(seg);
+      seg = { type: d.type, points: [] };
+      // Carry over last point of previous segment for continuity
+      if (segments.length > 0) {
+        const prev = segments[segments.length - 1];
+        const lastPt = prev.points[prev.points.length - 1];
+        if (lastPt) seg.points.push(lastPt);
+      }
+    }
+    seg.points.push({
+      x: pad.left + ((d.t - tStart) / 1000 / tRange) * pw,
+      y: pad.top + ph - Math.max(0, Math.min(1, d.vc / V0)) * ph
+    });
+  }
+  if (seg) segments.push(seg);
+
+  for (const segment of segments) {
+    if (segment.points.length < 2) continue;
+    ctx.beginPath();
+    ctx.strokeStyle = segment.type === 'discharge' ? '#ff6b35' : '#00d4ff';
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = 10;
+    ctx.moveTo(segment.points[0].x, segment.points[0].y);
+    for (let i = 1; i < segment.points.length; i++) {
+      ctx.lineTo(segment.points[i].x, segment.points[i].y);
+    }
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // Current Vc indicator line
+  const lastD = chartData[chartData.length - 1];
+  const lx = pad.left + ((lastD.t - tStart) / 1000 / tRange) * pw;
+  const ly = pad.top + ph - (vc / V0) * ph;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+  ctx.fillStyle = mode === 'discharging' ? '#ff6b35' : '#00d4ff';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = 12;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// Init
+updateParams();
+setSwitches('idle');
+drawChart();
+
+// Resize handler
+window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ohm's Law Verification Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1628;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00ff88;
+    --yellow: #ffd700;
+    --red: #ff4444;
+    --wire: #c8a040;
+    --wire-glow: rgba(200,160,64,0.6);
+    --text: #c8dff0;
+    --dim: #4a6a8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d1933 0%, transparent 100%);
+    position: relative;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent), 0 0 40px rgba(0,212,255,0.3);
+    letter-spacing: 4px;
+  }
+
+  header p {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--dim);
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    height: calc(100vh - 80px);
+  }
+
+  /* CIRCUIT CANVAS AREA */
+  .circuit-area {
+    position: relative;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .circuit-svg-wrap {
+    width: 100%;
+    max-width: 700px;
+    position: relative;
+  }
+
+  svg#circuit {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 20px rgba(0,212,255,0.1));
+  }
+
+  /* SIDE PANEL */
+  .side-panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    background: rgba(0,20,50,0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  /* METERS */
+  .meter {
+    background: #050d1a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .meter-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .meter-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+  }
+
+  .meter-unit {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin-left: 4px;
+  }
+
+  .meter.voltage .meter-value { color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .meter.current .meter-value { color: var(--green); text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+  .meter.resistance .meter-value { color: var(--accent2); text-shadow: 0 0 10px rgba(255,107,53,0.5); }
+  .meter.power .meter-value { color: var(--accent); text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+
+  /* RHEOSTAT CONTROL */
+  .rheostat-control {
+    position: relative;
+  }
+
+  .control-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  .slider-track {
+    position: relative;
+    margin-bottom: 6px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent2), var(--red));
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255,107,53,0.3);
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, #fff 20%, var(--accent2) 70%);
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow: 0 0 12px var(--accent2), 0 0 4px rgba(255,255,255,0.5);
+    transition: box-shadow 0.2s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    box-shadow: 0 0 20px var(--accent2), 0 0 8px rgba(255,255,255,0.7);
+  }
+
+  .slider-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  /* VOLTAGE CONTROL */
+  .battery-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .volt-btn {
+    background: #050d1a;
+    border: 1px solid var(--border);
+    color: var(--yellow);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    padding: 8px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .volt-btn:hover { border-color: var(--yellow); background: rgba(255,215,0,0.1); }
+  .volt-btn.active { border-color: var(--yellow); background: rgba(255,215,0,0.2); box-shadow: 0 0 8px rgba(255,215,0,0.4); color: #fff; }
+
+  /* OHM'S LAW DISPLAY */
+  .law-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--accent);
+    text-align: center;
+    padding: 10px;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    letter-spacing: 1px;
+    background: rgba(0,212,255,0.03);
+    line-height: 1.8;
+  }
+
+  /* VERIFICATION TABLE */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+  }
+
+  .data-table th {
+    color: var(--dim);
+    letter-spacing: 1px;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .data-table td {
+    padding: 3px 6px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(30,58,95,0.3);
+  }
+
+  .data-table td:first-child { color: var(--yellow); }
+  .data-table td:nth-child(2) { color: var(--green); }
+  .data-table td:nth-child(3) { color: var(--accent2); }
+  .data-table td:nth-child(4) { color: var(--accent); }
+
+  .record-btn {
+    width: 100%;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .record-btn:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 12px rgba(0,212,255,0.3);
+  }
+
+  /* VERIFICATION STATUS */
+  .verify-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    letter-spacing: 1px;
+    transition: all 0.5s;
+  }
+
+  .verify-status.verified {
+    background: rgba(0,255,136,0.1);
+    border: 1px solid var(--green);
+    color: var(--green);
+    text-shadow: 0 0 6px var(--green);
+  }
+
+  .verify-status.unverified {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* SVG Circuit Styles */
+  .wire { stroke: var(--wire); stroke-width: 3; fill: none; stroke-linecap: round; }
+  .wire-glow { stroke: var(--wire-glow); stroke-width: 6; fill: none; stroke-linecap: round; opacity: 0.4; }
+
+  /* Charge particle animation */
+  @keyframes flowPath {
+    0% { offset-distance: 0%; }
+    100% { offset-distance: 100%; }
+  }
+
+  .charge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, var(--accent));
+    box-shadow: 0 0 6px var(--accent), 0 0 12px rgba(0,212,255,0.5);
+    position: absolute;
+    pointer-events: none;
+    animation: flowPath linear infinite;
+  }
+
+  /* Component labels */
+  text.comp-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    fill: var(--dim);
+  }
+
+  text.comp-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    fill: var(--accent);
+  }
+
+  /* Arrows for conventional current direction */
+  .arrow { fill: var(--accent2); opacity: 0.7; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; height: auto; }
+    .side-panel { border-left: none; border-top: 1px solid var(--border); }
+    header h1 { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ OHM'S LAW VERIFICATION LAB</h1>
+  <p>INTERACTIVE CIRCUIT SIMULATOR — V = I × R</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- CIRCUIT DIAGRAM -->
+  <div class="circuit-area">
+    <div class="circuit-svg-wrap">
+      <svg id="circuit" viewBox="0 0 700 560" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="chargeGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="50%" stop-color="#00d4ff"/>
+            <stop offset="100%" stop-color="rgba(0,212,255,0)"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <marker id="arrowLeft" markerWidth="8" markerHeight="6" refX="2" refY="3" orient="auto">
+            <polygon points="8 0, 0 3, 8 6" fill="#ff6b35" opacity="0.8"/>
+          </marker>
+          <marker id="arrowRight" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff6b35" opacity="0.8"/>
+          </marker>
+          <marker id="arrowDown" markerWidth="6" markerHeight="8" refX="3" refY="6" orient="auto">
+            <polygon points="0 0, 6 0, 3 8" fill="#ff6b35" opacity="0.8"/>
+          </marker>
+          <marker id="arrowUp" markerWidth="6" markerHeight="8" refX="3" refY="2" orient="auto">
+            <polygon points="0 8, 6 8, 3 0" fill="#ff6b35" opacity="0.8"/>
+          </marker>
+        </defs>
+
+        <!-- Background grid -->
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(30,58,95,0.3)" stroke-width="0.5"/>
+        </pattern>
+        <rect width="700" height="560" fill="url(#grid)"/>
+
+        <!-- ============================================================ -->
+        <!-- Layout:                                                       -->
+        <!--   Voltmeter: centered at (490, 60) — ABOVE resistance wire   -->
+        <!--   Main circuit top wire: y=190                                -->
+        <!--   Main circuit bottom wire: y=420                             -->
+        <!--   Battery: left, y=230–350                                    -->
+        <!--   Rheostat: top wire, x=185–340, y=175–205                   -->
+        <!--   Resistance wire: top wire, x=420–560, y=175–205            -->
+        <!--   Ammeter: bottom wire, cx=350, cy=420                       -->
+        <!-- ============================================================ -->
+
+        <!-- =====================================================  -->
+        <!-- VOLTMETER — ABOVE resistance wire, centered at (490,65) -->
+        <!-- =====================================================  -->
+
+        <!-- Voltmeter body -->
+        <circle cx="490" cy="65" r="52" fill="#1a2a1a" stroke="#ffd700" stroke-width="2.5"/>
+        <circle cx="490" cy="65" r="43" fill="#0d1a0d"/>
+        <!-- Bezel ring -->
+        <circle cx="490" cy="65" r="52" fill="none" stroke="rgba(255,215,0,0.15)" stroke-width="6"/>
+        <!-- Scale arc (bottom half of meter face) -->
+        <path d="M450,92 A43,43 0 0,1 530,92" fill="none" stroke="#1a2a1a" stroke-width="8"/>
+        <path d="M450,92 A43,43 0 0,1 530,92" fill="none" stroke="#ffd700" stroke-width="2" stroke-dasharray="3,5" opacity="0.7"/>
+        <!-- Scale ticks -->
+        <line x1="450" y1="92" x2="457" y2="85" stroke="#ffd700" stroke-width="1.2" opacity="0.6"/>
+        <line x1="462" y1="72" x2="467" y2="66" stroke="#ffd700" stroke-width="1.2" opacity="0.6"/>
+        <line x1="490" y1="22" x2="490" y2="29" stroke="#ffd700" stroke-width="1.2" opacity="0.6"/>
+        <line x1="518" y1="72" x2="513" y2="66" stroke="#ffd700" stroke-width="1.2" opacity="0.6"/>
+        <line x1="530" y1="92" x2="523" y2="85" stroke="#ffd700" stroke-width="1.2" opacity="0.6"/>
+        <!-- Needle -->
+        <line id="vNeedle" x1="490" y1="65" x2="490" y2="27"
+              stroke="#ffd700" stroke-width="2.5" stroke-linecap="round"
+              transform="rotate(0,490,65)"/>
+        <circle cx="490" cy="65" r="4.5" fill="#ffd700"/>
+        <!-- V label -->
+        <text x="490" y="82" text-anchor="middle" font-family="Orbitron" font-size="10" fill="#ffd700" font-weight="bold">V</text>
+        <!-- Reading below meter -->
+        <text id="vMeterVal" x="490" y="126" text-anchor="middle" class="comp-value">0.00 V</text>
+        <text x="490" y="138" text-anchor="middle" class="comp-label">VOLTMETER</text>
+
+        <!-- Annotation arc label -->
+        <text x="490" y="14" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#ffd700" opacity="0.7">← across resistance wire →</text>
+
+        <!-- ======================================================= -->
+        <!-- VOLTMETER LEADS — going DOWN from meter to wire taps     -->
+        <!-- Left lead: meter bottom-left → tap at (420, 190)         -->
+        <!-- Right lead: meter bottom-right → tap at (560, 190)       -->
+        <!-- ======================================================= -->
+        <!-- Left lead: from (455,112) down to (420,190) -->
+        <line x1="455" y1="112" x2="420" y2="148" stroke="#ffd700" stroke-width="1.8" stroke-dasharray="5,3"/>
+        <line x1="420" y1="148" x2="420" y2="190" stroke="#ffd700" stroke-width="1.8" stroke-dasharray="5,3"/>
+        <!-- Right lead: from (525,112) down to (560,190) -->
+        <line x1="525" y1="112" x2="560" y2="148" stroke="#ffd700" stroke-width="1.8" stroke-dasharray="5,3"/>
+        <line x1="560" y1="148" x2="560" y2="190" stroke="#ffd700" stroke-width="1.8" stroke-dasharray="5,3"/>
+
+        <!-- + / − polarity labels on leads -->
+        <text x="432" y="165" font-family="Share Tech Mono" font-size="9" fill="#ffd700" opacity="0.8">+</text>
+        <text x="564" y="165" font-family="Share Tech Mono" font-size="9" fill="#ffd700" opacity="0.8">−</text>
+
+        <!-- ===================== -->
+        <!-- MAIN CIRCUIT WIRES   -->
+        <!-- Top wire y=190        -->
+        <!-- Bottom wire y=420     -->
+        <!-- ===================== -->
+        <line x1="100" y1="190" x2="600" y2="190" class="wire-glow"/>
+        <line x1="100" y1="190" x2="600" y2="190" class="wire"/>
+        <line x1="600" y1="190" x2="600" y2="420" class="wire-glow"/>
+        <line x1="600" y1="190" x2="600" y2="420" class="wire"/>
+        <line x1="600" y1="420" x2="100" y2="420" class="wire-glow"/>
+        <line x1="600" y1="420" x2="100" y2="420" class="wire"/>
+        <line x1="100" y1="190" x2="100" y2="270" class="wire-glow"/>
+        <line x1="100" y1="190" x2="100" y2="270" class="wire"/>
+        <line x1="100" y1="370" x2="100" y2="420" class="wire-glow"/>
+        <line x1="100" y1="370" x2="100" y2="420" class="wire"/>
+
+        <!-- Junction dots -->
+        <circle cx="100" cy="190" r="4" fill="#c8a040"/>
+        <circle cx="600" cy="190" r="4" fill="#c8a040"/>
+        <circle cx="600" cy="420" r="4" fill="#c8a040"/>
+        <circle cx="100" cy="420" r="4" fill="#c8a040"/>
+
+        <!-- Junction dots at resistance wire terminals (voltmeter taps) -->
+        <circle cx="420" cy="190" r="5.5" fill="#ffd700" filter="url(#glow)"/>
+        <circle cx="560" cy="190" r="5.5" fill="#ffd700" filter="url(#glow)"/>
+
+        <!-- ===================== -->
+        <!-- BATTERY (left)        -->
+        <!-- ===================== -->
+        <rect x="72" y="270" width="56" height="100" rx="4" fill="#1a2a4a" stroke="#2a4a7a" stroke-width="2"/>
+        <rect x="78" y="276" width="44" height="88" rx="2" fill="#0d1933"/>
+        <line x1="84" y1="292" x2="116" y2="292" stroke="#ffd700" stroke-width="3"/>
+        <line x1="88" y1="300" x2="112" y2="300" stroke="#a0a0a0" stroke-width="2"/>
+        <line x1="84" y1="308" x2="116" y2="308" stroke="#ffd700" stroke-width="3"/>
+        <line x1="88" y1="316" x2="112" y2="316" stroke="#a0a0a0" stroke-width="2"/>
+        <line x1="84" y1="324" x2="116" y2="324" stroke="#ffd700" stroke-width="3"/>
+        <line x1="88" y1="332" x2="112" y2="332" stroke="#a0a0a0" stroke-width="2"/>
+        <line x1="84" y1="340" x2="116" y2="340" stroke="#ffd700" stroke-width="3"/>
+        <line x1="88" y1="348" x2="112" y2="348" stroke="#a0a0a0" stroke-width="2"/>
+        <text x="100" y="287" text-anchor="middle" font-family="Orbitron" font-size="11" fill="#ffd700" font-weight="bold">+</text>
+        <text x="100" y="366" text-anchor="middle" font-family="Orbitron" font-size="13" fill="#a0a0a0" font-weight="bold">−</text>
+        <text x="55" y="318" text-anchor="middle" class="comp-label">BATTERY</text>
+        <text id="battLabel" x="55" y="330" text-anchor="middle" class="comp-value">6V</text>
+
+        <!-- ===================== -->
+        <!-- RHEOSTAT (top wire)   -->
+        <!-- ===================== -->
+        <rect x="185" y="175" width="155" height="30" rx="6" fill="#1a2a4a" stroke="#2a4a7a" stroke-width="1.5"/>
+        <path d="M198,190 Q208,178 218,190 Q228,202 238,190 Q248,178 258,190 Q268,202 278,190 Q288,178 298,190 Q308,202 318,190 Q328,178 338,190"
+              fill="none" stroke="#c8a040" stroke-width="2.5" stroke-linecap="round"/>
+        <line id="wiper" x1="262" y1="170" x2="262" y2="205" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+        <circle id="wiperDot" cx="262" cy="170" r="5" fill="#00d4ff" filter="url(#glow)"/>
+        <text x="262" y="163" text-anchor="middle" class="comp-label">RHEOSTAT</text>
+        <text id="rheVal" x="262" y="218" text-anchor="middle" class="comp-label">--Ω</text>
+
+        <!-- ========================= -->
+        <!-- RESISTANCE WIRE           -->
+        <!-- Left terminal: x=420      -->
+        <!-- Right terminal: x=560     -->
+        <!-- ========================= -->
+        <rect x="420" y="175" width="140" height="30" rx="6" fill="#2a1a0a" stroke="#6a3a1a" stroke-width="1.5"/>
+        <path d="M430,190 L442,175 L454,205 L466,175 L478,205 L490,175 L502,205 L514,175 L526,205 L538,175 L550,190"
+              fill="none" stroke="#ff6b35" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="490" y="163" text-anchor="middle" class="comp-label">RESISTANCE WIRE</text>
+        <text x="490" y="218" text-anchor="middle" class="comp-value">10Ω (fixed)</text>
+
+        <!-- ===================== -->
+        <!-- AMMETER (bottom wire) -->
+        <!-- ===================== -->
+        <circle cx="350" cy="420" r="34" fill="#1a2a1a" stroke="#00ff88" stroke-width="2"/>
+        <circle cx="350" cy="420" r="27" fill="#0d1a0d"/>
+        <path d="M325,437 A27,27 0 0,1 375,437" fill="none" stroke="#333" stroke-width="4"/>
+        <path d="M325,437 A27,27 0 0,1 375,437" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="2,4" opacity="0.7"/>
+        <line id="aNeedle" x1="350" y1="420" x2="350" y2="398"
+              stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"
+              transform="rotate(0,350,420)"/>
+        <circle cx="350" cy="420" r="3.5" fill="#00ff88"/>
+        <text x="350" y="435" text-anchor="middle" font-family="Orbitron" font-size="8" fill="#00ff88" font-weight="bold">A</text>
+        <text x="350" y="466" text-anchor="middle" class="comp-label">AMMETER</text>
+        <text id="aMeterVal" x="350" y="478" text-anchor="middle" class="comp-value">0.00 A</text>
+
+
+
+
+
+        <!-- ===================== -->
+        <!-- INSTRUCTOR NAME       -->
+        <!-- ===================== -->
+        <!-- Decorative badge background -->
+        <rect x="10" y="524" width="260" height="28" rx="4" fill="rgba(0,20,50,0.8)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+        <text x="20" y="534" font-family="Share Tech Mono" font-size="8" fill="rgba(0,212,255,0.5)" letter-spacing="2">INSTRUCTOR</text>
+        <text x="20" y="548" font-family="Orbitron" font-size="11" fill="#00d4ff" font-weight="700" letter-spacing="1">Dr. S Karna</text>
+        <!-- Glow dot accent -->
+        <circle cx="253" cy="538" r="3" fill="#00d4ff" opacity="0.6"/>
+
+        <!-- Title -->
+        <text x="350" y="543" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="rgba(0,212,255,0.25)">OHM'S LAW VERIFICATION CIRCUIT</text>
+
+        <!-- Charge layer -->
+        <g id="chargeLayer"></g>
+      </svg>
+
+      <!-- Floating charge particles (HTML overlay) -->
+      <canvas id="particleCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+
+    <!-- METERS -->
+    <div class="panel-section">
+      <div class="section-title">📊 Live Measurements</div>
+
+      <div class="meter voltage">
+        <div class="meter-label">VOLTMETER — across resistance wire</div>
+        <div class="meter-value"><span id="voltDisplay">6.00</span><span class="meter-unit">V</span></div>
+      </div>
+
+      <div class="meter current">
+        <div class="meter-label">AMMETER (A)</div>
+        <div class="meter-value"><span id="currDisplay">0.30</span><span class="meter-unit">A</span></div>
+      </div>
+
+      <div class="meter resistance">
+        <div class="meter-label">RESISTANCE WIRE (fixed)</div>
+        <div class="meter-value"><span id="resDisplay">20.0</span><span class="meter-unit">Ω</span></div>
+      </div>
+
+      <div class="meter power">
+        <div class="meter-label">POWER (P = V×I)</div>
+        <div class="meter-value"><span id="powDisplay">1.80</span><span class="meter-unit">W</span></div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="panel-section">
+      <div class="section-title">🔋 Battery Voltage</div>
+      <div class="battery-control">
+        <div class="volt-btn" data-v="3">3V</div>
+        <div class="volt-btn" data-v="6" class="active">6V</div>
+        <div class="volt-btn" data-v="9">9V</div>
+        <div class="volt-btn" data-v="12">12V</div>
+        <div class="volt-btn" data-v="15">15V</div>
+        <div class="volt-btn" data-v="18">18V</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">〰️ Rheostat (Variable R)</div>
+      <div class="rheostat-control">
+        <div class="control-label">RESISTANCE: <span id="rheoValDisplay">10</span> Ω</div>
+        <div class="slider-track">
+          <input type="range" id="rheoSlider" min="1" max="49" value="10" step="1">
+        </div>
+        <div class="slider-val">Min: 1Ω ←——→ Max: 49Ω</div>
+      </div>
+    </div>
+
+    <!-- OHM'S LAW FORMULA -->
+    <div class="panel-section">
+      <div class="section-title">⚡ Ohm's Law</div>
+      <div class="law-display" id="lawDisplay">
+        V = I × R<br>
+        <span style="color:#ffd700">6.00</span> = <span style="color:#00ff88">0.300</span> × <span style="color:#ff6b35">20.0</span>
+      </div>
+    </div>
+
+    <!-- DATA LOGGER -->
+    <div class="panel-section">
+      <div class="section-title">📋 Data Logger</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>V (V)</th><th>I (A)</th><th>R (Ω)</th><th>P (W)</th>
+            </tr>
+          </thead>
+          <tbody id="dataLog"></tbody>
+        </table>
+      </div>
+      <button class="record-btn" id="recordBtn">⊕ RECORD DATA POINT</button>
+      <div class="verify-status unverified" id="verifyStatus">
+        ≥ 3 points needed to verify V = IR
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let voltage = 6;
+let rheoR = 10;
+const fixedR = 10; // resistance wire (voltmeter measures across THIS)
+
+// ===== CIRCUIT CALC =====
+function calc() {
+  const totalR = rheoR + fixedR;
+  const current = voltage / totalR;
+  const vWire = current * fixedR;
+  const power = vWire * current;
+  return { voltage, current, totalR, vWire, power };
+}
+
+// ===== UPDATE UI =====
+function updateUI() {
+  const { voltage: V, current: I, totalR: R, vWire: Vw, power: P } = calc();
+
+  document.getElementById('voltDisplay').textContent = Vw.toFixed(2);
+  document.getElementById('currDisplay').textContent = I.toFixed(3);
+  document.getElementById('resDisplay').textContent = fixedR.toFixed(1);
+  document.getElementById('powDisplay').textContent = P.toFixed(3);
+  document.getElementById('rheoValDisplay').textContent = rheoR;
+
+  document.getElementById('vMeterVal').textContent = Vw.toFixed(2) + ' V';
+  document.getElementById('aMeterVal').textContent = I.toFixed(3) + ' A';
+  document.getElementById('battLabel').textContent = V + 'V';
+  document.getElementById('rheVal').textContent = rheoR + '\u03A9';
+
+  document.getElementById('lawDisplay').innerHTML = `
+    V<sub style="font-size:0.6em">wire</sub> = I \u00D7 R<sub style="font-size:0.6em">wire</sub><br>
+    <span style="color:#ffd700">${Vw.toFixed(2)}</span> = 
+    <span style="color:#00ff88">${I.toFixed(3)}</span> \u00D7 
+    <span style="color:#ff6b35">${fixedR}</span>
+    <br><span style="color:rgba(0,212,255,0.5);font-size:0.75rem;">
+    \u2713 ${(I * fixedR).toFixed(2)} \u2248 ${Vw.toFixed(2)} V</span>
+    <br><span style="color:rgba(200,160,64,0.5);font-size:0.65rem;">
+    Battery: ${V}V | Rheostat: ${rheoR}\u03A9</span>
+  `;
+
+  // Rheostat wiper position (SVG x: 198 to 338)
+  const wiperX = 198 + ((rheoR - 1) / 48) * 140;
+  document.getElementById('wiper').setAttribute('x1', wiperX);
+  document.getElementById('wiper').setAttribute('x2', wiperX);
+  document.getElementById('wiperDot').setAttribute('cx', wiperX);
+  const maxVwire = (18 / 11) * 10;
+  const maxCurr = 18 / 11;
+  const vAngle = (Vw / maxVwire) * 120 - 60;
+  const aAngle = (I / maxCurr) * 120 - 60;
+
+  document.getElementById('vNeedle').setAttribute('transform', `rotate(${vAngle},490,65)`);
+  document.getElementById('aNeedle').setAttribute('transform', `rotate(${aAngle},350,420)`);
+
+  particleSpeed = 0.3 + (I / maxCurr) * 2.0;
+  verifyData();
+}
+
+// ===== VOLTAGE BUTTONS =====
+document.querySelectorAll('.volt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.volt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    voltage = parseInt(btn.dataset.v);
+    updateUI();
+  });
+});
+
+// Mark the 6V button active initially
+document.querySelectorAll('.volt-btn').forEach(b => {
+  if (parseInt(b.dataset.v) === 6) b.classList.add('active');
+});
+
+// ===== RHEOSTAT SLIDER =====
+document.getElementById('rheoSlider').addEventListener('input', e => {
+  rheoR = parseInt(e.target.value);
+  updateUI();
+});
+
+// ===== DATA LOGGER =====
+let dataPoints = [];
+
+document.getElementById('recordBtn').addEventListener('click', () => {
+  const { vWire: Vw, current: I, power: P } = calc();
+  dataPoints.push({ V: Vw, I, R: fixedR, P });
+  renderTable();
+  verifyData();
+});
+
+function renderTable() {
+  const tbody = document.getElementById('dataLog');
+  tbody.innerHTML = '';
+  dataPoints.slice(-6).forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.V.toFixed(2)}</td><td>${d.I.toFixed(3)}</td><td>${d.R.toFixed(0)}</td><td>${d.P.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function verifyData() {
+  const el = document.getElementById('verifyStatus');
+  if (dataPoints.length < 3) {
+    el.className = 'verify-status unverified';
+    el.textContent = `\u2265 3 points needed (${dataPoints.length}/3 recorded)`;
+    return;
+  }
+  el.className = 'verify-status verified';
+  el.textContent = `\u2713 OHM'S LAW VERIFIED (${dataPoints.length} data points)`;
+}
+
+// ===== PARTICLE ANIMATION =====
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+
+// Main circuit path waypoints (SVG coords, viewBox 700x560)
+const circuitPath = [
+  {x: 100, y: 190},  // battery + top-left
+  {x: 262, y: 190},  // rheostat
+  {x: 490, y: 190},  // resistance wire mid
+  {x: 600, y: 190},  // top-right
+  {x: 600, y: 420},  // bottom-right
+  {x: 350, y: 420},  // ammeter
+  {x: 100, y: 420},  // bottom-left
+  {x: 100, y: 320},  // battery mid
+  {x: 100, y: 190},  // back to top
+];
+
+// Path total length (approximate straight line segments)
+function pathLength(pts) {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i-1].x;
+    const dy = pts[i].y - pts[i-1].y;
+    len += Math.sqrt(dx*dx + dy*dy);
+  }
+  return len;
+}
+
+function pointOnPath(pts, t) {
+  const total = pathLength(pts);
+  let target = t * total;
+  let cumLen = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i-1].x;
+    const dy = pts[i].y - pts[i-1].y;
+    const seg = Math.sqrt(dx*dx + dy*dy);
+    if (cumLen + seg >= target) {
+      const frac = (target - cumLen) / seg;
+      return {
+        x: pts[i-1].x + frac * dx,
+        y: pts[i-1].y + frac * dy
+      };
+    }
+    cumLen += seg;
+  }
+  return pts[pts.length - 1];
+}
+
+// Particles
+const NUM_PARTICLES = 12;
+let particles = [];
+let particleSpeed = 0.8;
+
+for (let i = 0; i < NUM_PARTICLES; i++) {
+  particles.push({
+    t: i / NUM_PARTICLES,
+    trail: []
+  });
+}
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// SVG viewBox is 700×560; map to canvas size
+function svgToCanvas(x, y) {
+  const svgEl = document.getElementById('circuit');
+  const rect = svgEl.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / 700;
+  const scaleY = rect.height / 560;
+  return {
+    x: rect.left - canvasRect.left + x * scaleX,
+    y: rect.top - canvasRect.top + y * scaleY
+  };
+}
+
+function animate(ts) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  particles.forEach((p, idx) => {
+    p.t += particleSpeed * 0.0006;
+    if (p.t > 1) p.t -= 1;
+
+    const pos = pointOnPath(circuitPath, p.t);
+    const canvasPos = svgToCanvas(pos.x, pos.y);
+
+    // Trail
+    p.trail.push({...canvasPos});
+    if (p.trail.length > 10) p.trail.shift();
+
+    // Draw trail
+    for (let i = 1; i < p.trail.length; i++) {
+      const alpha = i / p.trail.length;
+      ctx.beginPath();
+      ctx.moveTo(p.trail[i-1].x, p.trail[i-1].y);
+      ctx.lineTo(p.trail[i].x, p.trail[i].y);
+      ctx.strokeStyle = `rgba(0, 212, 255, ${alpha * 0.5})`;
+      ctx.lineWidth = alpha * 3;
+      ctx.stroke();
+    }
+
+    // Draw particle
+    const grad = ctx.createRadialGradient(
+      canvasPos.x, canvasPos.y, 0,
+      canvasPos.x, canvasPos.y, 6
+    );
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.4, 'rgba(0,212,255,0.9)');
+    grad.addColorStop(1, 'rgba(0,212,255,0)');
+
+    ctx.beginPath();
+    ctx.arc(canvasPos.x, canvasPos.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Glow
+    ctx.beginPath();
+    ctx.arc(canvasPos.x, canvasPos.y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,212,255,0.08)';
+    ctx.fill();
+  });
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+// ===== INIT =====
+updateUI();
+</script>
+</body>
+</html>

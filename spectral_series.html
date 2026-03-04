@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydrogen Spectral Series</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600;700&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap');
+
+:root {
+  --bg:     #030508;
+  --panel:  #07090f;
+  --border: #141c2e;
+  --text:   #b8cce0;
+  --dim:    #3a5070;
+
+  --lyman:   #bf5fff;
+  --balmer:  #ff4455;
+  --paschen: #ff9944;
+  --pfund:   #44ddbb;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Crimson Pro', Georgia, serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30,50,140,0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, rgba(100,20,180,0.09) 0%, transparent 60%);
+}
+
+/* ── Header ── */
+header {
+  width:100%; max-width:1140px;
+  padding:20px 28px 13px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-end; justify-content:space-between;
+  flex-wrap:wrap; gap:8px;
+}
+.h-tag {
+  font-family:'JetBrains Mono',monospace;
+  font-size:.57rem; color:var(--lyman);
+  letter-spacing:.22em; text-transform:uppercase;
+  opacity:.6; margin-bottom:3px;
+}
+.h-title {
+  font-family:'Orbitron',sans-serif;
+  font-size:1.45rem; font-weight:900; letter-spacing:.04em;
+  background:linear-gradient(100deg,#bf5fff 0%,#ff7744 35%,#ff4455 55%,#44ddbb 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.h-sub { font-size:.86rem; color:var(--dim); margin-top:3px; font-style:italic; font-weight:300; }
+.instructor { font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--dim); text-align:right; opacity:.65; }
+
+/* ── Main grid: atom | energy ── */
+.main-grid {
+  width:100%; max-width:1140px;
+  display:grid; grid-template-columns:370px 1fr;
+  min-height:500px;
+  border:1px solid var(--border); border-top:none;
+}
+.atom-wrap { border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; }
+.energy-wrap { background:var(--panel); display:flex; flex-direction:column; }
+.panel-hdr {
+  font-family:'JetBrains Mono',monospace; font-size:.53rem;
+  color:var(--dim); letter-spacing:.16em; text-transform:uppercase;
+  padding:9px 14px 0;
+}
+#atomCanvas   { flex:1; display:block; width:100%; }
+#energyCanvas { flex:1; display:block; width:100%; }
+
+/* ── Controls ── */
+.controls {
+  width:100%; max-width:1140px;
+  background:#050810;
+  border:1px solid var(--border); border-top:none;
+  padding:12px 20px;
+  display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start;
+}
+.cg { display:flex; flex-direction:column; gap:5px; }
+.cg-title {
+  font-family:'JetBrains Mono',monospace; font-size:.53rem;
+  color:var(--dim); text-transform:uppercase; letter-spacing:.14em;
+}
+.btn-row { display:flex; gap:5px; flex-wrap:wrap; }
+
+/* Series buttons */
+.sbtn {
+  font-family:'JetBrains Mono',monospace; font-size:.63rem;
+  padding:4px 13px; border-radius:3px; border:1px solid;
+  cursor:pointer; background:transparent; transition:all .13s; letter-spacing:.03em;
+}
+.sbtn.ly  { border-color:#3a1060; color:var(--lyman); }
+.sbtn.ba  { border-color:#601020; color:var(--balmer); }
+.sbtn.pa  { border-color:#603010; color:var(--paschen); }
+.sbtn.pf  { border-color:#104040; color:var(--pfund); }
+.sbtn.all { border-color:#1e3050; color:#55aadd; }
+
+.sbtn.active.ly  { background:#140528; border-color:var(--lyman);   box-shadow:0 0 10px #bf5fff33; }
+.sbtn.active.ba  { background:#280510; border-color:var(--balmer);  box-shadow:0 0 10px #ff445533; }
+.sbtn.active.pa  { background:#281008; border-color:var(--paschen); box-shadow:0 0 10px #ff994433; }
+.sbtn.active.pf  { background:#041818; border-color:var(--pfund);   box-shadow:0 0 10px #44ddbb33; }
+.sbtn.active.all { background:#061420; border-color:#55aadd;        box-shadow:0 0 10px #55aadd33; }
+.sbtn:not(.active):hover { background:rgba(255,255,255,0.04); }
+
+/* Transition buttons */
+.tbtn {
+  font-family:'JetBrains Mono',monospace; font-size:.6rem;
+  padding:3px 9px; border-radius:3px;
+  border:1px solid var(--border);
+  cursor:pointer; background:transparent; color:var(--dim); transition:all .11s;
+}
+.tbtn:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+.tbtn.active { color:var(--text); background:rgba(255,255,255,0.07); border-color:#2a3a5a; }
+
+/* ── Spectrum ── */
+.spectrum-wrap {
+  width:100%; max-width:1140px;
+  background:#050810;
+  border:1px solid var(--border); border-top:none;
+  padding:12px 20px 16px;
+}
+.spec-title {
+  font-family:'JetBrains Mono',monospace; font-size:.53rem;
+  color:var(--dim); text-transform:uppercase; letter-spacing:.14em;
+  margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.spec-legend { display:flex; gap:14px; }
+.leg { font-size:.55rem; display:flex; align-items:center; gap:4px; }
+.leg-dot { width:8px; height:8px; border-radius:50%; }
+#specCanvas {
+  display:block; width:100%; height:110px;
+  border:1px solid var(--border); border-radius:3px;
+}
+
+/* ── Info bar ── */
+.info-bar {
+  width:100%; max-width:1140px;
+  display:grid; grid-template-columns:1fr 1.7fr 1fr;
+  gap:1px; background:var(--border);
+  border:1px solid var(--border); border-top:none;
+  margin-bottom:32px;
+}
+.info-card { background:#050810; padding:12px 16px; }
+.ic-title {
+  font-family:'JetBrains Mono',monospace; font-size:.53rem;
+  color:var(--dim); text-transform:uppercase; letter-spacing:.14em; margin-bottom:7px;
+}
+.ic-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  gap:6px; margin-bottom:3px;
+}
+.ic-key { font-family:'JetBrains Mono',monospace; font-size:.62rem; color:var(--dim); }
+.ic-val { font-family:'JetBrains Mono',monospace; font-size:.67rem; font-weight:600; }
+
+.rydberg { font-family:'JetBrains Mono',monospace; font-size:.7rem; color:#88aacc; line-height:2.1; }
+.rydberg b { color:var(--lyman); }
+.rydberg .g { color:var(--pfund); }
+.af { font-family:'JetBrains Mono',monospace; font-size:.66rem; color:#80ffcc; margin-top:6px; font-weight:600; }
+.ad { font-family:'JetBrains Mono',monospace; font-size:.58rem; color:var(--dim); margin-top:2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="h-tag">Quantum Physics · Atomic Spectroscopy</div>
+    <div class="h-title">Hydrogen Spectral Series</div>
+    <div class="h-sub">Bohr model · Rydberg formula · Lyman · Balmer · Paschen · Pfund</div>
+  </div>
+  <div class="instructor">Instructor: Dr. S Karna<br>n = 1 … 7 orbital model</div>
+</header>
+
+<div class="main-grid">
+  <div class="atom-wrap">
+    <div class="panel-hdr">Bohr Atom — Electron Transition</div>
+    <canvas id="atomCanvas"></canvas>
+  </div>
+  <div class="energy-wrap">
+    <div class="panel-hdr">Energy Level Diagram (eV)</div>
+    <canvas id="energyCanvas"></canvas>
+  </div>
+</div>
+
+<!-- Series + transition controls -->
+<div class="controls">
+  <div class="cg">
+    <div class="cg-title">Series</div>
+    <div class="btn-row">
+      <button class="sbtn ly  active" id="btnLyman"   onclick="setSeries('lyman')">Lyman (UV)</button>
+      <button class="sbtn ba"         id="btnBalmer"  onclick="setSeries('balmer')">Balmer (Vis)</button>
+      <button class="sbtn pa"         id="btnPaschen" onclick="setSeries('paschen')">Paschen (IR)</button>
+      <button class="sbtn pf"         id="btnPfund"   onclick="setSeries('pfund')">Pfund (far-IR)</button>
+      <button class="sbtn all"        id="btnAll"     onclick="setSeries('all')">All Series</button>
+    </div>
+  </div>
+  <div class="cg">
+    <div class="cg-title">Transition (n₂ → n₁)</div>
+    <div class="btn-row" id="transRow"></div>
+  </div>
+  <div class="cg" style="margin-left:auto">
+    <div class="cg-title">Auto-cycle</div>
+    <div class="btn-row">
+      <button class="sbtn all" id="animBtn" onclick="toggleAnim()">▶ Play</button>
+    </div>
+  </div>
+</div>
+
+<!-- Emission spectrum -->
+<div class="spectrum-wrap">
+  <div class="spec-title">
+    <span>Emission Spectrum &nbsp;—&nbsp; wavelength (nm, log scale)</span>
+    <div class="spec-legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--lyman)"></div>Lyman UV</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--balmer)"></div>Balmer Vis</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--paschen)"></div>Paschen IR</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--pfund)"></div>Pfund far-IR</div>
+    </div>
+  </div>
+  <canvas id="specCanvas"></canvas>
+</div>
+
+<!-- Info bar -->
+<div class="info-bar">
+  <div class="info-card">
+    <div class="ic-title">Named Lines</div>
+    <div class="ic-row"><span class="ic-key">Ly-α (2→1)</span><span class="ic-val" style="color:var(--lyman)">121.6 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Ly-β (3→1)</span><span class="ic-val" style="color:var(--lyman)">102.6 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Hα   (3→2)</span><span class="ic-val" style="color:#ff6666">656.3 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Hβ   (4→2)</span><span class="ic-val" style="color:#6699ff">486.1 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Hγ   (5→2)</span><span class="ic-val" style="color:#33ddaa">434.0 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Pa-α (4→3)</span><span class="ic-val" style="color:var(--paschen)">1875 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Pf-α (6→5)</span><span class="ic-val" style="color:var(--pfund)">7460 nm</span></div>
+  </div>
+
+  <div class="info-card">
+    <div class="ic-title">Rydberg Formula</div>
+    <div class="rydberg">
+      <b>1/λ</b> = R<sub>H</sub> · (1/n₁² − 1/n₂²)<br>
+      <span class="g">R<sub>H</sub> = 1.09737 × 10⁷ m⁻¹</span><br>
+      E<sub>n</sub> = −13.6 / n² &nbsp;eV
+    </div>
+    <div class="af" id="activeFormula">Select a transition →</div>
+    <div class="ad" id="activeDetail"></div>
+  </div>
+
+  <div class="info-card">
+    <div class="ic-title">Series Ranges</div>
+    <div class="ic-row"><span class="ic-key">Lyman  (n₁=1)</span><span class="ic-val" style="color:var(--lyman)">UV  91–122 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Balmer (n₁=2)</span><span class="ic-val" style="color:var(--balmer)">Vis 365–656 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Paschen(n₁=3)</span><span class="ic-val" style="color:var(--paschen)">IR 820–1875 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Brackett(n₁=4)</span><span class="ic-val" style="color:#aaddff">IR 1458–4050 nm</span></div>
+    <div class="ic-row"><span class="ic-key">Pfund  (n₁=5)</span><span class="ic-val" style="color:var(--pfund)">far-IR 2.28–7.46 µm</span></div>
+    <div class="ic-row" style="margin-top:5px"><span class="ic-key">Ionization E</span><span class="ic-val">13.6 eV</span></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  PHYSICS
+// ════════════════════════════════════════════════════
+const RH = 1.09737316e7;           // Rydberg constant m⁻¹
+const Enm = n => -13.6/(n*n);     // energy level eV
+
+function lambda_nm(n1,n2){
+  if(n2<=n1) return null;
+  return 1e9/(RH*(1/(n1*n1)-1/(n2*n2)));
+}
+
+function makeLines(n1, count=5){
+  return Array.from({length:count},(_,i)=>{
+    const n2=n1+i+1;
+    return {n1, n2, wl:lambda_nm(n1,n2), dE:Enm(n1)-Enm(n2)};
+  });
+}
+
+// Four series
+const SERIES = {
+  lyman:   {n1:1, name:'Lyman',   col:'#bf5fff', lines:makeLines(1)},
+  balmer:  {n1:2, name:'Balmer',  col:'#ff4455', lines:makeLines(2)},
+  paschen: {n1:3, name:'Paschen', col:'#ff9944', lines:makeLines(3)},
+  pfund:   {n1:5, name:'Pfund',   col:'#44ddbb', lines:makeLines(5)},
+};
+
+const ALL_SERIES = [SERIES.lyman, SERIES.balmer, SERIES.paschen, SERIES.pfund];
+
+// Line names per series
+const NAMES = {
+  lyman:   ['Ly-α','Ly-β','Ly-γ','Ly-δ','Ly-ε'],
+  balmer:  ['Hα','Hβ','Hγ','Hδ','Hε'],
+  paschen: ['Pa-α','Pa-β','Pa-γ','Pa-δ','Pa-ε'],
+  pfund:   ['Pf-α','Pf-β','Pf-γ','Pf-δ','Pf-ε'],
+};
+
+// Wavelength → approximate RGB for visible range only
+function wlRGB(wl){
+  let r=0,g=0,b=0;
+  if(wl>=380&&wl<440){r=(440-wl)/60;g=0;b=1;}
+  else if(wl<490){r=0;g=(wl-440)/50;b=1;}
+  else if(wl<510){r=0;g=1;b=(510-wl)/20;}
+  else if(wl<580){r=(wl-510)/70;g=1;b=0;}
+  else if(wl<645){r=1;g=(645-wl)/65;b=0;}
+  else if(wl<750){r=1;g=0;b=0;}
+  const f=wl<420?(.3+.7*(wl-380)/40):wl>700?.4:1;
+  return `rgb(${~~(r*255*f)},${~~(g*255*f)},${~~(b*255*f)})`;
+}
+
+// ════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════
+let activeSeries = 'lyman';
+let activeTrans  = {n1:1,n2:2};
+let autoPlay     = false;
+let autoIdx      = 0;
+let autoTimer    = null;
+
+let eAngle  = 0;
+let photons = [];
+let flashT  = 0;
+
+// ════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ════════════════════════════════════════════════════
+const DPR=window.devicePixelRatio||1;
+const AC=document.getElementById('atomCanvas');
+const EC=document.getElementById('energyCanvas');
+const SC=document.getElementById('specCanvas');
+const ax=AC.getContext('2d');
+const ex=EC.getContext('2d');
+const sx=SC.getContext('2d');
+
+function resize(){
+  [AC,EC,SC].forEach(c=>{
+    const r=c.getBoundingClientRect();
+    c.width=r.width*DPR; c.height=r.height*DPR;
+  });
+  ax.setTransform(DPR,0,0,DPR,0,0);
+  ex.setTransform(DPR,0,0,DPR,0,0);
+  sx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+// ════════════════════════════════════════════════════
+//  DRAW ATOM
+// ════════════════════════════════════════════════════
+// Orbit radii px for n=1..7
+const OR=[0,30,56,80,102,122,140,157];
+// Level colours
+const LC=['','#ff5577','#ff9955','#ffcc55','#55ff99','#55ccff','#9966ff','#ff66cc'];
+
+function drawAtom(ts){
+  const W=AC.width/DPR, H=AC.height/DPR;
+  const cx=W/2, cy=H/2;
+  ax.clearRect(0,0,W,H);
+  ax.fillStyle='#030508'; ax.fillRect(0,0,W,H);
+
+  // ambient glow
+  const bg=ax.createRadialGradient(cx,cy,0,cx,cy,180);
+  bg.addColorStop(0,'rgba(40,70,200,0.06)'); bg.addColorStop(1,'rgba(0,0,0,0)');
+  ax.fillStyle=bg; ax.fillRect(0,0,W,H);
+
+  // Orbit rings n=1..7
+  for(let n=1;n<=7;n++){
+    const r=OR[n], col=LC[n];
+    ax.beginPath(); ax.arc(cx,cy,r,0,Math.PI*2);
+    ax.strokeStyle=col+'25'; ax.lineWidth=5; ax.stroke();
+    ax.beginPath(); ax.arc(cx,cy,r,0,Math.PI*2);
+    ax.strokeStyle=col+'40'; ax.lineWidth=1;
+    ax.setLineDash([3,7]); ax.stroke(); ax.setLineDash([]);
+    // label
+    ax.font="7px 'JetBrains Mono'";
+    ax.fillStyle=col+'88'; ax.textAlign='left';
+    ax.fillText(`n=${n}`,cx+r+2,cy-2);
+  }
+
+  // Active transition arrow
+  const {n1,n2}=activeTrans;
+  const r1=OR[Math.min(n1,7)], r2=OR[Math.min(n2,7)];
+  const ang=Math.PI*0.28;
+  const x1=cx+r1*Math.cos(ang), y1=cy+r1*Math.sin(ang);
+  const x2=cx+r2*Math.cos(ang), y2=cy+r2*Math.sin(ang);
+  const acol=getSeriesForTrans(n1)?.col||'#bf5fff';
+  const pulse=0.7+0.3*Math.sin(ts/300);
+
+  ax.save();
+  ax.strokeStyle=acol+'cc'; ax.lineWidth=2;
+  ax.shadowColor=acol; ax.shadowBlur=10*pulse;
+  ax.beginPath(); ax.moveTo(x2,y2); ax.lineTo(x1,y1); ax.stroke();
+  const ha=Math.atan2(y1-y2,x1-x2);
+  ax.beginPath();
+  ax.moveTo(x1,y1);
+  ax.lineTo(x1-11*Math.cos(ha-0.37),y1-11*Math.sin(ha-0.37));
+  ax.moveTo(x1,y1);
+  ax.lineTo(x1-11*Math.cos(ha+0.37),y1-11*Math.sin(ha+0.37));
+  ax.stroke(); ax.restore();
+
+  // Labels near arrow
+  const wl=lambda_nm(n1,n2);
+  const mx=(x1+x2)/2+13, my=(y1+y2)/2;
+  ax.font="bold 9px 'JetBrains Mono'";
+  ax.fillStyle=acol+'ee'; ax.textAlign='left';
+  ax.fillText(`${n2}→${n1}`,mx,my-7);
+  ax.font="8px 'JetBrains Mono'";
+  ax.fillStyle=acol+'99';
+  ax.fillText(wl>=1000?`${(wl/1000).toFixed(2)} µm`:`${wl.toFixed(1)} nm`,mx,my+6);
+
+  // Photon particles
+  photons=photons.filter(p=>p.a>0.015);
+  photons.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.a*=0.93;
+    const pg=ax.createRadialGradient(p.x,p.y,0,p.x,p.y,9);
+    pg.addColorStop(0,p.col+'ff'); pg.addColorStop(1,p.col+'00');
+    ax.beginPath(); ax.arc(p.x,p.y,9,0,Math.PI*2);
+    ax.globalAlpha=p.a; ax.fillStyle=pg; ax.fill(); ax.globalAlpha=1;
+  });
+
+  // Electron on n2 orbit
+  eAngle+=0.025;
+  const eN=Math.min(n2,7), eR=OR[eN];
+  const ex_=cx+eR*Math.cos(eAngle), ey_=cy+eR*Math.sin(eAngle);
+  // trail
+  for(let i=0;i<5;i++){
+    const ta=eAngle-i*0.07;
+    ax.beginPath(); ax.arc(cx+eR*Math.cos(ta),cy+eR*Math.sin(ta),2.2-i*0.3,0,Math.PI*2);
+    ax.fillStyle=`rgba(80,160,255,${0.28-i*0.05})`; ax.fill();
+  }
+  const eg=ax.createRadialGradient(ex_,ey_,0,ex_,ey_,12);
+  eg.addColorStop(0,'rgba(100,200,255,0.9)'); eg.addColorStop(0.4,'rgba(40,100,255,0.4)'); eg.addColorStop(1,'rgba(0,0,255,0)');
+  ax.beginPath(); ax.arc(ex_,ey_,12,0,Math.PI*2); ax.fillStyle=eg; ax.fill();
+  ax.beginPath(); ax.arc(ex_,ey_,4,0,Math.PI*2); ax.fillStyle='#c0e8ff'; ax.fill();
+
+  // Nucleus
+  const ng=ax.createRadialGradient(cx,cy,0,cx,cy,12);
+  ng.addColorStop(0,'#ffaa44'); ng.addColorStop(0.5,'#cc4422'); ng.addColorStop(1,'#550000');
+  ax.save(); ax.shadowColor='#ff6622'; ax.shadowBlur=16;
+  ax.beginPath(); ax.arc(cx,cy,11,0,Math.PI*2); ax.fillStyle=ng; ax.fill(); ax.restore();
+  ax.font="bold 8px 'JetBrains Mono'"; ax.fillStyle='#ffd8a0'; ax.textAlign='center';
+  ax.fillText('p⁺',cx,cy+3);
+}
+
+// ════════════════════════════════════════════════════
+//  DRAW ENERGY DIAGRAM
+// ════════════════════════════════════════════════════
+function drawEnergy(){
+  const W=EC.width/DPR, H=EC.height/DPR;
+  ex.clearRect(0,0,W,H); ex.fillStyle='#030508'; ex.fillRect(0,0,W,H);
+
+  const padL=68, padR=50, padT=22, padB=30;
+  const cW=W-padL-padR, cH=H-padT-padB;
+
+  // energy → Y  (0 eV at top, -13.6 eV at bottom)
+  const eY=e=>padT+cH*(e/-13.6);
+
+  // Ionisation line
+  ex.strokeStyle='rgba(255,255,255,0.07)'; ex.lineWidth=1;
+  ex.setLineDash([4,6]);
+  ex.beginPath(); ex.moveTo(padL,padT); ex.lineTo(padL+cW,padT); ex.stroke();
+  ex.setLineDash([]);
+  ex.font="7px 'JetBrains Mono'"; ex.fillStyle='rgba(255,255,255,0.2)'; ex.textAlign='right';
+  ex.fillText('0 eV (∞)',padL-3,padT+3);
+
+  // Energy levels n=1..7
+  for(let n=1;n<=7;n++){
+    const y=eY(Enm(n)), col=LC[n];
+    ex.strokeStyle=col+'20'; ex.lineWidth=6;
+    ex.beginPath(); ex.moveTo(padL,y); ex.lineTo(padL+cW,y); ex.stroke();
+    ex.strokeStyle=col+'aa'; ex.lineWidth=1.5;
+    ex.beginPath(); ex.moveTo(padL,y); ex.lineTo(padL+cW,y); ex.stroke();
+    ex.font="7px 'JetBrains Mono'";
+    ex.fillStyle=col+'bb'; ex.textAlign='right';
+    ex.fillText(`n=${n}`,padL-3,y+3);
+    ex.fillStyle='rgba(100,150,200,0.45)'; ex.textAlign='left';
+    ex.fillText(`${Enm(n).toFixed(2)}`,padL+cW+3,y+3);
+  }
+
+  // Transition arrows — x positions per series
+  // Spread 4 series across chart width
+  const seriesXBase={lyman:0.10, balmer:0.34, paschen:0.58, pfund:0.80};
+
+  const seriesToDraw = activeSeries==='all' ? ALL_SERIES : [SERIES[activeSeries]];
+
+  seriesToDraw.forEach(ser=>{
+    const bx=seriesXBase[ser.name.toLowerCase()]||0.2;
+    ser.lines.forEach((line,idx)=>{
+      if(line.n2>7) return;
+      const y1=eY(Enm(line.n1)), y2=eY(Enm(line.n2));
+      const isAct=line.n1===activeTrans.n1&&line.n2===activeTrans.n2;
+      const x=padL+cW*(bx+idx*0.04);
+      const al=isAct?'ee':'3a';
+
+      ex.save();
+      ex.strokeStyle=ser.col+al; ex.lineWidth=isAct?2.5:1.2;
+      if(isAct){ex.shadowColor=ser.col; ex.shadowBlur=12;}
+      ex.beginPath(); ex.moveTo(x,y2); ex.lineTo(x,y1+6); ex.stroke();
+      ex.beginPath();
+      ex.moveTo(x,y1+2); ex.lineTo(x-4,y1+10);
+      ex.moveTo(x,y1+2); ex.lineTo(x+4,y1+10); ex.stroke();
+      ex.restore();
+
+      if(isAct){
+        const midY=(y1+y2)/2;
+        const wlStr=line.wl>=1000?`${(line.wl/1000).toFixed(2)}µm`:`${line.wl.toFixed(0)}nm`;
+        ex.font="bold 8px 'JetBrains Mono'";
+        ex.fillStyle=ser.col+'ee'; ex.textAlign='left';
+        ex.fillText(`${line.n2}→${line.n1}`,x+5,midY-5);
+        ex.font="7px 'JetBrains Mono'";
+        ex.fillStyle=ser.col+'99';
+        ex.fillText(wlStr,x+5,midY+5);
+        ex.fillText(`${line.dE.toFixed(2)}eV`,x+5,midY+14);
+      }
+    });
+  });
+
+  // Series labels at bottom
+  seriesToDraw.forEach(ser=>{
+    const bx=seriesXBase[ser.name.toLowerCase()]||0.2;
+    const x=padL+cW*(bx+0.07);
+    ex.font="7px 'JetBrains Mono'"; ex.fillStyle=ser.col+'88'; ex.textAlign='center';
+    ex.fillText(ser.name,x,H-8);
+  });
+
+  // Y axis label
+  ex.save(); ex.translate(11,H/2); ex.rotate(-Math.PI/2);
+  ex.font="7px 'JetBrains Mono'"; ex.fillStyle='rgba(80,120,160,0.3)'; ex.textAlign='center';
+  ex.fillText('Energy (eV)',0,0); ex.restore();
+
+  // eV labels on right
+  ex.font="7px 'JetBrains Mono'"; ex.fillStyle='rgba(100,150,200,0.35)'; ex.textAlign='left';
+  ex.fillText('eV',padL+cW+3,padT-4);
+}
+
+// ════════════════════════════════════════════════════
+//  DRAW SPECTRUM  (logarithmic wavelength axis)
+// ════════════════════════════════════════════════════
+function drawSpectrum(){
+  const W=SC.width/DPR, H=SC.height/DPR;
+  sx.clearRect(0,0,W,H); sx.fillStyle='#02030a'; sx.fillRect(0,0,W,H);
+
+  const pL=52,pR=20,pT=14,pB=24;
+  const cW=W-pL-pR, cH=H-pT-pB;
+
+  // Log scale: 80 nm → 8000 nm
+  const L0=Math.log10(80), L1=Math.log10(8000);
+  const xOf=wl=>pL+(Math.log10(wl)-L0)/(L1-L0)*cW;
+
+  // Visible region tint
+  const v0=xOf(380), v1=xOf(700);
+  const visG=sx.createLinearGradient(v0,0,v1,0);
+  [[380,'#4400aa'],[420,'#4400ff'],[450,'#0033ff'],[490,'#0099ff'],
+   [510,'#00ff88'],[550,'#88ff00'],[580,'#ffff00'],[610,'#ff8800'],
+   [640,'#ff3300'],[700,'#880000']].forEach(([w,c])=>
+    visG.addColorStop((w-380)/320,c));
+  sx.globalAlpha=0.08; sx.fillStyle=visG;
+  sx.fillRect(v0,pT,v1-v0,cH); sx.globalAlpha=1;
+
+  // Region labels
+  sx.font="7px 'JetBrains Mono'"; sx.textAlign='center';
+  sx.fillStyle='rgba(180,150,255,0.45)'; sx.fillText('UV',xOf(110),pT+9);
+  sx.fillStyle='rgba(200,200,255,0.3)';  sx.fillText('Visible',xOf(540),pT+9);
+  sx.fillStyle='rgba(255,160,80,0.35)';  sx.fillText('Near-IR',xOf(1200),pT+9);
+  sx.fillStyle='rgba(80,220,180,0.35)';  sx.fillText('Mid-IR',xOf(4500),pT+9);
+
+  // Spectral lines
+  const seriesToDraw=activeSeries==='all'?ALL_SERIES:[SERIES[activeSeries]];
+  seriesToDraw.forEach(ser=>{
+    ser.lines.forEach(line=>{
+      const x=xOf(line.wl);
+      if(x<pL||x>pL+cW) return;
+      const isAct=line.n1===activeTrans.n1&&line.n2===activeTrans.n2;
+      const h=isAct?cH:cH*0.58;
+      const lw=isAct?2.5:1.5;
+      sx.save();
+      sx.strokeStyle=ser.col+(isAct?'ff':'60');
+      sx.lineWidth=lw;
+      if(isAct){sx.shadowColor=ser.col; sx.shadowBlur=16;}
+      sx.beginPath(); sx.moveTo(x,pT+cH-h); sx.lineTo(x,pT+cH); sx.stroke();
+      sx.restore();
+      if(isAct){
+        const wlStr=line.wl>=1000?`${(line.wl/1000).toFixed(2)}µm`:`${line.wl.toFixed(0)}nm`;
+        sx.font="bold 8px 'JetBrains Mono'"; sx.fillStyle=ser.col+'ee'; sx.textAlign='center';
+        sx.fillText(wlStr,x,pT+10);
+      }
+    });
+  });
+
+  // Log axis ticks: 100,200,300,500,1000,2000,5000 nm
+  const ticks=[90,100,150,200,300,400,500,700,1000,1500,2000,3000,5000,7000];
+  ticks.forEach(wl=>{
+    const x=xOf(wl);
+    if(x<pL||x>pL+cW) return;
+    const big=[100,200,500,1000,2000,5000].includes(wl);
+    sx.strokeStyle=big?'rgba(80,120,180,0.35)':'rgba(80,120,180,0.18)';
+    sx.lineWidth=1;
+    sx.beginPath(); sx.moveTo(x,pT+cH); sx.lineTo(x,pT+cH+(big?5:3)); sx.stroke();
+    if(big){
+      sx.font="7px 'JetBrains Mono'"; sx.fillStyle='rgba(80,120,180,0.55)'; sx.textAlign='center';
+      const lbl=wl>=1000?`${wl/1000}µm`:`${wl}nm`;
+      sx.fillText(lbl,x,H-5);
+    }
+  });
+  sx.font="7px 'JetBrains Mono'"; sx.fillStyle='rgba(80,120,180,0.4)'; sx.textAlign='left';
+  sx.fillText('λ',2,H-5);
+}
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+function getSeriesForTrans(n1){
+  return Object.values(SERIES).find(s=>s.n1===n1) || SERIES.lyman;
+}
+
+function getSeriesToShow(){
+  return activeSeries==='all' ? ALL_SERIES : [SERIES[activeSeries]];
+}
+
+function updateHUD(){
+  const {n1,n2}=activeTrans;
+  const wl=lambda_nm(n1,n2);
+  const dE=Enm(n1)-Enm(n2);
+  const ser=getSeriesForTrans(n1);
+  const wlStr=wl>=1000?`${(wl/1000).toFixed(3)} µm`:`${wl.toFixed(2)} nm`;
+  document.getElementById('activeFormula').textContent=
+    `λ = 1/(R·(1/${n1}²−1/${n2}²)) = ${wlStr}`;
+  document.getElementById('activeDetail').textContent=
+    `n=${n2}→n=${n1}  |  ΔE = ${dE.toFixed(3)} eV  |  ${ser.name} series`;
+}
+
+// ════════════════════════════════════════════════════
+//  CONTROLS
+// ════════════════════════════════════════════════════
+function setSeries(s){
+  activeSeries=s;
+  ['lyman','balmer','paschen','pfund','all'].forEach(k=>{
+    const id='btn'+k.charAt(0).toUpperCase()+k.slice(1);
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('active',k===s);
+  });
+  // Set first transition of the primary series
+  const startSer=s==='all'?SERIES.lyman:SERIES[s];
+  setTransition(startSer.n1,startSer.n1+1);
+  buildTransBtns();
+}
+
+function setTransition(n1,n2){
+  activeTrans={n1,n2};
+  flashT=performance.now();
+  // emit photon burst
+  const cx=AC.getBoundingClientRect().width/2;
+  const cy=AC.getBoundingClientRect().height/2;
+  const col=getSeriesForTrans(n1)?.col||'#bf5fff';
+  for(let i=0;i<6;i++){
+    const a=Math.random()*Math.PI*2;
+    photons.push({x:cx,y:cy,vx:Math.cos(a)*3.2,vy:Math.sin(a)*3.2,col,a:1});
+  }
+  document.querySelectorAll('.tbtn').forEach(b=>
+    b.classList.toggle('active',+b.dataset.n1===n1&&+b.dataset.n2===n2));
+  updateHUD();
+}
+
+function buildTransBtns(){
+  const row=document.getElementById('transRow');
+  row.innerHTML='';
+  getSeriesToShow().forEach(ser=>{
+    const names=NAMES[ser.name.toLowerCase()]||[];
+    ser.lines.forEach((line,i)=>{
+      if(line.n2>7) return;
+      const btn=document.createElement('button');
+      btn.className='tbtn'+(line.n1===activeTrans.n1&&line.n2===activeTrans.n2?' active':'');
+      btn.dataset.n1=line.n1; btn.dataset.n2=line.n2;
+      btn.textContent=`${names[i]||''} (${line.n2}→${line.n1})`;
+      btn.style.borderColor=ser.col+'55';
+      btn.style.color=ser.col+'bb';
+      btn.onclick=()=>setTransition(line.n1,line.n2);
+      row.appendChild(btn);
+    });
+  });
+}
+
+function toggleAnim(){
+  autoPlay=!autoPlay;
+  document.getElementById('animBtn').textContent=autoPlay?'⏸ Pause':'▶ Play';
+  if(autoPlay) cycleAnim(); else clearTimeout(autoTimer);
+}
+
+function cycleAnim(){
+  if(!autoPlay) return;
+  const lines=getSeriesToShow().flatMap(s=>s.lines.filter(l=>l.n2<=7));
+  const line=lines[autoIdx%lines.length];
+  setTransition(line.n1,line.n2);
+  autoIdx++;
+  autoTimer=setTimeout(cycleAnim,1700);
+}
+
+// ════════════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════════════
+function loop(ts){
+  requestAnimationFrame(loop);
+  drawAtom(ts); drawEnergy(); drawSpectrum();
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+window.addEventListener('resize',()=>{
+  [ax,ex,sx].forEach(c=>c.setTransform(1,0,0,1,0,0));
+  resize();
+});
+resize();
+buildTransBtns();
+updateHUD();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

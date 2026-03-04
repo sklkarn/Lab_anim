@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Optics Lab</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; }
+        canvas { background: #fff; border: 3px solid #333; cursor: crosshair; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 800px; margin-top: 20px; background: white; padding: 20px; border-radius: 12px; }
+        .stat-box { padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+        .label { font-size: 0.9em; color: #666; display: block; margin-bottom: 5px; }
+        .value { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
+        .instructions { margin-bottom: 10px; color: #555; }
+    </style>
+</head>
+<body>
+
+<div id="header-bar">
+    <h1 style="margin:0; font-size: 1.5em;">Laws of Reflection Lab</h1>
+    <div class="instructor-tag">
+        <strong>Instructor:</strong> Prof. [SK]</div>
+</div>
+
+    
+    <p class="instructions">Drag the <b>Red Object</b> to see how angles and distances change simultaneously.</p>
+    
+    <canvas id="opticsCanvas" width="800" height="450"></canvas>
+
+    <div class="dashboard">
+        <div class="stat-box">
+            <span class="label">Incident & Reflection Angle</span>
+            <span class="value" id="angleDisplay">0°</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">Object & Image Distance</span>
+            <span class="value" id="distDisplay">0 px</span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('opticsCanvas');
+        const ctx = canvas.getContext('2d');
+        const mirrorY = canvas.height / 2;
+        const centerX = canvas.width / 2;
+
+        let obj = { x: 250, y: 100, isDragging: false };
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Mirror (Silver Surface)
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fillRect(0, mirrorY - 2, canvas.width, 4);
+
+            // --- ADDED: Mirror Symbol (Hatch marks on the "back" side) ---
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= canvas.width; i += 15) {
+                ctx.beginPath();
+                ctx.moveTo(i, mirrorY + 2);      // Start at bottom of mirror
+                ctx.lineTo(i + 8, mirrorY + 12); // Slant downwards
+                ctx.stroke();
+            }
+            // -------------------------------------------------------------
+
+            // 2. Calculations
+            const dist = mirrorY - obj.y;
+            const imgY = mirrorY + dist;
+            
+            const dx = Math.abs(obj.x - centerX);
+            const dy = Math.abs(obj.y - mirrorY);
+            const angleRad = Math.atan2(dx, dy);
+            const angleDeg = Math.round(angleRad * (180 / Math.PI));
+
+            document.getElementById('angleDisplay').innerText = `θi = θr = ${angleDeg}°`;
+            document.getElementById('distDisplay').innerText = `do = di = ${Math.round(dist)}px`;
+
+            // 3. Draw Normal Line (Dashed)
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = '#95a5a6';
+            ctx.beginPath();
+            ctx.moveTo(centerX, 50);
+            ctx.lineTo(centerX, canvas.height - 50);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. Draw Incident Ray (Red)
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(obj.x, obj.y);
+            ctx.lineTo(centerX, mirrorY);
+            ctx.stroke();
+
+            // 5. Draw Reflected Ray (Solid Blue)
+            const reflectEndX = centerX + (centerX - obj.x);
+            const reflectEndY = obj.y; 
+            ctx.strokeStyle = '#3498db';
+            ctx.beginPath();
+            ctx.moveTo(centerX, mirrorY);
+            ctx.lineTo(reflectEndX, reflectEndY);
+            ctx.stroke();
+
+            // 6. Draw Virtual Extension (Dashed Blue to Image)
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, mirrorY);
+            ctx.lineTo(obj.x, imgY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 7. Draw Object & Image
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath(); ctx.arc(obj.x, obj.y, 8, 0, Math.PI*2); ctx.fill();
+            ctx.font = "bold 12px Segoe UI";
+            ctx.fillText("OBJECT", obj.x - 20, obj.y - 15);
+
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = '#3498db';
+            ctx.beginPath(); ctx.arc(obj.x, imgY, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillText("IMAGE", obj.x - 20, imgY + 25);
+            ctx.globalAlpha = 1.0;
+
+            // 8. Distance Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`do: ${Math.round(dist)}`, obj.x + 10, mirrorY - dist/2);
+            ctx.fillText(`di: ${Math.round(dist)}`, obj.x + 10, mirrorY + dist/2);
+        }
+
+        canvas.onmousedown = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            if (Math.hypot(mx - obj.x, my - obj.y) < 20) obj.isDragging = true;
+        };
+
+        window.onmouseup = () => obj.isDragging = false;
+        window.onmousemove = (e) => {
+            if (obj.isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                obj.x = Math.max(50, Math.min(centerX - 10, e.clientX - rect.left));
+                obj.y = Math.max(50, Math.min(mirrorY - 20, e.clientY - rect.top));
+                draw();
+            }
+        };
+
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electron Motion: AC vs DC</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --dc-color: #00e5ff;
+    --ac-color: #ff6b35;
+    --bg: #050a14;
+    --panel: #0a1628;
+    --border: #1a2f50;
+    --text: #c8d8f0;
+    --glow-dc: 0 0 12px #00e5ff88, 0 0 24px #00e5ff44;
+    --glow-ac: 0 0 12px #ff6b3588, 0 0 24px #ff6b3544;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    background: linear-gradient(90deg, var(--dc-color), #fff, var(--ac-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: #4a6a9a;
+    text-align: center;
+    margin-bottom: 32px;
+    text-transform: uppercase;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .panel.dc::before { background: linear-gradient(90deg, transparent, var(--dc-color), transparent); box-shadow: var(--glow-dc); }
+  .panel.ac::before { background: linear-gradient(90deg, transparent, var(--ac-color), transparent); box-shadow: var(--glow-ac); }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel.dc .panel-title { color: var(--dc-color); text-shadow: var(--glow-dc); }
+  .panel.ac .panel-title { color: var(--ac-color); text-shadow: var(--glow-ac); }
+
+  .tag {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+  }
+  .dc .tag { background: #00e5ff18; border: 1px solid #00e5ff44; color: var(--dc-color); }
+  .ac .tag { background: #ff6b3518; border: 1px solid #ff6b3544; color: var(--ac-color); }
+
+  canvas {
+    border-radius: 8px;
+    width: 100%;
+    background: #030810;
+    border: 1px solid var(--border);
+    display: block;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .info-item {
+    background: #06101e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  .info-item .label {
+    color: #4a6a9a;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.62rem;
+    margin-bottom: 2px;
+  }
+
+  .info-item .value {
+    font-size: 0.75rem;
+  }
+  .dc .info-item .value { color: var(--dc-color); }
+  .ac .info-item .value { color: var(--ac-color); }
+
+  .desc {
+    font-size: 0.72rem;
+    color: #6a8ab0;
+    line-height: 1.6;
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 6px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  #btnPause {
+    border-color: #2a4a70;
+    color: #4a8ab0;
+  }
+  #btnPause:hover { background: #0a1628; border-color: #4a8ab0; color: #c8d8f0; }
+
+  #btnSlow {
+    border-color: #1a3a20;
+    color: #3a8a50;
+  }
+  #btnSlow:hover { background: #061008; border-color: #3a8a50; color: #8adaa0; }
+
+  #btnFast {
+    border-color: #3a2a10;
+    color: #8a6a20;
+  }
+  #btnFast:hover { background: #100800; border-color: #8a6a20; color: #dab050; }
+
+  .wave-label {
+    font-size: 0.65rem;
+    color: #3a5a80;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: 600px) {
+    .panels { grid-template-columns: 1fr; }
+    .info-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Electron Motion</h1>
+<p class="subtitle">Direct Current vs Alternating Current — Visualized</p>
+
+<div class="panels">
+
+  <!-- DC Panel -->
+  <div class="panel dc">
+    <div class="panel-title">
+      DC Current <span class="tag">Direct</span>
+    </div>
+    <canvas id="dcCanvas" height="140"></canvas>
+    <canvas id="dcWave" height="60"></canvas>
+    <p class="wave-label">↑ Voltage waveform (constant)</p>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">Flow Direction</div>
+        <div class="value">One-way →</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Waveform</div>
+        <div class="value">Flat / Constant</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Source</div>
+        <div class="value">Batteries, Solar</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Used In</div>
+        <div class="value">Electronics, LEDs</div>
+      </div>
+    </div>
+    <p class="desc">Electrons drift steadily in one direction — like water flowing through a pipe. The flow never reverses.</p>
+  </div>
+
+  <!-- AC Panel -->
+  <div class="panel ac">
+    <div class="panel-title">
+      AC Current <span class="tag">Alternating</span>
+    </div>
+    <canvas id="acCanvas" height="140"></canvas>
+    <canvas id="acWave" height="60"></canvas>
+    <p class="wave-label">↑ Voltage waveform (sine wave)</p>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">Flow Direction</div>
+        <div class="value">Back & forth ↔</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Waveform</div>
+        <div class="value">Sine wave ~50Hz</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Source</div>
+        <div class="value">Power grid, Generator</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Used In</div>
+        <div class="value">Homes, Appliances</div>
+      </div>
+    </div>
+    <p class="desc">Electrons oscillate back and forth rapidly — they don't travel far but transfer energy efficiently over long distances.</p>
+  </div>
+
+</div>
+
+<div class="controls">
+  <button id="btnPause">⏸ Pause / Resume</button>
+  <button id="btnSlow">🐢 Slow</button>
+  <button id="btnFast">⚡ Fast</button>
+</div>
+
+<script>
+  // ── shared state ──────────────────────────────────────────────
+  let paused = false;
+  let speedMult = 1;
+  let t = 0;
+
+  document.getElementById('btnPause').onclick = () => paused = !paused;
+  document.getElementById('btnSlow').onclick = () => speedMult = 0.4;
+  document.getElementById('btnFast').onclick = () => speedMult = 2.5;
+
+  // ── helpers ───────────────────────────────────────────────────
+  function resizeCanvas(canvas) {
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.height * window.devicePixelRatio / window.devicePixelRatio;
+    // keep declared height, scale width
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    return canvas.getContext('2d');
+  }
+
+  // ── DC wire setup ─────────────────────────────────────────────
+  const dcCanvas = document.getElementById('dcCanvas');
+  const dcCtx = resizeCanvas(dcCanvas);
+  const dpr = window.devicePixelRatio || 1;
+
+  const DC_ELECTRONS = 18;
+  let dcElectrons = [];
+  function initDC() {
+    dcElectrons = [];
+    const W = dcCanvas.width, H = dcCanvas.height;
+    for (let i = 0; i < DC_ELECTRONS; i++) {
+      dcElectrons.push({ x: Math.random() * W, y: H / 2 + (Math.random() - 0.5) * 30 * dpr, trail: [] });
+    }
+  }
+
+  function drawDC() {
+    const W = dcCanvas.width, H = dcCanvas.height;
+    dcCtx.clearRect(0, 0, W, H);
+
+    // wire
+    const wireH = 32 * dpr;
+    const wy = H / 2 - wireH / 2;
+    const grad = dcCtx.createLinearGradient(0, wy, 0, wy + wireH);
+    grad.addColorStop(0, '#0a2030');
+    grad.addColorStop(0.5, '#0d2d44');
+    grad.addColorStop(1, '#0a2030');
+    dcCtx.fillStyle = grad;
+    dcCtx.beginPath();
+    dcCtx.roundRect(10 * dpr, wy, W - 20 * dpr, wireH, 6 * dpr);
+    dcCtx.fill();
+
+    // wire border glow
+    dcCtx.strokeStyle = '#00e5ff33';
+    dcCtx.lineWidth = 1 * dpr;
+    dcCtx.stroke();
+
+    // + / - labels
+    dcCtx.font = `bold ${11 * dpr}px 'Share Tech Mono'`;
+    dcCtx.fillStyle = '#00e5ff99';
+    dcCtx.fillText('− NEG', 14 * dpr, H / 2 + 4 * dpr);
+    dcCtx.textAlign = 'right';
+    dcCtx.fillText('+ POS', W - 14 * dpr, H / 2 + 4 * dpr);
+    dcCtx.textAlign = 'left';
+
+    // arrow markers
+    for (let ax = 60 * dpr; ax < W - 60 * dpr; ax += 80 * dpr) {
+      dcCtx.beginPath();
+      dcCtx.moveTo(ax, H / 2 - 5 * dpr);
+      dcCtx.lineTo(ax + 12 * dpr, H / 2);
+      dcCtx.lineTo(ax, H / 2 + 5 * dpr);
+      dcCtx.strokeStyle = '#00e5ff22';
+      dcCtx.lineWidth = 1.5 * dpr;
+      dcCtx.stroke();
+    }
+
+    // electrons
+    dcElectrons.forEach(e => {
+      // trail
+      e.trail.forEach((pt, i) => {
+        const alpha = i / e.trail.length * 0.5;
+        dcCtx.beginPath();
+        dcCtx.arc(pt.x, pt.y, 2.5 * dpr, 0, Math.PI * 2);
+        dcCtx.fillStyle = `rgba(0,229,255,${alpha})`;
+        dcCtx.fill();
+      });
+      // glow
+      const grd = dcCtx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 8 * dpr);
+      grd.addColorStop(0, 'rgba(0,229,255,0.9)');
+      grd.addColorStop(0.4, 'rgba(0,200,255,0.5)');
+      grd.addColorStop(1, 'rgba(0,100,255,0)');
+      dcCtx.beginPath();
+      dcCtx.arc(e.x, e.y, 8 * dpr, 0, Math.PI * 2);
+      dcCtx.fillStyle = grd;
+      dcCtx.fill();
+      // core
+      dcCtx.beginPath();
+      dcCtx.arc(e.x, e.y, 3.5 * dpr, 0, Math.PI * 2);
+      dcCtx.fillStyle = '#fff';
+      dcCtx.fill();
+    });
+  }
+
+  function updateDC() {
+    const W = dcCanvas.width, H = dcCanvas.height;
+    const speed = 1.8 * dpr * speedMult;
+    dcElectrons.forEach(e => {
+      e.trail.push({ x: e.x, y: e.y });
+      if (e.trail.length > 10) e.trail.shift();
+      e.x += speed;
+      e.y += (Math.random() - 0.5) * 0.6 * dpr;
+      e.y = Math.max(H / 2 - 12 * dpr, Math.min(H / 2 + 12 * dpr, e.y));
+      if (e.x > W + 10 * dpr) {
+        e.x = -10 * dpr;
+        e.trail = [];
+      }
+    });
+  }
+
+  // ── AC wire setup ─────────────────────────────────────────────
+  const acCanvas = document.getElementById('acCanvas');
+  const acCtx = resizeCanvas(acCanvas);
+
+  const AC_ELECTRONS = 18;
+  let acElectrons = [];
+  function initAC() {
+    acElectrons = [];
+    const W = acCanvas.width, H = acCanvas.height;
+    for (let i = 0; i < AC_ELECTRONS; i++) {
+      acElectrons.push({
+        baseX: (i / AC_ELECTRONS) * (W - 40 * dpr) + 20 * dpr,
+        x: (i / AC_ELECTRONS) * (W - 40 * dpr) + 20 * dpr,
+        y: H / 2,
+        phase: (i / AC_ELECTRONS) * Math.PI * 2,
+        trail: []
+      });
+    }
+  }
+
+  function drawAC() {
+    const W = acCanvas.width, H = acCanvas.height;
+    acCtx.clearRect(0, 0, W, H);
+
+    const wireH = 32 * dpr;
+    const wy = H / 2 - wireH / 2;
+    const grad = acCtx.createLinearGradient(0, wy, 0, wy + wireH);
+    grad.addColorStop(0, '#2a0d05');
+    grad.addColorStop(0.5, '#3d1208');
+    grad.addColorStop(1, '#2a0d05');
+    acCtx.fillStyle = grad;
+    acCtx.beginPath();
+    acCtx.roundRect(10 * dpr, wy, W - 20 * dpr, wireH, 6 * dpr);
+    acCtx.fill();
+    acCtx.strokeStyle = '#ff6b3533';
+    acCtx.lineWidth = 1 * dpr;
+    acCtx.stroke();
+
+    acCtx.font = `bold ${11 * dpr}px 'Share Tech Mono'`;
+    acCtx.fillStyle = '#ff6b3599';
+    acCtx.fillText('~', 14 * dpr, H / 2 + 4 * dpr);
+    acCtx.textAlign = 'right';
+    acCtx.fillText('~ AC', W - 14 * dpr, H / 2 + 4 * dpr);
+    acCtx.textAlign = 'left';
+
+    // electrons
+    acElectrons.forEach(e => {
+      e.trail.forEach((pt, i) => {
+        const alpha = i / e.trail.length * 0.4;
+        acCtx.beginPath();
+        acCtx.arc(pt.x, pt.y, 2.5 * dpr, 0, Math.PI * 2);
+        acCtx.fillStyle = `rgba(255,107,53,${alpha})`;
+        acCtx.fill();
+      });
+      const grd = acCtx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 8 * dpr);
+      grd.addColorStop(0, 'rgba(255,160,80,0.95)');
+      grd.addColorStop(0.4, 'rgba(255,100,40,0.5)');
+      grd.addColorStop(1, 'rgba(200,50,0,0)');
+      acCtx.beginPath();
+      acCtx.arc(e.x, e.y, 8 * dpr, 0, Math.PI * 2);
+      acCtx.fillStyle = grd;
+      acCtx.fill();
+      acCtx.beginPath();
+      acCtx.arc(e.x, e.y, 3.5 * dpr, 0, Math.PI * 2);
+      acCtx.fillStyle = '#ffe0c0';
+      acCtx.fill();
+    });
+  }
+
+  function updateAC() {
+    const W = acCanvas.width, H = acCanvas.height;
+    const freq = 0.04 * speedMult;
+    const amp = 18 * dpr;
+    acElectrons.forEach(e => {
+      e.trail.push({ x: e.x, y: e.y });
+      if (e.trail.length > 10) e.trail.shift();
+      e.x = e.baseX + Math.sin(t * freq * 2 * Math.PI + e.phase) * amp;
+      e.y = H / 2 + (Math.random() - 0.5) * 0.4 * dpr;
+    });
+  }
+
+  // ── Waveform canvases ─────────────────────────────────────────
+  const dcWave = document.getElementById('dcWave');
+  const dcWCtx = resizeCanvas(dcWave);
+  const acWave = document.getElementById('acWave');
+  const acWCtx = resizeCanvas(acWave);
+
+  let waveHistory_dc = [];
+  let waveHistory_ac = [];
+
+  function drawWaveform(ctx, canvas, history, color, isDC) {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // grid
+    ctx.strokeStyle = '#ffffff08';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // zero line label
+    ctx.fillStyle = '#2a4a60';
+    ctx.font = `${8 * dpr}px 'Share Tech Mono'`;
+    ctx.fillText('0V', 2 * dpr, H / 2 - 2 * dpr);
+
+    if (history.length < 2) return;
+    ctx.beginPath();
+    history.forEach((v, i) => {
+      const x = (i / (history.length - 1)) * W;
+      const y = H / 2 - v * (H / 2 - 6 * dpr);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 * dpr;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── Main loop ─────────────────────────────────────────────────
+  function loop() {
+    requestAnimationFrame(loop);
+    if (paused) return;
+    t += speedMult;
+
+    updateDC();
+    drawDC();
+
+    updateAC();
+    drawAC();
+
+    // waveform values
+    waveHistory_dc.push(0.85); // constant DC
+    if (waveHistory_dc.length > 120) waveHistory_dc.shift();
+
+    const acVal = Math.sin(t * 0.04 * 2 * Math.PI);
+    waveHistory_ac.push(acVal * 0.85);
+    if (waveHistory_ac.length > 120) waveHistory_ac.shift();
+
+    drawWaveform(dcWCtx, dcWave, waveHistory_dc, '#00e5ff', true);
+    drawWaveform(acWCtx, acWave, waveHistory_ac, '#ff6b35', false);
+  }
+
+  function init() {
+    // resize all canvases
+    [dcCanvas, acCanvas, dcWave, acWave].forEach(c => {
+      const rect = c.getBoundingClientRect();
+      c.width = rect.width * dpr;
+    });
+    initDC();
+    initAC();
+  }
+
+  window.addEventListener('resize', init);
+  init();
+  loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubble Speed Lab – DR. SK</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+    /* ── TOKENS ──────────────────────────────────────────────── */
+    :root {
+      --bg:      #0a0e14;
+      --surface: #111620;
+      --border:  #1e2a3a;
+      --accent:  #00e5ff;
+      --orange:  #ff6b35;
+      --green:   #00ff88;
+      --red:     #ff3b5c;
+      --text:    #e0eaf5;
+      --muted:   #5a7a9a;
+    }
+
+    /* ── RESET ───────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── PAGE ────────────────────────────────────────────────── */
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 15% 10%, #001a2e 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 90%, #0a1a10 0%, transparent 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 14px 28px;
+      gap: 14px;
+    }
+
+    /* ── HEADER ──────────────────────────────────────────────── */
+    header { text-align: center; }
+
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.3rem, 3vw, 2rem);
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    header .instructor {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--orange);
+    }
+
+    header .subtitle {
+      margin-top: 2px;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* ── MAIN 3-COLUMN LAYOUT ────────────────────────────────── */
+    .workspace {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1200px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── PANEL BASE ──────────────────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    /* ── COLUMN 1: CONTROLS ──────────────────────────────────── */
+    .col-controls {
+      width: 210px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* angle preset buttons — 3×2 grid */
+    .angle-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .angle-grid button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 6px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+      text-align: center;
+    }
+    .angle-grid button:hover  { border-color: var(--accent); color: var(--accent); }
+    .angle-grid button.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+
+    /* slider */
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-wrap input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      min-width: 0;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    .slider-wrap input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    }
+    .slider-wrap input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+    }
+
+    .slider-val {
+      flex-shrink: 0;
+      width: 36px;
+      text-align: right;
+      font-size: 0.76rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* liquid buttons — 2×3 grid */
+    .liquid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .liq-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 5px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.12s, opacity 0.12s;
+    }
+    .liq-btn:hover    { opacity: 0.85; }
+    .liq-btn.active   { border-width: 2px; }
+
+    .liq-btn .liq-name {
+      display: block;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.67rem;
+      color: var(--text);
+    }
+    .liq-btn .liq-visc {
+      display: block;
+      font-size: 0.53rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* action buttons */
+    .action-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-start, .btn-stop, .btn-reset {
+      width: 100%;
+      padding: 11px;
+      border-radius: 9px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.12s, transform 0.1s;
+      border: none;
+    }
+    .btn-start { background: var(--green);  color: #000; }
+    .btn-stop  { background: var(--red);    color: #fff; opacity: 0.38; }
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border) !important;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+    }
+
+    .btn-start:hover:not(:disabled) { opacity: 0.85; }
+    .btn-stop:hover:not(:disabled)  { opacity: 0.85; }
+    .btn-reset:hover { border-color: var(--orange) !important; color: var(--orange); }
+    .btn-start:active, .btn-stop:active { transform: scale(0.97); }
+
+    /* angle readout chip */
+    .angle-chip {
+      background: #0c1422;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 12px;
+      text-align: center;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .angle-chip .chip-val {
+      display: block;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── COLUMN 2: CANVAS ────────────────────────────────────── */
+    .col-canvas {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #tubeCanvas {
+      display: block;
+      border-radius: 12px;
+      background: #0c1422;
+      border: 1px solid var(--border);
+      max-width: 100%;
+    }
+
+    /* ── COLUMN 3: RESULTS ───────────────────────────────────── */
+    .col-results {
+      width: 230px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .results-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* live timer */
+    .live-timer {
+      text-align: center;
+      background: #0c1422;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 8px;
+      margin-bottom: 14px;
+    }
+    .lt-label {
+      font-size: 0.53rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .lt-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: var(--green);
+    }
+
+    /* metric rows */
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 9px;
+    }
+    .metric-label {
+      font-size: 0.57rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .metric-value {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .metric-value small {
+      font-size: 0.57rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    /* speed bar */
+    .speed-bar-bg {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .speed-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--orange));
+      transition: width 0.5s ease;
+    }
+
+    /* run history */
+    .history-section {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 6px;
+    }
+    .history-label {
+      font-size: 0.57rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.63rem;
+      color: var(--muted);
+      padding: 4px 0;
+      border-bottom: 1px solid #161e2a;
+    }
+    .history-item .hi-speed { color: var(--text); }
+
+    /* formula card */
+    .formula-card {
+      background: #0c1422;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.6rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .formula-eq {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <h1>⟨ BUBBLE SPEED LAB ⟩</h1>
+    <p class="instructor">Instructor: DR. SK</p>
+    <p class="subtitle">50 CM VISCOSITY TUBE · STOKES' LAW SIMULATION</p>
+  </header>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- COL 1: CONTROLS -->
+    <div class="col-controls">
+
+      <!-- Angle section -->
+      <div class="panel">
+        <span class="section-label">Tube Angle</span>
+
+        <div class="angle-grid" id="angleGrid">
+          <button data-angle="0">0°</button>
+          <button data-angle="15">15°</button>
+          <button data-angle="30">30°</button>
+          <button data-angle="45">45°</button>
+          <button data-angle="60">60°</button>
+          <button data-angle="90" class="active">90°</button>
+        </div>
+
+        <div class="slider-wrap">
+          <input type="range" id="angleSlider" min="0" max="90" value="90" />
+          <span class="slider-val" id="angleVal">90°</span>
+        </div>
+      </div>
+
+      <!-- Liquid section -->
+      <div class="panel">
+        <span class="section-label">Liquid</span>
+        <div class="liquid-grid" id="liquidGrid"></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="panel">
+        <span class="section-label">Controls</span>
+        <div class="action-btns">
+          <button class="btn-start" id="btnStart">▶ START</button>
+          <button class="btn-stop"  id="btnStop"  disabled>■ STOP</button>
+          <button class="btn-reset" id="btnReset">↺  Reset</button>
+        </div>
+      </div>
+
+      <!-- Angle readout -->
+      <div class="angle-chip">
+        Current Angle
+        <span class="chip-val" id="angleChip">90°</span>
+      </div>
+
+    </div>
+
+    <!-- COL 2: CANVAS -->
+    <div class="col-canvas">
+      <canvas id="tubeCanvas"></canvas>
+    </div>
+
+    <!-- COL 3: RESULTS -->
+    <div class="col-results">
+
+      <div class="panel">
+        <div class="results-title">Measurements</div>
+
+        <div class="live-timer">
+          <div class="lt-label">Elapsed Time</div>
+          <div class="lt-val" id="ltVal">0.000 s</div>
+        </div>
+
+        <div class="metric">
+          <span class="metric-label">Speed</span>
+          <span class="metric-value" id="mSpeed">— <small>cm/s</small></span>
+        </div>
+        <div class="speed-bar-bg">
+          <div class="speed-bar-fill" id="speedBar"></div>
+        </div>
+
+        <div class="metric">
+          <span class="metric-label">Transit Time</span>
+          <span class="metric-value" id="mTime">— <small>s</small></span>
+        </div>
+
+        <div class="metric">
+          <span class="metric-label">Viscosity</span>
+          <span class="metric-value" id="mVisc">— <small>mPa·s</small></span>
+        </div>
+
+        <div class="metric">
+          <span class="metric-label">sin(θ)</span>
+          <span class="metric-value" id="mSin">—</span>
+        </div>
+
+        <div class="history-section">
+          <div class="history-label">Run History</div>
+          <div id="historyList"></div>
+        </div>
+      </div>
+
+      <div class="formula-card">
+        <span class="formula-eq">v = v₀ · sin(θ)</span>
+        Bubble speed scales with the vertical component of gravity.
+        Higher angle → faster rise.
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ── DATA ─────────────────────────────────────────────────── */
+    const LIQUIDS = [
+      { name: 'Water',        visc: 1,    color: '#1a9fff', baseSpeed: 18   },
+      { name: 'Glycerol 10%', visc: 1.3,  color: '#2eb8b0', baseSpeed: 14   },
+      { name: 'Corn Syrup',   visc: 1000, color: '#d4a020', baseSpeed: 0.4  },
+      { name: 'Honey',        visc: 5000, color: '#e07b20', baseSpeed: 0.08 },
+      { name: 'Motor Oil',    visc: 200,  color: '#6aaa3a', baseSpeed: 2.2  },
+      { name: 'Glycol',       visc: 16,   color: '#9b6dd0', baseSpeed: 9    },
+    ];
+
+    /* ── CANVAS SETUP ─────────────────────────────────────────── */
+    const canvas = document.getElementById('tubeCanvas');
+    const ctx    = canvas.getContext('2d');
+
+    /*
+     * Strategy: draw the tube in its own coordinate system (axis along X),
+     * then use trig to compute where every point lands in canvas space.
+     * Canvas size expands to fit the tube at any angle.
+     *
+     * Tube axis:  A = 0 cm (start/bottom),  B = 50 cm (end/top)
+     * At angle θ from horizontal:
+     *   direction vector  d = (cos θ, -sin θ)   [canvas Y is inverted]
+     *   perp vector       p = (sin θ,  cos θ)
+     */
+
+    const TUBE_LEN  = 500;   // 500 px = 50 cm   (10 px per cm)
+    const TUBE_HW   = 26;    // half-width of inner tube (px)
+    const MARGIN    = 70;    // padding around tube content for labels/caps
+    const CM_MAJOR  = [10, 20, 30, 40];
+
+    /* state */
+    let angle      = 90;         // degrees
+    let liquidIdx  = 0;
+    let bubbleFrac = null;       // 0 = A end, 1 = B end, null = hidden
+    let animating  = false;
+    let stopped    = false;
+    let animRaf    = null;
+    let timerIval  = null;
+    let elapsedMs  = 0;
+    let history    = [];
+
+    /* geometry (recomputed on angle change) */
+    let G = {};
+
+    function computeGeometry(deg) {
+      const rad  = deg * Math.PI / 180;
+      const cosA = Math.cos(rad);
+      const sinA = Math.sin(rad);
+
+      // Direction along tube (A→B), perpendicular
+      const dx =  cosA,  dy = -sinA;   // tube axis unit vector
+      const px =  sinA,  py =  cosA;   // perpendicular unit vector
+
+      // Canvas must contain: tube projection + caps + labels
+      const projW = Math.abs(cosA) * TUBE_LEN;
+      const projH = Math.abs(sinA) * TUBE_LEN;
+
+      const cw = Math.round(projW + MARGIN * 2);
+      const ch = Math.round(projH + MARGIN * 2);
+
+      // Midpoint of tube sits at canvas center
+      const mx = cw / 2;
+      const my = ch / 2;
+
+      // Endpoints
+      const half = TUBE_LEN / 2;
+      const ax = mx - dx * half,  ay = my - dy * half;   // A = 0 cm
+      const bx = mx + dx * half,  by = my + dy * half;   // B = 50 cm
+
+      return { rad, cosA, sinA, dx, dy, px, py, ax, ay, bx, by, mx, my, cw, ch };
+    }
+
+    /* point along tube at fraction t (0=A, 1=B) */
+    function tubePoint(t) {
+      return {
+        x: G.ax + G.dx * t * TUBE_LEN,
+        y: G.ay + G.dy * t * TUBE_LEN,
+      };
+    }
+
+    /* ── DRAW ─────────────────────────────────────────────────── */
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const { ax, ay, bx, by, px, py, dx, dy } = G;
+      const liq = LIQUIDS[liquidIdx];
+
+      /* outer casing */
+      tubeQuad(ax, ay, bx, by, px, py, TUBE_HW + 10, '#0b1726', '#243a52', 2);
+
+      /* liquid fill */
+      tubeQuad(ax, ay, bx, by, px, py, TUBE_HW, rgba(liq.color, 0.22), null, 0);
+
+      /* shimmer on one side */
+      ctx.save();
+      ctx.beginPath(); tubePoly(ax, ay, bx, by, px, py, TUBE_HW); ctx.clip();
+      const sg = ctx.createLinearGradient(
+        ax + px * TUBE_HW, ay + py * TUBE_HW,
+        ax, ay
+      );
+      sg.addColorStop(0, 'rgba(255,255,255,0.09)');
+      sg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      /* tube wall outline */
+      ctx.beginPath(); tubePoly(ax, ay, bx, by, px, py, TUBE_HW);
+      ctx.strokeStyle = '#2a4a6a'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      /* ── CM MARKS ──────────────────────────────────────────── */
+      for (let cm = 5; cm <= 45; cm += 5) {
+        const t   = cm / 50;
+        const mp  = tubePoint(t);
+        const maj = CM_MAJOR.includes(cm);
+        const tl  = maj ? 20 : 10;
+        const col = maj ? '#00e5ff' : '#243a52';
+        const lw  = maj ? 2 : 1;
+
+        /* tick on upper side */
+        line(
+          mp.x + px * TUBE_HW, mp.y + py * TUBE_HW,
+          mp.x + px * (TUBE_HW + tl), mp.y + py * (TUBE_HW + tl),
+          col, lw
+        );
+        /* tick on lower side */
+        line(
+          mp.x - px * TUBE_HW, mp.y - py * TUBE_HW,
+          mp.x - px * (TUBE_HW + tl), mp.y - py * (TUBE_HW + tl),
+          col, lw
+        );
+
+        /* guide line across tube interior */
+        if (maj) {
+          line(
+            mp.x - px * TUBE_HW, mp.y - py * TUBE_HW,
+            mp.x + px * TUBE_HW, mp.y + py * TUBE_HW,
+            'rgba(0,229,255,0.13)', 1
+          );
+        }
+
+        /* label – placed above tick, always horizontal */
+        if (maj) {
+          const lx = mp.x + px * (TUBE_HW + tl + 6);
+          const ly = mp.y + py * (TUBE_HW + tl + 6);
+          label(lx, ly, cm + ' cm', '#00e5ff', 'bold 12px "Space Mono",monospace', 'center', 'middle');
+        }
+      }
+
+      /* ── ENDPOINTS ─────────────────────────────────────────── */
+      drawEndpoint(ax, ay, px, py, '#ff6b35', '0 cm',  '▶ START', -1);
+      drawEndpoint(bx, by, px, py, '#00ff88', '50 cm', '★  END',  +1);
+
+      /* ── CAPS ──────────────────────────────────────────────── */
+      drawCap(ax, ay);
+      drawCap(bx, by);
+
+      /* ── BUBBLE ────────────────────────────────────────────── */
+      if (bubbleFrac !== null) {
+        const bp = tubePoint(bubbleFrac);
+        ctx.save();
+        ctx.translate(bp.x, bp.y);
+        ctx.rotate(Math.atan2(dy, dx));   // align ellipse to tube axis
+
+        /* glow */
+        const gl = ctx.createRadialGradient(0, 0, 0, 0, 0, 34);
+        gl.addColorStop(0, 'rgba(0,229,255,0.36)');
+        gl.addColorStop(1, 'rgba(0,229,255,0)');
+        ctx.beginPath(); ctx.ellipse(0, 0, 34, 20, 0, 0, Math.PI * 2);
+        ctx.fillStyle = gl; ctx.fill();
+
+        /* body */
+        ctx.beginPath(); ctx.ellipse(0, 0, 18, 11, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.fillStyle = 'rgba(0,229,255,0.09)'; ctx.fill();
+
+        /* highlight */
+        ctx.beginPath(); ctx.ellipse(-5, -4, 6, 3.5, -0.3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill();
+
+        ctx.restore();
+      }
+
+      /* ── WATERMARK ─────────────────────────────────────────── */
+      ctx.save();
+      ctx.font = 'bold 11px "Syne",sans-serif';
+      ctx.fillStyle = 'rgba(255,107,53,0.25)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('DR. SK', canvas.width - 8, canvas.height - 6);
+      ctx.restore();
+    }
+
+    /* ── DRAW HELPERS ─────────────────────────────────────────── */
+
+    function tubePoly(ax, ay, bx, by, px, py, hw) {
+      ctx.beginPath();
+      ctx.moveTo(ax + px * hw, ay + py * hw);
+      ctx.lineTo(bx + px * hw, by + py * hw);
+      ctx.lineTo(bx - px * hw, by - py * hw);
+      ctx.lineTo(ax - px * hw, ay - py * hw);
+      ctx.closePath();
+    }
+
+    function tubeQuad(ax, ay, bx, by, px, py, hw, fill, stroke, lw) {
+      tubePoly(ax, ay, bx, by, px, py, hw);
+      if (fill)   { ctx.fillStyle   = fill;   ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+    }
+
+    function drawCap(cx, cy) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, TUBE_HW + 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#162030'; ctx.fill();
+      ctx.strokeStyle = '#243a52'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function drawEndpoint(ex, ey, px, py, color, lbl, tag, dir) {
+      /* dashed cross-line across the tube */
+      ctx.setLineDash([4, 3]);
+      line(
+        ex - px * (TUBE_HW + 16), ey - py * (TUBE_HW + 16),
+        ex + px * (TUBE_HW + 16), ey + py * (TUBE_HW + 16),
+        color + '88', 1.5
+      );
+      ctx.setLineDash([]);
+
+      /* label on upper side */
+      const lx = ex + px * (TUBE_HW + 32);
+      const ly = ey + py * (TUBE_HW + 32);
+      label(lx, ly, lbl, color, 'bold 11px "Space Mono",monospace', 'center', 'middle');
+
+      /* tag offset along axis */
+      const tx = lx + G.dx * dir * 22;
+      const ty = ly + G.dy * dir * 22 + (G.sinA > 0.15 ? dir * 14 : 0);
+      label(tx, ty, tag, color + 'cc', '10px "Syne",sans-serif', 'center', 'middle');
+    }
+
+    function line(x1, y1, x2, y2, color, lw) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.stroke();
+    }
+
+    function label(x, y, text, color, font, align, baseline) {
+      ctx.save();
+      ctx.font = font;
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = baseline;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function rgba(hex, a) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    /* ── SET ANGLE ────────────────────────────────────────────── */
+    function setAngle(deg) {
+      if (animating) return;
+      angle = deg;
+      G = computeGeometry(deg);
+      canvas.width  = G.cw;
+      canvas.height = G.ch;
+
+      /* sync UI */
+      document.getElementById('angleSlider').value = deg;
+      document.getElementById('angleVal').textContent  = deg + '°';
+      document.getElementById('angleChip').textContent = deg + '°';
+      document.querySelectorAll('#angleGrid button').forEach(b =>
+        b.classList.toggle('active', +b.dataset.angle === deg)
+      );
+
+      bubbleFrac = null;
+      draw();
+    }
+
+    /* ── BUILD LIQUID BUTTONS ─────────────────────────────────── */
+    const liquidGrid = document.getElementById('liquidGrid');
+    LIQUIDS.forEach((liq, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'liq-btn' + (i === 0 ? ' active' : '');
+      btn.style.borderColor = i === 0 ? liq.color : '';
+      btn.innerHTML = `
+        <span class="liq-name">${liq.name}</span>
+        <span class="liq-visc">${liq.visc} mPa·s</span>
+      `;
+      btn.addEventListener('click', () => {
+        if (animating) return;
+        liquidIdx = i;
+        document.querySelectorAll('.liq-btn').forEach((b, j) => {
+          b.classList.toggle('active', j === i);
+          b.style.borderColor = j === i ? LIQUIDS[j].color : '';
+        });
+        draw();
+      });
+      liquidGrid.appendChild(btn);
+    });
+
+    /* ── ANGLE CONTROLS ───────────────────────────────────────── */
+    document.querySelectorAll('#angleGrid button').forEach(b =>
+      b.addEventListener('click', () => setAngle(+b.dataset.angle))
+    );
+    document.getElementById('angleSlider').addEventListener('input', e =>
+      setAngle(+e.target.value)
+    );
+
+    /* ── ACTION BUTTONS ───────────────────────────────────────── */
+    const btnStart = document.getElementById('btnStart');
+    const btnStop  = document.getElementById('btnStop');
+    const btnReset = document.getElementById('btnReset');
+
+    btnStart.addEventListener('click', startRun);
+    btnStop.addEventListener('click',  stopRun);
+    btnReset.addEventListener('click', resetLab);
+
+    function setRunUI(running) {
+      btnStart.disabled = running;
+      btnStart.style.opacity = running ? '0.4' : '1';
+      btnStop.disabled  = !running;
+      btnStop.style.opacity  = running ? '1' : '0.38';
+    }
+
+    /* ── START ────────────────────────────────────────────────── */
+    function startRun() {
+      if (animating) return;
+      if (angle === 0) {
+        showResult(0, Infinity, 'Horizontal — bubble cannot rise!');
+        return;
+      }
+
+      animating = true;
+      stopped   = false;
+      elapsedMs = 0;
+      setRunUI(true);
+
+      const liq     = LIQUIDS[liquidIdx];
+      const sinA    = Math.sin(angle * Math.PI / 180);
+      const speed   = liq.baseSpeed * sinA;         /* cm/s */
+      const transit = 50 / speed;                   /* seconds */
+      const dispDur = Math.min(transit * 1000, 8000); /* display cap 8 s */
+
+      /* live clock */
+      const wallStart = performance.now();
+      timerIval = setInterval(() => {
+        elapsedMs = performance.now() - wallStart;
+        document.getElementById('ltVal').textContent =
+          (elapsedMs / 1000).toFixed(3) + ' s';
+      }, 16);
+
+      let t0 = null, lastFrac = 0;
+
+      function frame(ts) {
+        if (!t0) t0 = ts;
+        const prog = Math.min((ts - t0) / dispDur, 1);
+        lastFrac   = prog;
+        bubbleFrac = prog;
+        draw();
+
+        if (!stopped && prog < 1) {
+          animRaf = requestAnimationFrame(frame);
+        } else {
+          clearInterval(timerIval);
+          animating = false;
+          setRunUI(false);
+
+          const finalTime  = stopped ? elapsedMs / 1000 : transit;
+          const finalSpeed = stopped
+            ? (lastFrac * 50) / Math.max(finalTime, 0.001)
+            : speed;
+
+          if (!stopped) bubbleFrac = null;
+          draw();
+          showResult(finalSpeed, finalTime, null);
+          addHistory(liq, finalSpeed, angle, finalTime);
+        }
+      }
+      animRaf = requestAnimationFrame(frame);
+    }
+
+    /* ── STOP ─────────────────────────────────────────────────── */
+    function stopRun() {
+      if (!animating) return;
+      stopped = true;
+      clearInterval(timerIval);
+    }
+
+    /* ── RESET ────────────────────────────────────────────────── */
+    function resetLab() {
+      cancelAnimationFrame(animRaf);
+      clearInterval(timerIval);
+      animating  = false;
+      stopped    = false;
+      elapsedMs  = 0;
+      bubbleFrac = null;
+      setRunUI(false);
+      draw();
+      document.getElementById('ltVal').textContent  = '0.000 s';
+      document.getElementById('mSpeed').innerHTML   = '— <small>cm/s</small>';
+      document.getElementById('mTime').innerHTML    = '— <small>s</small>';
+      document.getElementById('mVisc').innerHTML    = '— <small>mPa·s</small>';
+      document.getElementById('mSin').textContent   = '—';
+      document.getElementById('speedBar').style.width = '0%';
+    }
+
+    /* ── SHOW RESULT ──────────────────────────────────────────── */
+    function showResult(speed, time, note) {
+      const sinV = Math.sin(angle * Math.PI / 180);
+      document.getElementById('mSpeed').innerHTML = note
+        ? note
+        : `${speed.toFixed(3)} <small>cm/s</small>`;
+      document.getElementById('mTime').innerHTML = isFinite(time)
+        ? `${time.toFixed(2)} <small>s</small>`
+        : `<small>∞</small>`;
+      document.getElementById('mVisc').innerHTML =
+        `${LIQUIDS[liquidIdx].visc} <small>mPa·s</small>`;
+      document.getElementById('mSin').textContent = sinV.toFixed(4);
+      document.getElementById('speedBar').style.width =
+        Math.min((speed / 18) * 100, 100) + '%';
+    }
+
+    /* ── ADD HISTORY ──────────────────────────────────────────── */
+    function addHistory(liq, speed, ang, time) {
+      history.unshift({ name: liq.name, speed, angle: ang, time });
+      if (history.length > 6) history.pop();
+      document.getElementById('historyList').innerHTML = history
+        .map(h => `
+          <div class="history-item">
+            <span>${h.name} ${h.angle}°</span>
+            <span class="hi-speed">${h.speed.toFixed(3)} cm/s</span>
+          </div>`)
+        .join('');
+    }
+
+    /* ── INIT ─────────────────────────────────────────────────── */
+    setAngle(90);
+  </script>
+</body>
+</html>

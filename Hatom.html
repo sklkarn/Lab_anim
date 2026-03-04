@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydrogen Atom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #020510;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Share Tech Mono', monospace;
+    color: #c0d8ff;
+    overflow: hidden;
+    background-image:
+      radial-gradient(ellipse at center, rgba(10,20,60,0.8) 0%, #020510 70%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1rem, 3vw, 1.6rem);
+    font-weight: 900;
+    letter-spacing: 0.3em;
+    color: #5af;
+    text-shadow: 0 0 30px rgba(80,160,255,0.6), 0 0 60px rgba(80,160,255,0.2);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: rgba(80,160,255,0.4);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .scene {
+    position: relative;
+    width: min(90vw, 520px);
+    height: min(90vw, 520px);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .info-bar {
+    display: flex;
+    gap: 24px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .info-box {
+    background: rgba(10,25,60,0.7);
+    border: 1px solid rgba(80,150,255,0.2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .info-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: rgba(80,160,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .info-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #5af;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .ctrl-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: rgba(80,160,255,0.5);
+    text-transform: uppercase;
+  }
+
+  input[type=range] {
+    appearance: none;
+    width: 130px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, #5af 0%, #5af var(--pct,50%), rgba(80,150,255,0.2) var(--pct,50%));
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #5af;
+    box-shadow: 0 0 10px rgba(80,160,255,0.7);
+    cursor: pointer;
+  }
+
+  button {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid rgba(80,160,255,0.4);
+    background: rgba(80,160,255,0.1);
+    color: #5af;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  button:hover {
+    background: rgba(80,160,255,0.2);
+    box-shadow: 0 0 12px rgba(80,160,255,0.3);
+  }
+
+  button.active {
+    background: rgba(80,160,255,0.25);
+    border-color: #5af;
+    box-shadow: 0 0 15px rgba(80,160,255,0.4);
+  }
+
+  .shell-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .shell-btn {
+    width: 32px;
+    padding: 7px 0;
+    text-align: center;
+    font-size: 0.7rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>Hydrogen Atom</h1>
+<p class="subtitle">Bohr Model · Quantum Shell Simulation</p>
+
+<div class="scene">
+  <canvas id="c"></canvas>
+</div>
+
+<div class="info-bar">
+  <div class="info-box">
+    <div class="info-label">Shell (n)</div>
+    <div class="info-val" id="infoN">1</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">Orbit Radius</div>
+    <div class="info-val" id="infoR">0.053 nm</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">Energy</div>
+    <div class="info-val" id="infoE">−13.6 eV</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">Speed</div>
+    <div class="info-val" id="infoV">2186 km/s</div>
+  </div>
+</div>
+
+<div class="controls">
+  <span class="ctrl-label">Shell:</span>
+  <div class="shell-btns">
+    <button class="shell-btn active" id="s1" onclick="setShell(1,this)">n=1</button>
+    <button class="shell-btn" id="s2" onclick="setShell(2,this)">n=2</button>
+    <button class="shell-btn" id="s3" onclick="setShell(3,this)">n=3</button>
+  </div>
+  <span class="ctrl-label" style="margin-left:8px">Speed:</span>
+  <input type="range" id="speedSlider" min="0.2" max="3" step="0.1" value="1">
+  <button id="toggleBtn" onclick="togglePause()">PAUSE</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let DPR = window.devicePixelRatio || 1;
+let SIZE;
+
+function resize() {
+  const el = canvas.parentElement;
+  SIZE = el.clientWidth;
+  canvas.width = SIZE * DPR;
+  canvas.height = SIZE * DPR;
+  ctx.scale(DPR, DPR);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const CX = () => SIZE / 2;
+const CY = () => SIZE / 2;
+
+// Bohr model data per shell
+const shellData = {
+  1: { r: 0.053, E: -13.6,  v: 2186,  label: '−13.6 eV' },
+  2: { r: 0.212, E: -3.4,   v: 1093,  label: '−3.4 eV' },
+  3: { r: 0.476, E: -1.51,  v: 729,   label: '−1.51 eV' },
+};
+
+// Pixel radii for shells
+const shellPxRadius = { 1: 68, 2: 115, 3: 162 };
+
+let shell = 1;
+let angle = 0;
+let tilt = 25 * Math.PI / 180;  // orbital tilt
+let paused = false;
+let speedMul = 1;
+let lastTs = null;
+
+// Trail
+const TRAIL = 120;
+let trail = [];
+
+// Particle field
+const STARS = Array.from({length: 90}, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  r: Math.random() * 1.2 + 0.2,
+  a: Math.random() * 0.4 + 0.1,
+}));
+
+function setShell(n, btn) {
+  shell = n;
+  angle = 0;
+  trail = [];
+  document.querySelectorAll('.shell-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const d = shellData[n];
+  document.getElementById('infoN').textContent = n;
+  document.getElementById('infoR').textContent = d.r.toFixed(3) + ' nm';
+  document.getElementById('infoE').textContent = d.label;
+  document.getElementById('infoV').textContent = Math.round(d.v) + ' km/s';
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('toggleBtn');
+  btn.textContent = paused ? 'RESUME' : 'PAUSE';
+  btn.classList.toggle('active', paused);
+}
+
+const speedSlider = document.getElementById('speedSlider');
+speedSlider.addEventListener('input', () => {
+  speedMul = parseFloat(speedSlider.value);
+  const pct = ((speedMul - 0.2) / 2.8 * 100) + '%';
+  speedSlider.style.setProperty('--pct', pct);
+});
+
+function orbitPoint(a, r) {
+  // Elliptical projection with tilt
+  const x = CX() + Math.cos(a) * r;
+  const y = CY() + Math.sin(a) * r * Math.sin(tilt);
+  return {x, y};
+}
+
+function draw(ts) {
+  requestAnimationFrame(draw);
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  const cx = CX(), cy = CY();
+
+  // --- Background glow ---
+  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE * 0.55);
+  bg.addColorStop(0, 'rgba(5,15,50,0.6)');
+  bg.addColorStop(1, 'rgba(2,5,16,0)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // Stars
+  STARS.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x * SIZE, s.y * SIZE, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(180,210,255,${s.a})`;
+    ctx.fill();
+  });
+
+  // --- Orbital rings (all shells shown, current highlighted) ---
+  [1, 2, 3].forEach(n => {
+    const pr = shellPxRadius[n];
+    const isCurrent = n === shell;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Draw ellipse for each shell
+    const skewY = Math.sin(tilt);
+    ctx.beginPath();
+    for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.03) {
+      const ex = Math.cos(a) * pr;
+      const ey = Math.sin(a) * pr * skewY;
+      a === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
+    }
+    ctx.closePath();
+
+    if (isCurrent) {
+      ctx.strokeStyle = 'rgba(80,160,255,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(80,160,255,0.3)';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.strokeStyle = 'rgba(80,140,255,0.1)';
+      ctx.lineWidth = 0.8;
+      ctx.shadowBlur = 0;
+    }
+    ctx.setLineDash([4, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Shell label
+    const labelPos = orbitPoint(-Math.PI / 2, pr);
+    ctx.fillStyle = isCurrent ? 'rgba(100,180,255,0.6)' : 'rgba(80,140,255,0.2)';
+    ctx.font = `${isCurrent ? '700' : '400'} 10px Share Tech Mono, monospace`;
+    ctx.fillText(`n=${n}`, labelPos.x + 4, labelPos.y - 6);
+  });
+
+  // --- Update electron ---
+  if (!paused) {
+    const baseSpeed = 1.6 / shell; // higher shells slower
+    angle += baseSpeed * speedMul * dt * Math.PI * 2;
+  }
+
+  const pr = shellPxRadius[shell];
+  const ep = orbitPoint(angle, pr);
+
+  // Electron z-depth for layering
+  const zDepth = Math.sin(angle) * Math.sin(tilt);  // -1 behind, +1 in front
+
+  // --- Nucleus ---
+  if (zDepth > 0) drawNucleus(cx, cy);
+
+  // --- Electron trail ---
+  trail.push({x: ep.x, y: ep.y, a: angle});
+  if (trail.length > TRAIL) trail.shift();
+
+  for (let i = 1; i < trail.length; i++) {
+    const t = i / trail.length;
+    const pz = Math.sin(trail[i].a) * Math.sin(tilt);
+    const alpha = t * 0.55 * (pz > 0 ? 1 : 0.3);
+    ctx.beginPath();
+    ctx.moveTo(trail[i-1].x, trail[i-1].y);
+    ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.strokeStyle = `rgba(80,180,255,${alpha})`;
+    ctx.lineWidth = t * 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // --- Electron ---
+  const eAlpha = zDepth >= 0 ? 1 : 0.45;
+  const eR = 9;
+
+  // Outer glow
+  ctx.shadowColor = 'rgba(100,200,255,0.9)';
+  ctx.shadowBlur = 28;
+  const eg = ctx.createRadialGradient(ep.x - 2, ep.y - 2, 1, ep.x, ep.y, eR);
+  eg.addColorStop(0, `rgba(255,255,255,${eAlpha})`);
+  eg.addColorStop(0.4, `rgba(120,200,255,${eAlpha * 0.9})`);
+  eg.addColorStop(1, `rgba(40,100,255,0)`);
+  ctx.beginPath();
+  ctx.arc(ep.x, ep.y, eR, 0, Math.PI*2);
+  ctx.fillStyle = eg;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Core dot
+  ctx.beginPath();
+  ctx.arc(ep.x, ep.y, 4, 0, Math.PI*2);
+  ctx.fillStyle = `rgba(220,240,255,${eAlpha})`;
+  ctx.fill();
+
+  // Electron label
+  if (eAlpha > 0.7) {
+    ctx.fillStyle = 'rgba(150,210,255,0.8)';
+    ctx.font = '10px Share Tech Mono, monospace';
+    ctx.fillText('e⁻', ep.x + 11, ep.y + 4);
+  }
+
+  // Draw nucleus on top if electron is behind
+  if (zDepth <= 0) drawNucleus(cx, cy);
+
+  // --- Energy level photon burst on shell change (cosmetic flash) ---
+}
+
+function drawNucleus(cx, cy) {
+  // Outer halo
+  const halo = ctx.createRadialGradient(cx, cy, 8, cx, cy, 38);
+  halo.addColorStop(0, 'rgba(255,160,60,0.25)');
+  halo.addColorStop(0.5, 'rgba(255,100,30,0.12)');
+  halo.addColorStop(1, 'rgba(255,80,0,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 38, 0, Math.PI*2);
+  ctx.fillStyle = halo;
+  ctx.fill();
+
+  // Nucleus glow
+  ctx.shadowColor = 'rgba(255,150,50,0.8)';
+  ctx.shadowBlur = 25;
+  const ng = ctx.createRadialGradient(cx-3, cy-3, 2, cx, cy, 16);
+  ng.addColorStop(0, '#fff8e0');
+  ng.addColorStop(0.3, '#ffb040');
+  ng.addColorStop(0.7, '#ff5510');
+  ng.addColorStop(1, '#cc2200');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, Math.PI*2);
+  ctx.fillStyle = ng;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Proton label
+  ctx.fillStyle = 'rgba(255,220,160,0.9)';
+  ctx.font = '700 10px Share Tech Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('p⁺', cx, cy);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

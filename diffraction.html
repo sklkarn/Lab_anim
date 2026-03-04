@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Single Slit Diffraction Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c12;
+    --panel: #0d1520;
+    --border: #1a2e45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --laser: #ff2020;
+    --glow: 0 0 15px rgba(0,212,255,0.4);
+    --text: #c8dce8;
+    --dim: #4a6070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,255,0.6);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    color: var(--dim);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  .lab-container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+
+  .control-group {
+    margin-bottom: 18px;
+  }
+
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .control-value {
+    color: var(--accent);
+    font-size: 0.8rem;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    cursor: pointer;
+  }
+
+  /* Color selector */
+  .color-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .color-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+
+  .color-btn.active { border-color: white; transform: scale(1.2); }
+
+  /* Simulation area */
+  .sim-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  canvas {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: block;
+    width: 100%;
+  }
+
+  #simCanvas { background: #02060d; }
+  #patternCanvas { background: #02060d; }
+
+  /* Measurements */
+  .measurements {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .measure-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .measure-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .measure-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(0,212,255,0.5);
+  }
+
+  .measure-unit {
+    font-size: 0.65rem;
+    color: var(--dim);
+  }
+
+  .equation-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #8ab0c0;
+    letter-spacing: 0.05em;
+  }
+
+  .eq-highlight { color: var(--accent); font-weight: bold; }
+
+  @media (max-width: 680px) {
+    .lab-container { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Single Slit Diffraction Lab</h1>
+<p class="subtitle">Interactive Wave Optics Simulation</p>
+
+<div class="lab-container">
+  <!-- Controls -->
+  <div class="panel">
+    <div class="panel-title">Parameters</div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Slit Width (a)</span>
+        <span class="control-value" id="slitVal">50 µm</span>
+      </div>
+      <input type="range" id="slitWidth" min="0.01" max="0.1" step="0.001" value="0.05">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Screen Distance (L)</span>
+        <span class="control-value" id="distVal">1.00 m</span>
+      </div>
+      <input type="range" id="screenDist" min="0.5" max="3.0" step="0.05" value="1.0">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Wavelength (λ)</span>
+        <span class="control-value" id="waveVal">550 nm</span>
+      </div>
+      <input type="range" id="wavelength" min="380" max="750" step="5" value="550">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label"><span>Light Color</span></div>
+      <div class="color-btns" id="colorBtns">
+        <div class="color-btn" style="background:#7b2dff" data-wl="405" title="Violet"></div>
+        <div class="color-btn" style="background:#4488ff" data-wl="460" title="Blue"></div>
+        <div class="color-btn" style="background:#00cc88" data-wl="520" title="Green"></div>
+        <div class="color-btn active" style="background:#ccdd00" data-wl="550" title="Yellow-Green"></div>
+        <div class="color-btn" style="background:#ff8800" data-wl="610" title="Orange"></div>
+        <div class="color-btn" style="background:#ff1a1a" data-wl="680" title="Red"></div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:8px">Formula</div>
+    <div class="equation-box">
+      Dark fringes:<br>
+      <span class="eq-highlight">a · sin θ = m · λ</span><br><br>
+      Small angle approx:<br>
+      <span class="eq-highlight">y = mλL / a</span>
+    </div>
+  </div>
+
+  <!-- Simulation -->
+  <div class="sim-panel">
+    <div class="panel">
+      <div class="panel-title">Apparatus View</div>
+      <canvas id="simCanvas" height="160"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Diffraction Pattern (Screen)</div>
+      <canvas id="patternCanvas" height="120"></canvas>
+    </div>
+
+    <div class="measurements">
+      <div class="measure-box">
+        <div class="measure-label">1st Minima (y₁)</div>
+        <div class="measure-val" id="y1">--</div>
+        <div class="measure-unit">mm</div>
+      </div>
+      <div class="measure-box">
+        <div class="measure-label">Central Width</div>
+        <div class="measure-val" id="cw">--</div>
+        <div class="measure-unit">mm</div>
+      </div>
+      <div class="measure-box">
+        <div class="measure-label">Angular Width</div>
+        <div class="measure-val" id="aw">--</div>
+        <div class="measure-unit">mrad</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const simCanvas = document.getElementById('simCanvas');
+  const simCtx = simCanvas.getContext('2d');
+  const patCanvas = document.getElementById('patternCanvas');
+  const patCtx = patCanvas.getContext('2d');
+
+  let params = { a: 0.05, L: 1.0, lambda: 550 };
+
+  function wavelengthToRGB(wl) {
+    let r, g, b;
+    if (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; g = 0; b = 1; }
+    else if (wl < 490) { r = 0; g = (wl - 440) / 50; b = 1; }
+    else if (wl < 510) { r = 0; g = 1; b = -(wl - 510) / 20; }
+    else if (wl < 580) { r = (wl - 510) / 70; g = 1; b = 0; }
+    else if (wl < 645) { r = 1; g = -(wl - 645) / 65; b = 0; }
+    else { r = 1; g = 0; b = 0; }
+    const factor = wl < 420 ? 0.3 + 0.7*(wl-380)/40 : wl > 700 ? 0.3 + 0.7*(750-wl)/50 : 1.0;
+    return [Math.round(255*r*factor), Math.round(255*g*factor), Math.round(255*b*factor)];
+  }
+
+  function intensity(x, a, lambda, L) {
+    // x in mm, a in mm, lambda in mm, L in mm
+    const sinTheta = x / Math.sqrt(x*x + L*L);
+    const beta = Math.PI * a * sinTheta / lambda;
+    if (Math.abs(beta) < 1e-10) return 1;
+    const val = Math.sin(beta) / beta;
+    return val * val;
+  }
+
+  // Gamma-correct intensity so secondary maxima are visible
+  function visibleIntensity(I) {
+    return Math.pow(I, 0.35);
+  }
+
+  // Fixed view: based on screen distance only so fringe width visibly changes with slit
+  function getViewMM() {
+    return params.L * 1000 * 0.15;
+  }
+
+  function drawApparatus() {
+    const W = simCanvas.width, H = simCanvas.height;
+    simCtx.clearRect(0, 0, W, H);
+
+    const laserX = 30;
+    const slitX = W * 0.3;
+    const screenX = W - 30;
+    const midY = H / 2;
+    const [lr, lg, lb] = wavelengthToRGB(params.lambda);
+    const laserColor = `rgb(${lr},${lg},${lb})`;
+
+    // Draw laser body
+    simCtx.fillStyle = '#1a2e45';
+    simCtx.fillRect(laserX - 10, midY - 8, 40, 16);
+    simCtx.strokeStyle = '#00d4ff';
+    simCtx.lineWidth = 1;
+    simCtx.strokeRect(laserX - 10, midY - 8, 40, 16);
+
+    // Laser label
+    simCtx.fillStyle = '#00d4ff';
+    simCtx.font = '9px Share Tech Mono';
+    simCtx.textAlign = 'center';
+    simCtx.fillText('LASER', laserX + 10, midY + 26);
+
+    // Beam from laser to slit (spread)
+    const slitHalf = (params.a / 2) * (H * 0.3); // visual scale
+    const slitDisplayHalf = Math.max(2, Math.min(slitHalf * 8, H * 0.3));
+
+    // incoming beam
+    const grad = simCtx.createLinearGradient(laserX + 30, midY, slitX - 5, midY);
+    grad.addColorStop(0, `rgba(${lr},${lg},${lb},0.8)`);
+    grad.addColorStop(1, `rgba(${lr},${lg},${lb},0.4)`);
+    simCtx.strokeStyle = grad;
+    simCtx.lineWidth = 2;
+    simCtx.beginPath();
+    simCtx.moveTo(laserX + 30, midY);
+    simCtx.lineTo(slitX - 2, midY);
+    simCtx.stroke();
+
+    // Draw slit (barrier)
+    simCtx.fillStyle = '#1a3050';
+    simCtx.fillRect(slitX - 4, 0, 8, midY - slitDisplayHalf);
+    simCtx.fillRect(slitX - 4, midY + slitDisplayHalf, 8, H - (midY + slitDisplayHalf));
+    simCtx.strokeStyle = '#2a5070';
+    simCtx.lineWidth = 1;
+    simCtx.strokeRect(slitX - 4, 0, 8, midY - slitDisplayHalf);
+    simCtx.strokeRect(slitX - 4, midY + slitDisplayHalf, 8, H - (midY + slitDisplayHalf));
+
+    // Slit gap highlight
+    simCtx.strokeStyle = `rgba(${lr},${lg},${lb},0.5)`;
+    simCtx.lineWidth = 1;
+    simCtx.beginPath();
+    simCtx.moveTo(slitX - 4, midY - slitDisplayHalf);
+    simCtx.lineTo(slitX + 4, midY - slitDisplayHalf);
+    simCtx.moveTo(slitX - 4, midY + slitDisplayHalf);
+    simCtx.lineTo(slitX + 4, midY + slitDisplayHalf);
+    simCtx.stroke();
+
+    // Label slit width
+    simCtx.fillStyle = '#4a7090';
+    simCtx.font = '9px Share Tech Mono';
+    simCtx.textAlign = 'center';
+    simCtx.fillText('SLIT', slitX, H - 8);
+    simCtx.fillText(`a = ${params.a.toFixed(2)}mm`, slitX, H - 18);
+
+    // Diffracted beams (fan)
+    const numRays = 9;
+    const maxAngle = Math.PI / 3;
+    for (let i = 0; i < numRays; i++) {
+      const angle = -maxAngle + (2 * maxAngle * i / (numRays - 1));
+      const endX = screenX - 20;
+      const endY = midY + Math.tan(angle) * (endX - slitX);
+      if (endY < 0 || endY > H) continue;
+      const distFrac = i / (numRays - 1);
+      const alpha = 0.15 + 0.25 * (1 - Math.abs(distFrac - 0.5) * 2);
+      simCtx.strokeStyle = `rgba(${lr},${lg},${lb},${alpha})`;
+      simCtx.lineWidth = 1;
+      simCtx.beginPath();
+      simCtx.moveTo(slitX + 4, midY);
+      simCtx.lineTo(endX, endY);
+      simCtx.stroke();
+    }
+
+    // Screen
+    simCtx.fillStyle = '#0d1a28';
+    simCtx.fillRect(screenX - 6, 0, 12, H);
+    simCtx.strokeStyle = '#2a5070';
+    simCtx.lineWidth = 1;
+    simCtx.strokeRect(screenX - 6, 0, 12, H);
+
+    // Pattern on screen
+    const imgData = simCtx.createImageData(10, H);
+    const lambdaMM = params.lambda * 1e-6;
+    const aMM = params.a;
+    const LMM = params.L * 1000;
+    const screenViewMM = getViewMM();
+    for (let py = 0; py < H; py++) {
+      const xmm = ((py - midY) / H) * screenViewMM;
+      const I = visibleIntensity(intensity(xmm, aMM, lambdaMM, LMM));
+      for (let px = 0; px < 10; px++) {
+        const idx = (py * 10 + px) * 4;
+        imgData.data[idx] = Math.round(lr * I);
+        imgData.data[idx+1] = Math.round(lg * I);
+        imgData.data[idx+2] = Math.round(lb * I);
+        imgData.data[idx+3] = 200;
+      }
+    }
+    simCtx.putImageData(imgData, screenX - 5, 0);
+
+    // Instructor label
+    simCtx.fillStyle = '#4a8090';
+    simCtx.font = '10px Share Tech Mono';
+    simCtx.textAlign = 'left';
+    simCtx.fillText('Instructor: Dr. S. Karna', 8, 14);
+
+    // Labels
+    simCtx.fillStyle = '#4a7090';
+    simCtx.font = '9px Share Tech Mono';
+    simCtx.textAlign = 'center';
+    simCtx.fillText('SCREEN', screenX, H - 8);
+
+    // Distance arrow
+    simCtx.strokeStyle = '#1a3050';
+    simCtx.setLineDash([4, 4]);
+    simCtx.lineWidth = 1;
+    simCtx.beginPath();
+    simCtx.moveTo(slitX, H - 40);
+    simCtx.lineTo(screenX, H - 40);
+    simCtx.stroke();
+    simCtx.setLineDash([]);
+    simCtx.fillStyle = '#2a5070';
+    simCtx.textAlign = 'center';
+    simCtx.fillText(`L = ${params.L.toFixed(2)} m`, (slitX + screenX) / 2, H - 45);
+  }
+
+  function drawPattern() {
+    const W = patCanvas.width, H = patCanvas.height;
+    const imgData = patCtx.createImageData(W, H);
+    const [lr, lg, lb] = wavelengthToRGB(params.lambda);
+    const lambdaMM = params.lambda * 1e-6;
+    const aMM = params.a;
+    const LMM = params.L * 1000;
+    const viewMM = getViewMM();
+
+    for (let px = 0; px < W; px++) {
+      const xmm = ((px / W) - 0.5) * viewMM;
+      const I = visibleIntensity(intensity(xmm, aMM, lambdaMM, LMM));
+      for (let py = 0; py < H - 22; py++) {
+        const idx = (py * W + px) * 4;
+        imgData.data[idx]   = Math.round(lr * I);
+        imgData.data[idx+1] = Math.round(lg * I);
+        imgData.data[idx+2] = Math.round(lb * I);
+        imgData.data[idx+3] = 255;
+      }
+    }
+    patCtx.putImageData(imgData, 0, 0);
+
+    // Scale bar & axis
+    patCtx.fillStyle = 'rgba(0,0,0,0.7)';
+    patCtx.fillRect(0, H - 22, W, 22);
+    patCtx.strokeStyle = '#1a2e45';
+    patCtx.lineWidth = 1;
+    patCtx.beginPath();
+    patCtx.moveTo(0, H - 22);
+    patCtx.lineTo(W, H - 22);
+    patCtx.stroke();
+
+    // Tick marks: pick nice intervals
+    const halfV = viewMM / 2;
+    let tickStep = 1;
+    if (halfV > 50) tickStep = 20;
+    else if (halfV > 20) tickStep = 10;
+    else if (halfV > 10) tickStep = 5;
+    else if (halfV > 5) tickStep = 2;
+    patCtx.fillStyle = '#3a5570';
+    patCtx.font = '8px Share Tech Mono';
+    patCtx.textAlign = 'center';
+    for (let mm = -Math.ceil(halfV / tickStep) * tickStep; mm <= halfV; mm += tickStep) {
+      const px = Math.round((mm / viewMM + 0.5) * W);
+      patCtx.strokeStyle = '#2a4560';
+      patCtx.lineWidth = 1;
+      patCtx.beginPath();
+      patCtx.moveTo(px, H - 22);
+      patCtx.lineTo(px, H - 16);
+      patCtx.stroke();
+      patCtx.fillText(`${mm}`, px, H - 5);
+    }
+
+    // Center line
+    patCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+    patCtx.setLineDash([3, 5]);
+    patCtx.lineWidth = 1;
+    patCtx.beginPath();
+    patCtx.moveTo(W/2, 0);
+    patCtx.lineTo(W/2, H - 22);
+    patCtx.stroke();
+    patCtx.setLineDash([]);
+
+    // Mark minima m=1..4 on each side with labels
+    const y1mm = lambdaMM * LMM / aMM;
+    const colors = ['rgba(0,212,255,0.85)', 'rgba(0,180,255,0.65)', 'rgba(0,150,220,0.5)', 'rgba(0,120,180,0.4)'];
+    for (let m = 1; m <= 4; m++) {
+      const ymm = m * y1mm;
+      [ymm, -ymm].forEach(yv => {
+        const xp = (yv / viewMM + 0.5) * W;
+        if (xp < 0 || xp > W) return;
+        patCtx.strokeStyle = colors[m-1];
+        patCtx.setLineDash([2, 3]);
+        patCtx.lineWidth = 1;
+        patCtx.beginPath();
+        patCtx.moveTo(xp, 0);
+        patCtx.lineTo(xp, H - 22);
+        patCtx.stroke();
+        patCtx.setLineDash([]);
+        patCtx.fillStyle = colors[m-1];
+        patCtx.font = '8px Share Tech Mono';
+        patCtx.textAlign = 'center';
+        patCtx.fillText(`m=${yv > 0 ? '+' : '-'}${m}`, xp, 10 + (m % 2) * 12);
+      });
+    }
+
+    // mm label
+    patCtx.fillStyle = '#2a5070';
+    patCtx.textAlign = 'right';
+    patCtx.fillText('mm', W - 4, H - 5);
+  }
+
+  function updateMeasurements() {
+    const lambdaMM = params.lambda * 1e-6;
+    const y1 = (lambdaMM * params.L * 1000) / params.a;
+    document.getElementById('y1').textContent = y1.toFixed(2);
+    document.getElementById('cw').textContent = (2 * y1).toFixed(2);
+    const angWidth = 2 * lambdaMM / params.a * 1000; // mrad
+    document.getElementById('aw').textContent = angWidth.toFixed(2);
+  }
+
+  function resizeCanvases() {
+    const container = simCanvas.parentElement;
+    const w = container.clientWidth - 32;
+    simCanvas.width = w;
+    patCanvas.width = w;
+  }
+
+  function render() {
+    resizeCanvases();
+    drawApparatus();
+    drawPattern();
+    updateMeasurements();
+  }
+
+  // Slider events
+  document.getElementById('slitWidth').addEventListener('input', function() {
+    params.a = parseFloat(this.value);
+    const microns = Math.round(params.a * 1000);
+    document.getElementById('slitVal').textContent = microns < 100 ? microns + ' µm' : params.a.toFixed(2) + ' mm';
+    render();
+  });
+
+  document.getElementById('screenDist').addEventListener('input', function() {
+    params.L = parseFloat(this.value);
+    document.getElementById('distVal').textContent = params.L.toFixed(2) + ' m';
+    render();
+  });
+
+  document.getElementById('wavelength').addEventListener('input', function() {
+    params.lambda = parseInt(this.value);
+    document.getElementById('waveVal').textContent = params.lambda + ' nm';
+    // Update color btn active state
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    render();
+  });
+
+  document.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      params.lambda = parseInt(this.dataset.wl);
+      document.getElementById('wavelength').value = params.lambda;
+      document.getElementById('waveVal').textContent = params.lambda + ' nm';
+      render();
+    });
+  });
+
+  window.addEventListener('resize', render);
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meterbridge Lab — Wheatstone Bridge Principle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0a0e14;
+    --panel: #0f1520;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00ff88;
+    --amber: #ffb800;
+    --red: #ff3b5c;
+    --text: #c8d8e8;
+    --dim: #4a6a8a;
+    --wire: #c8a228;
+    --wood: #8B6914;
+    --wood-light: #c49a2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(0,60,120,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,180,120,0.08) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(14px, 2.5vw, 22px);
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 4px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .lab-container {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  /* CENTER — METERBRIDGE */
+  .bridge-area {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  }
+
+  .bridge-svg {
+    width: 100%;
+    height: 220px;
+    display: block;
+  }
+
+  /* Jockey slider */
+  .jockey-track {
+    position: relative;
+    height: 40px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  .jockey-label {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .jockey-slider-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  #jockeySlider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: linear-gradient(to right, var(--wood) 0%, var(--wood-light) 100%);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    border: 1px solid var(--amber);
+  }
+
+  #jockeySlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 28px;
+    background: linear-gradient(135deg, #888, #444);
+    border-radius: 3px;
+    border: 2px solid var(--accent);
+    cursor: grab;
+    box-shadow: 0 0 8px rgba(0,212,255,0.6);
+    transition: box-shadow 0.2s;
+  }
+
+  #jockeySlider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 16px rgba(0,212,255,0.9);
+  }
+
+  #jockeySlider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    box-shadow: 0 0 20px rgba(0,212,255,1);
+  }
+
+  .position-display {
+    text-align: center;
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  /* METERS */
+  .meter {
+    background: #080c12;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 10px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .meter::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.3;
+  }
+
+  .meter-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  .meter-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--green);
+    text-shadow: 0 0 12px rgba(0,255,136,0.6);
+    line-height: 1;
+  }
+
+  .meter-unit {
+    font-size: 11px;
+    color: var(--dim);
+    margin-left: 4px;
+  }
+
+  .meter-bar {
+    height: 4px;
+    background: #1a2a3a;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.15s ease;
+  }
+
+  .voltmeter .meter-value { color: var(--amber); text-shadow: 0 0 12px rgba(255,184,0,0.6); }
+  .voltmeter .meter-fill { background: var(--amber); }
+  .ammeter .meter-value { color: var(--green); }
+  .ammeter .meter-fill { background: var(--green); }
+  .galvanometer .meter-value { 
+    color: var(--red); 
+    text-shadow: 0 0 12px rgba(255,59,92,0.6); 
+    font-size: 18px;
+  }
+  .galvanometer .meter-fill { background: var(--red); }
+
+  /* RHEOSTAT */
+  .rheostat-wrap {
+    margin-bottom: 12px;
+  }
+
+  .rheostat-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  input[type=range].rheo {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: linear-gradient(to right, var(--accent2), var(--accent));
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range].rheo::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #ccc;
+    border-radius: 50%;
+    border: 2px solid var(--accent2);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(255,107,53,0.5);
+  }
+
+  .rheo-value {
+    font-size: 11px;
+    color: var(--accent2);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* RESULT BOX */
+  .result-box {
+    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(0,255,136,0.05));
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  .result-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+
+  .result-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,255,0.7);
+  }
+
+  .result-unit {
+    font-size: 12px;
+    color: var(--dim);
+    margin-left: 4px;
+  }
+
+  .balance-indicator {
+    margin-top: 8px;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+    transition: all 0.3s;
+  }
+
+  .balanced { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .unbalanced { background: rgba(255,59,92,0.1); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+
+  /* RESISTANCE INPUTS */
+  .resistance-input-wrap {
+    margin-bottom: 10px;
+  }
+
+  .rl {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  .ri {
+    width: 100%;
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .ri:focus { border-color: var(--accent); }
+
+  .formula-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+
+  .formula-box .eq {
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  .glow-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⚡ METERBRIDGE LABORATORY</h1>
+<p class="subtitle">Wheatstone Bridge Principle — Resistance Measurement Simulation</p>
+<p style="font-family:'Share Tech Mono',monospace; font-size:12px; color:#ffb800; letter-spacing:0.15em; margin-bottom:6px;">INSTRUCTOR: Dr. SK</p>
+
+<div class="lab-container">
+
+  <!-- LEFT PANEL -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">⚙ Rheostat (EMF Control)</div>
+      <div class="rheostat-wrap">
+        <div class="rheostat-label">RESISTANCE (Ω)</div>
+        <input type="range" class="rheo" id="rheostat" min="1" max="100" value="50">
+        <div class="rheo-value" id="rheoVal">50 Ω</div>
+      </div>
+      <div class="rheostat-wrap">
+        <div class="rheostat-label">EMF SOURCE (V)</div>
+        <input type="range" class="rheo" id="emf" min="1" max="12" value="6" step="0.5">
+        <div class="rheo-value" id="emfVal">6.0 V</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-title">🔭 Instruments</div>
+
+      <div class="meter voltmeter">
+        <div class="meter-label">VOLTMETER</div>
+        <div><span class="meter-value" id="voltDisplay">0.00</span><span class="meter-unit">V</span></div>
+        <div class="meter-bar"><div class="meter-fill" id="voltBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="meter ammeter">
+        <div class="meter-label">AMMETER</div>
+        <div><span class="meter-value" id="ampDisplay">0.00</span><span class="meter-unit">mA</span></div>
+        <div class="meter-bar"><div class="meter-fill" id="ampBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="meter galvanometer">
+        <div class="meter-label"><span class="glow-dot"></span>GALVANOMETER</div>
+        <div><span class="meter-value" id="galvDisplay">0.00</span><span class="meter-unit">µA</span></div>
+        <div class="meter-bar"><div class="meter-fill" id="galvBar" style="width:50%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER — BRIDGE -->
+  <div class="bridge-area">
+    <div class="panel-title" style="text-align:center;">📐 Meterbridge (100 cm wire)</div>
+
+    <svg class="bridge-svg" viewBox="0 0 520 200" id="bridgeSvg">
+      <!-- Wood base -->
+      <rect x="10" y="155" width="500" height="18" rx="4" fill="#5a3e10" stroke="#8B6914" stroke-width="1.5"/>
+      <!-- Wire on bridge -->
+      <rect x="10" y="161" width="500" height="6" rx="2" fill="#c8a228"/>
+      <!-- Tick marks every 10cm -->
+      <g stroke="#444" stroke-width="1" font-size="8" fill="#4a6a8a" font-family="monospace">
+        <line x1="110" y1="155" x2="110" y2="145"/> <text x="106" y="142">10</text>
+        <line x1="210" y1="155" x2="210" y2="145"/> <text x="206" y="142">20</text>
+        <line x1="310" y1="155" x2="310" y2="145"/> <text x="306" y="142">30</text>
+        <line x1="410" y1="155" x2="410" y2="145"/> <text x="406" y="142">40</text>
+        <!-- Main marks 50,60,70,80,90 -->
+        <line x1="160" y1="155" x2="160" y2="148"/> <text x="156" y="145">15</text>
+        <line x1="260" y1="155" x2="260" y2="148"/> <text x="256" y="145">25</text>
+        <line x1="360" y1="155" x2="360" y2="148"/> <text x="356" y="145">35</text>
+        <line x1="460" y1="155" x2="460" y2="148"/> <text x="456" y="145">45</text>
+      </g>
+      <!-- 50cm mark big -->
+      <line x1="510" y1="155" x2="510" y2="138" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="500" y="135" fill="#00d4ff" font-size="9" font-family="monospace">50</text>
+      
+      <!-- Known resistance R -->
+      <rect x="20" y="60" width="80" height="36" rx="5" fill="#0f1520" stroke="#1e3a5f" stroke-width="1.5"/>
+      <text x="34" y="83" fill="#ffb800" font-size="11" font-family="monospace">R =</text>
+      <text x="58" y="83" fill="#ffb800" font-size="11" font-family="monospace" id="svgR">10Ω</text>
+
+      <!-- Unknown resistance X -->
+      <rect x="420" y="60" width="80" height="36" rx="5" fill="#0f1520" stroke="#1e3a5f" stroke-width="1.5"/>
+      <text x="434" y="83" fill="#ff6b35" font-size="11" font-family="monospace">X =</text>
+      <text x="458" y="83" fill="#ff6b35" font-size="11" font-family="monospace" id="svgX">?Ω</text>
+
+      <!-- Battery / EMF source -->
+      <rect x="215" y="10" width="90" height="30" rx="4" fill="#1a2a3a" stroke="#2a4a6a" stroke-width="1.5"/>
+      <text x="228" y="30" fill="#c8d8e8" font-size="11" font-family="monospace">EMF ⚡</text>
+
+      <!-- Galvanometer -->
+      <circle cx="260" cy="130" r="16" fill="#0f1520" stroke="#ff3b5c" stroke-width="1.5"/>
+      <text x="255" y="134" fill="#ff3b5c" font-size="11" font-family="monospace">G</text>
+
+      <!-- Wires: R to wire left end -->
+      <line x1="60" y1="96" x2="60" y2="164" stroke="#c8a228" stroke-width="2.5"/>
+      <!-- R to top-left -->
+      <line x1="60" y1="60" x2="60" y2="40" stroke="#c8a228" stroke-width="2.5"/>
+      <line x1="60" y1="40" x2="215" y2="40" stroke="#c8a228" stroke-width="2.5"/>
+      <line x1="215" y1="40" x2="215" y2="10" stroke="#c8a228" stroke-width="2.5"/>
+      <!-- X to wire right end -->
+      <line x1="460" y1="96" x2="460" y2="164" stroke="#c8a228" stroke-width="2.5"/>
+      <!-- X to top-right -->
+      <line x1="460" y1="60" x2="460" y2="40" stroke="#c8a228" stroke-width="2.5"/>
+      <line x1="460" y1="40" x2="305" y2="40" stroke="#c8a228" stroke-width="2.5"/>
+      <line x1="305" y1="40" x2="305" y2="10" stroke="#c8a228" stroke-width="2.5"/>
+      <!-- Galvanometer to jockey (updated by JS) -->
+      <line x1="260" y1="114" x2="260" y2="70" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="4,3" id="galvWireTop"/>
+      <line id="galvWireBottom" x1="260" y1="146" x2="260" y2="164" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+      <!-- Jockey position (updated) -->
+      <rect id="jockeyRect" x="250" y="150" width="20" height="28" rx="3" fill="url(#jockeyGrad)" stroke="#00d4ff" stroke-width="2"/>
+      <defs>
+        <linearGradient id="jockeyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#888"/>
+          <stop offset="100%" style="stop-color:#333"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Labels -->
+      <text x="60" y="174" fill="#4a6a8a" font-size="8" font-family="monospace" text-anchor="middle">A</text>
+      <text x="510" y="174" fill="#4a6a8a" font-size="8" font-family="monospace" text-anchor="middle">B</text>
+      <text id="jockeyLabel" x="260" y="190" fill="#00d4ff" font-size="8" font-family="monospace" text-anchor="middle">J (50cm)</text>
+    </svg>
+
+    <div class="jockey-label">JOCKEY POSITION — SLIDE TO FIND BALANCE POINT</div>
+    <div class="jockey-track">
+      <div class="jockey-slider-wrap">
+        <input type="range" id="jockeySlider" min="1" max="99" value="50">
+      </div>
+    </div>
+    <div class="position-display" id="posDisplay">ℓ = 50.0 cm &nbsp;|&nbsp; (100 − ℓ) = 50.0 cm</div>
+
+    <div class="formula-box">
+      <div class="eq">X/R = (100 − ℓ) / ℓ</div>
+      <div style="margin-top:4px">where ℓ = balance length from end A</div>
+      <div style="margin-top:4px">X = R · (100 − ℓ) / ℓ</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">🔧 Resistance Setup</div>
+      
+      <div class="resistance-input-wrap">
+        <div class="rl">KNOWN (R) Ω</div>
+        <input class="ri" type="number" id="knownR" value="10" min="1" max="1000">
+      </div>
+
+      <div class="resistance-input-wrap">
+        <div class="rl">UNKNOWN (X) Ω — True Value</div>
+        <input class="ri" type="number" id="unknownX" value="15" min="1" max="1000">
+      </div>
+
+      <div style="font-size:9px; color:var(--dim); margin-top:8px; line-height:1.6;">
+        Slide the jockey to find the null point where galvanometer reads ~0. The balance length gives you X.
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-title">📊 Result</div>
+      
+      <div class="result-box">
+        <div class="result-label">CALCULATED X</div>
+        <div><span class="result-value" id="calcX">15.0</span><span class="result-unit">Ω</span></div>
+        <div id="balanceIndicator" class="balance-indicator unbalanced">NOT BALANCED</div>
+      </div>
+
+      <div style="margin-top:12px; font-size:10px; color:var(--dim); line-height:1.8;">
+        <div>ℓ: <span style="color:var(--accent)" id="lVal">—</span> cm</div>
+        <div>100−ℓ: <span style="color:var(--accent2)" id="lCompl">—</span> cm</div>
+        <div>Ratio: <span style="color:var(--text)" id="ratio">—</span></div>
+        <div>Error: <span style="color:var(--red)" id="errVal">—</span> %</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const jockey = document.getElementById('jockeySlider');
+  const rheostat = document.getElementById('rheostat');
+  const emfInput = document.getElementById('emf');
+  const knownR = document.getElementById('knownR');
+  const unknownX = document.getElementById('unknownX');
+
+  function update() {
+    const l = parseFloat(jockey.value);      // balance length in cm
+    const rheoVal = parseFloat(rheostat.value);
+    const emf = parseFloat(emfInput.value);
+    const R = parseFloat(knownR.value) || 10;
+    const Xtrue = parseFloat(unknownX.value) || 15;
+
+    // Update SVG jockey position
+    // Wire starts at x=10 (A) and ends at x=510 (B) = 500px for 100cm
+    const jockeyX = 10 + (l / 100) * 500;
+    document.getElementById('jockeyRect').setAttribute('x', jockeyX - 10);
+    document.getElementById('jockeyLabel').setAttribute('x', jockeyX);
+    document.getElementById('jockeyLabel').textContent = `J (${l.toFixed(0)}cm)`;
+    document.getElementById('galvWireBottom').setAttribute('x1', jockeyX);
+    document.getElementById('galvWireBottom').setAttribute('x2', jockeyX);
+    document.getElementById('galvWireTop').setAttribute('x1', jockeyX);
+    document.getElementById('galvWireTop').setAttribute('x2', jockeyX);
+
+    // Calculated X from current jockey position
+    const Xcalc = R * (100 - l) / l;
+
+    // Wheatstone balance condition: deviation from null
+    const balancePct = Xcalc / Xtrue; // 1 = balanced
+    const deviation = Math.abs(balancePct - 1); // 0 = balanced
+
+    // Galvanometer current (proportional to imbalance)
+    const galvCurrent = deviation * 500; // µA
+    const isBalanced = deviation < 0.02;
+
+    // Circuit current through wire (depends on EMF and rheostat + wire resistance)
+    const totalR = rheoVal + 1; // 1Ω wire approx
+    const current = (emf / totalR) * 1000; // mA
+
+    // Voltage across relevant segment
+    const voltageL = emf * (l / 100) * (1 / (totalR / emf));
+    const voltReading = emf * l / (rheoVal + l * 0.02);
+
+    // Update displays
+    document.getElementById('voltDisplay').textContent = (emf * 0.8).toFixed(2);
+    document.getElementById('voltBar').style.width = Math.min(100, (emf / 12) * 100) + '%';
+
+    document.getElementById('ampDisplay').textContent = current.toFixed(2);
+    document.getElementById('ampBar').style.width = Math.min(100, current / 1200 * 100) + '%';
+
+    const galvCapped = Math.min(galvCurrent, 999);
+    document.getElementById('galvDisplay').textContent = (isBalanced ? 0 : galvCapped).toFixed(2);
+    const galvBarPct = 50 + (isBalanced ? 0 : Math.min(45, (galvCurrent / 500) * 45)) * (Xcalc > Xtrue ? 1 : -1);
+    document.getElementById('galvBar').style.width = Math.max(5, Math.min(95, galvBarPct)) + '%';
+
+    document.getElementById('calcX').textContent = Xcalc.toFixed(2);
+    document.getElementById('lVal').textContent = l.toFixed(1);
+    document.getElementById('lCompl').textContent = (100 - l).toFixed(1);
+    document.getElementById('ratio').textContent = ((100 - l) / l).toFixed(3);
+    const errPct = ((Xcalc - Xtrue) / Xtrue * 100).toFixed(1);
+    document.getElementById('errVal').textContent = errPct;
+
+    const ind = document.getElementById('balanceIndicator');
+    if (isBalanced) {
+      ind.className = 'balance-indicator balanced';
+      ind.textContent = '✓ BALANCED — NULL POINT';
+    } else {
+      ind.className = 'balance-indicator unbalanced';
+      ind.textContent = Xcalc > Xtrue ? '← SHIFT JOCKEY LEFT' : '→ SHIFT JOCKEY RIGHT';
+    }
+
+    document.getElementById('posDisplay').textContent = 
+      `ℓ = ${l.toFixed(1)} cm   |   (100 − ℓ) = ${(100-l).toFixed(1)} cm`;
+
+    document.getElementById('rheoVal').textContent = rheoVal + ' Ω';
+    document.getElementById('emfVal').textContent = emf.toFixed(1) + ' V';
+
+    // Update SVG resistance labels
+    document.getElementById('svgR').textContent = R + 'Ω';
+    document.getElementById('svgX').textContent = isBalanced ? Xcalc.toFixed(1)+'Ω' : '?Ω';
+  }
+
+  jockey.addEventListener('input', update);
+  rheostat.addEventListener('input', update);
+  emfInput.addEventListener('input', update);
+  knownR.addEventListener('input', update);
+  unknownX.addEventListener('input', update);
+
+  update();
+</script>
+</body>
+</html>
