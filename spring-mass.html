@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spring–Mass Oscillator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #0f1520;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #c8d8e8;
+    --dim: #4a6080;
+    --spring: #00d4ff;
+    --mass: #1a3a5c;
+    --mass-border: #00d4ff;
+    --hanger: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(255,107,53,0.04) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1100px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* ── SIMULATION CANVAS ── */
+  .sim-panel {
+    flex: 0 0 280px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sim-panel canvas {
+    display: block;
+    width: 100%;
+  }
+
+  /* ── RIGHT COLUMN ── */
+  .right-col {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── READOUTS ── */
+  .readouts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .readout {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .readout::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .readout.pos::before  { background: var(--accent); }
+  .readout.vel::before  { background: var(--accent2); }
+  .readout.acc::before  { background: var(--accent3); }
+  .readout.timer::before { background: #a855f7; }
+
+  .readout-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .readout-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .readout.pos  .readout-value { color: var(--accent); }
+  .readout.vel  .readout-value { color: var(--accent2); }
+  .readout.acc  .readout-value { color: var(--accent3); }
+  .readout.timer .readout-value { color: #c084fc; }
+
+  .readout-unit {
+    font-size: 0.6rem;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  /* ── TIMER FULL WIDTH ── */
+  .timer-row {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .timer-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #c084fc;
+    text-shadow: 0 0 12px rgba(192,132,252,0.4);
+    letter-spacing: 0.08em;
+  }
+
+  .btn-group { display: flex; gap: 8px; }
+
+  button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    padding: 7px 14px;
+    border-radius: 3px;
+    border: 1px solid;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .btn-start {
+    background: transparent;
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn-start:hover { background: rgba(57,255,20,0.1); }
+
+  .btn-pause {
+    background: transparent;
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-pause:hover { background: rgba(255,107,53,0.1); }
+
+  .btn-reset {
+    background: transparent;
+    border-color: var(--dim);
+    color: var(--dim);
+  }
+  .btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── CONTROLS ── */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+
+  .controls-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .slider-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0,212,255,0.5);
+  }
+
+  .slider-val {
+    font-size: 0.65rem;
+    color: var(--accent);
+    width: 42px;
+    text-align: right;
+  }
+
+  /* ── GRAPH ── */
+  .graph-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+  }
+  .graph-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .graph-panel canvas { display: block; width: 100%; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<h1>Spring–Mass Oscillation System</h1>
+<div style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.18em;color:#4a6080;text-transform:uppercase;margin-top:-12px;margin-bottom:18px;text-align:center;">
+  Instructor: <span style="color:#00d4ff;letter-spacing:0.12em;">Dr. S Karna</span>
+</div>
+
+<div class="main-layout">
+
+  <!-- SIMULATION -->
+  <div class="sim-panel">
+    <canvas id="simCanvas" width="280" height="520"></canvas>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+
+    <!-- TIMER -->
+    <div class="timer-row">
+      <div>
+        <div style="font-size:0.58rem;letter-spacing:0.15em;color:var(--dim);margin-bottom:4px;">ELAPSED TIME</div>
+        <div class="timer-display" id="timerDisplay">00:00.00</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-start" id="btnStart">Start</button>
+        <button class="btn-pause" id="btnPause">Pause</button>
+        <button class="btn-reset" id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <!-- READOUTS -->
+    <div class="readouts">
+      <div class="readout pos">
+        <div class="readout-label">Position (x)</div>
+        <div class="readout-value" id="valPos">0.000</div>
+        <div class="readout-unit">meters from equilibrium</div>
+      </div>
+      <div class="readout vel">
+        <div class="readout-label">Velocity (v)</div>
+        <div class="readout-value" id="valVel">0.000</div>
+        <div class="readout-unit">m/s</div>
+      </div>
+      <div class="readout acc">
+        <div class="readout-label">Acceleration (a)</div>
+        <div class="readout-value" id="valAcc">0.000</div>
+        <div class="readout-unit">m/s²</div>
+      </div>
+      <div class="readout" style="border-left-color:#f0a500;">
+        <div class="readout-label" style="color:var(--dim);">Spring Force</div>
+        <div class="readout-value" id="valForce" style="color:#f0a500;">0.000</div>
+        <div class="readout-unit">Newtons</div>
+      </div>
+    </div>
+
+    <!-- STATIC STRETCH PANEL -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px 16px;border-left:3px solid #e879f9;">
+      <div style="font-size:0.58rem;letter-spacing:0.18em;color:var(--dim);text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px;">
+        Static Spring Stretch &mdash; &Delta;x = mg/k
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.58rem;color:var(--dim);margin-bottom:3px;">STRETCH AT EQUILIBRIUM</div>
+          <div style="display:flex;align-items:baseline;gap:6px;">
+            <span id="valStretch" style="font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;color:#e879f9;text-shadow:0 0 10px rgba(232,121,249,0.4);">0.327</span>
+            <span style="font-size:0.65rem;color:var(--dim);">m</span>
+          </div>
+        </div>
+        <div style="font-size:0.62rem;color:var(--dim);line-height:1.7;text-align:right;">
+          <div>m = <span id="stretchM" style="color:#c8d8e8;">1.0</span> kg</div>
+          <div>g = 9.81 m/s&sup2;</div>
+          <div>k = <span id="stretchK" style="color:#c8d8e8;">30</span> N/m</div>
+        </div>
+        <div style="background:#0a1a2a;border:1px solid #2a1040;border-radius:3px;padding:8px 12px;font-size:0.62rem;color:#b06fe0;line-height:1.6;">
+          Weight = <span id="stretchW" style="color:#e879f9;">9.810</span> N<br>
+          &Delta;x = mg/k = <span id="stretchEq" style="color:#e879f9;">0.327</span> m
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <div class="controls-title">Parameters</div>
+
+      <div class="slider-row">
+        <span class="slider-label">Spring k (N/m)</span>
+        <input type="range" id="slK" min="5" max="100" value="30" step="1">
+        <span class="slider-val" id="dispK">30</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Mass (kg)</span>
+        <input type="range" id="slM" min="0.1" max="5" value="1" step="0.1">
+        <span class="slider-val" id="dispM">1.0</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Damping b</span>
+        <input type="range" id="slB" min="0" max="4" value="0.2" step="0.05">
+        <span class="slider-val" id="dispB">0.20</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Amplitude (m)</span>
+        <input type="range" id="slA" min="0.05" max="0.5" value="0.2" step="0.01">
+        <span class="slider-val" id="dispA">0.20</span>
+      </div>
+    </div>
+
+    <!-- GRAPH -->
+    <div class="graph-panel">
+      <div class="graph-title">Position vs Time</div>
+      <canvas id="graphCanvas" width="560" height="100"></canvas>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── PHYSICS ──────────────────────────────────────────────────────────────────
+const SIM_DT = 1/120;
+let k = 30, m = 1, b = 0.2, A = 0.2;
+let x = A, v = 0;
+let running = false;
+let elapsed = 0;
+let lastTs = null;
+let accumulator = 0;
+
+// Graph history
+const GRAPH_LEN = 300;
+const posHistory = new Array(GRAPH_LEN).fill(0);
+
+// ── SLIDERS ──────────────────────────────────────────────────────────────────
+function bindSlider(id, dispId, decimals, callback) {
+  const sl = document.getElementById(id);
+  const dsp = document.getElementById(dispId);
+  sl.addEventListener('input', () => {
+    const val = parseFloat(sl.value);
+    dsp.textContent = val.toFixed(decimals);
+    callback(val);
+  });
+}
+bindSlider('slK', 'dispK', 0, val => k = val);
+bindSlider('slM', 'dispM', 1, val => m = val);
+bindSlider('slB', 'dispB', 2, val => b = val);
+bindSlider('slA', 'dispA', 2, val => { A = val; if (!running) resetSim(false); });
+
+// ── BUTTONS ──────────────────────────────────────────────────────────────────
+document.getElementById('btnStart').addEventListener('click', () => {
+  if (!running) { running = true; lastTs = null; requestAnimationFrame(loop); }
+});
+document.getElementById('btnPause').addEventListener('click', () => { running = false; });
+document.getElementById('btnReset').addEventListener('click', () => resetSim(true));
+
+function resetSim(stopTimer) {
+  running = false;
+  x = A; v = 0; accumulator = 0;
+  if (stopTimer) { elapsed = 0; }
+  posHistory.fill(0);
+  drawSim(); drawGraph();
+  updateReadouts();
+  updateTimer();
+}
+
+// ── TIMER DISPLAY ─────────────────────────────────────────────────────────────
+function updateTimer() {
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const s = secs.toFixed(2).padStart(5, '0');
+  document.getElementById('timerDisplay').textContent =
+    String(mins).padStart(2,'0') + ':' + s;
+}
+
+// ── READOUTS ──────────────────────────────────────────────────────────────────
+function updateStretch() {
+  const g = 9.81;
+  const stretch = (m * g) / k;
+  const weight  = m * g;
+  document.getElementById('valStretch').textContent = stretch.toFixed(4);
+  document.getElementById('stretchEq').textContent  = stretch.toFixed(4);
+  document.getElementById('stretchW').textContent   = weight.toFixed(3);
+  document.getElementById('stretchM').textContent   = m.toFixed(1);
+  document.getElementById('stretchK').textContent   = k;
+}
+
+function updateReadouts() {
+  const a = (-k * x - b * v) / m;
+  const F = -k * x;
+  document.getElementById('valPos').textContent   = x.toFixed(3);
+  document.getElementById('valVel').textContent   = v.toFixed(3);
+  document.getElementById('valAcc').textContent   = a.toFixed(3);
+  document.getElementById('valForce').textContent = F.toFixed(3);
+  updateStretch();
+}
+
+// ── SIMULATION LOOP ───────────────────────────────────────────────────────────
+function loop(ts) {
+  if (!running) return;
+  if (lastTs === null) lastTs = ts;
+  const dt_real = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  elapsed += dt_real;
+  accumulator += dt_real;
+
+  while (accumulator >= SIM_DT) {
+    const a = (-k * x - b * v) / m;
+    v += a * SIM_DT;
+    x += v * SIM_DT;
+    accumulator -= SIM_DT;
+  }
+
+  posHistory.push(x);
+  if (posHistory.length > GRAPH_LEN) posHistory.shift();
+
+  updateReadouts();
+  updateTimer();
+  drawSim();
+  drawGraph();
+  requestAnimationFrame(loop);
+}
+
+// ── SIMULATION DRAWING ────────────────────────────────────────────────────────
+const simCanvas = document.getElementById('simCanvas');
+const sc = simCanvas.getContext('2d');
+const SW = 280, SH = 520;
+
+// Geometry constants
+const CEILING_Y = 30;
+const EQ_Y = 260;          // equilibrium position of mass top
+const SCALE = 200;         // pixels per meter
+const SPRING_REST_LEN = EQ_Y - CEILING_Y;
+const MASS_W = 80, MASS_H = 60;
+const HANGER_W = 30, HANGER_H = 22;
+const CX = SW / 2;
+
+function drawSpring(x0, y0, x1, y1, coils, color) {
+  const len = Math.sqrt((x1-x0)**2+(y1-y0)**2);
+  const ux=(x1-x0)/len, uy=(y1-y0)/len;
+  const nx=-uy, ny=ux;
+  const coilW = 12;
+  sc.beginPath();
+  sc.moveTo(x0, y0);
+  const segsPerCoil = 8;
+  const totalSegs = coils * segsPerCoil;
+  const topGap = len * 0.06, botGap = len * 0.06;
+  const usable = len - topGap - botGap;
+  for (let i = 0; i <= totalSegs; i++) {
+    const t = i / totalSegs;
+    const along = topGap + t * usable;
+    const wave = Math.sin(t * coils * Math.PI * 2) * coilW;
+    const px = x0 + ux * along + nx * wave;
+    const py = y0 + uy * along + ny * wave;
+    sc.lineTo(px, py);
+  }
+  sc.lineTo(x1, y1);
+  sc.strokeStyle = color;
+  sc.lineWidth = 2;
+  sc.stroke();
+}
+
+function drawSim() {
+  sc.clearRect(0, 0, SW, SH);
+
+  // BG grid subtle
+  sc.strokeStyle = 'rgba(30,45,70,0.5)';
+  sc.lineWidth = 1;
+  for (let y = 0; y < SH; y += 40) {
+    sc.beginPath(); sc.moveTo(0,y); sc.lineTo(SW,y); sc.stroke();
+  }
+  for (let cx2 = 0; cx2 < SW; cx2 += 40) {
+    sc.beginPath(); sc.moveTo(cx2,0); sc.lineTo(cx2,SH); sc.stroke();
+  }
+
+  // Ceiling
+  sc.fillStyle = '#1e2d45';
+  sc.fillRect(0, 0, SW, CEILING_Y);
+  // hatching
+  sc.strokeStyle = '#2a3d5a';
+  sc.lineWidth = 1;
+  for (let i = -SH; i < SW + SH; i += 12) {
+    sc.beginPath();
+    sc.moveTo(i, CEILING_Y);
+    sc.lineTo(i + 14, CEILING_Y - 14);
+    sc.stroke();
+  }
+  sc.strokeStyle = '#00d4ff';
+  sc.lineWidth = 2;
+  sc.beginPath(); sc.moveTo(0, CEILING_Y); sc.lineTo(SW, CEILING_Y); sc.stroke();
+
+  // Current mass top position in canvas coords
+  const massTopY = EQ_Y + x * SCALE;
+
+  // Equilibrium dashed line
+  sc.setLineDash([4, 6]);
+  sc.strokeStyle = 'rgba(0,212,255,0.25)';
+  sc.lineWidth = 1;
+  sc.beginPath();
+  sc.moveTo(20, EQ_Y + HANGER_H + MASS_H / 2);
+  sc.lineTo(SW - 20, EQ_Y + HANGER_H + MASS_H / 2);
+  sc.stroke();
+  sc.setLineDash([]);
+
+  // Spring attachment point on ceiling
+  const springTopX = CX;
+  const springBotX = CX;
+  const springBotY = massTopY;
+
+  // Spring
+  const stretchedLen = springBotY - CEILING_Y;
+  const numCoils = Math.max(3, Math.round(8 * (stretchedLen / SPRING_REST_LEN)));
+  drawSpring(springTopX, CEILING_Y, springBotX, springBotY, numCoils, '#00d4ff');
+
+  // Hanger (pan hanger triangle)
+  const hangerCY = massTopY + HANGER_H / 2;
+  sc.beginPath();
+  sc.moveTo(CX, massTopY);                         // top point
+  sc.lineTo(CX - HANGER_W/2, massTopY + HANGER_H); // bottom left
+  sc.lineTo(CX + HANGER_W/2, massTopY + HANGER_H); // bottom right
+  sc.closePath();
+  sc.fillStyle = '#1a2a3a';
+  sc.fill();
+  sc.strokeStyle = '#888';
+  sc.lineWidth = 1.5;
+  sc.stroke();
+
+  // Hanger hook line
+  sc.beginPath();
+  sc.moveTo(CX, massTopY - 2);
+  sc.lineTo(CX, massTopY - 10);
+  sc.strokeStyle = '#888';
+  sc.lineWidth = 2;
+  sc.stroke();
+
+  // Mass block (weight pan)
+  const massTopEdge = massTopY + HANGER_H;
+  const massX = CX - MASS_W / 2;
+  const massY = massTopEdge;
+
+  // Mass glow
+  const glow = sc.createRadialGradient(CX, massY + MASS_H/2, 0, CX, massY + MASS_H/2, 80);
+  glow.addColorStop(0, 'rgba(0,212,255,0.08)');
+  glow.addColorStop(1, 'transparent');
+  sc.fillStyle = glow;
+  sc.fillRect(massX - 20, massY - 10, MASS_W + 40, MASS_H + 20);
+
+  // Mass body
+  sc.fillStyle = '#0d2035';
+  sc.fillRect(massX, massY, MASS_W, MASS_H);
+  // border
+  const grad = sc.createLinearGradient(massX, massY, massX, massY + MASS_H);
+  grad.addColorStop(0, '#00d4ff');
+  grad.addColorStop(1, '#005588');
+  sc.strokeStyle = grad;
+  sc.lineWidth = 2;
+  sc.strokeRect(massX, massY, MASS_W, MASS_H);
+
+  // Mass label
+  sc.fillStyle = '#00d4ff';
+  sc.font = 'bold 11px "Share Tech Mono"';
+  sc.textAlign = 'center';
+  sc.fillText(`m = ${m.toFixed(1)} kg`, CX, massY + MASS_H / 2 + 4);
+
+  // ── Force vector arrow ──
+  const F = -k * x;
+  const arrowLen = Math.min(Math.abs(F) * 3, 50);
+  const arrowDir = F > 0 ? -1 : (F < 0 ? 1 : 0);
+  if (arrowLen > 2) {
+    const ax = massX - 22;
+    const ay = massY + MASS_H / 2;
+    const ax2 = ax + arrowDir * arrowLen;
+    sc.beginPath();
+    sc.moveTo(ax, ay);
+    sc.lineTo(ax2, ay);
+    sc.strokeStyle = '#f0a500';
+    sc.lineWidth = 2.5;
+    sc.stroke();
+    // arrowhead
+    sc.beginPath();
+    sc.moveTo(ax2, ay);
+    sc.lineTo(ax2 - arrowDir * 8, ay - 5);
+    sc.lineTo(ax2 - arrowDir * 8, ay + 5);
+    sc.closePath();
+    sc.fillStyle = '#f0a500';
+    sc.fill();
+
+    // F label
+    sc.fillStyle = '#f0a500';
+    sc.font = '10px "Share Tech Mono"';
+    sc.textAlign = arrowDir > 0 ? 'right' : 'left';
+    sc.fillText('F', ax + arrowDir * (arrowLen/2), ay - 8);
+  }
+
+  // Displacement indicator line
+  sc.setLineDash([3,5]);
+  sc.strokeStyle = 'rgba(57,255,20,0.4)';
+  sc.lineWidth = 1;
+  sc.beginPath();
+  sc.moveTo(CX + MASS_W/2 + 10, EQ_Y + HANGER_H + MASS_H/2);
+  sc.lineTo(CX + MASS_W/2 + 10, massY + MASS_H/2);
+  sc.stroke();
+  sc.setLineDash([]);
+  if (Math.abs(x) > 0.005) {
+    // tick marks
+    [[EQ_Y + HANGER_H + MASS_H/2],[massY + MASS_H/2]].forEach(([yy]) => {
+      sc.beginPath();
+      sc.moveTo(CX + MASS_W/2 + 6, yy);
+      sc.lineTo(CX + MASS_W/2 + 14, yy);
+      sc.strokeStyle = 'rgba(57,255,20,0.6)';
+      sc.lineWidth = 1.5;
+      sc.stroke();
+    });
+    sc.fillStyle = '#39ff14';
+    sc.font = '10px "Share Tech Mono"';
+    sc.textAlign = 'left';
+    sc.fillText(`${x >= 0 ? '+':''}${x.toFixed(2)}m`, CX + MASS_W/2 + 18,
+      (EQ_Y + HANGER_H + MASS_H/2 + massY + MASS_H/2)/2 + 4);
+  }
+
+  // ── Period label ──
+  const T = 2 * Math.PI * Math.sqrt(m / k);
+  sc.fillStyle = 'rgba(0,212,255,0.45)';
+  sc.font = '10px "Share Tech Mono"';
+  sc.textAlign = 'left';
+  sc.fillText(`T = ${T.toFixed(2)}s`, 10, SH - 10);
+
+  sc.textAlign = 'right';
+  sc.fillText(`k = ${k} N/m`, SW - 10, SH - 10);
+}
+
+// ── GRAPH DRAWING ─────────────────────────────────────────────────────────────
+const graphCanvas = document.getElementById('graphCanvas');
+const gc = graphCanvas.getContext('2d');
+const GW = 560, GH = 100;
+
+function drawGraph() {
+  gc.clearRect(0, 0, GW, GH);
+
+  // bg
+  gc.fillStyle = '#080c12';
+  gc.fillRect(0, 0, GW, GH);
+
+  // zero line
+  gc.strokeStyle = 'rgba(0,212,255,0.2)';
+  gc.lineWidth = 1;
+  gc.setLineDash([4,6]);
+  gc.beginPath(); gc.moveTo(0, GH/2); gc.lineTo(GW, GH/2); gc.stroke();
+  gc.setLineDash([]);
+
+  // scale: A or 0.3 minimum
+  const yScale = (GH/2 - 6) / Math.max(A, 0.3);
+
+  // draw trace
+  gc.beginPath();
+  for (let i = 0; i < posHistory.length; i++) {
+    const px = (i / (GRAPH_LEN - 1)) * GW;
+    const py = GH/2 - posHistory[i] * yScale;
+    i === 0 ? gc.moveTo(px, py) : gc.lineTo(px, py);
+  }
+  gc.strokeStyle = 'rgba(0,212,255,0.9)';
+  gc.lineWidth = 1.5;
+  gc.stroke();
+
+  // current dot
+  const lastX = posHistory[posHistory.length - 1];
+  gc.beginPath();
+  gc.arc(GW - 1, GH/2 - lastX * yScale, 3, 0, Math.PI*2);
+  gc.fillStyle = '#00d4ff';
+  gc.fill();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+drawSim();
+drawGraph();
+updateReadouts();
+updateStretch();
+updateTimer();
+</script>
+</body>
+</html>

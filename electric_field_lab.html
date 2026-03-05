@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric Field Lines Lab — Dr. S Karna</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #111827;
+    --panel2: #1a2234;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --pos: #ff4d6d;
+    --neg: #4dabf7;
+    --gold: #ffd60a;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --green: #00ff88;
+    --grid: rgba(0,212,255,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--accent2); }
+  .instructor-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+  .instructor-tag strong { color: var(--gold); }
+
+  /* TABS */
+  .tab-bar {
+    display: flex;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    padding: 0 32px;
+  }
+  .tab {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 14px 22px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    border-top: none; border-left: none; border-right: none;
+    background: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  main { max-width: 1400px; margin: 0 auto; padding: 32px; }
+
+  .section { display: none; animation: fadeIn 0.3s ease; }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* CARDS */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .info-pill {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    text-align: center;
+  }
+  .info-pill .val { font-size: 18px; font-weight: 600; color: var(--accent); }
+  .info-pill .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+
+  /* SIMULATOR */
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .sim-layout { grid-template-columns: 1fr; } }
+
+  canvas {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: crosshair;
+    display: block;
+    background: #050810;
+  }
+
+  .sim-controls { display: flex; flex-direction: column; gap: 16px; }
+
+  .ctrl-group {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .ctrl-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin: 6px 0;
+  }
+  .range-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    min-width: 80px;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .btn.primary:hover { background: #00b8d9; }
+  .btn.danger { border-color: var(--pos); color: var(--pos); }
+  .btn.danger:hover { background: var(--pos); color: #fff; }
+
+  .probe-info {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+  .probe-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .probe-key { color: var(--muted); font-size: 10px; letter-spacing: 1px; }
+  .probe-val { color: var(--green); font-weight: 700; }
+
+  .voltmeter {
+    background: #000;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .voltmeter::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .volt-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
+  .volt-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,136,0.5);
+    letter-spacing: 2px;
+  }
+  .volt-unit { font-size: 14px; color: var(--muted); margin-top: 4px; font-family: 'Space Mono', monospace; }
+
+  /* TOGGLE CHECKS */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .toggle-label { font-size: 13px; color: var(--text); }
+  .toggle {
+    position: relative; width: 40px; height: 20px;
+    cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border);
+    border-radius: 20px;
+    transition: 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 3px; top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    text-align: left;
+  }
+  td {
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  td input[type=text], td input[type=number] {
+    background: transparent;
+    border: none;
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    width: 100%;
+    outline: none;
+  }
+  td input:focus { color: var(--accent); }
+
+  /* THEORY */
+  .theory-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 700px) { .theory-grid { grid-template-columns: 1fr; } }
+  .theory-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 18px;
+  }
+  .theory-card.orange { border-left-color: var(--accent2); }
+  .theory-card.red { border-left-color: var(--pos); }
+  .theory-card.gold { border-left-color: var(--gold); }
+  .theory-card h4 { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  .theory-card.orange h4 { color: var(--accent2); }
+  .theory-card.red h4 { color: var(--pos); }
+  .theory-card.gold h4 { color: var(--gold); }
+  .theory-card p { font-size: 13px; color: #a0aec0; line-height: 1.6; }
+  .formula {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    color: var(--gold);
+    background: rgba(255,214,10,0.08);
+    border: 1px solid rgba(255,214,10,0.2);
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin: 12px 0;
+    text-align: center;
+  }
+
+  /* QUIZ */
+  .question-block { margin-bottom: 28px; }
+  .question-block h4 {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .question-block p { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  .question-block textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .question-block textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* PROCEDURE STEPS */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    counter-increment: step;
+    position: relative;
+  }
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent);
+    min-width: 36px;
+    line-height: 1.2;
+  }
+  .step-content h5 { font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  .step-content p { font-size: 13px; color: #a0aec0; line-height: 1.6; }
+  .step-badge {
+    position: absolute;
+    right: 14px; top: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .badge-setup { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
+  .badge-measure { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .badge-draw { background: rgba(255,107,53,0.1); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+
+  .alert {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    border-left: 3px solid;
+  }
+  .alert-warn { background: rgba(255,214,10,0.07); border-color: var(--gold); color: #e2c46a; }
+  .alert-info { background: rgba(0,212,255,0.07); border-color: var(--accent); color: #a0d8ef; }
+  .alert strong { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-right: 6px; }
+
+  /* RUBRIC */
+  .rubric-row { display: grid; grid-template-columns: 2fr 3fr 80px; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .rubric-row:last-child { border-bottom: none; background: rgba(0,212,255,0.05); font-weight: 600; }
+  .rubric-row .pts { font-family: 'Orbitron', monospace; color: var(--accent); font-size: 16px; text-align: right; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+  .progress-fill { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--green)); }
+
+  /* DIAGRAM */
+  .diagram-canvas-wrap { position: relative; }
+  .diagram-hint {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.3);
+    pointer-events: none;
+  }
+
+  .saved-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    background: rgba(0,255,136,0.1);
+    color: var(--green);
+    border: 1px solid rgba(0,255,136,0.3);
+    margin-left: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .saved-badge.show { opacity: 1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .section-header {
+    margin-bottom: 28px;
+  }
+  .section-header h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .section-header p { color: var(--muted); font-size: 14px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Phys<span>Lab</span> // Electric Fields</div>
+  <div class="instructor-tag">Instructor: <strong>Dr. S Karna</strong></div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('theory')">01 — Theory</button>
+  <button class="tab" onclick="showTab('procedure')">02 — Procedure</button>
+  <button class="tab" onclick="showTab('simulator')">03 — Simulator</button>
+  <button class="tab" onclick="showTab('data')">04 — Data Table</button>
+  <button class="tab" onclick="showTab('analysis')">05 — Analysis</button>
+  <button class="tab" onclick="showTab('rubric')">06 — Rubric</button>
+</div>
+
+<main>
+
+<!-- ═══════════════════════ THEORY ═══════════════════════ -->
+<div class="section active" id="sec-theory">
+  <div class="section-header">
+    <h2>Background Theory</h2>
+    <p>Foundational concepts before you begin the experiment</p>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-pill"><div class="val">60–75</div><div class="lbl">Minutes</div></div>
+    <div class="info-pill"><div class="val">2–3</div><div class="lbl">Students / Group</div></div>
+    <div class="info-pill"><div class="val">6–9 V</div><div class="lbl">Battery Voltage</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Objective</div>
+    <p style="font-size:14px; color:#a0aec0; line-height:1.7;">
+      To map <strong style="color:var(--accent)">equipotential lines</strong> and <strong style="color:var(--accent2)">electric field lines</strong> in the region between a positive charge (+q) and a negative charge (−q) using a conducting paper analog, and to understand the relationship between electric potential and electric field direction.
+    </p>
+  </div>
+
+  <div class="theory-grid">
+    <div class="theory-card">
+      <h4>Equipotential Lines</h4>
+      <p>Lines connecting points of equal electric potential. No work is done moving a charge along an equipotential surface.</p>
+    </div>
+    <div class="theory-card orange">
+      <h4>Electric Field Lines</h4>
+      <p>Lines showing the direction of the electric force on a positive test charge. They always point from high to low potential.</p>
+    </div>
+    <div class="theory-card red">
+      <h4>Perpendicularity Rule</h4>
+      <p>Electric field lines are <em>always</em> perpendicular (90°) to equipotential lines at every point in space.</p>
+    </div>
+    <div class="theory-card gold">
+      <h4>Field Strength</h4>
+      <p>The magnitude of the electric field between two equipotentials:</p>
+      <div class="formula">E = −ΔV / Δd</div>
+      <p style="font-size:12px;">Closer equipotential lines = stronger field.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">How the Conducting Paper Works</div>
+    <p style="font-size:13px; color:#a0aec0; line-height:1.7;">
+      Conducting (resistive) paper is a uniform resistor. When a DC voltage is applied across two electrodes painted on its surface, a steady current flows through the paper. Because the sheet is homogeneous, the potential distribution within it is mathematically identical to a 2D electrostatic field. A voltmeter probe scanned across the paper reads the local electric potential — allowing you to trace equipotential lines without disturbing the field.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dipole Field — What to Expect</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; text-align:center; margin-top:4px;">
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">🔴</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--pos);letter-spacing:1px;">+q Electrode</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;">Field lines originate here. Potential is highest.</div>
+      </div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">⚡</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;">Field Region</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;">Lines are densest between charges — strongest field here.</div>
+      </div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">🔵</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--neg);letter-spacing:1px;">−q Electrode</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;">Field lines terminate here. Potential is lowest (0 V ref).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ PROCEDURE ═══════════════════════ -->
+<div class="section" id="sec-procedure">
+  <div class="section-header">
+    <h2>Lab Procedure</h2>
+    <p>Follow each step carefully. Read all warnings before starting.</p>
+  </div>
+
+  <div class="alert alert-warn">
+    <strong>⚠ Safety:</strong> This experiment uses low DC voltages (6–9 V) which are safe. Never touch live bare connections simultaneously. Keep the conducting paper dry. Do not short-circuit the battery.
+  </div>
+
+  <div class="card">
+    <div class="card-title">Part A — Preparing the Conducting Paper</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h5>Set up the surface</h5>
+          <p>Place the conducting paper (≈30×30 cm) on a flat, non-conductive surface such as a wooden board or thick cardboard.</p>
+        </div>
+        <span class="step-badge badge-setup">Setup</span>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h5>Paint the electrodes</h5>
+          <p>Using silver conductive paint, draw two filled circles (~1 cm diameter) separated by 12–15 cm near the center of the paper. Label the left dot <strong style="color:var(--pos)">+q</strong> and the right dot <strong style="color:var(--neg)">−q</strong>. Allow paint to dry 5–10 minutes.</p>
+        </div>
+        <span class="step-badge badge-setup">Setup</span>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h5>Insert contact pins</h5>
+          <p>Press a metal pin or copper tack into the center of each painted electrode to ensure good electrical contact.</p>
+        </div>
+        <span class="step-badge badge-setup">Setup</span>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h5>Attach graph paper overlay</h5>
+          <p>Tape a graph paper sheet on top of the conducting paper. You will mark probe positions on this overlay.</p>
+        </div>
+        <span class="step-badge badge-setup">Setup</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Part B — Wiring the Circuit</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-content">
+          <h5>Connect the battery</h5>
+          <p>Connect the <strong style="color:var(--pos)">positive (+)</strong> terminal of the battery to the +q electrode. Connect the <strong style="color:var(--neg)">negative (−)</strong> terminal to the −q electrode using alligator clip wires.</p>
+        </div>
+        <span class="step-badge badge-setup">Wiring</span>
+      </div>
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-content">
+          <h5>Set voltmeter reference</h5>
+          <p>Connect the <strong>COM (black)</strong> probe of the voltmeter to the −q electrode. This sets −q as ground (0 V reference).</p>
+        </div>
+        <span class="step-badge badge-setup">Wiring</span>
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-top:12px;">
+      <strong>Tip:</strong> Verify your setup — touch the red probe to +q (should read ≈battery voltage) and to −q (should read ≈0 V).
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Part C — Mapping Equipotential Lines</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">07</div>
+        <div class="step-content">
+          <h5>Choose target voltages</h5>
+          <p>Select 5–6 voltage levels to map. For a 6 V battery: 1.0 V, 2.0 V, 3.0 V, 4.0 V, 5.0 V.</p>
+        </div>
+        <span class="step-badge badge-measure">Measure</span>
+      </div>
+      <div class="step">
+        <div class="step-num">08</div>
+        <div class="step-content">
+          <h5>Scan and mark points</h5>
+          <p>Gently touch the red probe to the paper. Move it until the voltmeter reads your target voltage. Mark the position on the graph paper overlay. Record x-y coordinates and voltage in the Data Table.</p>
+        </div>
+        <span class="step-badge badge-measure">Measure</span>
+      </div>
+      <div class="step">
+        <div class="step-num">09</div>
+        <div class="step-content">
+          <h5>Collect 8–10 points per voltage</h5>
+          <p>Spread points above, between, and below the electrodes. Then connect the dots for each voltage level with a smooth curve. Label each curve with its voltage.</p>
+        </div>
+        <span class="step-badge badge-measure">Measure</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Part D — Drawing Electric Field Lines</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">10</div>
+        <div class="step-content">
+          <h5>Draw perpendicular lines</h5>
+          <p>Using a ruler and compass, draw lines that cross each equipotential at exactly 90°. Start from +q and end at −q.</p>
+        </div>
+        <span class="step-badge badge-draw">Draw</span>
+      </div>
+      <div class="step">
+        <div class="step-num">11</div>
+        <div class="step-content">
+          <h5>Add arrows and analyze spacing</h5>
+          <p>Draw at least 8 field lines. Add arrowheads pointing from +q toward −q. Observe where lines are closely spaced (strong field) vs. widely spaced (weak field).</p>
+        </div>
+        <span class="step-badge badge-draw">Draw</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ SIMULATOR ═══════════════════════ -->
+<div class="section" id="sec-simulator">
+  <div class="section-header">
+    <h2>Interactive Simulator</h2>
+    <p>Hover over the canvas to read voltage. Click anywhere or use Log Point to record a measurement.</p>
+  </div>
+
+  <div class="sim-layout">
+    <div>
+      <div class="diagram-canvas-wrap">
+        <canvas id="fieldCanvas" width="700" height="500"></canvas>
+        <div class="diagram-hint">MOVE CURSOR TO PROBE VOLTAGE • CLICK TO RECORD POINT</div>
+      </div>
+    </div>
+
+    <div class="sim-controls">
+      <div class="voltmeter">
+        <div class="volt-label">VOLTMETER READING</div>
+        <div class="volt-display" id="voltDisplay">---</div>
+        <div class="volt-unit">VOLTS</div>
+      </div>
+
+      <div class="probe-info">
+        <div class="probe-row"><span class="probe-key">X POS</span><span class="probe-val" id="probeX">---</span></div>
+        <div class="probe-row"><span class="probe-key">Y POS</span><span class="probe-val" id="probeY">---</span></div>
+        <div class="probe-row" style="margin-bottom:0"><span class="probe-key">POINTS LOGGED</span><span class="probe-val" id="pointCount">0</span></div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Battery Voltage</div>
+        <input type="range" id="batteryV" min="3" max="12" value="6" step="0.5">
+        <div class="range-val" id="batteryLabel">6.0 V</div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Charge Separation</div>
+        <input type="range" id="separation" min="80" max="260" value="160" step="10">
+        <div class="range-val" id="sepLabel">160 px</div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Display Options</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Equipotential Lines</span>
+          <label class="toggle"><input type="checkbox" id="showEquip" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Field Lines</span>
+          <label class="toggle"><input type="checkbox" id="showField" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Probe Points</span>
+          <label class="toggle"><input type="checkbox" id="showPoints" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row" style="margin-bottom:0">
+          <span class="toggle-label">Charge Labels</span>
+          <label class="toggle"><input type="checkbox" id="showLabels" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" onclick="addToDataTable()">Log Point</button>
+        <button class="btn danger" onclick="clearPoints()">Clear</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="showTab('data')">View Data →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ DATA ═══════════════════════ -->
+<div class="section" id="sec-data">
+  <div class="section-header">
+    <h2>Data Collection Table</h2>
+    <p>Points logged from the simulator appear here automatically. You can also type values manually.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Observation Log <span class="saved-badge" id="savedBadge">SAVED</span></div>
+    <div style="overflow-x:auto;">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>X (cm)</th>
+          <th>Y (cm)</th>
+          <th>Voltage (V)</th>
+          <th>Equipotential #</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="dataBody">
+      </tbody>
+    </table>
+    </div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn primary" onclick="addManualRow()">+ Add Row</button>
+      <button class="btn" onclick="exportCSV()">Export CSV</button>
+      <button class="btn danger" onclick="clearTable()">Clear Table</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Field Strength Calculator</div>
+    <div class="two-col">
+      <div>
+        <div class="ctrl-label" style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Voltage Difference ΔV (V)</div>
+        <input type="number" id="dV" placeholder="e.g. 1.0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;padding:10px 14px;">
+      </div>
+      <div>
+        <div class="ctrl-label" style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Distance Δd (cm)</div>
+        <input type="number" id="dd" placeholder="e.g. 2.5" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;padding:10px 14px;">
+      </div>
+    </div>
+    <button class="btn primary" style="margin-top:12px;" onclick="calcField()">Calculate E-Field</button>
+    <div id="fieldResult" style="margin-top:12px;font-family:'Space Mono',monospace;font-size:14px;color:var(--green);display:none;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ ANALYSIS ═══════════════════════ -->
+<div class="section" id="sec-analysis">
+  <div class="section-header">
+    <h2>Analysis Questions</h2>
+    <p>Answer in complete sentences. Reference your data and field map where applicable. — Dr. S Karna</p>
+  </div>
+
+  <div class="card">
+    <div class="question-block">
+      <h4>Q1 — Equipotential Shape</h4>
+      <p>Describe the general shape of the equipotential lines near the +q electrode and the −q electrode. Are they circular near the charges? How do they change in the region between the two charges? Explain why.</p>
+      <textarea placeholder="Type your answer here..."></textarea>
+    </div>
+    <div class="question-block">
+      <h4>Q2 — Field Strength</h4>
+      <p>Where on your map is the electric field the strongest? How can you tell from the spacing of the equipotential lines?</p>
+      <textarea placeholder="Type your answer here..."></textarea>
+    </div>
+    <div class="question-block">
+      <h4>Q3 — Perpendicularity Rule</h4>
+      <p>At what angle do the electric field lines cross the equipotential lines? Is this consistent across the entire map? What physical law does this illustrate?</p>
+      <textarea placeholder="Type your answer here..."></textarea>
+    </div>
+    <div class="question-block">
+      <h4>Q4 — Force on Test Charge</h4>
+      <p>A positive test charge is placed midway between +q and −q on the horizontal axis. Using your map, predict the direction of the force on this charge. Justify your answer using your field line diagram.</p>
+      <textarea placeholder="Type your answer here..."></textarea>
+    </div>
+    <div class="question-block">
+      <h4>Q5 — Effect of Voltage</h4>
+      <p>If you doubled the battery voltage, how would the equipotential line positions change? Would the electric field line pattern (shape) change? Explain your reasoning.</p>
+      <textarea placeholder="Type your answer here..."></textarea>
+    </div>
+    <div class="question-block">
+      <h4>Q6 — Numerical Calculation</h4>
+      <p>Using your data table, calculate the approximate electric field strength (E = ΔV / Δd) between two adjacent equipotential lines in the region directly between the two charges. Show all work with units.</p>
+      <textarea placeholder="Type your calculation here..." style="min-height:120px;"></textarea>
+    </div>
+    <div class="question-block" style="margin-bottom:0;">
+      <h4>Conclusion</h4>
+      <p>In 3–5 sentences, summarize what you learned about electric field lines and equipotential lines. Discuss at least two potential sources of experimental error and their likely impact on your results.</p>
+      <textarea placeholder="Type your conclusion here..." style="min-height:140px;"></textarea>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top:8px;">
+    <button class="btn primary" onclick="saveAnswers()">Save Answers</button>
+    <button class="btn" onclick="printLab()">Print / Save PDF</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ RUBRIC ═══════════════════════ -->
+<div class="section" id="sec-rubric">
+  <div class="section-header">
+    <h2>Grading Rubric</h2>
+    <p>Total: 100 points — Instructor: Dr. S Karna</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Point Breakdown</div>
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:2fr 3fr 80px;gap:12px;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--border);">
+        <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">Component</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">Criteria</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;text-align:right;">Pts</div>
+      </div>
+      <div id="rubricRows"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">Self-Assessment</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Rate your own lab work before submission:</p>
+    <div id="selfAssess"></div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ─────────────────── TAB LOGIC ───────────────────
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'simulator') setTimeout(drawField, 50);
+}
+
+// ─────────────────── CANVAS SIMULATOR ───────────────────
+const canvas = document.getElementById('fieldCanvas');
+const ctx = canvas.getContext('2d');
+
+let probePoints = [];
+let mouseX = -1, mouseY = -1;
+let currentVoltage = null;
+let animFrame;
+
+function getBatteryV() { return parseFloat(document.getElementById('batteryV').value); }
+function getSep() { return parseFloat(document.getElementById('separation').value); }
+
+function getChargePositions() {
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const half = getSep() / 2;
+  return { px: cx - half, py: cy, nx: cx + half, ny: cy };
+}
+
+function voltage(x, y) {
+  const V = getBatteryV();
+  const { px, py, nx, ny } = getChargePositions();
+  const rp = Math.sqrt((x-px)**2 + (y-py)**2);
+  const rn = Math.sqrt((x-nx)**2 + (y-ny)**2);
+  if (rp < 8 || rn < 8) return null;
+  // dipole potential: V+ contributes positive, V- negative, normalized
+  const minR = 12, maxR = 350;
+  const vp = 1 / Math.max(rp, minR);
+  const vn = -1 / Math.max(rn, minR);
+  const vref = 1 / Math.max(Math.sqrt((px-nx)**2 + (py-ny)**2)/2, minR);
+  // Scale to battery range
+  const raw = (vp + vn) / vref;
+  return V / 2 + (raw * V / 2);
+}
+
+function drawField() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(0,212,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const V = getBatteryV();
+  const showEquip = document.getElementById('showEquip').checked;
+  const showField = document.getElementById('showField').checked;
+  const showPts = document.getElementById('showPoints').checked;
+  const showLbl = document.getElementById('showLabels').checked;
+
+  // Draw equipotential lines
+  if (showEquip) {
+    const levels = 8;
+    for (let i = 1; i < levels; i++) {
+      const target = V * i / levels;
+      const t = i / levels;
+      const r = Math.round(t * 77 + (1-t)*77);
+      const g = Math.round(t * 171 + (1-t)*212);
+      const b = Math.round(t * 247 + (1-t)*255);
+      ctx.strokeStyle = `rgba(${r},${g},${b},0.55)`;
+      ctx.lineWidth = 1;
+      marchingSquaresContour(target, ctx);
+    }
+  }
+
+  // Draw electric field lines
+  if (showField) {
+    drawFieldLines();
+  }
+
+  // Draw charges
+  const { px, py, nx, ny } = getChargePositions();
+  // Positive charge glow
+  const gradP = ctx.createRadialGradient(px, py, 2, px, py, 28);
+  gradP.addColorStop(0, 'rgba(255,77,109,0.8)');
+  gradP.addColorStop(1, 'rgba(255,77,109,0)');
+  ctx.fillStyle = gradP;
+  ctx.beginPath(); ctx.arc(px, py, 28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#ff4d6d';
+  ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill();
+  // Negative charge glow
+  const gradN = ctx.createRadialGradient(nx, ny, 2, nx, ny, 28);
+  gradN.addColorStop(0, 'rgba(77,171,247,0.8)');
+  gradN.addColorStop(1, 'rgba(77,171,247,0)');
+  ctx.fillStyle = gradN;
+  ctx.beginPath(); ctx.arc(nx, ny, 28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#4dabf7';
+  ctx.beginPath(); ctx.arc(nx, ny, 12, 0, Math.PI*2); ctx.fill();
+
+  if (showLbl) {
+    ctx.font = 'bold 14px "Space Mono"';
+    ctx.fillStyle = '#ff4d6d'; ctx.textAlign = 'center';
+    ctx.fillText('+q', px, py + 30);
+    ctx.fillStyle = '#4dabf7';
+    ctx.fillText('−q', nx, ny + 30);
+  }
+
+  // Probe points
+  if (showPts) {
+    probePoints.forEach(pt => {
+      ctx.fillStyle = '#00ff88';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+  }
+
+  // Live probe cursor
+  if (mouseX > 0 && currentVoltage !== null) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.arc(mouseX, mouseY, 10, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function marchingSquaresContour(target, ctx) {
+  const W = canvas.width, H = canvas.height;
+  const step = 6;
+  ctx.beginPath();
+  for (let x = 0; x < W - step; x += step) {
+    for (let y = 0; y < H - step; y += step) {
+      const v00 = voltage(x, y);
+      const v10 = voltage(x+step, y);
+      const v01 = voltage(x, y+step);
+      const v11 = voltage(x+step, y+step);
+      if (!v00 || !v10 || !v01 || !v11) continue;
+      const signs = [v00>target, v10>target, v01>target, v11>target];
+      const idx = (signs[0]?8:0)+(signs[1]?4:0)+(signs[2]?2:0)+(signs[3]?1:0);
+      if (idx === 0 || idx === 15) continue;
+      // Simple linear interpolation for contour crossings
+      function lerp(a, b, va, vb) {
+        if (Math.abs(vb-va) < 0.001) return a;
+        return a + (b-a) * (target-va)/(vb-va);
+      }
+      let pts = [];
+      if (idx & 8 && !(idx & 4)) pts.push([lerp(x,x+step,v00,v10), y]);
+      if (idx & 4 && !(idx & 8)) pts.push([lerp(x,x+step,v00,v10), y]);
+      if (idx & 8 && !(idx & 2)) pts.push([x, lerp(y,y+step,v00,v01)]);
+      if (idx & 2 && !(idx & 8)) pts.push([x, lerp(y,y+step,v00,v01)]);
+      if (idx & 4 && !(idx & 1)) pts.push([x+step, lerp(y,y+step,v10,v11)]);
+      if (idx & 1 && !(idx & 4)) pts.push([x+step, lerp(y,y+step,v10,v11)]);
+      if (idx & 2 && !(idx & 1)) pts.push([lerp(x,x+step,v01,v11), y+step]);
+      if (idx & 1 && !(idx & 2)) pts.push([lerp(x,x+step,v01,v11), y+step]);
+      if (pts.length >= 2) {
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        ctx.lineTo(pts[1][0], pts[1][1]);
+      }
+    }
+  }
+  ctx.stroke();
+}
+
+function drawFieldLines() {
+  const { px, py, nx, ny } = getChargePositions();
+  const numLines = 14;
+  ctx.strokeStyle = 'rgba(255,214,10,0.6)';
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i < numLines; i++) {
+    const angle = (2 * Math.PI * i) / numLines;
+    let x = px + Math.cos(angle) * 18;
+    let y = py + Math.sin(angle) * 18;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+
+    for (let step = 0; step < 500; step++) {
+      const h = 4;
+      const dV_dx = ((voltage(x+1,y)||0) - (voltage(x-1,y)||0)) / 2;
+      const dV_dy = ((voltage(x,y+1)||0) - (voltage(x,y-1)||0)) / 2;
+      const mag = Math.sqrt(dV_dx**2 + dV_dy**2);
+      if (mag < 0.001) break;
+      x -= (dV_dx / mag) * h;
+      y -= (dV_dy / mag) * h;
+      if (x<0||x>canvas.width||y<0||y>canvas.height) break;
+      const dn = Math.sqrt((x-nx)**2 + (y-ny)**2);
+      if (dn < 14) break;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Arrowhead at ~60% along line
+    let ax = px + Math.cos(angle) * 18;
+    let ay = py + Math.sin(angle) * 18;
+    for (let step = 0; step < 200; step++) {
+      const dV_dx = ((voltage(ax+1,ay)||0) - (voltage(ax-1,ay)||0)) / 2;
+      const dV_dy = ((voltage(ax,ay+1)||0) - (voltage(ax,ay-1)||0)) / 2;
+      const mag = Math.sqrt(dV_dx**2 + dV_dy**2);
+      if (mag < 0.001) break;
+      ax -= (dV_dx / mag) * 4;
+      ay -= (dV_dy / mag) * 4;
+      if (ax<0||ax>canvas.width||ay<0||ay>canvas.height) break;
+    }
+    const dV_dx = ((voltage(ax+1,ay)||0) - (voltage(ax-1,ay)||0)) / 2;
+    const dV_dy = ((voltage(ax,ay+1)||0) - (voltage(ax,ay-1)||0)) / 2;
+    const mag = Math.sqrt(dV_dx**2 + dV_dy**2);
+    if (mag > 0.001) {
+      const aw = -dV_dx/mag, ah = -dV_dy/mag;
+      drawArrow(ctx, ax, ay, aw, ah, 8);
+    }
+  }
+}
+
+function drawArrow(ctx, x, y, dx, dy, size) {
+  ctx.fillStyle = 'rgba(255,214,10,0.8)';
+  ctx.beginPath();
+  ctx.moveTo(x + dx*size, y + dy*size);
+  ctx.lineTo(x + (-dy-dx)*size*0.5, y + (dx-dy)*size*0.5);
+  ctx.lineTo(x + (dy-dx)*size*0.5, y + (-dx-dy)*size*0.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  mouseX = (e.clientX - rect.left) * scaleX;
+  mouseY = (e.clientY - rect.top) * scaleY;
+  currentVoltage = voltage(mouseX, mouseY);
+  const V = getBatteryV();
+
+  if (currentVoltage !== null) {
+    document.getElementById('voltDisplay').textContent = currentVoltage.toFixed(2);
+    document.getElementById('probeX').textContent = ((mouseX / canvas.width) * 30).toFixed(1) + ' cm';
+    document.getElementById('probeY').textContent = ((mouseY / canvas.height) * 20).toFixed(1) + ' cm';
+  } else {
+    document.getElementById('voltDisplay').textContent = '---';
+  }
+  drawField();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  mouseX = -1; currentVoltage = null;
+  document.getElementById('voltDisplay').textContent = '---';
+  document.getElementById('probeX').textContent = '---';
+  document.getElementById('probeY').textContent = '---';
+  drawField();
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+  const v = voltage(x, y);
+  if (v === null) return;
+  probePoints.push({ x, y, v });
+  document.getElementById('pointCount').textContent = probePoints.length;
+  addRowFromPoint(x, y, v);
+  drawField();
+});
+
+document.getElementById('batteryV').addEventListener('input', function() {
+  document.getElementById('batteryLabel').textContent = parseFloat(this.value).toFixed(1) + ' V';
+  drawField();
+});
+
+document.getElementById('separation').addEventListener('input', function() {
+  document.getElementById('sepLabel').textContent = this.value + ' px';
+  drawField();
+});
+
+['showEquip','showField','showPoints','showLabels'].forEach(id => {
+  document.getElementById(id).addEventListener('change', drawField);
+});
+
+// ─────────────────── DATA TABLE ───────────────────
+let rowCount = 0;
+
+function addRowFromPoint(x, y, v) {
+  const V = getBatteryV();
+  const xCm = ((x / canvas.width) * 30).toFixed(1);
+  const yCm = ((y / canvas.height) * 20).toFixed(1);
+  const vStr = v.toFixed(2);
+  const equip = Math.round((v / V) * 5);
+  insertRow(xCm, yCm, vStr, equip, '');
+}
+
+function insertRow(x, y, v, eq, note) {
+  rowCount++;
+  const tbody = document.getElementById('dataBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--muted);text-align:center">${rowCount}</td>
+    <td><input type="text" value="${x}"></td>
+    <td><input type="text" value="${y}"></td>
+    <td><input type="text" value="${v}" style="color:var(--green)"></td>
+    <td><input type="text" value="${eq}" style="color:var(--gold)"></td>
+    <td><input type="text" value="${note}" placeholder="—"></td>
+  `;
+  tbody.appendChild(tr);
+  flashSaved();
+}
+
+function addManualRow() { insertRow('', '', '', '', ''); }
+
+function addToDataTable() {
+  if (currentVoltage === null || mouseX < 0) {
+    addManualRow();
+    return;
+  }
+  probePoints.push({ x: mouseX, y: mouseY, v: currentVoltage });
+  document.getElementById('pointCount').textContent = probePoints.length;
+  addRowFromPoint(mouseX, mouseY, currentVoltage);
+  drawField();
+}
+
+function clearPoints() {
+  probePoints = [];
+  document.getElementById('pointCount').textContent = 0;
+  drawField();
+}
+
+function clearTable() {
+  if (!confirm('Clear all data rows?')) return;
+  document.getElementById('dataBody').innerHTML = '';
+  rowCount = 0;
+  probePoints = [];
+  document.getElementById('pointCount').textContent = 0;
+  drawField();
+}
+
+function flashSaved() {
+  const badge = document.getElementById('savedBadge');
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 1500);
+}
+
+function exportCSV() {
+  const rows = document.querySelectorAll('#dataBody tr');
+  let csv = 'Point,X (cm),Y (cm),Voltage (V),Equipotential #,Notes\n';
+  rows.forEach((tr, i) => {
+    const inputs = tr.querySelectorAll('input');
+    csv += `${i+1},${Array.from(inputs).map(inp => inp.value).join(',')}\n`;
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'electric_field_data.csv';
+  a.click();
+}
+
+function calcField() {
+  const dV = parseFloat(document.getElementById('dV').value);
+  const dd = parseFloat(document.getElementById('dd').value);
+  const res = document.getElementById('fieldResult');
+  if (isNaN(dV) || isNaN(dd) || dd === 0) { res.style.display='none'; return; }
+  const E = Math.abs(dV / dd);
+  res.style.display = 'block';
+  res.innerHTML = `E = |ΔV / Δd| = |${dV.toFixed(2)} V / ${dd.toFixed(2)} cm| = <strong style="color:var(--green)">${E.toFixed(3)} V/cm</strong> = <strong>${(E*100).toFixed(1)} V/m</strong>`;
+}
+
+// ─────────────────── RUBRIC ───────────────────
+const rubricItems = [
+  { name: 'Data Table', desc: 'Complete, accurate voltage/coordinate readings for all points', pts: 20 },
+  { name: 'Equipotential Map', desc: '5+ smooth, correctly labeled equipotential lines', pts: 20 },
+  { name: 'Field Line Map', desc: '8+ field lines with correct direction, perpendicular to equipotentials', pts: 20 },
+  { name: 'Analysis Questions', desc: 'Thoughtful, complete answers referencing experimental data', pts: 25 },
+  { name: 'Conclusion', desc: 'Summarizes findings, addresses sources of error', pts: 10 },
+  { name: 'Lab Neatness', desc: 'Organized, clearly labeled diagrams and tables', pts: 5 },
+];
+
+function buildRubric() {
+  const container = document.getElementById('rubricRows');
+  rubricItems.forEach(item => {
+    const pct = (item.pts / 100) * 100;
+    const div = document.createElement('div');
+    div.className = 'rubric-row';
+    div.innerHTML = `
+      <div><strong style="color:var(--text)">${item.name}</strong><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+      <div style="font-size:12px;color:var(--muted)">${item.desc}</div>
+      <div class="pts">${item.pts}</div>
+    `;
+    container.appendChild(div);
+  });
+  const total = document.createElement('div');
+  total.className = 'rubric-row';
+  total.innerHTML = `<div style="font-family:'Orbitron',monospace;color:var(--accent)">TOTAL</div><div></div><div class="pts" style="color:var(--gold);font-size:22px">100</div>`;
+  container.appendChild(total);
+
+  // Self-assess
+  const sa = document.getElementById('selfAssess');
+  rubricItems.forEach(item => {
+    const row = document.createElement('div');
+    row.style = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML = `
+      <span style="font-size:13px">${item.name} <span style="color:var(--muted);font-size:11px">/ ${item.pts} pts</span></span>
+      <input type="number" min="0" max="${item.pts}" placeholder="Score" style="width:70px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--accent);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;text-align:center">
+    `;
+    sa.appendChild(row);
+  });
+  const totRow = document.createElement('div');
+  totRow.style = 'display:flex;align-items:center;justify-content:space-between;padding:14px 0;';
+  totRow.innerHTML = `<span style="font-family:'Orbitron',monospace;font-size:13px;color:var(--accent)">SELF-TOTAL</span><span id="selfTotal" style="font-family:'Orbitron',monospace;font-size:22px;color:var(--gold)">0 / 100</span>`;
+  sa.appendChild(totRow);
+
+  sa.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      let total = 0;
+      sa.querySelectorAll('input').forEach(i => total += (parseInt(i.value)||0));
+      document.getElementById('selfTotal').textContent = total + ' / 100';
+    });
+  });
+}
+
+function saveAnswers() {
+  const badge = document.getElementById('savedBadge');
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 2000);
+  alert('Answers saved in this session. Use Print / Save PDF to keep a permanent copy.');
+}
+
+function printLab() { window.print(); }
+
+// ─────────────────── INIT ───────────────────
+buildRubric();
+setTimeout(drawField, 100);
+
+// Add 6 empty rows to start
+for (let i = 0; i < 6; i++) insertRow('', '', '', '', '');
+rowCount = 0;
+document.getElementById('dataBody').querySelectorAll('tr td:first-child').forEach((td,i) => td.textContent = i+1);
+</script>
+</body>
+</html>

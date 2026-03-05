@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>e/m Ratio Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2333;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  /* HEADER */
+  .header {
+    max-width: 900px;
+    margin: 0 auto 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .course-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(88,166,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+  }
+  .instructor-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(63,185,80,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(63,185,80,0.25);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 12px;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  /* FORMULA BAR */
+  .formula-bar {
+    max-width: 900px;
+    margin: 0 auto 28px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .formula-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .formula-eq {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .formula-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  /* STUDENT INFO */
+  .info-grid {
+    max-width: 900px;
+    margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .info-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .info-field input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .info-field input:focus { border-color: var(--accent); }
+
+  /* TABS */
+  .tabs {
+    max-width: 900px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 18px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+    letter-spacing: 0.04em;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* SECTION */
+  .section {
+    max-width: 900px;
+    margin: 0 auto 24px;
+    display: none;
+  }
+  .section.active { display: block; }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .control-group { display: flex; align-items: center; gap: 10px; }
+  .control-group label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .control-group input[type=number] {
+    width: 90px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 10px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .control-group input[type=number]:focus { border-color: var(--accent); }
+  .control-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    background: rgba(63,185,80,0.08);
+    border: 1px solid rgba(63,185,80,0.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  /* DATA TABLE */
+  .data-table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead tr {
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+  }
+  thead th {
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(88,166,255,0.04); }
+  tbody td {
+    padding: 8px 10px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .td-trial { color: var(--muted); }
+  .td-fixed {
+    color: var(--accent);
+    background: rgba(88,166,255,0.05);
+  }
+  td input[type=number] {
+    width: 80px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: center;
+    outline: none;
+    transition: all 0.15s;
+  }
+  td input[type=number]:focus {
+    background: var(--panel2);
+    border-color: var(--accent);
+  }
+  td input[type=number]:not(:placeholder-shown) { color: var(--accent2); }
+  .td-calc {
+    color: var(--accent3);
+    font-weight: 700;
+  }
+  .td-calc.good { color: var(--accent2); }
+
+  /* ADD ROW BTN */
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .btn-primary {
+    background: rgba(88,166,255,0.1);
+    border-color: rgba(88,166,255,0.3);
+    color: var(--accent);
+  }
+  .btn-primary:hover { background: rgba(88,166,255,0.2); }
+  .btn-danger {
+    background: rgba(247,129,102,0.1);
+    border-color: rgba(247,129,102,0.3);
+    color: var(--accent3);
+  }
+  .btn-danger:hover { background: rgba(247,129,102,0.2); }
+  .btn-success {
+    background: rgba(63,185,80,0.1);
+    border-color: rgba(63,185,80,0.3);
+    color: var(--accent2);
+  }
+  .btn-success:hover { background: rgba(63,185,80,0.2); }
+
+  /* RESULTS PANEL */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .result-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .result-card-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .result-card-value {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .result-card-unit {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+  .result-card.highlight { border-color: rgba(63,185,80,0.4); }
+  .result-card.highlight .result-card-value { color: var(--accent2); }
+
+  /* NOTES */
+  .notes-area {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-top: 16px;
+  }
+  .notes-area label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .notes-area textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    line-height: 1.6;
+  }
+
+  /* EXPORT */
+  .export-bar {
+    max-width: 900px;
+    margin: 24px auto 0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--panel2);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* THOMSON TAB ACTIVE */
+  .tab-btn#tabThomson.active { color: #c778dd !important; border-bottom-color: #c778dd !important; }
+
+  @media print {
+    body { background: white; color: black; }
+    .btn, .export-bar, .tabs { display: none; }
+    .section { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <span class="course-badge">e/m Ratio Lab</span>
+    <span class="instructor-badge">Instructor: Dr. S Karna</span>
+  </div>
+  <h1>e/m Ratio — Data Collection Sheet</h1>
+  <p class="subtitle">Specific Charge of the Electron · Helmholtz Coil Method</p>
+</div>
+
+<!-- FORMULA -->
+<div class="formula-bar">
+  <span class="formula-label">Working Formula</span>
+  <span class="formula-eq">e/m = 2V / (B²r²)</span>
+  <span style="font-family:var(--mono);font-size:12px;color:var(--muted)">|</span>
+  <span class="formula-eq" style="color:var(--accent2)">B = 7.80×10⁻⁴ · I</span>
+  <span class="formula-note">Accepted: 1.759×10¹¹ C/kg</span>
+</div>
+
+<!-- STUDENT INFO -->
+<div class="info-grid">
+  <div class="info-field"><label>Student Name</label><input type="text" id="sname" placeholder="Full name"></div>
+  <div class="info-field"><label>Student ID</label><input type="text" id="sid" placeholder="ID number"></div>
+  <div class="info-field"><label>Lab Partner</label><input type="text" id="spartner" placeholder="Partner name"></div>
+  <div class="info-field"><label>Date</label><input type="date" id="sdate"></div>
+  <div class="info-field"><label>Section</label><input type="text" id="ssection" placeholder="e.g. 01"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('methodA')">Method A — Vary Voltage</button>
+  <button class="tab-btn" onclick="switchTab('methodB')">Method B — Vary Current</button>
+  <button class="tab-btn" onclick="switchTab('summary')">Results Summary</button>
+  <button class="tab-btn" id="tabThomson" onclick="switchTab('thomson')" style="color:#c778dd">⚛ J.J. Thomson Sim</button>
+</div>
+
+<!-- ═══ METHOD A ═══ -->
+<div class="section active" id="methodA">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Method A: Fixed Current, Varying Accelerating Voltage</div>
+      <div class="section-desc">Set coil current below, then enter beam radius measurements for each voltage trial.</div>
+    </div>
+    <button class="btn btn-primary" onclick="addRowA()">+ Add Row</button>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Fixed Current I (A):</label>
+      <input type="number" id="fixedI_A" step="0.01" min="0.5" max="2.5" value="1.50" oninput="updateBfield_A()">
+    </div>
+    <div class="control-val" id="bfield_A_display">B = 1.170 × 10⁻³ T</div>
+  </div>
+
+  <div class="data-table-wrap">
+    <table id="tableA">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>V (Volts)</th>
+          <th>r Left (m)</th>
+          <th>r Right (m)</th>
+          <th>Mean r (m)</th>
+          <th>e/m (C/kg)</th>
+          <th>% Error</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbodyA"></tbody>
+    </table>
+  </div>
+
+  <div class="results-grid" id="resultsA"></div>
+
+  <div class="notes-area">
+    <label>Observations / Notes (Method A)</label>
+    <textarea id="notesA" placeholder="Record any unusual observations, beam quality notes, environmental conditions..."></textarea>
+  </div>
+</div>
+
+<!-- ═══ METHOD B ═══ -->
+<div class="section" id="methodB">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Method B: Fixed Voltage, Varying Coil Current</div>
+      <div class="section-desc">Set accelerating voltage below, then enter beam radius measurements for each current trial.</div>
+    </div>
+    <button class="btn btn-primary" onclick="addRowB()">+ Add Row</button>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Fixed Voltage V (V):</label>
+      <input type="number" id="fixedV_B" step="5" min="100" max="400" value="200" oninput="recalcB()">
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <table id="tableB">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>I (A)</th>
+          <th>B (T)</th>
+          <th>r Left (m)</th>
+          <th>r Right (m)</th>
+          <th>Mean r (m)</th>
+          <th>e/m (C/kg)</th>
+          <th>% Error</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbodyB"></tbody>
+    </table>
+  </div>
+
+  <div class="results-grid" id="resultsB"></div>
+
+  <div class="notes-area">
+    <label>Observations / Notes (Method B)</label>
+    <textarea id="notesB" placeholder="Record any unusual observations, beam quality notes, environmental conditions..."></textarea>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY ═══ -->
+<div class="section" id="summary">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Results Summary</div>
+      <div class="section-desc">Auto-calculated from your entered data. Fill both methods for a complete comparison.</div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>N Trials</th>
+          <th>Mean e/m (C/kg)</th>
+          <th>Std Dev</th>
+          <th>% Error</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
+
+  <div class="results-grid" id="summaryCards"></div>
+
+  <div class="notes-area" style="margin-top:20px">
+    <label>Conclusion Notes</label>
+    <textarea id="notesConc" placeholder="Write your conclusion: compare experimental vs accepted value, discuss sources of error, comment on precision..."></textarea>
+  </div>
+</div>
+
+<!-- ═══ JJ THOMSON SIMULATION ═══ -->
+<div class="section" id="thomson">
+  <div class="section-header">
+    <div>
+      <div class="section-title" style="color:#c778dd">J.J. Thomson Cathode Ray Tube — Interactive Simulation</div>
+      <div class="section-desc">Adjust electric field E and magnetic field B to observe deflection of the electron beam. Balance the fields to find e/m.</div>
+    </div>
+  </div>
+
+  <!-- PHYSICS EXPLAINER -->
+  <div style="background:var(--panel);border:1px solid #3d2a4a;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:#c778dd;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Electric Force</div>
+      <div style="font-family:var(--mono);font-size:14px;color:#e6edf3">F<sub>E</sub> = eE</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Deflects beam toward + plate</div>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Magnetic Force</div>
+      <div style="font-family:var(--mono);font-size:14px;color:#e6edf3">F<sub>B</sub> = evB</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Deflects beam (opposite to E)</div>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:#3fb950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Balance Condition</div>
+      <div style="font-family:var(--mono);font-size:14px;color:#e6edf3">eE = evB → v = E/B</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Straight beam when balanced</div>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:#f78166;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">e/m from deflection</div>
+      <div style="font-family:var(--mono);font-size:14px;color:#e6edf3">e/m = 2yV / (B²L²d)</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">y = deflection on screen</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS ROW -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;align-items:center;">
+
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:#c778dd;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">⚡ Electric Field E (V/m)</div>
+        <input type="range" id="sliderE" min="0" max="50000" step="500" value="20000" oninput="updateThomson()" style="width:100%;accent-color:#c778dd">
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">0</span>
+          <span id="valE" style="font-family:var(--mono);font-size:12px;color:#c778dd;font-weight:700">20000 V/m</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">50k</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🧲 Magnetic Field B (mT)</div>
+        <input type="range" id="sliderB" min="0" max="20" step="0.001" value="0" oninput="updateThomson()" style="width:100%;accent-color:#58a6ff">
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">0</span>
+          <span id="valB" style="font-family:var(--mono);font-size:12px;color:#58a6ff;font-weight:700">0.0 mT</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">20</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:#f78166;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔋 Anode Voltage Va (V)</div>
+        <input type="range" id="sliderVa" min="100" max="500" step="10" value="200" oninput="updateThomson()" style="width:100%;accent-color:#f78166">
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">100V</span>
+          <span id="valVa" style="font-family:var(--mono);font-size:12px;color:#f78166;font-weight:700">200 V</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">500V</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn" style="background:rgba(199,120,221,0.1);border-color:rgba(199,120,221,0.3);color:#c778dd" onclick="presetEonly()">E only (no B)</button>
+        <button class="btn" style="background:rgba(88,166,255,0.1);border-color:rgba(88,166,255,0.3);color:var(--accent)" onclick="presetBonly()">B only (circle)</button>
+        <button class="btn btn-success" onclick="presetBalance()">⚖ Auto-Balance E & B</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative">
+    <canvas id="thomsonCanvas" style="display:block;width:100%;"></canvas>
+    <div id="balanceBadge" style="display:none;position:absolute;top:12px;right:12px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.5);color:#3fb950;font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;">⚖ BALANCED — Straight Beam</div>
+  </div>
+
+  <!-- LIVE READOUTS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px" id="thomsonReadouts"></div>
+
+  <!-- EXPLANATION BOX -->
+  <div id="thomsonExplain" style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:14px;font-size:13px;line-height:1.7;color:var(--muted)"></div>
+</div>
+
+<!-- EXPORT -->
+<div class="export-bar">
+  <button class="btn btn-danger" onclick="clearAll()">Clear All Data</button>
+  <button class="btn btn-success" onclick="exportCSV()">Export CSV</button>
+  <button class="btn btn-primary" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────
+const K_HELM = 7.80e-4;       // T/A  (Helmholtz coil constant)
+const EM_ACCEPTED = 1.75882e11; // C/kg
+
+// ─── STATE ────────────────────────────────────────────────────
+let rowsA = [];
+let rowsB = [];
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('sdate').valueAsDate = new Date();
+  // Seed default rows
+  const defaultV = [150,175,200,225,250,275,300];
+  defaultV.forEach(v => rowsA.push({ v, rL: '', rR: '' }));
+  const defaultI = [1.00,1.10,1.20,1.30,1.40,1.50,1.60,1.70];
+  defaultI.forEach(i => rowsB.push({ i, rL: '', rR: '' }));
+  renderA(); renderB(); updateBfield_A(); renderSummary();
+};
+
+// ─── TAB SWITCHING ────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'summary') renderSummary();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function calcEM(V, B, r) {
+  if (!V || !B || !r || r === 0) return null;
+  return (2 * V) / (B * B * r * r);
+}
+function pctErr(em) {
+  if (!em) return null;
+  return Math.abs(em - EM_ACCEPTED) / EM_ACCEPTED * 100;
+}
+function fmtEM(val) {
+  if (!val) return '—';
+  return (val / 1e11).toFixed(3) + '×10¹¹';
+}
+function fmtPct(p) {
+  if (p === null || p === undefined) return '—';
+  return p.toFixed(2) + '%';
+}
+function mean(arr) {
+  const v = arr.filter(x => x !== null && !isNaN(x));
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+}
+function stddev(arr) {
+  const v = arr.filter(x => x !== null && !isNaN(x));
+  if (v.length < 2) return null;
+  const m = mean(v);
+  return Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/(v.length-1));
+}
+
+// ─── METHOD A ────────────────────────────────────────────────
+function getBfieldA() {
+  const I = parseFloat(document.getElementById('fixedI_A').value);
+  return isNaN(I) ? null : K_HELM * I;
+}
+
+function updateBfield_A() {
+  const B = getBfieldA();
+  const el = document.getElementById('bfield_A_display');
+  if (B) {
+    el.textContent = 'B = ' + (B*1000).toFixed(4) + ' × 10⁻³ T';
+  }
+  recalcA();
+}
+
+function addRowA() {
+  const lastV = rowsA.length ? rowsA[rowsA.length-1].v : 100;
+  rowsA.push({ v: lastV + 25, rL: '', rR: '' });
+  renderA();
+}
+
+function removeRowA(i) {
+  rowsA.splice(i, 1);
+  renderA(); renderSummary();
+}
+
+function renderA() {
+  const B = getBfieldA();
+  const tbody = document.getElementById('tbodyA');
+  tbody.innerHTML = '';
+  const emVals = [];
+
+  rowsA.forEach((row, i) => {
+    const rL = parseFloat(row.rL);
+    const rR = parseFloat(row.rR);
+    let rMean = null;
+    if (!isNaN(rL) && !isNaN(rR)) rMean = (rL + rR) / 2;
+    else if (!isNaN(rL)) rMean = rL;
+    else if (!isNaN(rR)) rMean = rR;
+
+    const em = (B && rMean) ? calcEM(row.v, B, rMean) : null;
+    const pct = pctErr(em);
+    if (em) emVals.push(em);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-trial">${i+1}</td>
+      <td class="td-fixed">${row.v}</td>
+      <td><input type="number" step="0.001" min="0" max="0.2" placeholder="0.000"
+           value="${row.rL}" oninput="rowsA[${i}].rL=this.value;recalcA()"></td>
+      <td><input type="number" step="0.001" min="0" max="0.2" placeholder="0.000"
+           value="${row.rR}" oninput="rowsA[${i}].rR=this.value;recalcA()"></td>
+      <td class="td-fixed">${rMean !== null ? rMean.toFixed(4) : '—'}</td>
+      <td class="td-calc ${em && pct < 10 ? 'good' : ''}">${fmtEM(em)}</td>
+      <td class="${pct !== null && pct < 10 ? 'td-calc good' : 'td-calc'}">${fmtPct(pct)}</td>
+      <td><button class="btn btn-danger" style="padding:3px 8px;font-size:10px" onclick="removeRowA(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Results cards
+  const m = mean(emVals);
+  const sd = stddev(emVals);
+  const mp = pctErr(m);
+  const el = document.getElementById('resultsA');
+  el.innerHTML = `
+    <div class="result-card">
+      <div class="result-card-label">Trials with data</div>
+      <div class="result-card-value">${emVals.length} / ${rowsA.length}</div>
+    </div>
+    <div class="result-card ${m && mp < 15 ? 'highlight' : ''}">
+      <div class="result-card-label">Mean e/m</div>
+      <div class="result-card-value">${fmtEM(m)}</div>
+      <div class="result-card-unit">C/kg</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-label">Std Deviation</div>
+      <div class="result-card-value">${sd ? fmtEM(sd) : '—'}</div>
+      <div class="result-card-unit">C/kg</div>
+    </div>
+    <div class="result-card ${mp !== null && mp < 10 ? 'highlight' : ''}">
+      <div class="result-card-label">% Error</div>
+      <div class="result-card-value">${fmtPct(mp)}</div>
+    </div>
+  `;
+}
+
+function recalcA() { renderA(); renderSummary(); }
+
+// ─── METHOD B ────────────────────────────────────────────────
+function addRowB() {
+  const lastI = rowsB.length ? rowsB[rowsB.length-1].i : 0.9;
+  rowsB.push({ i: parseFloat((lastI + 0.10).toFixed(2)), rL: '', rR: '' });
+  renderB();
+}
+
+function removeRowB(i) {
+  rowsB.splice(i, 1);
+  renderB(); renderSummary();
+}
+
+function renderB() {
+  const V = parseFloat(document.getElementById('fixedV_B').value);
+  const tbody = document.getElementById('tbodyB');
+  tbody.innerHTML = '';
+  const emVals = [];
+
+  rowsB.forEach((row, i) => {
+    const B = K_HELM * row.i;
+    const rL = parseFloat(row.rL);
+    const rR = parseFloat(row.rR);
+    let rMean = null;
+    if (!isNaN(rL) && !isNaN(rR)) rMean = (rL + rR) / 2;
+    else if (!isNaN(rL)) rMean = rL;
+    else if (!isNaN(rR)) rMean = rR;
+
+    const em = (V && rMean) ? calcEM(V, B, rMean) : null;
+    const pct = pctErr(em);
+    if (em) emVals.push(em);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-trial">${i+1}</td>
+      <td><input type="number" step="0.01" min="0.5" max="2.5" placeholder="1.00"
+           value="${row.i}" oninput="rowsB[${i}].i=parseFloat(this.value)||0;recalcB()"></td>
+      <td class="td-fixed">${(B*1000).toFixed(3)}×10⁻³</td>
+      <td><input type="number" step="0.001" min="0" max="0.2" placeholder="0.000"
+           value="${row.rL}" oninput="rowsB[${i}].rL=this.value;recalcB()"></td>
+      <td><input type="number" step="0.001" min="0" max="0.2" placeholder="0.000"
+           value="${row.rR}" oninput="rowsB[${i}].rR=this.value;recalcB()"></td>
+      <td class="td-fixed">${rMean !== null ? rMean.toFixed(4) : '—'}</td>
+      <td class="td-calc ${em && pct < 10 ? 'good' : ''}">${fmtEM(em)}</td>
+      <td class="${pct !== null && pct < 10 ? 'td-calc good' : 'td-calc'}">${fmtPct(pct)}</td>
+      <td><button class="btn btn-danger" style="padding:3px 8px;font-size:10px" onclick="removeRowB(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const m = mean(emVals);
+  const sd = stddev(emVals);
+  const mp = pctErr(m);
+  const el = document.getElementById('resultsB');
+  el.innerHTML = `
+    <div class="result-card">
+      <div class="result-card-label">Trials with data</div>
+      <div class="result-card-value">${emVals.length} / ${rowsB.length}</div>
+    </div>
+    <div class="result-card ${m && mp < 15 ? 'highlight' : ''}">
+      <div class="result-card-label">Mean e/m</div>
+      <div class="result-card-value">${fmtEM(m)}</div>
+      <div class="result-card-unit">C/kg</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-label">Std Deviation</div>
+      <div class="result-card-value">${sd ? fmtEM(sd) : '—'}</div>
+      <div class="result-card-unit">C/kg</div>
+    </div>
+    <div class="result-card ${mp !== null && mp < 10 ? 'highlight' : ''}">
+      <div class="result-card-label">% Error</div>
+      <div class="result-card-value">${fmtPct(mp)}</div>
+    </div>
+  `;
+}
+
+function recalcB() { renderB(); renderSummary(); }
+
+// ─── SUMMARY ─────────────────────────────────────────────────
+function renderSummary() {
+  const B = getBfieldA();
+  const VA = rowsA.map(row => {
+    const rL = parseFloat(row.rL), rR = parseFloat(row.rR);
+    let r = null;
+    if (!isNaN(rL) && !isNaN(rR)) r = (rL+rR)/2;
+    else if (!isNaN(rL)) r = rL;
+    else if (!isNaN(rR)) r = rR;
+    return B && r ? calcEM(row.v, B, r) : null;
+  }).filter(Boolean);
+
+  const VB = rowsB.map(row => {
+    const B2 = K_HELM * row.i;
+    const V = parseFloat(document.getElementById('fixedV_B').value);
+    const rL = parseFloat(row.rL), rR = parseFloat(row.rR);
+    let r = null;
+    if (!isNaN(rL) && !isNaN(rR)) r = (rL+rR)/2;
+    else if (!isNaN(rL)) r = rL;
+    else if (!isNaN(rR)) r = rR;
+    return V && r ? calcEM(V, B2, r) : null;
+  }).filter(Boolean);
+
+  const mA = mean(VA), sdA = stddev(VA), pA = pctErr(mA);
+  const mB = mean(VB), sdB = stddev(VB), pB = pctErr(mB);
+  const allEM = [...VA, ...VB];
+  const mAll = mean(allEM), pAll = pctErr(mAll);
+
+  const tbody = document.getElementById('summaryBody');
+  tbody.innerHTML = `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px">Method A (Vary V)</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px">${VA.length}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--accent)">${fmtEM(mA)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)">${sdA ? fmtEM(sdA) : '—'}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:${pA && pA<10?'var(--accent2)':'var(--accent3)'}">${fmtPct(pA)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)">${VA.length>0?(pA && pA<10?'✓ Good':'⚠ Check'):'No data'}</td>
+    </tr>
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px">Method B (Vary I)</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px">${VB.length}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--accent)">${fmtEM(mB)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)">${sdB ? fmtEM(sdB) : '—'}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:${pB && pB<10?'var(--accent2)':'var(--accent3)'}">${fmtPct(pB)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)">${VB.length>0?(pB && pB<10?'✓ Good':'⚠ Check'):'No data'}</td>
+    </tr>
+    <tr style="background:rgba(88,166,255,0.05);font-weight:600">
+      <td style="font-family:var(--mono);font-size:12px;color:var(--accent)">Combined Mean</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px">${allEM.length}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--accent)">${fmtEM(mAll)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)">—</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:${pAll && pAll<10?'var(--accent2)':'var(--accent3)'}">${fmtPct(pAll)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)">${allEM.length>0?(pAll && pAll<5?'✓ Excellent':pAll<10?'✓ Good':'⚠ Check'):'No data'}</td>
+    </tr>
+    <tr style="background:rgba(63,185,80,0.04)">
+      <td style="font-family:var(--mono);font-size:12px;color:var(--accent2)">Accepted Value</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px">—</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--accent2)">1.759×10¹¹</td>
+      <td style="text-align:center">—</td>
+      <td style="text-align:center">—</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--accent2)">CODATA Reference</td>
+    </tr>
+  `;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="result-card ${mAll && pAll < 10 ? 'highlight' : ''}">
+      <div class="result-card-label">Overall e/m</div>
+      <div class="result-card-value">${fmtEM(mAll)}</div>
+      <div class="result-card-unit">C/kg (${allEM.length} data points)</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-label">Accepted Value</div>
+      <div class="result-card-value" style="color:var(--accent2)">1.759×10¹¹</div>
+      <div class="result-card-unit">C/kg</div>
+    </div>
+    <div class="result-card ${pAll && pAll < 10 ? 'highlight' : ''}">
+      <div class="result-card-label">Overall % Error</div>
+      <div class="result-card-value">${fmtPct(pAll)}</div>
+    </div>
+  `;
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────
+function exportCSV() {
+  const name = document.getElementById('sname').value || 'Student';
+  const date = document.getElementById('sdate').value;
+  const B = getBfieldA();
+  let csv = `e/m Ratio Lab Data\nStudent: ${name}\nDate: ${date}\nInstructor: Dr. S Karna\n\n`;
+
+  csv += `METHOD A — Fixed I = ${document.getElementById('fixedI_A').value} A  (B = ${B?(B*1000).toFixed(4)+'e-3 T':'?'})\n`;
+  csv += `Trial,V (V),r_Left (m),r_Right (m),Mean r (m),e/m (C/kg),% Error\n`;
+  rowsA.forEach((row, i) => {
+    const rL = parseFloat(row.rL), rR = parseFloat(row.rR);
+    let r = null;
+    if (!isNaN(rL) && !isNaN(rR)) r = (rL+rR)/2;
+    else if (!isNaN(rL)) r = rL;
+    else if (!isNaN(rR)) r = rR;
+    const em = B && r ? calcEM(row.v, B, r) : '';
+    const pct = em ? pctErr(em).toFixed(2) : '';
+    csv += `${i+1},${row.v},${row.rL},${row.rR},${r?r.toFixed(5):''},${em?em.toExponential(4):''},${pct}\n`;
+  });
+
+  const V = parseFloat(document.getElementById('fixedV_B').value);
+  csv += `\nMETHOD B — Fixed V = ${V} V\n`;
+  csv += `Trial,I (A),B (T),r_Left (m),r_Right (m),Mean r (m),e/m (C/kg),% Error\n`;
+  rowsB.forEach((row, i) => {
+    const B2 = K_HELM * row.i;
+    const rL = parseFloat(row.rL), rR = parseFloat(row.rR);
+    let r = null;
+    if (!isNaN(rL) && !isNaN(rR)) r = (rL+rR)/2;
+    else if (!isNaN(rL)) r = rL;
+    else if (!isNaN(rR)) r = rR;
+    const em = V && r ? calcEM(V, B2, r) : '';
+    const pct = em ? pctErr(em).toFixed(2) : '';
+    csv += `${i+1},${row.i},${B2.toExponential(4)},${row.rL},${row.rR},${r?r.toFixed(5):''},${em?em.toExponential(4):''},${pct}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `em_lab_${name.replace(/\s/g,'_')}_${date||'data'}.csv`; a.click();
+  showToast('CSV exported!');
+}
+
+// ─── CLEAR ALL ────────────────────────────────────────────────
+function clearAll() {
+  if (!confirm('Clear all entered measurements? (Fixed parameters and row structure will be kept.)')) return;
+  rowsA.forEach(r => { r.rL = ''; r.rR = ''; });
+  rowsB.forEach(r => { r.rL = ''; r.rR = ''; });
+  renderA(); renderB(); renderSummary();
+  showToast('Data cleared.');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════════════════════════════════════
+// J.J. THOMSON SIMULATION
+// ══════════════════════════════════════════════════════════════
+const EM_REAL = 1.75882e11;   // C/kg actual
+const E_CHARGE = 1.60218e-19; // C
+const M_ELEC = 9.10938e-31;   // kg
+
+let thomsonAnimId = null;
+let particles = [];
+let trailsOnly = false;
+
+// Apparatus geometry (logical units, mapped to canvas)
+const APP = {
+  tubeLen: 0.30,   // m total tube length
+  plateStart: 0.06, plateEnd: 0.16, // m — where E-field deflector plates are
+  plateGap: 0.02,  // m between plates
+  screenX: 0.28,   // m position of phosphor screen
+};
+
+function getThomsonParams() {
+  const E  = parseFloat(document.getElementById('sliderE').value);   // V/m
+  const Bm = parseFloat(document.getElementById('sliderB').value);   // mT
+  const Va = parseFloat(document.getElementById('sliderVa').value);  // V
+  const B  = Bm * 1e-3;                                              // T
+  // electron speed from accelerating voltage
+  const v0 = Math.sqrt(2 * EM_REAL * Va);
+  return { E, B, Va, v0 };
+}
+
+function initParticles() {
+  particles = [];
+  // Multiple electrons spaced in time (trail effect)
+  for (let i = 0; i < 28; i++) {
+    particles.push({ phase: -i * 0.18, trail: [] });
+  }
+}
+
+// Physics: compute y(x) trajectory through and after plates
+// Returns array of {x, y} in metres
+function computeTrajectory(E, B, Va, v0) {
+  const L = APP.plateEnd - APP.plateStart;  // plate length
+  const path = [];
+
+  // Before plates: straight horizontal at y=0
+  const steps = 120;
+  for (let i = 0; i <= steps; i++) {
+    const x = (i / steps) * APP.screenX;
+    let y = 0;
+
+    if (x < APP.plateStart) {
+      // Straight section before plates
+      y = 0;
+    } else if (x <= APP.plateEnd) {
+      // Inside the combined E+B region
+      const dx = x - APP.plateStart;
+      const t = dx / v0;
+
+      // Net vertical force: F_E = eE (downward toward +), F_B = evB (upward if B into page)
+      // With B into page (z), v in x: F_B = e(v×B) = e*v0*B upward
+      // Net: a = (e/m)(E - v0*B)  — exact, no rounding
+      const netForce = E - v0 * B;
+      const a = EM_REAL * netForce;
+      y = 0.5 * a * t * t;
+    } else {
+      // After plates: linear extrapolation of exit angle
+      const tPlate = L / v0;
+      const aPost = EM_REAL * (E - v0 * B);
+      const yExit = 0.5 * aPost * tPlate * tPlate;
+      const vyExit = aPost * tPlate;
+      const dt = (x - APP.plateEnd) / v0;
+      y = yExit + vyExit * dt;
+    }
+
+    path.push({ x, y });
+  }
+  return path;
+}
+
+function mapToCanvas(x, y, W, H) {
+  // x: 0..APP.tubeLen → 0..W  (with padding)
+  const padL = 60, padR = 30;
+  const cx = padL + (x / APP.tubeLen) * (W - padL - padR);
+  // y: physical metres → pixels. Centre = H/2. Scale: max deflection ~±0.015m → ±H*0.35
+  const maxY = 0.018;
+  const cy = H / 2 - (y / maxY) * (H * 0.36);
+  return { cx, cy };
+}
+
+function drawThomson() {
+  const canvas = document.getElementById('thomsonCanvas');
+  if (!canvas) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const { E, B, Va, v0 } = getThomsonParams();
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Background ──
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0a0e14');
+  bgGrad.addColorStop(1, '#0d1117');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(48,54,61,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let gx = 0; gx <= W; gx += W / 12) {
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+  for (let gy = 0; gy <= H; gy += H / 6) {
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  const padL = 60, padR = 30;
+  const scaleX = (v) => padL + (v / APP.tubeLen) * (W - padL - padR);
+  const maxY = 0.018;
+  const scaleY = (y) => H / 2 - (y / maxY) * (H * 0.36);
+
+  // ── Axis (centre line) ──
+  ctx.strokeStyle = 'rgba(139,148,158,0.25)';
+  ctx.setLineDash([4, 6]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H / 2);
+  ctx.lineTo(W, H / 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Tube outline ──
+  const tubeY1 = scaleY(APP.plateGap * 2.8);
+  const tubeY2 = scaleY(-APP.plateGap * 2.8);
+  ctx.strokeStyle = 'rgba(88,166,255,0.18)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0.02), tubeY1);
+  ctx.lineTo(scaleX(APP.screenX + 0.015), tubeY1);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0.02), tubeY2);
+  ctx.lineTo(scaleX(APP.screenX + 0.015), tubeY2);
+  ctx.stroke();
+
+  // ── Cathode ──
+  const catX = scaleX(0.005);
+  ctx.strokeStyle = '#f78166';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(catX, H/2 - 14); ctx.lineTo(catX, H/2 + 14); ctx.stroke();
+  ctx.fillStyle = '#f78166';
+  ctx.font = `bold 10px 'Space Mono', monospace`;
+  ctx.fillText('K', catX - 12, H/2 + 4);
+  // Glow
+  const catGlow = ctx.createRadialGradient(catX, H/2, 0, catX, H/2, 22);
+  catGlow.addColorStop(0, 'rgba(247,129,102,0.4)');
+  catGlow.addColorStop(1, 'rgba(247,129,102,0)');
+  ctx.fillStyle = catGlow;
+  ctx.beginPath(); ctx.arc(catX, H/2, 22, 0, Math.PI*2); ctx.fill();
+
+  // ── Anode ──
+  const anX = scaleX(0.04);
+  ctx.strokeStyle = '#f78166';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(anX, H/2 - 13); ctx.lineTo(anX, H/2 + 13); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.strokeStyle = '#f78166';
+  ctx.beginPath(); ctx.arc(anX, H/2, 5, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#f78166';
+  ctx.font = `bold 10px 'Space Mono', monospace`;
+  ctx.fillText('A', anX - 5, H/2 - 18);
+  // Va label
+  ctx.fillStyle = 'rgba(247,129,102,0.7)';
+  ctx.font = `9px 'Space Mono', monospace`;
+  ctx.fillText(`Va=${Va}V`, catX - 2, H/2 + 32);
+
+  // ── Deflector plates ──
+  const px1 = scaleX(APP.plateStart);
+  const px2 = scaleX(APP.plateEnd);
+  const pyTop = scaleY(APP.plateGap / 2);
+  const pyBot = scaleY(-APP.plateGap / 2);
+  const plateThick = 5;
+
+  // Top plate (negative if E pushes electrons down, i.e. + plate is bottom)
+  const topColor = E > 0 ? '#3fb950' : '#f78166';
+  const botColor = E > 0 ? '#f78166' : '#3fb950';
+
+  ctx.fillStyle = topColor;
+  ctx.fillRect(px1, pyTop - plateThick, px2 - px1, plateThick);
+  ctx.fillStyle = botColor;
+  ctx.fillRect(px1, pyBot, px2 - px1, plateThick);
+
+  // Plate labels
+  ctx.font = `bold 10px 'Space Mono', monospace`;
+  ctx.fillStyle = topColor;
+  ctx.fillText(E > 0 ? '−' : '+', px1 - 12, pyTop - 1);
+  ctx.fillStyle = botColor;
+  ctx.fillText(E > 0 ? '+' : '−', px1 - 12, pyBot + 13);
+
+  // E-field arrows inside plate region (if E > 0)
+  if (E > 100) {
+    const nArrows = 4;
+    for (let ai = 0; ai < nArrows; ai++) {
+      const ax = px1 + (px2 - px1) * (ai + 0.5) / nArrows;
+      const ay1 = pyTop + 4;
+      const ay2 = pyBot - 4;
+      ctx.strokeStyle = 'rgba(199,120,221,0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(ax, ay1); ctx.lineTo(ax, ay2); ctx.stroke();
+      ctx.setLineDash([]);
+      // arrowhead
+      ctx.fillStyle = 'rgba(199,120,221,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(ax, ay2);
+      ctx.lineTo(ax - 4, ay2 - 8);
+      ctx.lineTo(ax + 4, ay2 - 8);
+      ctx.closePath(); ctx.fill();
+    }
+    // E label
+    ctx.fillStyle = '#c778dd';
+    ctx.font = `bold 11px 'Space Mono', monospace`;
+    ctx.fillText('E', (px1 + px2) / 2 - 4, pyTop - 10);
+  }
+
+  // ── B-field dots/crosses (into/out of page) ──
+  if (B > 1e-5) {
+    const bRegX1 = scaleX(APP.plateStart - 0.005);
+    const bRegX2 = scaleX(APP.plateEnd + 0.005);
+    const bRegY1 = tubeY1 + 4;
+    const bRegY2 = tubeY2 - 4;
+    ctx.strokeStyle = 'rgba(88,166,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bRegX1, bRegY1, bRegX2 - bRegX1, bRegY2 - bRegY1);
+    // dots (B out of page)
+    const bCols = 5, bRows = 3;
+    for (let bi = 0; bi < bCols; bi++) {
+      for (let bj = 0; bj < bRows; bj++) {
+        const bx = bRegX1 + (bRegX2 - bRegX1) * (bi + 0.5) / bCols;
+        const by = bRegY1 + (bRegY2 - bRegY1) * (bj + 0.5) / bRows;
+        ctx.fillStyle = 'rgba(88,166,255,0.55)';
+        ctx.beginPath(); ctx.arc(bx, by, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(88,166,255,0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(bx, by, 5, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.fillStyle = '#58a6ff';
+    ctx.font = `bold 10px 'Space Mono', monospace`;
+    ctx.fillText('B', bRegX1 + 4, bRegY1 + 13);
+  }
+
+  // ── Screen ──
+  const sX = scaleX(APP.screenX);
+  const sGrad = ctx.createLinearGradient(sX - 4, 0, sX + 4, 0);
+  sGrad.addColorStop(0, 'rgba(63,185,80,0.05)');
+  sGrad.addColorStop(0.5, 'rgba(63,185,80,0.4)');
+  sGrad.addColorStop(1, 'rgba(63,185,80,0.05)');
+  ctx.fillStyle = sGrad;
+  ctx.fillRect(sX - 3, tubeY1 - 4, 6, tubeY2 - tubeY1 + 8);
+  ctx.fillStyle = '#3fb950';
+  ctx.font = `bold 10px 'Space Mono', monospace`;
+  ctx.fillText('Screen', sX - 20, tubeY1 - 8);
+
+  // ── Compute trajectory ──
+  const path = computeTrajectory(E, B, Va, v0);
+
+  // Draw full ghost trajectory
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(199,120,221,0.15)';
+  ctx.lineWidth = 1;
+  path.forEach((pt, i) => {
+    const { cx, cy } = mapToCanvas(pt.x, pt.y, W, H);
+    if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+  });
+  ctx.stroke();
+
+  // ── Animate electron particles ──
+  const now = performance.now() / 1000;
+  const balanced = Math.abs(E - v0 * B * 1000 / 1000) < E * 0.03 && E > 500 && B > 1e-4;
+
+  particles.forEach(p => {
+    const t = ((now * 0.55 + p.phase) % 1 + 1) % 1;
+    const idx = Math.floor(t * (path.length - 1));
+    if (idx < 0 || idx >= path.length) return;
+    const pt = path[idx];
+    const { cx, cy } = mapToCanvas(pt.x, pt.y, W, H);
+
+    // Trail
+    p.trail.push({ cx, cy, t });
+    if (p.trail.length > 18) p.trail.shift();
+
+    p.trail.forEach((tp, ti) => {
+      const alpha = (ti / p.trail.length) * 0.6;
+      const r = balanced ? '#3fb950' : '#58a6ff';
+      ctx.beginPath();
+      ctx.arc(tp.cx, tp.cy, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = r.replace(')', `,${alpha})`).replace('rgb(', 'rgba(') || `rgba(88,166,255,${alpha})`;
+      // Simple alpha approach
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = balanced ? '#3fb950' : '#c778dd';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // Electron dot
+    const eGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 8);
+    if (balanced) {
+      eGlow.addColorStop(0, 'rgba(63,185,80,1)');
+      eGlow.addColorStop(0.4, 'rgba(63,185,80,0.6)');
+      eGlow.addColorStop(1, 'rgba(63,185,80,0)');
+    } else {
+      eGlow.addColorStop(0, 'rgba(199,120,221,1)');
+      eGlow.addColorStop(0.4, 'rgba(88,166,255,0.6)');
+      eGlow.addColorStop(1, 'rgba(88,166,255,0)');
+    }
+    ctx.fillStyle = eGlow;
+    ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = balanced ? '#3fb950' : '#ffffff';
+    ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // Screen impact dot
+  const screenPt = path[path.length - 1];
+  const { cx: scx, cy: scy } = mapToCanvas(screenPt.x, screenPt.y, W, H);
+  const impactGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, 16);
+  impactGlow.addColorStop(0, 'rgba(63,185,80,0.95)');
+  impactGlow.addColorStop(0.5, 'rgba(63,185,80,0.4)');
+  impactGlow.addColorStop(1, 'rgba(63,185,80,0)');
+  ctx.fillStyle = impactGlow;
+  ctx.beginPath(); ctx.arc(scx, scy, 16, 0, Math.PI * 2); ctx.fill();
+
+  // Deflection measurement line
+  if (Math.abs(screenPt.y) > 0.0003) {
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = 'rgba(247,129,102,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(scx, H / 2);
+    ctx.lineTo(scx, scy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f78166';
+    ctx.font = `bold 10px 'Space Mono', monospace`;
+    const deflMm = (screenPt.y * 1000).toFixed(1);
+    ctx.fillText(`y=${deflMm}mm`, scx + 6, (H / 2 + scy) / 2);
+  }
+
+  // Balanced badge
+  document.getElementById('balanceBadge').style.display = balanced ? 'block' : 'none';
+
+  // Schedule next frame
+  thomsonAnimId = requestAnimationFrame(drawThomson);
+}
+
+function updateThomson() {
+  const E  = parseFloat(document.getElementById('sliderE').value);
+  const Bm = parseFloat(document.getElementById('sliderB').value);
+  const Va = parseFloat(document.getElementById('sliderVa').value);
+  document.getElementById('valE').textContent  = E.toLocaleString() + ' V/m';
+  document.getElementById('valB').textContent  = Bm.toFixed(1) + ' mT';
+  document.getElementById('valVa').textContent = Va + ' V';
+
+  const B  = Bm * 1e-3;
+  const v0 = Math.sqrt(2 * EM_REAL * Va);
+
+  // Compute screen deflection
+  const tPlate = (APP.plateEnd - APP.plateStart) / v0;
+  const a = EM_REAL * (E - v0 * B);
+  const yExit = 0.5 * a * tPlate * tPlate;
+  const vyExit = a * tPlate;
+  const dtAfter = (APP.screenX - APP.plateEnd) / v0;
+  const yScreen = yExit + vyExit * dtAfter;
+
+  // Live readouts
+  const isBalanced = B > 1e-5 && Math.abs(E / (v0 * B) - 1) < 0.04;
+  const calcV = B > 1e-5 ? (E / B).toExponential(3) : '—';
+
+  document.getElementById('thomsonReadouts').innerHTML = `
+    <div class="result-card">
+      <div class="result-card-label">Electron Speed v₀</div>
+      <div class="result-card-value" style="font-size:13px">${(v0/1e6).toFixed(2)} ×10⁶ m/s</div>
+      <div class="result-card-unit">${(v0/3e8*100).toFixed(2)}% of c</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-label">Net Accel. a</div>
+      <div class="result-card-value" style="font-size:13px;color:${Math.abs(a)<1e12?'var(--accent2)':'var(--accent3)'}">${a.toExponential(2)} m/s²</div>
+      <div class="result-card-unit">= (e/m)(E − v₀B)</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-label">Screen Deflection y</div>
+      <div class="result-card-value" style="color:var(--accent3)">${(yScreen*1000).toFixed(2)} mm</div>
+      <div class="result-card-unit">${yScreen >= 0 ? 'Deflected toward −' : 'Deflected toward +'}</div>
+    </div>
+    <div class="result-card ${isBalanced ? 'highlight' : ''}">
+      <div class="result-card-label">Measured v = E/B</div>
+      <div class="result-card-value" style="font-size:13px">${B > 1e-5 ? (E/B/1e6).toFixed(2)+' ×10⁶' : '—'}</div>
+      <div class="result-card-unit">m/s ${isBalanced ? '✓ matches v₀' : ''}</div>
+    </div>
+  `;
+
+  // Explanation
+  let explain = '';
+  if (E < 500 && B < 1e-5) {
+    explain = '<span style="color:var(--accent)">No fields active.</span> The electron beam travels in a straight line from cathode to screen with no deflection. Increase E or B using the sliders.';
+  } else if (E > 500 && B < 1e-5) {
+    explain = `<span style="color:#c778dd">Electric field only (E = ${E.toLocaleString()} V/m, B = 0).</span> The electric force F<sub>E</sub> = eE accelerates the electron perpendicular to its motion, producing a <strong>parabolic trajectory</strong> — exactly like a projectile in gravity. The beam curves toward the positive plate. Screen deflection = <strong>${(yScreen*1000).toFixed(1)} mm</strong>.`;
+  } else if (E < 500 && B > 1e-5) {
+    explain = `<span style="color:#58a6ff">Magnetic field only (B = ${Bm.toFixed(1)} mT, E = 0).</span> The magnetic force F<sub>B</sub> = evB is always perpendicular to velocity, producing a <strong>circular arc</strong>. The radius r = mv/(eB). Note how the trajectory curves in the opposite vertical direction compared to the electric field case.`;
+  } else if (isBalanced) {
+    explain = `<span style="color:#3fb950">⚖ Fields are balanced! eE = evB → v = E/B = ${(E/B/1e6).toFixed(3)} × 10⁶ m/s.</span> This is Thomson's key insight: when the beam is <strong>straight (undeflected)</strong>, the electric and magnetic forces cancel exactly. From this velocity, and the known deflection with E alone, J.J. Thomson could calculate <strong>e/m = 1.759 × 10¹¹ C/kg</strong>.`;
+  } else {
+    const dominant = Math.abs(E) > v0 * B ? 'Electric force dominates' : 'Magnetic force dominates';
+    explain = `<span style="color:#c778dd">Both fields active.</span> ${dominant}. Net force = e(E − v₀B) = ${(E_CHARGE*(E - v0*B)).toExponential(2)} N. To balance the beam, adjust B until deflection = 0. At balance: v = E/B = <strong>${(E/B/1e6).toFixed(3)} ×10⁶ m/s</strong>. Current mismatch: E/B = ${(E/B/1e6).toFixed(2)} ×10⁶ vs v₀ = ${(v0/1e6).toFixed(2)} ×10⁶ m/s.`;
+  }
+  document.getElementById('thomsonExplain').innerHTML = explain;
+}
+
+function presetEonly()  { document.getElementById('sliderE').value=25000; document.getElementById('sliderB').value=0; document.getElementById('sliderVa').value=200; updateThomson(); }
+function presetBonly()  { document.getElementById('sliderE').value=0; document.getElementById('sliderB').value=8; document.getElementById('sliderVa').value=200; updateThomson(); }
+function presetBalance() {
+  const Va = parseFloat(document.getElementById('sliderVa').value);
+  const v0 = Math.sqrt(2 * EM_REAL * Va);
+  const E  = parseFloat(document.getElementById('sliderE').value) || 20000;
+  const Bneed = E / v0; // T  — exact balance: eE = ev0B → B = E/v0
+  const BmT = Math.min(Bneed * 1000, 20);
+  document.getElementById('sliderB').value = BmT.toFixed(6); // full precision
+  updateThomson();
+  showToast('Fields balanced: beam is straight!');
+}
+
+// Start/stop animation when tab is active
+function startThomsonAnim() {
+  if (thomsonAnimId) return;
+  const canvas = document.getElementById('thomsonCanvas');
+  // Resize canvas
+  const W = canvas.offsetWidth;
+  canvas.width  = W;
+  canvas.height = Math.round(W * 0.32);
+  initParticles();
+  updateThomson();
+  drawThomson();
+}
+function stopThomsonAnim() {
+  if (thomsonAnimId) { cancelAnimationFrame(thomsonAnimId); thomsonAnimId = null; }
+}
+
+// Override switchTab to handle Thomson animation
+const _origSwitchTab = switchTab;
+// We redefine switchTab to also handle the animation
+window.switchTab = function(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'summary') renderSummary();
+  if (id === 'thomson') { setTimeout(startThomsonAnim, 50); }
+  else stopThomsonAnim();
+};
+
+</script>
+</body>
+</html>

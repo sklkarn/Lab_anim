@@ -1,118 +1,468 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tidal Bulge Simulation</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #0b0d17;
-            color: white;
-            font-family: sans-serif;
-            margin: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tidal Forces — Interactive Animation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
-        .container {
-            position: relative;
-            width: 500px;
-            height: 500px;
-        }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* The Moon Orbiting */
-        #orbit {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 400px;
-            height: 400px;
-            margin-top: -200px;
-            margin-left: -200px;
-            border: 1px dashed #444;
-            border-radius: 50%;
-            animation: rotate 20s linear infinite;
-        }
+  :root {
+    --space: #020818;
+    --star-color: rgba(255,255,255,0.8);
+    --sun-color: #FFD700;
+    --sun-glow: #FF8C00;
+    --moon-color: #C0C8D8;
+    --earth-ocean: #1a6fa8;
+    --earth-land: #2d7a3a;
+    --tide-color: rgba(80, 180, 255, 0.75);
+    --label: rgba(180,220,255,0.85);
+  }
 
-        #moon {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            width: 30px;
-            height: 30px;
-            background: #ddd;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #fff;
-            margin-left: -15px;
-        }
+  body {
+    background: var(--space);
+    color: #cde;
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
 
-        /* The Earth and Water */
-        #earth-system {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(180,220,255,0.9);
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(100,180,255,0.5);
+  }
 
-        .water {
-            fill: rgba(0, 150, 255, 0.6);
-            /* This will be rotated by JS to follow the moon */
-        }
+  .subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: rgba(150,200,255,0.5);
+    margin-bottom: 18px;
+  }
 
-        .earth {
-            fill: #2b5dcf;
-        }
+  canvas {
+    display: block;
+    border-radius: 12px;
+    box-shadow: 0 0 60px rgba(30,80,160,0.3), 0 0 120px rgba(10,30,80,0.4);
+  }
 
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: rgba(160,210,255,0.6);
+  }
 
-        .label {
-            margin-top: 20px;
-            text-align: center;
-            max-width: 400px;
-            line-height: 1.5;
-        }
-    </style>
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot-sun { background: #FFD700; box-shadow: 0 0 6px #FF8C00; }
+  .dot-moon { background: #C0C8D8; }
+  .dot-tide { background: rgba(80,180,255,0.8); }
+
+  .speed-ctrl {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: rgba(160,210,255,0.6);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 120px;
+    height: 3px;
+    background: rgba(80,180,255,0.3);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: rgba(80,180,255,0.9);
+    cursor: pointer;
+  }
+</style>
 </head>
 <body>
 
-    <h2>Moon Rotation & Tidal Bulge</h2>
+<h1>Tidal Forces</h1>
+<p class="subtitle">Gravitational bulge animation · Earth / Moon / Sun system</p>
+<p class="subtitle" style="margin-top:-10px; color:rgba(255,210,120,0.7); letter-spacing:0.18em;">Instructor: Dr. S Karna</p>
 
-    <div class="container">
-        <div id="orbit">
-            <div id="moon"></div>
-        </div>
+<canvas id="c"></canvas>
 
-        <div id="earth-system">
-            <svg width="200" height="200" viewBox="0 0 200 200">
-                <ellipse id="bulge" cx="100" cy="100" rx="85" ry="60" class="water" />
-                <circle cx="100" cy="100" r="55" class="earth" />
-                <path d="M80 70 Q 100 50 120 70 T 120 130" fill="#4caf50" opacity="0.7"/>
-            </svg>
-        </div>
-    </div>
+<div class="legend">
+  <span><i class="dot dot-sun"></i> Sun</span>
+  <span><i class="dot dot-moon"></i> Moon</span>
+  <span><i class="dot dot-tide"></i> Tidal bulge</span>
+</div>
 
-    <div class="label">
-        The water "bulges" towards the Moon due to gravity and away from the Moon due to inertia/centrifugal effects. As the Moon rotates, the high-tide bulges follow it.
-    </div>
+<div class="speed-ctrl">
+  <label for="spd">Speed</label>
+  <input type="range" id="spd" min="0.2" max="5" step="0.1" value="1">
+  <span id="spdVal">1×</span>
+</div>
 
-    <script>
-        const bulge = document.getElementById('bulge');
-        let angle = 0;
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
 
-        function animate() {
-            // Match the rotation speed of the orbit (20s = 18deg per second)
-            angle += 0.3; // Incremental rotation for smooth movement
-            bulge.setAttribute('transform', `rotate(${angle-90}, 100, 100)`);
-            requestAnimationFrame(animate);
-        }
+// Sizing
+function resize() {
+  const s = Math.min(window.innerWidth * 0.96, window.innerHeight * 0.78, 820);
+  canvas.width = canvas.height = Math.round(s);
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
 
-        animate();
-    </script>
+// Speed
+let speedMult = 1;
+const spdInput = document.getElementById('spd');
+const spdVal = document.getElementById('spdVal');
+spdInput.addEventListener('input', () => {
+  speedMult = parseFloat(spdInput.value);
+  spdVal.textContent = speedMult.toFixed(1) + '×';
+});
+
+// Stars
+const stars = [];
+for (let i = 0; i < 280; i++) {
+  stars.push({
+    x: Math.random(),
+    y: Math.random(),
+    r: Math.random() * 1.2 + 0.2,
+    a: Math.random() * 0.5 + 0.3,
+    twinkle: Math.random() * Math.PI * 2
+  });
+}
+
+// State
+let t = 0; // time in seconds
+
+// Orbital parameters (all distances/radii are in canvas-relative units, recalculated each frame)
+function getLayout(W) {
+  const cx = W / 2, cy = W / 2;
+  const sunR = W * 0.078;
+  const sunX = cx - W * 0.38;
+  const sunY = cy;
+  const earthR = W * 0.065;
+  const earthOrbitR = W * 0.34;
+  const moonOrbitR = W * 0.155;
+  const moonR = W * 0.026;
+  const tideAmp = earthR * 0.38;
+  const tideWidthAngle = 0.60; // radians half-angle of bulge
+  return { cx, cy, sunR, sunX, sunY, earthR, earthOrbitR, moonOrbitR, moonR, tideAmp, tideWidthAngle };
+}
+
+// Draw a glowing circle
+function drawGlow(x, y, r, color, glowColor, glowSize) {
+  const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r + glowSize);
+  g.addColorStop(0, color);
+  g.addColorStop(0.6, glowColor);
+  g.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  ctx.arc(x, y, r + glowSize, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+}
+
+// Draw the earth with land masses
+function drawEarth(x, y, r, earthAngle) {
+  ctx.save();
+  ctx.translate(x, y);
+  // Ocean base
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  const ocean = ctx.createRadialGradient(-r*0.2, -r*0.2, r*0.1, 0, 0, r);
+  ocean.addColorStop(0, '#3ba0d8');
+  ocean.addColorStop(1, '#0d3f6e');
+  ctx.fillStyle = ocean;
+  ctx.fill();
+
+  // Rotate for spinning
+  ctx.rotate(earthAngle);
+
+  // Clip to circle
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Land patches (simplified continents)
+  ctx.fillStyle = '#2d7a3a';
+  const lands = [
+    [-0.05*r, -0.35*r, 0.38*r, 0.30*r],
+    [ 0.30*r, -0.25*r, 0.20*r, 0.40*r],
+    [-0.45*r,  0.10*r, 0.25*r, 0.22*r],
+    [ 0.05*r,  0.30*r, 0.32*r, 0.25*r],
+    [-0.30*r, -0.10*r, 0.18*r, 0.18*r],
+    [ 0.50*r,  0.30*r, 0.22*r, 0.28*r],
+  ];
+  lands.forEach(([lx, ly, lw, lh]) => {
+    ctx.beginPath();
+    ctx.ellipse(lx, ly, lw/2, lh/2, lx * 0.3, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Atmosphere shimmer
+  ctx.restore();
+  ctx.save();
+  ctx.translate(x, y);
+  const atm = ctx.createRadialGradient(0, 0, r * 0.88, 0, 0, r * 1.12);
+  atm.addColorStop(0, 'rgba(100,180,255,0.0)');
+  atm.addColorStop(0.6, 'rgba(100,180,255,0.08)');
+  atm.addColorStop(1, 'rgba(100,180,255,0.0)');
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.12, 0, Math.PI * 2);
+  ctx.fillStyle = atm;
+  ctx.fill();
+  ctx.restore();
+}
+
+// Draw tidal bulge — offset ellipse deformation
+function drawTideBulge(ex, ey, earthR, moonAngle, tideAmp, W) {
+  ctx.save();
+  ctx.translate(ex, ey);
+
+  // The bulge axis points toward the moon (moonAngle from earth)
+  // Two bulges: toward moon, and opposite (anti-tide)
+  const bigBulge = tideAmp;
+  const smallBulge = tideAmp * 0.55;
+  const nPoints = 180;
+
+  ctx.beginPath();
+  for (let i = 0; i <= nPoints; i++) {
+    const theta = (i / nPoints) * Math.PI * 2;
+    // Angle relative to moon direction
+    const rel = theta - moonAngle;
+    // Bulge factor: cos²(rel) for moon side, cos²(rel+PI) for anti side
+    const factor = Math.cos(rel);
+    // Positive factor = toward moon (big bulge), negative = away (small bulge)
+    let bulge;
+    if (factor >= 0) {
+      bulge = bigBulge * factor * factor;
+    } else {
+      bulge = smallBulge * factor * factor; // anti-tide smaller
+    }
+    const rr = earthR + bulge;
+    const px = Math.cos(theta) * rr;
+    const py = Math.sin(theta) * rr;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+
+  // Ocean color for bulge
+  const tideGrad = ctx.createRadialGradient(0, 0, earthR * 0.6, 0, 0, earthR + bigBulge);
+  tideGrad.addColorStop(0, 'rgba(30,100,200,0)');
+  tideGrad.addColorStop(0.75, 'rgba(60,160,255,0.25)');
+  tideGrad.addColorStop(1, 'rgba(100,200,255,0.55)');
+  ctx.fillStyle = tideGrad;
+  ctx.fill();
+
+  // Stroke the water surface
+  ctx.strokeStyle = 'rgba(120,210,255,0.55)';
+  ctx.lineWidth = W * 0.004;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// Draw moon
+function drawMoon(x, y, r) {
+  const g = ctx.createRadialGradient(x - r*0.25, y - r*0.25, r*0.05, x, y, r);
+  g.addColorStop(0, '#e0e8f0');
+  g.addColorStop(0.6, '#a0aab8');
+  g.addColorStop(1, '#606880');
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+  // craters
+  const craters = [[0.2, -0.3, 0.12], [-0.3, 0.1, 0.08], [0.1, 0.35, 0.07], [-0.1, -0.15, 0.06]];
+  craters.forEach(([cx2, cy2, cr]) => {
+    ctx.beginPath();
+    ctx.arc(x + cx2*r, y + cy2*r, cr*r, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(80,90,105,0.4)';
+    ctx.fill();
+  });
+  // glow
+  const mg = ctx.createRadialGradient(x, y, r*0.8, x, y, r*1.4);
+  mg.addColorStop(0, 'rgba(200,215,240,0.0)');
+  mg.addColorStop(1, 'rgba(200,215,240,0.0)');
+  ctx.beginPath();
+  ctx.arc(x, y, r*1.4, 0, Math.PI*2);
+  ctx.fillStyle = mg;
+  ctx.fill();
+}
+
+// Orbit path dashed
+function drawOrbitPath(cx, cy, r, color) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([4, 10]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// Arrow between two bodies (gravity indicator)
+function drawForceArrow(x1, y1, x2, y2, fromR, color, label) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const nx = dx/dist, ny = dy/dist;
+  const sx = x1 + nx * (fromR + 4);
+  const ex = x1 + nx * (fromR + dist * 0.38);
+  const ey = y1 + ny * (fromR + dist * 0.38);
+  ctx.beginPath();
+  ctx.moveTo(sx, y1 + ny*(fromR+4));
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // arrowhead
+  const angle = Math.atan2(ey - (y1+ny*(fromR+4)), ex - sx);
+  const hs = 7;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - Math.cos(angle-0.4)*hs, ey - Math.sin(angle-0.4)*hs);
+  ctx.lineTo(ex - Math.cos(angle+0.4)*hs, ey - Math.sin(angle+0.4)*hs);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// Labels
+function label(text, x, y, size, color, W) {
+  ctx.font = `${Math.round(size * W)}px 'Space Mono', monospace`;
+  ctx.fillStyle = color || 'rgba(180,220,255,0.8)';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y);
+}
+
+function drawFrame() {
+  const W = canvas.width;
+  const L = getLayout(W);
+  const { cx, cy, sunR, sunX, sunY, earthR, earthOrbitR, moonOrbitR, moonR, tideAmp } = L;
+
+  // Orbital speeds
+  const earthOrbitSpeed = 0.018;  // around sun
+  const moonOrbitSpeed  = 0.12;   // around earth
+  const earthSpinSpeed  = 0.35;   // self-rotation
+
+  const earthAngleOrbit = t * earthOrbitSpeed;
+  const earthX = sunX + Math.cos(earthAngleOrbit) * earthOrbitR;
+  const earthY = sunY + Math.sin(earthAngleOrbit) * earthOrbitR;
+
+  const moonAngleOrbit = t * moonOrbitSpeed;
+  const moonX = earthX + Math.cos(moonAngleOrbit) * moonOrbitR;
+  const moonY = earthY + Math.sin(moonAngleOrbit) * moonOrbitR;
+
+  const earthSpin = t * earthSpinSpeed;
+
+  // ── Background ──────────────────────────────────────────
+  ctx.fillStyle = '#020818';
+  ctx.fillRect(0, 0, W, W);
+
+  // Stars
+  stars.forEach(s => {
+    const twinkle = 0.5 + 0.5 * Math.sin(t * 1.5 + s.twinkle);
+    ctx.beginPath();
+    ctx.arc(s.x * W, s.y * W, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${s.a * twinkle})`;
+    ctx.fill();
+  });
+
+  // ── Orbit paths ──────────────────────────────────────────
+  drawOrbitPath(sunX, sunY, earthOrbitR, 'rgba(255,200,80,0.12)');
+  drawOrbitPath(earthX, earthY, moonOrbitR, 'rgba(180,200,240,0.15)');
+
+  // ── Sun ──────────────────────────────────────────────────
+  // Corona rays
+  const nRays = 12;
+  for (let i = 0; i < nRays; i++) {
+    const a = (i / nRays) * Math.PI * 2 + t * 0.05;
+    const len = sunR * (1.3 + 0.15 * Math.sin(t * 2 + i));
+    ctx.beginPath();
+    ctx.moveTo(sunX + Math.cos(a) * sunR * 0.9, sunY + Math.sin(a) * sunR * 0.9);
+    ctx.lineTo(sunX + Math.cos(a) * (sunR + len), sunY + Math.sin(a) * (sunR + len));
+    ctx.strokeStyle = `rgba(255,200,50,${0.08 + 0.04 * Math.sin(t+i)})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  drawGlow(sunX, sunY, sunR, '#FFD740', '#FF8C00', sunR * 0.8);
+  // Sun disc
+  const sg = ctx.createRadialGradient(sunX - sunR*0.2, sunY - sunR*0.2, sunR*0.05, sunX, sunY, sunR);
+  sg.addColorStop(0, '#fff7aa');
+  sg.addColorStop(0.5, '#FFD700');
+  sg.addColorStop(1, '#FF6600');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+  ctx.fillStyle = sg;
+  ctx.fill();
+
+  label('SUN', sunX, sunY + sunR + W*0.035, 0.022, 'rgba(255,200,80,0.8)', W);
+
+  // ── Earth tidal bulge (behind Earth) ─────────────────────
+  drawTideBulge(earthX, earthY, earthR, moonAngleOrbit, tideAmp, W);
+
+  // ── Earth ────────────────────────────────────────────────
+  drawEarth(earthX, earthY, earthR, earthSpin);
+  label('EARTH', earthX, earthY + earthR + W*0.038, 0.02, 'rgba(100,180,255,0.85)', W);
+
+  // ── Moon ─────────────────────────────────────────────────
+  drawMoon(moonX, moonY, moonR);
+  label('MOON', moonX, moonY + moonR + W*0.03, 0.018, 'rgba(200,215,240,0.8)', W);
+
+  // ── Gravity force lines ──────────────────────────────────
+  drawForceArrow(earthX, earthY, moonX, moonY, earthR * 1.45, 'rgba(180,200,255,0.35)');
+
+  // ── Bulge labels ─────────────────────────────────────────
+  const bigBulgeX = earthX + Math.cos(moonAngleOrbit) * (earthR + tideAmp + W*0.022);
+  const bigBulgeY = earthY + Math.sin(moonAngleOrbit) * (earthR + tideAmp + W*0.022);
+  const antiBulgeX = earthX - Math.cos(moonAngleOrbit) * (earthR + tideAmp * 0.58 + W*0.022);
+  const antiBulgeY = earthY - Math.sin(moonAngleOrbit) * (earthR + tideAmp * 0.58 + W*0.022);
+
+  ctx.font = `bold ${Math.round(W*0.018)}px 'Space Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(120,210,255,0.9)';
+  ctx.fillText('HIGH TIDE', bigBulgeX, bigBulgeY);
+  ctx.fillStyle = 'rgba(80,160,220,0.65)';
+  ctx.fillText('HIGH TIDE', antiBulgeX, antiBulgeY);
+
+  // ── Info panel ───────────────────────────────────────────
+  const fs = W * 0.016;
+  ctx.font = `${Math.round(fs)}px 'Space Mono', monospace`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(140,200,255,0.5)';
+  ctx.fillText(`Moon phase: ${Math.round(((moonAngleOrbit % (Math.PI*2)) / (Math.PI*2)) * 100)}%`, W*0.03, W*0.04);
+}
+
+let last = null;
+function loop(ts) {
+  if (last !== null) {
+    const dt = Math.min((ts - last) / 1000, 0.05);
+    t += dt * speedMult;
+  }
+  last = ts;
+  drawFrame();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
