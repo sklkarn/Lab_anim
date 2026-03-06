@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mass Spectrograph — Animated</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --border: #1a3a5c;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --dim: #3a5a7a;
+    --glow: 0 0 12px rgba(0,212,255,0.6);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: #a0c8e8;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 15% 50%, rgba(0,60,120,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 85% 20%, rgba(0,180,255,0.07) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(0.95rem, 2.8vw, 1.55rem);
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    text-align: center;
+    padding: 16px 20px 3px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    padding-bottom: 14px;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 12px;
+    padding: 0 14px 14px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .section-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .ctrl-row { display:flex; flex-direction:column; gap:3px; }
+  .ctrl-row label { font-size:0.62rem; color:var(--dim); }
+  .ctrl-row .val { color:var(--accent); font-size:0.78rem; float:right; }
+  input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+
+  .isotope-list { display:flex; flex-direction:column; gap:7px; }
+
+  .iso-item {
+    display:flex; align-items:center; gap:8px;
+    padding:6px 8px; border-radius:5px;
+    border:1px solid transparent; cursor:pointer;
+    transition:all 0.2s; font-size:0.68rem;
+  }
+  .iso-item:hover { border-color:var(--border); }
+  .iso-item.active { border-color:var(--accent); background:rgba(0,212,255,0.07); }
+
+  .iso-dot {
+    width:11px; height:11px; border-radius:50%;
+    flex-shrink:0; box-shadow:0 0 7px currentColor;
+  }
+
+  .iso-name { flex:1; }
+  .iso-mass { color:var(--dim); font-size:0.6rem; }
+
+  .btn-row { display:flex; flex-direction:column; gap:7px; }
+
+  .fire-btn {
+    background:transparent; border:1px solid var(--accent);
+    color:var(--accent); font-family:'Orbitron',monospace;
+    font-size:0.68rem; letter-spacing:0.12em;
+    padding:9px; border-radius:5px; cursor:pointer;
+    transition:all 0.25s; text-transform:uppercase; width:100%;
+    box-shadow:0 0 8px rgba(0,212,255,0.2);
+  }
+  .fire-btn:hover { background:var(--accent); color:var(--bg); box-shadow:var(--glow); }
+  .fire-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .reset-btn {
+    background:transparent; border:1px solid var(--dim);
+    color:var(--dim); font-family:'Share Tech Mono',monospace;
+    font-size:0.63rem; padding:7px; border-radius:5px;
+    cursor:pointer; transition:all 0.2s; width:100%;
+  }
+  .reset-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+
+  .speed-row { display:flex; align-items:center; gap:8px; font-size:0.63rem; color:var(--dim); }
+  .speed-row input { flex:1; }
+
+  .canvas-wrap {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+
+  .canvas-container {
+    position:relative; border:1px solid var(--border);
+    border-radius:6px; overflow:hidden; background:#020810;
+  }
+
+  canvas { display:block; }
+
+  /* scanlines */
+  .canvas-container::after {
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+    pointer-events:none;
+  }
+
+  .info-table {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(138px,1fr));
+    gap:7px;
+  }
+
+  .info-card {
+    background:rgba(0,20,40,0.8); border:1px solid var(--border);
+    border-radius:5px; padding:7px 9px; font-size:0.6rem;
+  }
+  .info-card .ic-name {
+    font-family:'Orbitron',monospace; font-size:0.58rem; margin-bottom:4px;
+  }
+  .info-card .ic-row {
+    display:flex; justify-content:space-between; color:var(--dim); margin-bottom:2px;
+  }
+  .info-card .ic-row span:last-child { color:#a0c8e8; }
+
+  .physics-note {
+    font-size:0.58rem; color:var(--dim); line-height:1.65;
+    border-top:1px solid var(--border); padding-top:9px;
+  }
+
+  @media (max-width:680px) {
+    .layout { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Mass Spectrograph</h1>
+<p class="subtitle">Slow‑Motion Particle Animation · Magnetic Deflection of Isotopes</p>
+
+<div class="layout">
+  <div class="controls">
+    <div>
+      <div class="section-label">Field Parameters</div>
+      <div class="ctrl-row" style="margin-bottom:9px">
+        <label>Magnetic Field B <span class="val" id="bval">0.80 T</span></label>
+        <input type="range" id="bField" min="0.2" max="2.0" step="0.05" value="0.80">
+      </div>
+      <div class="ctrl-row" style="margin-bottom:9px">
+        <label>Accelerating Voltage V <span class="val" id="vval">5.0 kV</span></label>
+        <input type="range" id="voltage" min="1" max="20" step="0.5" value="5">
+      </div>
+      <div class="ctrl-row">
+        <label>Ion Charge q <span class="val" id="qval">+1e</span></label>
+        <input type="range" id="charge" min="1" max="3" step="1" value="1">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Animation Speed</div>
+      <div class="speed-row">
+        <span>Slow</span>
+        <input type="range" id="speedSlider" min="1" max="10" step="1" value="3">
+        <span>Fast</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Select Isotopes</div>
+      <div class="isotope-list" id="isoList"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="fire-btn" id="fireBtn">⚡ Fire Ions</button>
+      <button class="reset-btn" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <div class="physics-note">
+      <strong style="color:var(--accent)">Physics:</strong><br>
+      r = mv / qB<br>
+      v = √(2qV/m)<br>
+      ∴ r = (1/B)·√(2mV/q)<br><br>
+      Heavier isotopes → larger r → land farther from source.
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="specCanvas"></canvas>
+    </div>
+    <div class="info-table" id="infoTable"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  CONSTANTS & DATA
+// ═══════════════════════════════════════════════════════════════════
+const AMU   = 1.6605e-27;
+const E_CHG = 1.6022e-19;
+
+const ISOTOPES = [
+  { symbol:'H-1',  element:'Hydrogen',  mass:1,   color:'#00d4ff' },
+  { symbol:'H-2',  element:'Deuterium', mass:2,   color:'#4db8ff' },
+  { symbol:'C-12', element:'Carbon',    mass:12,  color:'#39ff14' },
+  { symbol:'C-13', element:'Carbon',    mass:13,  color:'#00e600' },
+  { symbol:'O-16', element:'Oxygen',    mass:16,  color:'#ff6b35' },
+  { symbol:'O-18', element:'Oxygen',    mass:18,  color:'#ff3300' },
+  { symbol:'U-235',element:'Uranium',   mass:235, color:'#ff44cc' },
+  { symbol:'U-238',element:'Uranium',   mass:238, color:'#cc00aa' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+//  LAYOUT CONSTANTS (computed per draw)
+// ═══════════════════════════════════════════════════════════════════
+// The apparatus:
+//   [Source] → acceleration gap (left strip) → [Slit] → semicircle in B-field → [Detector]
+//
+// Canvas zones:
+//   source zone  : x in [0, SRC_W)
+//   accel zone   : x in [SRC_W, SLIT_X)
+//   field zone   : x in [SLIT_X, W)   ← semicircles live here
+//   detector     : right edge
+
+const SRC_W_FRAC  = 0.08;   // fraction of canvas width for source box
+const SLIT_X_FRAC = 0.14;   // where slit / field entry is
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════
+let selected  = new Set([0,1,2,3]);
+let animId    = null;
+let beams     = [];          // one beam per selected isotope
+let dims      = {};          // layout dims
+let t         = 0;           // global animation time (seconds, scaled)
+
+// ═══════════════════════════════════════════════════════════════════
+//  DOM REFS
+// ═══════════════════════════════════════════════════════════════════
+const canvas    = document.getElementById('specCanvas');
+const ctx       = canvas.getContext('2d');
+const bSlider   = document.getElementById('bField');
+const vSlider   = document.getElementById('voltage');
+const qSlider   = document.getElementById('charge');
+const bVal      = document.getElementById('bval');
+const vVal      = document.getElementById('vval');
+const qVal      = document.getElementById('qval');
+const speedSldr = document.getElementById('speedSlider');
+const isoList   = document.getElementById('isoList');
+const infoTable = document.getElementById('infoTable');
+const fireBtn   = document.getElementById('fireBtn');
+const resetBtn  = document.getElementById('resetBtn');
+
+// ═══════════════════════════════════════════════════════════════════
+//  SLIDERS
+// ═══════════════════════════════════════════════════════════════════
+bSlider.oninput  = () => bVal.textContent  = (+bSlider.value).toFixed(2) + ' T';
+vSlider.oninput  = () => vVal.textContent  = (+vSlider.value).toFixed(1) + ' kV';
+qSlider.oninput  = () => qVal.textContent  = '+' + qSlider.value + 'e';
+
+// ═══════════════════════════════════════════════════════════════════
+//  ISOTOPE LIST UI
+// ═══════════════════════════════════════════════════════════════════
+function buildIsoList() {
+  isoList.innerHTML = '';
+  ISOTOPES.forEach((iso, i) => {
+    const div = document.createElement('div');
+    div.className = 'iso-item' + (selected.has(i) ? ' active' : '');
+    div.innerHTML = `
+      <div class="iso-dot" style="background:${iso.color};color:${iso.color}"></div>
+      <span class="iso-name">${iso.symbol}</span>
+      <span class="iso-mass">${iso.mass} u</span>`;
+    div.onclick = () => {
+      if (animId) return; // lock during animation
+      selected.has(i) ? selected.delete(i) : selected.add(i);
+      div.classList.toggle('active');
+    };
+    isoList.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PHYSICS
+// ═══════════════════════════════════════════════════════════════════
+function calcRadius(massAMU, B, V_kV, q) {
+  const m  = massAMU * AMU;
+  const V  = V_kV * 1000;
+  const qc = q * E_CHG;
+  const v  = Math.sqrt(2 * qc * V / m);
+  return (m * v) / (qc * B);   // metres
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CANVAS RESIZE
+// ═══════════════════════════════════════════════════════════════════
+function resizeCanvas() {
+  const c = document.getElementById('canvasContainer');
+  canvas.width  = c.clientWidth;
+  canvas.height = Math.max(390, Math.round(c.clientWidth * 0.56));
+  c.style.height = canvas.height + 'px';
+  computeDims();
+}
+
+function computeDims() {
+  const W = canvas.width, H = canvas.height;
+  const srcW  = Math.round(W * SRC_W_FRAC);
+  const slitX = Math.round(W * SLIT_X_FRAC);
+  const baseY = H - 44;          // bottom baseline
+  const topY  = 28;
+  dims = { W, H, srcW, slitX, baseY, topY };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  BEAM DATA  (computed once per "fire")
+// ═══════════════════════════════════════════════════════════════════
+function buildBeams() {
+  const B = +bSlider.value, V = +vSlider.value, q = +qSlider.value;
+  const { slitX, baseY, W } = dims;
+
+  const radiiM = [...selected].map(i => calcRadius(ISOTOPES[i].mass, B, V, q));
+  const maxR   = Math.max(...radiiM);
+  // scale so biggest semicircle fits nicely
+  const availW = W - slitX - 16;
+  const availH = baseY - dims.topY - 10;
+  const scale  = Math.min(availW / (maxR * 2), availH / maxR);
+
+  beams = [...selected].map((isoIdx, k) => {
+    const rPx = radiiM[k] * scale;
+    return {
+      isoIdx,
+      rPx,
+      // Particle enters field at (slitX, baseY) moving upward
+      // Semicircle centre is (slitX + rPx, baseY)
+      cx: slitX,       // arc centre x  (entry point on left, arc swings right)
+      cy: baseY,       // arc centre y
+      // arc goes from angle=π (left) to angle=0 (right), upper half
+      // parametric: x = cx + rPx·cos(θ), y = cy - rPx·sin(θ), θ: 0→π
+      landX: slitX + rPx * 2,
+      landY: baseY,
+      trail: [],       // {x,y} visited points for glowing trail
+      phase: 'accel',  // 'accel' → 'arc' → 'done'
+      arcAngle: 0,     // 0 → π during arc phase
+      // stagger start so beams don't all leave at same time
+      delay: k * 18,   // frames to wait
+      frameCount: 0,
+    };
+  });
+
+  // sort heaviest last so lighter arcs draw on top
+  beams.sort((a,b) => ISOTOPES[b.isoIdx].mass - ISOTOPES[a.isoIdx].mass);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATIC BACKGROUND
+// ═══════════════════════════════════════════════════════════════════
+function drawStatic() {
+  const { W, H, srcW, slitX, baseY, topY } = dims;
+
+  // BG
+  ctx.fillStyle = '#020810';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── B-field region (right of slit) ──
+  ctx.fillStyle = 'rgba(0,30,60,0.35)';
+  ctx.fillRect(slitX, topY - 10, W - slitX, baseY - topY + 10);
+
+  // grid
+  ctx.strokeStyle = 'rgba(26,58,92,0.35)';
+  ctx.lineWidth = 0.5;
+  for (let x = slitX; x < W; x += 38) {
+    ctx.beginPath(); ctx.moveTo(x, topY - 8); ctx.lineTo(x, baseY); ctx.stroke();
+  }
+  for (let y = topY; y < baseY; y += 34) {
+    ctx.beginPath(); ctx.moveTo(slitX, y); ctx.lineTo(W - 6, y); ctx.stroke();
+  }
+
+  // B-field dots (⊙ = out of page)
+  ctx.fillStyle   = 'rgba(50,100,180,0.55)';
+  ctx.strokeStyle = 'rgba(50,100,180,0.3)';
+  for (let gx = slitX + 28; gx < W - 18; gx += 52) {
+    for (let gy = topY + 10; gy < baseY - 16; gy += 48) {
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(gx, gy, 5, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(gx, gy, 2, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ── Source box (left) ──
+  const sxL = 4, sxR = srcW - 4, syT = baseY - 80, syB = baseY + 2;
+  const grad = ctx.createLinearGradient(sxL, 0, sxR, 0);
+  grad.addColorStop(0, 'rgba(0,60,120,0.5)');
+  grad.addColorStop(1, 'rgba(0,100,180,0.15)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(sxL, syT, sxR - sxL, syB - syT, 4);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,180,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // source label
+  ctx.fillStyle = 'rgba(0,212,255,0.7)';
+  ctx.font = 'bold 9px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('ION', srcW/2, syT + 14);
+  ctx.fillText('SOURCE', srcW/2, syT + 25);
+  ctx.textAlign = 'left';
+
+  // ── Accelerating voltage plates ──
+  // Negative plate (near source exit)
+  ctx.strokeStyle = 'rgba(255,100,50,0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(srcW + 2, baseY - 70);
+  ctx.lineTo(srcW + 2, baseY);
+  ctx.stroke();
+  // Positive plate (at slit)
+  ctx.strokeStyle = 'rgba(50,200,100,0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(slitX - 2, baseY - 70);
+  ctx.lineTo(slitX - 2, baseY);
+  ctx.stroke();
+
+  // voltage labels
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = 'rgba(255,100,50,0.7)';
+  ctx.fillText('−', srcW + 5, baseY - 74);
+  ctx.fillStyle = 'rgba(50,200,100,0.7)';
+  ctx.fillText('+', slitX - 10, baseY - 74);
+
+  // electric field arrows in gap
+  ctx.strokeStyle = 'rgba(200,180,50,0.3)';
+  ctx.lineWidth = 1;
+  const gapMid = (srcW + slitX) / 2;
+  for (let ay = baseY - 60; ay < baseY - 5; ay += 18) {
+    // arrow right (E field from + to -, but ion goes left to right)
+    const ax = srcW + 8;
+    const ex = slitX - 10;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ay); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex, ay); ctx.lineTo(ex - 5, ay - 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex, ay); ctx.lineTo(ex - 5, ay + 4); ctx.stroke();
+  }
+
+  // Voltage label in gap
+  ctx.fillStyle = 'rgba(200,180,50,0.5)';
+  ctx.font = '8px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText(`V=${(+vSlider.value).toFixed(0)}kV`, gapMid, baseY - 76);
+  ctx.textAlign = 'left';
+
+  // ── Slit ──
+  ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(slitX, topY - 8); ctx.lineTo(slitX, baseY - 52); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(slitX, baseY - 14); ctx.lineTo(slitX, baseY + 2); ctx.stroke();
+  // slit gap highlight
+  ctx.strokeStyle = 'rgba(255,255,100,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([2,2]);
+  ctx.beginPath(); ctx.moveTo(slitX, baseY - 52); ctx.lineTo(slitX, baseY - 14); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillText('SLIT', slitX + 3, topY);
+
+  // ── Detector plate ──
+  ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(W - 8, topY - 8); ctx.lineTo(W - 8, baseY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(0,212,255,0.35)';
+  ctx.font = '8px Share Tech Mono';
+  ctx.textAlign = 'right';
+  ctx.fillText('DETECTOR', W - 10, topY);
+  ctx.textAlign = 'left';
+
+  // ── Baseline axis ──
+  ctx.strokeStyle = '#1a3a5c';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(slitX, baseY);
+  ctx.lineTo(W - 6, baseY);
+  ctx.stroke();
+
+  // B field label
+  ctx.fillStyle = 'rgba(60,120,210,0.6)';
+  ctx.font = '9px Share Tech Mono';
+  ctx.fillText('⊙  B field (out of page)', slitX + 10, topY + 6);
+  ctx.fillStyle = 'rgba(60,120,210,0.4)';
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillText(`B = ${(+bSlider.value).toFixed(2)} T`, slitX + 10, topY + 17);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PARTICLE POSITION on arc
+//  θ goes 0 → π;  x = cx + r·cos(π - θ), y = cy - r·sin(θ)
+//  so at θ=0: (cx, cy)  at θ=π/2: (cx+r, cy-r)  at θ=π: (cx+2r, cy)
+// ═══════════════════════════════════════════════════════════════════
+function arcPos(beam, theta) {
+  return {
+    x: beam.cx + beam.rPx * (1 - Math.cos(theta)),
+    y: beam.cy - beam.rPx * Math.sin(theta),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRAW COMPLETED ARC TRAIL (faint static path)
+// ═══════════════════════════════════════════════════════════════════
+function drawCompletedArc(beam) {
+  const iso = ISOTOPES[beam.isoIdx];
+  ctx.beginPath();
+  // arc from angle=π (left) counterclockwise to 0 (right) in canvas coords
+  // canvas arc: cx+rPx*(1−cos θ), but simpler to use ctx.arc on the geometric centre
+  const gcx = beam.cx + beam.rPx; // geometric centre of semicircle
+  const gcy = beam.cy;
+  ctx.arc(gcx, gcy, beam.rPx, Math.PI, 0, false);
+  ctx.strokeStyle = iso.color + '30';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRAW GLOWING TRAIL (recent path of particle)
+// ═══════════════════════════════════════════════════════════════════
+function drawTrail(beam) {
+  const iso  = ISOTOPES[beam.isoIdx];
+  const pts  = beam.trail;
+  if (pts.length < 2) return;
+  const TRAIL_LEN = 42;
+  const start = Math.max(0, pts.length - TRAIL_LEN);
+
+  for (let i = start + 1; i < pts.length; i++) {
+    const frac = (i - start) / (pts.length - start); // 0→1 (head)
+    const alpha = frac * 0.85;
+    const width = 1.5 + frac * 2.5;
+    ctx.beginPath();
+    ctx.moveTo(pts[i-1].x, pts[i-1].y);
+    ctx.lineTo(pts[i].x,   pts[i].y);
+    ctx.strokeStyle = iso.color + Math.round(alpha * 255).toString(16).padStart(2,'0');
+    ctx.lineWidth   = width;
+    ctx.shadowBlur  = frac * 10;
+    ctx.shadowColor = iso.color;
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRAW PARTICLE HEAD (glowing dot)
+// ═══════════════════════════════════════════════════════════════════
+function drawHead(x, y, color) {
+  // outer glow
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 12);
+  g.addColorStop(0, color + 'cc');
+  g.addColorStop(0.3, color + '66');
+  g.addColorStop(1, color + '00');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI*2); ctx.fill();
+  // core
+  ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2);
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowBlur = 12; ctx.shadowColor = color;
+  ctx.fill(); ctx.shadowBlur = 0;
+  // ring
+  ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRAW LANDING MARK
+// ═══════════════════════════════════════════════════════════════════
+function drawLanding(beam) {
+  const iso  = ISOTOPES[beam.isoIdx];
+  const lx   = Math.min(beam.landX, dims.W - 12);
+  const ly   = beam.landY;
+
+  ctx.beginPath(); ctx.arc(lx, ly, 6, 0, Math.PI*2);
+  ctx.fillStyle   = iso.color;
+  ctx.shadowBlur  = 18; ctx.shadowColor = iso.color;
+  ctx.fill(); ctx.shadowBlur = 0;
+
+  // label above landing
+  ctx.fillStyle = iso.color;
+  ctx.font = 'bold 10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText(iso.symbol, lx, ly - 10);
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = iso.color + 'aa';
+  ctx.fillText(`d=${(beam.rPx * 2).toFixed(0)}px`, lx, ly - 22);
+  ctx.textAlign = 'left';
+
+  // dashed diameter line
+  ctx.beginPath();
+  ctx.moveTo(beam.cx, beam.cy);
+  ctx.lineTo(lx, ly);
+  ctx.strokeStyle = iso.color + '28';
+  ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRAW SOURCE GLOW / EMISSION
+// ═══════════════════════════════════════════════════════════════════
+let pulseT = 0;
+function drawSourceGlow() {
+  const { srcW, baseY } = dims;
+  pulseT += 0.07;
+  const pulse = 0.5 + 0.5 * Math.sin(pulseT);
+
+  // ionisation glow inside source
+  const cg = ctx.createRadialGradient(srcW*0.5, baseY - 35, 2, srcW*0.5, baseY - 35, 28);
+  cg.addColorStop(0, `rgba(255,200,100,${0.3 + pulse*0.25})`);
+  cg.addColorStop(1, 'rgba(255,120,0,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); ctx.arc(srcW*0.5, baseY - 35, 28, 0, Math.PI*2); ctx.fill();
+
+  // "plasma" flicker dots
+  for (let k = 0; k < 4; k++) {
+    const px = srcW * 0.2 + Math.random() * srcW * 0.6;
+    const py = baseY - 70 + Math.random() * 60;
+    ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,200,80,${Math.random() * 0.6})`;
+    ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAIN ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════════
+let lastTime = null;
+
+function animate(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt  = Math.min((ts - lastTime) / 1000, 0.05); // seconds, capped
+  lastTime  = ts;
+  const spd = +speedSldr.value;                        // 1–10
+
+  // angular speed: full π in ~3s at speed=1, ~0.3s at speed=10
+  const angSpeed = Math.PI / (3.5 / spd);
+  // accel phase speed: cross gap in ~1.5s at speed=1
+  const accelSpeed = (dims.slitX - dims.srcW) / (1.5 / spd);
+
+  drawStatic();
+  drawSourceGlow();
+
+  let allDone = true;
+
+  beams.forEach(beam => {
+    const iso = ISOTOPES[beam.isoIdx];
+
+    // draw ghost arc path
+    drawCompletedArc(beam);
+
+    if (beam.phase === 'done') {
+      drawLanding(beam);
+      drawTrail(beam);
+      return;
+    }
+
+    allDone = false;
+
+    // countdown delay
+    if (beam.delay > 0) {
+      beam.delay -= spd * 0.8;
+      return;
+    }
+
+    if (beam.phase === 'accel') {
+      // particle travels left→right in the acceleration gap
+      if (!beam.accelX) beam.accelX = dims.srcW + 4;
+      beam.accelX += accelSpeed * dt;
+      const px = beam.accelX;
+      const py = beam.cy;    // baseline
+
+      beam.trail.push({ x: px, y: py });
+      if (beam.trail.length > 60) beam.trail.shift();
+
+      drawTrail(beam);
+      drawHead(px, py, iso.color);
+
+      if (px >= dims.slitX) {
+        beam.phase    = 'arc';
+        beam.arcAngle = 0;
+        beam.trail    = [{ x: dims.slitX, y: beam.cy }];
+      }
+
+    } else if (beam.phase === 'arc') {
+      beam.arcAngle += angSpeed * dt;
+      if (beam.arcAngle >= Math.PI) {
+        beam.arcAngle = Math.PI;
+        beam.phase    = 'done';
+      }
+      const pos = arcPos(beam, beam.arcAngle);
+      beam.trail.push(pos);
+      if (beam.trail.length > 80) beam.trail.shift();
+
+      drawTrail(beam);
+      if (beam.phase !== 'done') drawHead(pos.x, pos.y, iso.color);
+      if (beam.phase === 'done') drawLanding(beam);
+    }
+  });
+
+  if (allDone && beams.length > 0) {
+    // stop looping, leave final frame up
+    animId = null;
+    fireBtn.disabled = false;
+    return;
+  }
+
+  animId = requestAnimationFrame(animate);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  INFO CARDS
+// ═══════════════════════════════════════════════════════════════════
+function buildInfoCards() {
+  infoTable.innerHTML = '';
+  const B = +bSlider.value, V = +vSlider.value, q = +qSlider.value;
+  beams.forEach(beam => {
+    const iso  = ISOTOPES[beam.isoIdx];
+    const v_ms = Math.sqrt(2 * q * E_CHG * V * 1000 / (iso.mass * AMU));
+    const r_m  = calcRadius(iso.mass, B, V, q);
+    const card = document.createElement('div');
+    card.className = 'info-card';
+    card.innerHTML = `
+      <div class="ic-name" style="color:${iso.color}">${iso.symbol} — ${iso.element}</div>
+      <div class="ic-row"><span>Mass</span><span>${iso.mass} u</span></div>
+      <div class="ic-row"><span>Velocity</span><span>${(v_ms/1e6).toFixed(2)} Mm/s</span></div>
+      <div class="ic-row"><span>Radius r</span><span>${(r_m*100).toFixed(2)} cm</span></div>
+      <div class="ic-row"><span>Diameter 2r</span><span>${(r_m*200).toFixed(2)} cm</span></div>`;
+    infoTable.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  FIRE & RESET
+// ═══════════════════════════════════════════════════════════════════
+fireBtn.onclick = () => {
+  if (selected.size === 0) return;
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  lastTime = null;
+  buildBeams();
+  buildInfoCards();
+  fireBtn.disabled = true;
+  animId = requestAnimationFrame(animate);
+};
+
+resetBtn.onclick = () => {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  beams = [];
+  infoTable.innerHTML = '';
+  lastTime = null;
+  drawStatic();
+  fireBtn.disabled = false;
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  if (!animId) drawStatic();
+});
+
+resizeCanvas();
+buildIsoList();
+drawStatic();
+
+// auto-fire on load
+setTimeout(() => fireBtn.click(), 400);
+</script>
+</body>
+</html>
