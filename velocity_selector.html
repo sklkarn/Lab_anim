@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velocity Selector — Dr. S Karna</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#03070d;color:#a0b8cc;
+  font-family:'Rajdhani',sans-serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 18px 22px;min-height:100vh;
+}
+.header{text-align:center;margin-bottom:13px}
+h1{font-size:1.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+   color:#00e5ff;text-shadow:0 0 20px rgba(0,229,255,.4);margin-bottom:3px}
+.sub{font-family:'Share Tech Mono',monospace;font-size:.64rem;color:#1a3040;letter-spacing:.12em;margin-bottom:6px}
+.inst{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,229,255,.2);
+  border-radius:3px;padding:4px 13px;font-family:'Share Tech Mono',monospace;
+  font-size:.67rem;letter-spacing:.12em;color:rgba(0,229,255,.7);background:rgba(0,229,255,.03)}
+.pip{width:6px;height:6px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px #39ff14;
+  animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+.layout{display:grid;grid-template-columns:220px 1fr 220px;gap:11px;width:100%;max-width:1020px}
+.panel{background:#070f1a;border:1px solid #0c2e47;border-radius:4px;padding:13px}
+.pt{font-family:'Share Tech Mono',monospace;font-size:.57rem;letter-spacing:.2em;color:#1a3040;
+  border-bottom:1px solid #0c2e47;padding-bottom:5px;margin-bottom:11px;text-transform:uppercase}
+.row{margin-bottom:11px}
+.rl{display:flex;justify-content:space-between;font-size:.77rem;font-weight:600;margin-bottom:4px}
+.v{font-family:'Share Tech Mono',monospace;font-size:.72rem}
+.ec{color:#00e5ff}.bc{color:#ff3d71}.gc{color:#39ff14}.oc{color:#ff9800}
+
+input[type=range]{width:100%;height:3px;-webkit-appearance:none;border-radius:2px;outline:none;cursor:pointer}
+input.et{background:linear-gradient(to right,#00e5ff var(--p,50%),#0c2e47 var(--p,50%))}
+input.bt{background:linear-gradient(to right,#ff3d71 var(--p,50%),#0c2e47 var(--p,50%))}
+input.gt{background:linear-gradient(to right,#39ff14 var(--p,50%),#0c2e47 var(--p,50%))}
+input.ot{background:linear-gradient(to right,#ff9800 var(--p,50%),#0c2e47 var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:#a0b8cc;border:2px solid #03070d;box-shadow:0 0 5px rgba(160,184,204,.5)}
+
+.cbtns{display:flex;gap:5px;margin-top:5px}
+.cbtn{flex:1;padding:5px 0;font-family:'Share Tech Mono',monospace;font-size:.65rem;
+  border:1px solid #0c2e47;border-radius:3px;background:transparent;color:#1a3040;
+  cursor:pointer;transition:all .15s}
+.cbtn.op{border-color:#00e5ff;color:#00e5ff;background:rgba(0,229,255,.07)}
+.cbtn.on{border-color:#ff3d71;color:#ff3d71;background:rgba(255,61,113,.07)}
+.btns{display:flex;gap:6px;margin-top:9px}
+.btn{flex:1;padding:7px 0;font-family:'Rajdhani',sans-serif;font-size:.75rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;border:1px solid #0c2e47;border-radius:3px;
+  background:transparent;color:#a0b8cc;cursor:pointer;transition:all .18s}
+.btn:hover{border-color:#00e5ff;color:#00e5ff}
+.btn.run{border-color:#39ff14;color:#39ff14;background:rgba(57,255,20,.05)}
+
+.canvas-wrap{border:1px solid #0c2e47;border-radius:4px;overflow:hidden;background:#010508}
+canvas{display:block}
+
+.card{background:rgba(0,0,0,.3);border:1px solid #0c2e47;border-radius:3px;padding:7px 9px;margin-bottom:7px}
+.ct{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:.12em;color:#1a3040;margin-bottom:3px}
+.cv{font-family:'Share Tech Mono',monospace;font-size:.95rem;font-weight:700}
+.formula{background:rgba(0,229,255,.025);border:1px solid rgba(0,229,255,.1);border-radius:3px;
+  padding:8px 9px;font-family:'Share Tech Mono',monospace;font-size:.66rem;line-height:1.9;
+  color:#253d50;margin-bottom:8px}
+.fhi{color:#00e5ff}
+.legend{font-family:'Share Tech Mono',monospace;font-size:.59rem;line-height:2.1;color:#253d50}
+.ld{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+.sb{width:100%;max-width:1020px;display:flex;gap:8px;margin-top:8px}
+.si{flex:1;background:#070f1a;border:1px solid #0c2e47;border-radius:3px;padding:6px 9px;
+  font-family:'Share Tech Mono',monospace}
+.si span{display:block;font-size:.52rem;letter-spacing:.1em;color:#1a3040;margin-bottom:2px}
+.si strong{font-size:.74rem;color:#a0b8cc}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Velocity Selector</h1>
+  <div class="sub">// ELECTROMAGNETIC PARTICLE FILTER — qE = qvB → v = E/B</div>
+  <div class="inst"><span class="pip"></span>INSTRUCTOR: Dr. S Karna<span class="pip"></span></div>
+</div>
+
+<div class="layout">
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <div class="pt">// Field Parameters</div>
+    <div class="row">
+      <div class="rl"><span>Electric Field (E)</span><span class="v ec" id="eVal">5.0 kV/m</span></div>
+      <input type="range" class="et" id="eSlider" min="1" max="20" step="0.1" value="5">
+    </div>
+    <div class="row">
+      <div class="rl"><span>Magnetic Field (B)</span><span class="v bc" id="bVal">0.100 T</span></div>
+      <input type="range" class="bt" id="bSlider" min="0.01" max="0.5" step="0.005" value="0.1">
+    </div>
+    <div class="row">
+      <div class="rl"><span>Deflection Scale</span><span class="v oc" id="scaleVal">1.0×</span></div>
+      <input type="range" class="ot" id="scaleSlider" min="0.5" max="5" step="0.1" value="1">
+    </div>
+    <div class="pt" style="margin-top:3px">// Charge Type</div>
+    <div class="cbtns">
+      <button class="cbtn op" id="posBtn" onclick="setCharge(1)">+ Positive</button>
+      <button class="cbtn"    id="negBtn" onclick="setCharge(-1)">− Negative</button>
+    </div>
+    <div class="btns">
+      <button class="btn run" id="playBtn" onclick="togglePlay()">⏸ Pause</button>
+      <button class="btn"     onclick="doReset()">↺ Reset</button>
+    </div>
+    <!-- Track key -->
+    <div style="margin-top:14px">
+      <div class="pt">// Track Key</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:2.2">
+        <div><span style="display:inline-block;width:24px;height:3px;background:#39ff14;vertical-align:middle;margin-right:6px;border-radius:2px"></span><span class="gc">v₀ = E/B  → straight</span></div>
+        <div><span style="display:inline-block;width:24px;height:3px;background:#ff9800;vertical-align:middle;margin-right:6px;border-radius:2px"></span><span class="oc">0.60 v₀  → curves ↓</span></div>
+        <div><span style="display:inline-block;width:24px;height:3px;background:#ffcc00;vertical-align:middle;margin-right:6px;border-radius:2px"></span><span style="color:#ffcc00">0.80 v₀  → slight ↓</span></div>
+        <div><span style="display:inline-block;width:24px;height:3px;background:#e040fb;vertical-align:middle;margin-right:6px;border-radius:2px"></span><span style="color:#e040fb">1.20 v₀  → slight ↑</span></div>
+        <div><span style="display:inline-block;width:24px;height:3px;background:#ff3d71;vertical-align:middle;margin-right:6px;border-radius:2px"></span><span style="color:#ff3d71">1.40 v₀  → curves ↑</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="canvas-wrap">
+      <canvas id="cv" width="540" height="420"></canvas>
+    </div>
+    <div class="sb">
+      <div class="si"><span>SELECTED v = E/B</span><strong id="vDisp">—</strong></div>
+      <div class="si"><span>STRAIGHT (v₀)</span><strong id="sCnt" style="color:#39ff14">0</strong></div>
+      <div class="si"><span>DEFLECTED ↑ (fast)</span><strong id="uCnt" style="color:#e040fb">0</strong></div>
+      <div class="si"><span>DEFLECTED ↓ (slow)</span><strong id="dCnt" style="color:#ff9800">0</strong></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <div class="pt">// Physics</div>
+    <div class="card"><div class="ct">SELECTED VELOCITY  v₀ = E/B</div><div class="cv gc" id="vCard">—</div></div>
+    <div class="card"><div class="ct">ELECTRIC FORCE  F = qE  (↓)</div><div class="cv ec" id="feCard">—</div></div>
+    <div class="card"><div class="ct">MAGNETIC FORCE  F = qvB  (↑)</div><div class="cv bc" id="fbCard">—</div></div>
+    <div class="formula">
+      <span class="fhi">At v₀:</span>  qE = qv₀B  → straight<br><br>
+      <span style="color:#3a5e76">Slow particle (v &lt; v₀):</span><br>
+      <span style="color:#ff9800;font-size:.63rem">  F_E &gt; F_B  → net force ↓<br>  particle curves DOWNWARD</span><br><br>
+      <span style="color:#3a5e76">Fast particle (v &gt; v₀):</span><br>
+      <span style="color:#e040fb;font-size:.63rem">  F_B &gt; F_E  → net force ↑<br>  particle curves UPWARD</span>
+    </div>
+    <div class="legend">
+      <div style="color:#253d50">Cyan arrows ↓ = E field</div>
+      <div style="color:#253d50">Magenta ⊗ = B into page</div>
+      <div style="margin-top:4px;color:#39ff14">Only v₀ exits through slit ✓</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════════════
+   CANVAS & LAYOUT
+══════════════════════════════════════════════════ */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;  // 540 × 420
+
+// Geometry — wide open field region so curves are clearly visible
+const CY  = H / 2;          // 210  centre y
+const PT  = 60;              // + plate  (top)
+const PB  = H - 60;         // − plate  (bottom) = 360
+const X1  = 130;             // entry slit
+const X2  = W - 70;         // exit  slit  = 470
+const SW  = 10;              // slit wall thickness
+const SH  = 22;             // slit half-height (opening)
+
+/* ══════════════════════════════════════════════════
+   PHYSICS CONSTANTS
+══════════════════════════════════════════════════ */
+const Q_CHARGE = 1.6e-19;   // C
+const M_MASS   = 1.67e-27;  // kg  (proton)
+
+/* ══════════════════════════════════════════════════
+   USER-CONTROLLED STATE
+══════════════════════════════════════════════════ */
+let E        = 5000;    // V/m
+let B        = 0.1;     // T
+let deflScale = 1.0;    // visual exaggeration of deflection
+let qSign    = 1;       // +1 or −1
+let paused   = false;
+
+let stats = { pass:0, up:0, dn:0 };
+
+/* ══════════════════════════════════════════════════
+   FIXED VELOCITY STREAMS
+   5 streams with specific fractions of v₀:
+   0.60, 0.80, 1.00, 1.20, 1.40
+══════════════════════════════════════════════════ */
+const FRACS  = [0.60, 0.80, 1.00, 1.20, 1.40];
+const COLORS = ['#ff9800', '#ffcc00', '#39ff14', '#e040fb', '#ff3d71'];
+const LABELS = ['0.60 v₀ (slow)', '0.80 v₀', 'v₀ (selected)', '1.20 v₀', '1.40 v₀ (fast)'];
+
+let streams = [];
+
+/* ══════════════════════════════════════════════════
+   COMPUTE FULL PATH FOR ONE STREAM
+   Uses real physics, then scale the net force
+   by deflScale for visual clarity.
+══════════════════════════════════════════════════ */
+function computePath(frac) {
+  const vReal  = (E / B) * frac;
+
+  // Real net force on particle:
+  //   + plate on top → E points DOWN
+  //   +charge: F_E = qE downward (−y), F_B = qvB upward (+y)
+  const F_net  = (-qSign * Q_CHARGE * E) + (qSign * Q_CHARGE * vReal * B);
+
+  // Convert to visual px/frame²
+  // We simulate at VX px/frame horizontal speed.
+  // Real transit time through field = fieldWidth / vReal (seconds)
+  // Visual transit = fieldWidth / VX  (frames)
+  // Real displacement = ½ a t²  →  scale to visual
+  const VX     = 2.0;                    // px per frame
+  const fieldW = X2 - X1;               // 340 px wide field
+  const frames = fieldW / VX;           // frames to cross field
+  // desired visual vertical displacement (px) at full deflection
+  // at frac=0.6: net force is strongest → we want ~(PB-CY)*0.75 displacement
+  // We'll use deflScale to let user amplify
+  const a_phys = F_net / M_MASS;        // m/s²
+  // normalise: at |frac-1|=0.4 let's target 120px vertical
+  const norm   = Math.abs(frac - 1.0);  // 0 for v₀, 0.4 for extreme
+  const BASE_DISP = 130;                // px displacement target for |frac-1|=0.4
+  let a_vis;
+  if (norm < 1e-6) {
+    a_vis = 0;                          // v₀: exactly zero deflection
+  } else {
+    // sign from physics, magnitude scaled visually
+    const sign = a_phys < 0 ? -1 : 1;
+    a_vis = sign * (norm / 0.4) * BASE_DISP * deflScale / (frames * frames / 2);
+  }
+
+  // Simulate path
+  const pts = [];
+  let x = 0, y = CY, vy = 0;
+  const STEP = VX;
+  while (x <= W + STEP) {
+    pts.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+    const inField = x >= X1 && x <= X2;
+    if (inField) vy += a_vis;
+    x += STEP;
+    y += vy;
+    // absorbed by plates
+    if (inField) {
+      if (y <= PT)  { y = PT;  vy = 0; break; }
+      if (y >= PB)  { y = PB;  vy = 0; break; }
+    }
+    if (y < -30 || y > H + 30) break;
+  }
+  return pts;
+}
+
+function buildStreams() {
+  streams = FRACS.map((frac, i) => ({
+    frac,
+    color: COLORS[i],
+    label: LABELS[i],
+    path: computePath(frac),
+    dotT: -(i * 35),      // stagger starts
+    scored: false,
+  }));
+}
+
+/* ══════════════════════════════════════════════════
+   UPDATE — advance moving dots
+══════════════════════════════════════════════════ */
+function update() {
+  if (paused) return;
+  for (const s of streams) {
+    s.dotT++;
+    const pt = dotPos(s);
+    if (!s.scored && pt && pt.x >= X2) {
+      s.scored = true;
+      if (Math.abs(pt.y - CY) <= SH) stats.pass++;
+      else if (pt.y < CY)            stats.up++;
+      else                           stats.dn++;
+      refreshStats();
+    }
+    if (s.dotT > s.path.length + 50) {
+      s.dotT   = -40 - (Math.random() * 30 | 0);
+      s.scored = false;
+    }
+  }
+}
+
+function dotPos(s) {
+  if (s.dotT < 0 || s.path.length === 0) return null;
+  return s.path[Math.min(s.dotT, s.path.length - 1)];
+}
+
+/* ══════════════════════════════════════════════════
+   DRAW — strict layer order
+══════════════════════════════════════════════════ */
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();           // layer 1
+  drawFieldSymbols();   // layer 2  (low alpha)
+  drawPlates();         // layer 3  (lines only)
+  drawSlits();          // layer 4  (outlines only)
+  drawLabels();         // layer 5
+  drawStreams();        // layer 6  ← ALWAYS ON TOP
+}
+
+/* ── Grid ── */
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(10,40,64,0.5)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* ── E-field (cyan arrows ↓) and B-field (⊗) at 18% alpha ── */
+function drawFieldSymbols() {
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+
+  // E arrows pointing DOWN
+  ctx.strokeStyle = '#00e5ff';
+  ctx.fillStyle   = '#00e5ff';
+  ctx.lineWidth   = 1.3;
+  for (let gx = X1 + 22; gx < X2 - 5; gx += 44) {
+    for (let gy = PT + 28; gy < PB - 10; gy += 52) {
+      ctx.beginPath(); ctx.moveTo(gx, gy-10); ctx.lineTo(gx, gy+10); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(gx, gy+10); ctx.lineTo(gx-5, gy+1); ctx.lineTo(gx+5, gy+1);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // B crosses ⊗ into page
+  ctx.strokeStyle = '#ff3d71';
+  ctx.lineWidth   = 1.3;
+  for (let gx = X1 + 44; gx < X2 - 5; gx += 44) {
+    for (let gy = PT + 54; gy < PB - 20; gy += 52) {
+      const r = 8, d = r * 0.65;
+      ctx.beginPath(); ctx.arc(gx, gy, r, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(gx-d,gy-d); ctx.lineTo(gx+d,gy+d);
+      ctx.moveTo(gx+d,gy-d); ctx.lineTo(gx-d,gy+d);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/* ── Electrode plates — 3 px glowing lines, zero fill ── */
+function drawPlates() {
+  ctx.save();
+  // positive plate (top)
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(0,229,255,.5)'; ctx.shadowBlur = 9;
+  ctx.beginPath(); ctx.moveTo(X1, PT); ctx.lineTo(X2, PT); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(0,229,255,.55)';
+  ctx.font = 'bold 11px Share Tech Mono'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let x = X1+18; x < X2; x += 26) ctx.fillText('+', x, PT - 11);
+
+  // negative plate (bottom)
+  ctx.strokeStyle = '#ff3d71';
+  ctx.shadowColor = 'rgba(255,61,113,.5)'; ctx.shadowBlur = 9;
+  ctx.beginPath(); ctx.moveTo(X1, PB); ctx.lineTo(X2, PB); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,61,113,.55)';
+  for (let x = X1+18; x < X2; x += 26) ctx.fillText('−', x, PB + 11);
+  ctx.restore();
+}
+
+/* ── Slit walls — stroke outlines only, transparent interior ── */
+function drawSlits() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,140,200,.45)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(X1-SW, 0,     SW, CY-SH);
+  ctx.strokeRect(X1-SW, CY+SH, SW, H-CY-SH);
+  ctx.strokeRect(X2,    0,     SW, CY-SH);
+  ctx.strokeRect(X2,    CY+SH, SW, H-CY-SH);
+  // glowing slit openings
+  ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(57,255,20,.8)'; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.moveTo(X1, CY-SH); ctx.lineTo(X1, CY+SH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X2+SW, CY-SH); ctx.lineTo(X2+SW, CY+SH); ctx.stroke();
+  ctx.restore();
+}
+
+/* ── Static labels ── */
+function drawLabels() {
+  ctx.save();
+  ctx.font = '500 9px Share Tech Mono'; ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = 'rgba(0,229,255,.65)'; ctx.textAlign = 'left';
+  ctx.fillText('+ PLATE  (E ↓)', X1+4, PT-24);
+  ctx.fillStyle = 'rgba(255,61,113,.65)';
+  ctx.fillText('− PLATE', X1+4, PB+22);
+
+  // E / B tags inside field
+  ctx.globalAlpha = 0.30;
+  ctx.fillStyle = '#00e5ff'; ctx.textAlign = 'left';
+  ctx.fillText('E ↓', X1+8, PT+16);
+  ctx.fillStyle = '#ff3d71'; ctx.textAlign = 'right';
+  ctx.fillText('B ⊗', X2-6, PT+16);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = 'rgba(160,184,204,.3)'; ctx.font = '500 9px Share Tech Mono';
+  ctx.textAlign = 'right'; ctx.fillText('ENTRY SLIT', X1-SW-4, CY-SH-7);
+  ctx.textAlign = 'left';  ctx.fillText('EXIT SLIT',  X2+SW+4, CY-SH-7);
+
+  // dashed centre axis
+  ctx.strokeStyle = 'rgba(57,255,20,.07)'; ctx.lineWidth = 1; ctx.setLineDash([4,8]);
+  ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(W,CY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // source marker
+  ctx.strokeStyle = 'rgba(57,255,20,.38)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(3, CY-SH*2.6, 14, SH*5.2);
+  ctx.save();
+  ctx.fillStyle = 'rgba(57,255,20,.5)'; ctx.font = '500 8px Share Tech Mono';
+  ctx.textAlign = 'center'; ctx.translate(10, CY); ctx.rotate(-Math.PI/2);
+  ctx.fillText('SOURCE', 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════
+   DRAW STREAMS — full path + glowing dot
+   This is the last layer so tracks are never hidden.
+══════════════════════════════════════════════════ */
+function drawStreams() {
+  ctx.save();
+  ctx.lineCap  = 'round';
+  ctx.lineJoin = 'round';
+
+  for (const s of streams) {
+    const path = s.path;
+    if (path.length < 2) continue;
+
+    /* 1. Draw the complete static path as a semi-transparent base */
+    ctx.globalAlpha = 0.40;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.stroke();
+
+    /* 2. Bright highlighted segment up to the moving dot */
+    const idx = s.dotT < 0 ? -1 : Math.min(s.dotT, path.length - 1);
+    if (idx >= 1) {
+      ctx.globalAlpha = 1.0;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth   = 3.5;
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur  = 12;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i <= idx; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    /* 3. Moving dot */
+    const dp = dotPos(s);
+    if (dp) {
+      ctx.globalAlpha = 1;
+      // outer glow
+      ctx.shadowColor = s.color; ctx.shadowBlur = 20;
+      ctx.beginPath(); ctx.arc(dp.x, dp.y, 7, 0, Math.PI*2);
+      ctx.fillStyle = s.color; ctx.fill();
+      ctx.shadowBlur = 0;
+      // white core
+      ctx.beginPath(); ctx.arc(dp.x, dp.y, 2.5, 0, Math.PI*2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      // charge symbol
+      ctx.fillStyle = s.color; ctx.font = '700 9px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(qSign > 0 ? '+' : '−', dp.x, dp.y);
+    }
+
+    /* 4. Velocity label pinned at entry of field region (X1) */
+    //    Find path point closest to X1
+    let labelPt = path[0];
+    for (const pt of path) { if (pt.x >= X1 - 5) { labelPt = pt; break; } }
+    ctx.globalAlpha = 1.0;
+    ctx.font = '700 10px Share Tech Mono';
+    ctx.fillStyle = s.color;
+    ctx.shadowColor = '#010508'; ctx.shadowBlur = 5;
+    // offset label above or below depending on deflection direction
+    const labelY = s.frac < 1.0
+      ? labelPt.y + 16      // slow: label below
+      : s.frac > 1.0
+        ? labelPt.y - 16    // fast: label above
+        : labelPt.y - 16;   // selected: above
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.label, labelPt.x, labelY);
+    ctx.shadowBlur = 0;
+
+    /* 5. Draw a deflection arrow at the end of path inside field */
+    //    Find path point just before X2 to show the net deflection direction
+    if (Math.abs(s.frac - 1.0) > 0.05) {
+      let arrowPt = path[path.length - 1];
+      for (const pt of path) { if (pt.x >= X2 - 5) { arrowPt = pt; break; } }
+      // only draw if inside field bounds
+      if (arrowPt.x > X1 && arrowPt.x < X2 + 20 && arrowPt.y > PT + 5 && arrowPt.y < PB - 5) {
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = s.color; ctx.fillStyle = s.color;
+        ctx.lineWidth = 2; ctx.shadowBlur = 0;
+        const dir  = s.frac < 1.0 ? 1 : -1; // 1=down, -1=up
+        const ax   = arrowPt.x - 8, ay = arrowPt.y;
+        const alen = 18;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, ay + dir*alen); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ax,   ay + dir*alen);
+        ctx.lineTo(ax-6, ay + dir*(alen-9));
+        ctx.lineTo(ax+6, ay + dir*(alen-9));
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════
+   READOUT HELPERS
+══════════════════════════════════════════════════ */
+function sup(n) {
+  const m={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+  return String(n).split('').map(c=>m[c]||c).join('');
+}
+function fmtF(f) {
+  const e = Math.floor(Math.log10(Math.abs(f)));
+  return (f/10**e).toFixed(2)+' × 10'+sup(e)+' N';
+}
+function fmtV(v) {
+  return v>=1e6?(v/1e6).toFixed(3)+' Mm/s':v>=1e3?(v/1e3).toFixed(2)+' km/s':v.toFixed(1)+' m/s';
+}
+function refreshReadouts() {
+  const v = E/B, vs = fmtV(v);
+  document.getElementById('vCard').textContent  = vs;
+  document.getElementById('vDisp').textContent  = vs;
+  document.getElementById('feCard').textContent = fmtF(Q_CHARGE*E);
+  document.getElementById('fbCard').textContent = fmtF(Q_CHARGE*v*B);
+}
+function refreshStats() {
+  document.getElementById('sCnt').textContent = stats.pass;
+  document.getElementById('uCnt').textContent = stats.up;
+  document.getElementById('dCnt').textContent = stats.dn;
+}
+
+/* ══════════════════════════════════════════════════
+   SLIDER UTIL
+══════════════════════════════════════════════════ */
+function setPct(el) {
+  el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100).toFixed(1)+'%');
+}
+
+/* ══════════════════════════════════════════════════
+   SLIDER EVENTS
+══════════════════════════════════════════════════ */
+document.getElementById('eSlider').addEventListener('input', function() {
+  E = parseFloat(this.value)*1000;
+  document.getElementById('eVal').textContent = parseFloat(this.value).toFixed(1)+' kV/m';
+  setPct(this); refreshReadouts(); buildStreams();
+});
+document.getElementById('bSlider').addEventListener('input', function() {
+  B = parseFloat(this.value);
+  document.getElementById('bVal').textContent = B.toFixed(3)+' T';
+  setPct(this); refreshReadouts(); buildStreams();
+});
+document.getElementById('scaleSlider').addEventListener('input', function() {
+  deflScale = parseFloat(this.value);
+  document.getElementById('scaleVal').textContent = deflScale.toFixed(1)+'×';
+  setPct(this); buildStreams();
+});
+
+/* ══════════════════════════════════════════════════
+   BUTTON HANDLERS
+══════════════════════════════════════════════════ */
+function setCharge(s) {
+  qSign = s;
+  document.getElementById('posBtn').className = 'cbtn'+(s>0?' op':'');
+  document.getElementById('negBtn').className = 'cbtn'+(s<0?' on':'');
+  buildStreams();
+}
+function togglePlay() {
+  paused = !paused;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = paused ? '▶ Play' : '⏸ Pause';
+  btn.className   = paused ? 'btn'    : 'btn run';
+}
+function doReset() {
+  stats={pass:0,up:0,dn:0}; refreshStats(); buildStreams();
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN LOOP
+══════════════════════════════════════════════════ */
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+/* ══════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════ */
+document.querySelectorAll('input[type=range]').forEach(setPct);
+buildStreams();
+refreshReadouts();
+loop();
+</script>
+</body>
+</html>
