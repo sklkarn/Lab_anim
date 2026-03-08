@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnetic Field Effect — Cu / Al / Ni</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  background: #05070e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  gap: 0;
+}
+
+.top { text-align:center; margin-bottom:8px; }
+.title {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 1.3rem;
+  color: #e8dcc8;
+  letter-spacing: 0.03em;
+  transition: color 0.5s;
+}
+.subtitle {
+  font-size: 0.56rem;
+  color: #5a6a8a;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 3px;
+  transition: color 0.5s;
+}
+
+canvas { display: block; }
+
+.mat-btns {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.mat-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.10em;
+  padding: 7px 22px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: #5a6a8a;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.mat-btn:hover { background: rgba(255,255,255,0.08); color: #c8d8f0; }
+.mat-btn.cu.sel  { border-color: #b87333; color: #d4944a; background: rgba(184,115,51,0.15); box-shadow: 0 0 12px rgba(184,115,51,0.25); }
+.mat-btn.al.sel  { border-color: #90caf9; color: #90caf9; background: rgba(144,202,249,0.10); box-shadow: 0 0 12px rgba(144,202,249,0.20); }
+.mat-btn.ni.sel  { border-color: #a5d6a7; color: #a5d6a7; background: rgba(165,214,167,0.10); box-shadow: 0 0 12px rgba(165,214,167,0.20); }
+
+.controls {
+  display: flex; gap: 8px; margin-top: 7px;
+}
+.ctrl-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem; letter-spacing: 0.10em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: #5a6a8a; cursor: pointer; transition: all 0.2s;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.08); color: #c0d0ee; }
+.ctrl-btn.active { border-color: #4fc3f7; color: #4fc3f7; background: rgba(79,195,247,0.08); }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="title" id="mainTitle">Magnetic Field Effect on Materials</div>
+  <div class="subtitle" id="mainSub">Select a material to see field line behaviour</div>
+</div>
+
+<div class="mat-btns">
+  <button class="mat-btn cu sel" id="btnCu">Cu — Diamagnetic</button>
+  <button class="mat-btn al"     id="btnAl">Al — Paramagnetic</button>
+  <button class="mat-btn ni"     id="btnNi">Ni — Ferromagnetic</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<div class="controls">
+  <button class="ctrl-btn active" id="btnField">Field: ON</button>
+  <button class="ctrl-btn"        id="btnForce">Show Force</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = Math.min(window.innerWidth - 30, 840);
+const H = Math.min(window.innerHeight - 185, 490);
+canvas.width = W; canvas.height = H;
+
+const CX = W/2, CY = H/2;
+const CW = 126, CH = 78;
+const SX = CX-CW/2, SY = CY-CH/2;
+
+const MAG_W=52, MAG_H=36;
+const MAG_GAP = CW/2+88;
+const LMag = {x:CX-MAG_GAP-MAG_W, y:CY-MAG_H/2, pole:'N'};
+const RMag = {x:CX+MAG_GAP,        y:CY-MAG_H/2, pole:'S'};
+
+// ── Material Definitions ─────────────────────────────────────
+const MATERIALS = {
+  Cu: {
+    name: 'Copper (Cu)',
+    type: 'Diamagnetic',
+    chi: '−9.6 × 10⁻⁶',
+    mur: '0.9999904',
+    behaviour: 'Weakly repelled',
+    Binside: 'B < B_external',
+    deflect: -1,        // field lines push OUTWARD (expelled)
+    deflectStrength: 26,
+    lineAlphaInside: 0.06,
+    lineWidthMult: 1.0,
+    dipoleDir: -1,       // dipoles oppose field (←)
+    dipoleColor: '#ef5350',
+    slabColor0: 'rgba(218,138,58,0.68)',
+    slabColor1: 'rgba(160,95,38,0.62)',
+    slabColor2: 'rgba(200,128,46,0.58)',
+    slabBorder: 'rgba(218,160,80,0.55)',
+    slabGlow:   'rgba(184,115,51,0.30)',
+    labelColor: 'rgba(255,215,140,0.75)',
+    subLabel: 'χ < 0  (diamagnetic)',
+    forceDir: -1,        // repelled (away from field)
+    forceColor: '#ffd54f',
+    forceLabel: 'F (repulsion)',
+    titleColor: '#d4944a',
+    subtitleText: 'Diamagnetic · χ < 0 · field lines deflect outward',
+    transition: 'DIAMAGNETIC',
+  },
+  Al: {
+    name: 'Aluminium (Al)',
+    type: 'Paramagnetic',
+    chi: '+2.2 × 10⁻⁵',
+    mur: '1.000022',
+    behaviour: 'Weakly attracted',
+    Binside: 'B > B_external (slight)',
+    deflect: +1,         // field lines bend INWARD (concentrated, but weakly)
+    deflectStrength: 10,
+    lineAlphaInside: 0.35,
+    lineWidthMult: 1.1,
+    dipoleDir: +1,        // dipoles align with field (→)
+    dipoleColor: '#90caf9',
+    slabColor0: 'rgba(190,210,240,0.45)',
+    slabColor1: 'rgba(150,175,210,0.38)',
+    slabColor2: 'rgba(175,195,225,0.42)',
+    slabBorder: 'rgba(160,200,240,0.45)',
+    slabGlow:   'rgba(144,202,249,0.22)',
+    labelColor: 'rgba(200,225,255,0.75)',
+    subLabel: 'χ > 0  (paramagnetic)',
+    forceDir: +1,         // attracted toward field
+    forceColor: '#80cbc4',
+    forceLabel: 'F (attraction)',
+    titleColor: '#90caf9',
+    subtitleText: 'Paramagnetic · χ > 0 · field lines slightly concentrate',
+    transition: 'PARAMAGNETIC',
+  },
+  Ni: {
+    name: 'Nickel (Ni)',
+    type: 'Ferromagnetic',
+    chi: '~ +600',
+    mur: '~ 600',
+    behaviour: 'Strongly attracted',
+    Binside: 'B >> B_external',
+    deflect: +1,          // field lines strongly concentrate INWARD
+    deflectStrength: 62,
+    lineAlphaInside: 0.70,
+    lineWidthMult: 2.2,
+    dipoleDir: +1,         // strong alignment
+    dipoleColor: '#a5d6a7',
+    slabColor0: 'rgba(130,160,130,0.65)',
+    slabColor1: 'rgba(90,120,95,0.60)',
+    slabColor2: 'rgba(110,140,110,0.62)',
+    slabBorder: 'rgba(150,200,155,0.55)',
+    slabGlow:   'rgba(165,214,167,0.35)',
+    labelColor: 'rgba(200,240,205,0.80)',
+    subLabel: 'χ >> 0  (ferromagnetic)',
+    forceDir: +1,
+    forceColor: '#a5d6a7',
+    forceLabel: 'F (strong attract)',
+    titleColor: '#a5d6a7',
+    subtitleText: 'Ferromagnetic · χ >> 0 · field lines strongly concentrate',
+    transition: 'FERROMAGNETIC',
+  }
+};
+
+// ── State ─────────────────────────────────────────────────────
+let matKey    = 'Cu';
+let targetMat = 'Cu';
+let blendT    = 1.0;   // 0→1 transition
+let fieldOn   = true;
+let showForce = false;
+let forceT    = 0;
+let tick      = 0;
+let dipolePhase = 0;
+
+// Animated transition lerp
+function lerp(a, b, t) { return a + (b-a)*t; }
+function lerpCol(c1, c2, t) {
+  // parse rgba strings and lerp
+  function parse(s) {
+    const m = s.match(/[\d.]+/g).map(Number);
+    return m;
+  }
+  const a = parse(c1), b2 = parse(c2);
+  const r = a.map((v,i)=>lerp(v,b2[i],t));
+  return `rgba(${r[0].toFixed(0)},${r[1].toFixed(0)},${r[2].toFixed(0)},${r[3].toFixed(3)})`;
+}
+
+function getMat() { return MATERIALS[matKey]; }
+
+// ── Field line paths ──────────────────────────────────────────
+const NUM_LINES = 13;
+const LINE_Y_MIN = CY - 148;
+const LINE_Y_MAX = CY + 148;
+
+function getFieldLinePath(iy, mat) {
+  const t0 = iy / (NUM_LINES-1);
+  const yBase = LINE_Y_MIN + t0*(LINE_Y_MAX - LINE_Y_MIN);
+  const dy = yBase - CY;
+  const absDy = Math.abs(dy);
+  const pts = [];
+  const steps = 120;
+  const xStart = LMag.x + MAG_W + 4;
+  const xEnd   = RMag.x - 4;
+
+  for (let s=0; s<=steps; s++) {
+    const fx = xStart + (s/steps)*(xEnd-xStart);
+    let fy = yBase;
+
+    const inSlabX = fx > SX-22 && fx < SX+CW+22;
+    if (inSlabX && fieldOn) {
+      const slabFrac = (fx-(SX-22))/(CW+44);
+      const bell = Math.sin(slabFrac*Math.PI);
+
+      if (mat.deflect === -1) {
+        // DIAMAGNETIC: push lines outward
+        if (absDy < CH/2+32) {
+          const push = (1 - absDy/(CH/2+32)) * mat.deflectStrength * bell;
+          fy = yBase + Math.sign(dy===0 ? 0.01:dy) * push;
+          if (absDy < 8) fy = yBase + (dy>=0?1:-1)*push*2.1;
+        }
+      } else {
+        // PARAMAGNETIC / FERROMAGNETIC: pull lines inward (toward center)
+        if (absDy < CH/2+50) {
+          const pull = (1 - absDy/(CH/2+50)) * mat.deflectStrength * bell;
+          // inward = toward CY
+          const signIn = dy===0 ? 0 : -Math.sign(dy);
+          fy = yBase + signIn * pull;
+        }
+      }
+    }
+    pts.push({x:fx, y:fy});
+  }
+  return pts;
+}
+
+// ── Animation states ──────────────────────────────────────────
+const lineStates = Array.from({length:NUM_LINES}, (_,i) => ({
+  progress: i/NUM_LINES,
+  speed: 0.0038 + Math.random()*0.002
+}));
+
+// ── Dipoles ───────────────────────────────────────────────────
+const DIPOLES = [];
+const dCols=5, dRows=3;
+for(let r=0;r<dRows;r++) for(let c=0;c<dCols;c++)
+  DIPOLES.push({x:SX+(c+0.5)*CW/dCols, y:SY+(r+0.5)*CH/dRows, phase:Math.random()*Math.PI*2});
+
+// ── Helpers ───────────────────────────────────────────────────
+function arrowHead(x1,y1,x2,y2,sz,col) {
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.save(); ctx.translate(x2,y2); ctx.rotate(a);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-sz,-sz*0.42); ctx.lineTo(-sz,sz*0.42);
+  ctx.closePath(); ctx.fillStyle=col; ctx.fill(); ctx.restore();
+}
+
+// ── Draw magnet ───────────────────────────────────────────────
+function drawMagnet(mag) {
+  const {x,y,pole}=mag, isN=pole==='N', cr=5;
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(x,y,MAG_W,MAG_H,cr);
+  const mg=ctx.createLinearGradient(x,y,x+MAG_W,y);
+  if(isN){mg.addColorStop(0,'rgba(38,55,95,0.88)');mg.addColorStop(0.55,'rgba(28,45,85,0.85)');mg.addColorStop(1,'rgba(175,28,18,0.92)');}
+  else   {mg.addColorStop(0,'rgba(18,55,155,0.92)');mg.addColorStop(0.45,'rgba(28,45,85,0.85)');mg.addColorStop(1,'rgba(38,55,95,0.88)');}
+  ctx.fillStyle=mg; ctx.fill();
+  ctx.strokeStyle='rgba(100,135,200,0.28)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.font='bold 17px JetBrains Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(isN){ctx.fillStyle='#ef5350';ctx.shadowColor='rgba(239,83,80,0.65)';ctx.shadowBlur=9;ctx.fillText('N',x+MAG_W*0.78,y+MAG_H/2);}
+  else   {ctx.fillStyle='#4fc3f7';ctx.shadowColor='rgba(79,195,247,0.65)';ctx.shadowBlur=9;ctx.fillText('S',x+MAG_W*0.22,y+MAG_H/2);}
+  ctx.shadowBlur=0; ctx.restore();
+}
+
+// ── Draw slab ─────────────────────────────────────────────────
+function drawSlab(mat, offsetY) {
+  const ox=SX, oy=SY+offsetY, cr=6;
+  ctx.save();
+  ctx.shadowColor=mat.slabGlow; ctx.shadowBlur=20;
+  ctx.beginPath(); ctx.roundRect(ox,oy,CW,CH,cr);
+  ctx.strokeStyle=mat.slabBorder; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.shadowBlur=0; ctx.restore();
+
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(ox,oy,CW,CH,cr);
+  const cg=ctx.createLinearGradient(ox,oy,ox+CW,oy+CH);
+  cg.addColorStop(0, mat.slabColor0);
+  cg.addColorStop(0.45, mat.slabColor1);
+  cg.addColorStop(1, mat.slabColor2);
+  ctx.fillStyle=cg; ctx.fill();
+  // sheen
+  const sh=ctx.createLinearGradient(ox,oy,ox,oy+CH*0.38);
+  sh.addColorStop(0,'rgba(255,255,255,0.10)'); sh.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sh; ctx.fill();
+  ctx.strokeStyle=mat.slabBorder; ctx.lineWidth=1; ctx.stroke();
+  ctx.restore();
+
+  // label
+  ctx.save();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 16px Instrument Serif,serif';
+  ctx.fillStyle=mat.labelColor;
+  ctx.shadowColor=mat.slabGlow; ctx.shadowBlur=8;
+  ctx.fillText(matKey==='Cu'?'Cu':matKey==='Al'?'Al':'Ni', ox+CW/2, oy+CH/2-7);
+  ctx.shadowBlur=0;
+  ctx.font='7.5px JetBrains Mono,monospace';
+  ctx.fillStyle=mat.labelColor.replace(/[\d.]+\)$/,'0.45)');
+  ctx.fillText(mat.subLabel, ox+CW/2, oy+CH/2+9);
+  ctx.restore();
+}
+
+// ── Draw field lines ──────────────────────────────────────────
+function drawFieldLines(mat, offsetY) {
+  for(let i=0;i<NUM_LINES;i++){
+    const pts = fieldOn ? getFieldLinePath(i, mat) : (() => {
+      const t0=i/(NUM_LINES-1), yB=LINE_Y_MIN+t0*(LINE_Y_MAX-LINE_Y_MIN);
+      const p=[];
+      for(let s=0;s<=60;s++) p.push({x:LMag.x+MAG_W+4+(s/60)*(RMag.x-4-(LMag.x+MAG_W+4)),y:yB});
+      return p;
+    })();
+    if(pts.length<2) continue;
+    const st=lineStates[i];
+    st.progress=(st.progress+st.speed)%1;
+    const n=pts.length;
+    const yBase=LINE_Y_MIN+(i/(NUM_LINES-1))*(LINE_Y_MAX-LINE_Y_MIN);
+    const absDy=Math.abs(yBase-CY);
+
+    // For ferro/para: lines close to center are PULLED in (drawn thicker, more opaque)
+    const isAffected = fieldOn && absDy < CH/2 + 50;
+    const lw = isAffected ? (1.4 * mat.lineWidthMult) : 1.2;
+
+    // Base line
+    for(let p=0;p<n-1;p++){
+      const px1=pts[p].x, py1=pts[p].y+offsetY;
+      const px2=pts[p+1].x, py2=pts[p+1].y+offsetY;
+      const insideSlab = pts[p].x>SX+3 && pts[p].x<SX+CW-3 &&
+                         pts[p].y+offsetY>SY+offsetY+3 && pts[p].y+offsetY<SY+CH+offsetY-3;
+      const alpha = insideSlab ? mat.lineAlphaInside : (isAffected ? 0.55 : 0.38);
+      ctx.beginPath(); ctx.moveTo(px1,py1); ctx.lineTo(px2,py2);
+      ctx.strokeStyle=`rgba(79,195,247,${alpha})`;
+      ctx.lineWidth=insideSlab ? lw*1.3 : lw;
+      ctx.stroke();
+    }
+
+    // Pulse
+    const head=st.progress, tail=head-0.14;
+    for(let p=0;p<n-1;p++){
+      const tt=p/(n-1);
+      let la=0;
+      if(tail<0){const t2=tail+1;if(tt>=t2||tt<=head){const d=tt<=head?head-tt:head+1-tt;la=Math.max(0,1-d/0.14);}}
+      else{if(tt>=tail&&tt<=head)la=Math.max(0,1-(head-tt)/0.14);}
+      if(la<0.02) continue;
+      const insideSlab2=pts[p].x>SX+5&&pts[p].x<SX+CW-5&&pts[p].y>SY&&pts[p].y<SY+CH;
+      // Ferro: show pulse INSIDE too (field funneled through)
+      if(insideSlab2 && mat.deflect===-1) continue;
+      ctx.beginPath(); ctx.moveTo(pts[p].x,pts[p].y+offsetY); ctx.lineTo(pts[p+1].x,pts[p+1].y+offsetY);
+      ctx.strokeStyle=`rgba(129,212,250,${la*0.88})`;
+      ctx.lineWidth=2.8+la*lw;
+      ctx.shadowColor='rgba(79,195,247,0.85)'; ctx.shadowBlur=7; ctx.stroke(); ctx.shadowBlur=0;
+    }
+
+    // Arrowhead
+    const hi=Math.min(Math.floor(head*(n-1)),n-2);
+    if(pts[hi]&&pts[hi+1]){
+      ctx.fillStyle='rgba(129,212,250,0.92)';
+      ctx.shadowColor='rgba(79,195,247,0.75)'; ctx.shadowBlur=5;
+      arrowHead(pts[hi].x,pts[hi].y+offsetY,pts[hi+1].x,pts[hi+1].y+offsetY,5.5,'rgba(129,212,250,0.92)');
+      ctx.shadowBlur=0;
+    }
+  }
+}
+
+// ── Draw dipoles ──────────────────────────────────────────────
+function drawDipoles(mat, offsetY) {
+  if(!fieldOn) return;
+  const fadeIn = Math.min(1, tick/50);
+  for(const d of DIPOLES){
+    const px=d.x, py=d.y+offsetY;
+    const wiggle=Math.sin(dipolePhase+d.phase)*1.0;
+    const len=10;
+    const dir=mat.dipoleDir; // +1=right (align), -1=left (oppose)
+    ctx.save();
+    ctx.globalAlpha=fadeIn*(0.52+0.18*Math.sin(dipolePhase+d.phase));
+    ctx.strokeStyle=mat.dipoleColor; ctx.lineWidth=1.5;
+    ctx.shadowColor=mat.dipoleColor; ctx.shadowBlur=5;
+    ctx.beginPath();
+    ctx.moveTo(px-len*dir+wiggle, py); ctx.lineTo(px+len*dir+wiggle, py);
+    ctx.stroke(); ctx.shadowBlur=0;
+    ctx.fillStyle=mat.dipoleColor;
+    arrowHead(px-len*dir+wiggle, py, px+len*dir+wiggle, py, 5, mat.dipoleColor);
+    ctx.beginPath(); ctx.arc(px+wiggle,py,1.4,0,Math.PI*2);
+    ctx.fillStyle=mat.dipoleColor+'aa'; ctx.fill();
+    ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+// ── Force arrows ──────────────────────────────────────────────
+function drawForceArrows(mat, offsetY) {
+  if(!showForce||!fieldOn) return;
+  const alpha=Math.min(1, forceT*2.5);
+  // For diamagnetic (repulsion): arrows push up/down (away from center)
+  // For para/ferro (attraction): arrows pull toward magnets (horizontal inward)
+  ctx.save(); ctx.globalAlpha=alpha*(0.72+0.18*Math.sin(tick*0.055));
+  ctx.strokeStyle=mat.forceColor; ctx.fillStyle=mat.forceColor;
+  ctx.lineWidth=2.5; ctx.shadowColor=mat.forceColor+'cc'; ctx.shadowBlur=12;
+
+  if(mat.forceDir===-1){
+    // Repulsion: upward arrows above slab
+    const ay=SY+offsetY-14;
+    for(const fx of [CX-24, CX+24]){
+      ctx.beginPath(); ctx.moveTo(fx,ay+22); ctx.lineTo(fx,ay); ctx.stroke();
+      arrowHead(fx,ay+22,fx,ay,7,mat.forceColor);
+    }
+    ctx.shadowBlur=0;
+    ctx.font='8.5px JetBrains Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle=mat.forceColor+'cc'; ctx.shadowBlur=5;
+    ctx.fillText(mat.forceLabel, CX, ay-3);
+  } else {
+    // Attraction: arrows pulling slab toward left magnet face (horizontal)
+    const ay=SY+offsetY+CH/2;
+    // Left pull arrow
+    const lx=SX+offsetY;
+    ctx.beginPath(); ctx.moveTo(SX-8,ay); ctx.lineTo(SX-34,ay); ctx.stroke();
+    arrowHead(SX-8,ay,SX-34,ay,7,mat.forceColor);
+    // Right pull arrow
+    ctx.beginPath(); ctx.moveTo(SX+CW+8,ay); ctx.lineTo(SX+CW+34,ay); ctx.stroke();
+    arrowHead(SX+CW+8,ay,SX+CW+34,ay,7,mat.forceColor);
+    ctx.shadowBlur=0;
+    ctx.font='8.5px JetBrains Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle=mat.forceColor+'cc'; ctx.shadowBlur=5;
+    ctx.fillText(mat.forceLabel, CX, SY+offsetY-6);
+  }
+  ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+}
+
+// ── B_inside label ────────────────────────────────────────────
+function drawBInsideLabel(mat, offsetY) {
+  if(!fieldOn) return;
+  ctx.save();
+  ctx.font='7.5px JetBrains Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillStyle=mat.dipoleColor+'99';
+  ctx.fillText(mat.Binside, CX, SY+offsetY+CH+6);
+  ctx.restore();
+}
+
+// ── Info panel ────────────────────────────────────────────────
+function drawInfoPanel(mat) {
+  const px=12,py=12,pw=200,ph=126,pr=7;
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(px,py,pw,ph,pr);
+  ctx.fillStyle='rgba(6,9,22,0.92)'; ctx.fill();
+  ctx.strokeStyle='rgba(70,110,190,0.22)'; ctx.lineWidth=1; ctx.stroke();
+
+  ctx.font='bold 8px JetBrains Mono,monospace';
+  ctx.fillStyle='rgba(130,160,225,0.55)';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('MATERIAL PROPERTIES', px+10, py+10);
+  ctx.strokeStyle='rgba(70,110,190,0.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(px+8,py+22); ctx.lineTo(px+pw-8,py+22); ctx.stroke();
+
+  const typeColor = matKey==='Cu'?'#d4944a': matKey==='Al'?'#90caf9':'#a5d6a7';
+  const rows=[
+    ['Material', mat.name],
+    ['Type', mat.type],
+    ['χ (suscept.)', mat.chi],
+    ['μᵣ', mat.mur],
+    ['Behaviour', mat.behaviour],
+  ];
+  ctx.font='8px JetBrains Mono,monospace';
+  rows.forEach(([k,v],i)=>{
+    const ry=py+30+i*18;
+    ctx.fillStyle='rgba(100,128,195,0.48)'; ctx.textAlign='left';
+    ctx.fillText(k, px+10, ry);
+    ctx.fillStyle = i===1 ? typeColor : 'rgba(200,220,255,0.80)';
+    ctx.textAlign='right';
+    ctx.fillText(v, px+pw-9, ry);
+  });
+  ctx.restore();
+}
+
+// ── Comparison strip (right side) ─────────────────────────────
+function drawComparisonStrip() {
+  const px=W-148, py=12, pw=136, ph=132, pr=7;
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(px,py,pw,ph,pr);
+  ctx.fillStyle='rgba(6,9,22,0.90)'; ctx.fill();
+  ctx.strokeStyle='rgba(70,110,190,0.18)'; ctx.lineWidth=1; ctx.stroke();
+
+  ctx.font='bold 8px JetBrains Mono,monospace';
+  ctx.fillStyle='rgba(130,160,225,0.55)';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('COMPARISON', px+10, py+10);
+  ctx.strokeStyle='rgba(70,110,190,0.12)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(px+8,py+22); ctx.lineTo(px+pw-8,py+22); ctx.stroke();
+
+  const mats=[
+    {k:'Cu',label:'Cu',col:'#d4944a',chi:'−9.6e⁻⁶',t:'Dia'},
+    {k:'Al',label:'Al',col:'#90caf9',chi:'+2.2e⁻⁵',t:'Para'},
+    {k:'Ni',label:'Ni',col:'#a5d6a7',chi:'~+600',t:'Ferro'},
+  ];
+  mats.forEach((m,i)=>{
+    const ry=py+34+i*30;
+    const isSel=matKey===m.k;
+    // Dot
+    ctx.beginPath(); ctx.arc(px+16, ry+6, isSel?5:3.5, 0, Math.PI*2);
+    ctx.fillStyle=isSel?m.col:m.col+'55';
+    if(isSel){ctx.shadowColor=m.col; ctx.shadowBlur=8;}
+    ctx.fill(); ctx.shadowBlur=0;
+    // Name
+    ctx.font=`${isSel?'bold ':''  }9px JetBrains Mono,monospace`;
+    ctx.fillStyle=isSel?m.col:'rgba(120,140,180,0.50)';
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText(`${m.label}  ${m.t}`, px+26, ry);
+    ctx.font='7.5px JetBrains Mono,monospace';
+    ctx.fillStyle=isSel?m.col+'bb':'rgba(90,110,150,0.38)';
+    ctx.fillText(`χ = ${m.chi}`, px+26, ry+12);
+  });
+  ctx.restore();
+}
+
+// ── Instructor tag ────────────────────────────────────────────
+function drawInstructor() {
+  const tw=170,th=42,tx=W-tw-12,ty=H-th-12,tr=6;
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(tx,ty,tw,th,tr);
+  ctx.fillStyle='rgba(6,9,22,0.90)'; ctx.fill();
+  ctx.strokeStyle='rgba(184,115,51,0.22)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.font='7px JetBrains Mono,monospace';
+  ctx.fillStyle='rgba(184,115,51,0.45)';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('INSTRUCTOR', tx+10, ty+11);
+  ctx.font='bold 13px Instrument Serif,serif';
+  ctx.fillStyle='rgba(255,210,120,0.92)';
+  ctx.shadowColor='rgba(210,170,60,0.28)'; ctx.shadowBlur=7;
+  ctx.fillText('Dr. S. Karna', tx+10, ty+28);
+  ctx.shadowBlur=0; ctx.restore();
+}
+
+// ── Transition flash label ─────────────────────────────────────
+let flashLabel='', flashAlpha=0;
+function showFlash(text) { flashLabel=text; flashAlpha=1; }
+function drawFlash() {
+  if(flashAlpha<=0) return;
+  ctx.save();
+  ctx.globalAlpha=flashAlpha;
+  ctx.font='bold 11px JetBrains Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  const col=matKey==='Cu'?'#d4944a':matKey==='Al'?'#90caf9':'#a5d6a7';
+  ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=12;
+  ctx.fillText(`↑ ${flashLabel}`, CX, 14);
+  ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  flashAlpha=Math.max(0,flashAlpha-0.015);
+}
+
+// ── Slab offset for force animation ──────────────────────────
+function getSlabOffset(mat) {
+  if(!showForce||!fieldOn) return 0;
+  if(mat.forceDir===-1){
+    // Diamagnetic: float upward
+    return -forceT*13*(0.5+0.5*Math.abs(Math.sin(tick*0.022)));
+  }
+  // Para/Ferro: small oscillation toward magnets (no vertical offset)
+  return 0;
+}
+
+// ── Main loop ─────────────────────────────────────────────────
+function draw() {
+  tick++; dipolePhase+=0.038;
+
+  if(showForce&&fieldOn) forceT=Math.min(1,forceT+0.016);
+  else forceT=Math.max(0,forceT-0.022);
+
+  const mat=getMat();
+  const offsetY=getSlabOffset(mat);
+
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg=ctx.createRadialGradient(CX,CY,40,CX,CY,Math.max(W,H)*0.78);
+  bg.addColorStop(0,'#0b0f22'); bg.addColorStop(1,'#05070e');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.save();
+  ctx.strokeStyle='rgba(50,70,110,0.07)'; ctx.lineWidth=1;
+  for(let gx=0;gx<W;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=0;gy<H;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+  ctx.restore();
+
+  drawFieldLines(mat, offsetY);
+  drawMagnet(LMag);
+  drawMagnet(RMag);
+  drawSlab(mat, offsetY);
+  drawDipoles(mat, offsetY);
+  drawForceArrows(mat, offsetY);
+  drawBInsideLabel(mat, offsetY);
+  drawInfoPanel(mat);
+  drawComparisonStrip();
+  drawInstructor();
+  drawFlash();
+
+  // Field status
+  ctx.save();
+  ctx.font='8px JetBrains Mono,monospace';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillStyle=fieldOn?'rgba(79,195,247,0.50)':'rgba(100,110,140,0.38)';
+  ctx.fillText(fieldOn?'● B FIELD ACTIVE':'○ NO FIELD', W-14, 14);
+  ctx.restore();
+
+  requestAnimationFrame(draw);
+}
+
+// ── Material switch ───────────────────────────────────────────
+function switchMat(key) {
+  matKey=key;
+  const mat=MATERIALS[key];
+  document.getElementById('mainTitle').textContent=`B Field Effect — ${mat.name}`;
+  document.getElementById('mainSub').textContent=mat.subtitleText;
+  document.querySelectorAll('.mat-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById(`btn${key}`).classList.add('sel');
+  showFlash(mat.transition);
+  tick=0; dipolePhase=0;
+}
+
+document.getElementById('btnCu').addEventListener('click',()=>switchMat('Cu'));
+document.getElementById('btnAl').addEventListener('click',()=>switchMat('Al'));
+document.getElementById('btnNi').addEventListener('click',()=>switchMat('Ni'));
+
+document.getElementById('btnField').addEventListener('click',function(){
+  fieldOn=!fieldOn;
+  this.textContent=`Field: ${fieldOn?'ON':'OFF'}`;
+  this.classList.toggle('active',fieldOn);
+});
+document.getElementById('btnForce').addEventListener('click',function(){
+  showForce=!showForce;
+  this.textContent=showForce?'Force: ON':'Show Force';
+  this.classList.toggle('active',showForce);
+});
+
+// Init
+switchMat('Cu');
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

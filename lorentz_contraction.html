@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lorentz Length Contraction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cyan: #00ffcc;
+      --blue: #0088ff;
+      --orange: #ff6b35;
+      --yellow: #ffdd00;
+      --purple: #cc88ff;
+      --red: #ff4466;
+      --bg: #000510;
+      --panel: rgba(0, 10, 30, 0.75);
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 20% 50%, #0a0025 0%, #000510 60%, #000 100%);
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--cyan);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+    }
+
+    /* ── Title ── */
+    .title-block { text-align: center; margin-bottom: 36px; }
+    .subtitle {
+      font-size: 11px;
+      letter-spacing: .4em;
+      color: var(--orange);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(22px, 5vw, 40px);
+      font-weight: 900;
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: .05em;
+    }
+    .formula {
+      font-size: 12px;
+      color: #556;
+      margin-top: 8px;
+      letter-spacing: .15em;
+    }
+
+    /* ── Shared card ── */
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--panel);
+      border: 1px solid rgba(0,255,204,.13);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+      margin-bottom: 20px;
+    }
+
+    /* ── Starfield canvas ── */
+    #starCanvas {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      pointer-events: none;
+    }
+    .viz-card { position: relative; overflow: hidden; }
+
+    /* ── Row labels ── */
+    .row-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #8899bb;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Ship rows ── */
+    .ship-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .ship-label {
+      width: 80px;
+      font-size: 11px;
+      text-align: right;
+      flex-shrink: 0;
+      color: #668;
+    }
+    .ship-label.moving { color: var(--cyan); }
+    .ship-track {
+      flex: 1;
+      height: 36px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .ship {
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 2px;
+      position: relative;
+      overflow: hidden;
+      transition: width .1s ease, box-shadow .1s ease;
+    }
+    .ship-rest {
+      width: 280px;
+      background: linear-gradient(90deg, #003366, #0066cc, #003366);
+      border: 1px solid var(--blue);
+      box-shadow: 0 0 12px #0066cc44;
+      color: #88ccff;
+    }
+    .ship-moving {
+      background: linear-gradient(90deg, #003322, #00cc66, #003322);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+    }
+    .ship-blur {
+      position: absolute;
+      right: -24px;
+      top: 0; bottom: 0;
+      width: 60px;
+      pointer-events: none;
+    }
+
+    /* ruler ticks */
+    .ticks { position: absolute; bottom: -7px; left: 0; right: 0; }
+    .tick {
+      position: absolute;
+      bottom: 0;
+      width: 1px;
+      background: #0088ff66;
+    }
+
+    /* contraction bar */
+    .cbar-label { font-size: 10px; color: #668; letter-spacing: .15em; margin-bottom: 6px; position: relative; z-index: 1; }
+    .cbar-bg { height: 6px; background: #001133; border-radius: 99px; overflow: hidden; position: relative; z-index: 1; }
+    .cbar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--orange));
+      border-radius: 99px;
+      transition: width .1s ease;
+    }
+
+    /* ── Sliders ── */
+    .slider-group { margin-bottom: 22px; }
+    .slider-group:last-child { margin-bottom: 0; }
+    .slider-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+    .slider-key { color: #8899bb; letter-spacing: .2em; }
+    .slider-val { font-weight: bold; font-size: 16px; }
+    input[type=range] {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      border-radius: 99px;
+      outline: none;
+      border: none;
+      -webkit-appearance: none;
+      background: #001133;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #betaSlider { accent-color: var(--cyan); }
+    #lengthSlider { accent-color: var(--blue); }
+    .slider-ticks { display: flex; justify-content: space-between; font-size: 10px; color: #334; margin-top: 4px; }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      width: 100%;
+      max-width: 680px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 1px solid transparent;
+    }
+    .stat-card-label { font-size: 10px; color: #556; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-card-value { font-size: 17px; font-weight: bold; }
+
+    /* ── Presets ── */
+    .presets {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 24px;
+      width: 100%;
+      max-width: 680px;
+    }
+    .preset-btn {
+      background: rgba(0,10,30,0.85);
+      border: 1px solid #445;
+      color: #99aacc;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      letter-spacing: .12em;
+      font-family: inherit;
+      transition: all .18s;
+      min-width: 76px;
+      text-align: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .preset-btn:hover {
+      background: rgba(0,255,204,.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0,255,204,0.2);
+    }
+    .preset-btn:active {
+      transform: scale(0.95);
+      background: rgba(0,255,204,.22);
+    }
+    .preset-btn.active {
+      background: rgba(0,255,204,.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 14px rgba(0,255,204,0.3);
+    }
+
+    /* ── Instructor ── */
+    .instructor-block {
+      width: 100%;
+      max-width: 680px;
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 14px 20px;
+      background: rgba(0,10,30,0.6);
+      border: 1px solid rgba(255,107,53,0.25);
+      border-radius: 10px;
+    }
+    .instructor-label {
+      font-size: 10px;
+      color: #556;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .instructor-name {
+      font-size: 15px;
+      color: var(--orange);
+      letter-spacing: .15em;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+    }
+
+    /* ── Footer note ── */
+    .note {
+      font-size: 10px;
+      color: #334;
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.9;
+      letter-spacing: .05em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="subtitle">Special Relativity</div>
+    <h1>LORENTZ CONTRACTION</h1>
+    <div class="formula">L = L₀ / γ &nbsp;|&nbsp; γ = 1 / √(1 − v²/c²)</div>
+  </div>
+
+  <!-- Visualization -->
+  <div class="card viz-card" id="vizCard">
+    <canvas id="starCanvas"></canvas>
+
+    <div class="row-labels">
+      <span>REST FRAME (L₀)</span>
+      <span>MOVING FRAME (L)</span>
+    </div>
+
+    <!-- Rest ship -->
+    <div class="ship-row">
+      <div class="ship-label" id="restLabel">L₀ = 100 m</div>
+      <div class="ship-track">
+        <div class="ship ship-rest" id="restShip">
+          ▬▬▬ REST ▬▬▬
+          <div class="ticks" id="restTicks"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Moving ship -->
+    <div class="ship-row">
+      <div class="ship-label moving" id="movingLabel">L = 100.0 m</div>
+      <div class="ship-track">
+        <div class="ship ship-moving" id="movingShip" style="width:280px;">
+          <span id="movingText">▶ MOVING</span>
+          <div class="ship-blur" id="shipBlur"
+            style="background:linear-gradient(90deg,rgba(0,255,204,0),transparent)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contraction bar -->
+    <div class="cbar-label" id="cbarLabel">CONTRACTION: 0.00%</div>
+    <div class="cbar-bg"><div class="cbar-fill" id="cbarFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-key">VELOCITY (v/c)</span>
+        <span class="slider-val" id="betaVal" style="color:var(--orange)">β = 0.5000</span>
+      </div>
+      <input type="range" id="betaSlider" min="0" max="0.9999" step="0.0001" value="0.5"/>
+      <div class="slider-ticks"><span>0c</span><span>0.25c</span><span>0.5c</span><span>0.75c</span><span>→ c</span></div>
+    </div>
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-key">REST LENGTH (L₀)</span>
+        <span class="slider-val" id="lengthVal" style="color:var(--blue)">100 m</span>
+      </div>
+      <input type="range" id="lengthSlider" min="10" max="1000" step="1" value="100"/>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card" style="border-color:rgba(255,107,53,.15)">
+      <div class="stat-card-label">Velocity</div>
+      <div class="stat-card-value" id="sVelocity" style="color:var(--orange)">50.00% c</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(255,221,0,.15)">
+      <div class="stat-card-label">Lorentz Factor (γ)</div>
+      <div class="stat-card-value" id="sGamma" style="color:var(--yellow)">1.154701</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(0,136,255,.15)">
+      <div class="stat-card-label">Rest Length (L₀)</div>
+      <div class="stat-card-value" id="sL0" style="color:var(--blue)">100 m</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(0,255,204,.15)">
+      <div class="stat-card-label">Contracted Length (L)</div>
+      <div class="stat-card-value" id="sL" style="color:var(--cyan)">86.6025 m</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(204,136,255,.15)">
+      <div class="stat-card-label">Absolute Velocity</div>
+      <div class="stat-card-value" id="sAbsV" style="color:var(--purple)">149.90 × 10⁶ m/s</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(255,68,102,.15)">
+      <div class="stat-card-label">Length Reduction</div>
+      <div class="stat-card-value" id="sReduction" style="color:var(--red)">13.40%</div>
+    </div>
+  </div>
+
+  <!-- Presets -->
+  <div class="presets" id="presets">
+    <button class="preset-btn" data-v="0.000003">Bullet</button>
+    <button class="preset-btn" data-v="0.1">0.1c</button>
+    <button class="preset-btn" data-v="0.5">0.5c</button>
+    <button class="preset-btn" data-v="0.9">0.9c</button>
+    <button class="preset-btn" data-v="0.99">0.99c</button>
+    <button class="preset-btn" data-v="0.9999">0.9999c</button>
+  </div>
+
+  <!-- Instructor -->
+  <div class="instructor-block">
+    <div class="instructor-label">Instructor</div>
+    <div class="instructor-name">Dr. S Karna</div>
+  </div>
+
+  <div class="note">
+    According to Einstein's Special Relativity, an object moving at velocity v appears shortened
+    along its direction of motion by a factor of 1/γ as observed from a stationary reference frame.
+    As v approaches c, length contraction becomes extreme — reaching zero at the speed of light.
+  </div>
+
+<script>
+  const C = 299792458;
+
+  const betaSlider  = document.getElementById('betaSlider');
+  const lengthSlider = document.getElementById('lengthSlider');
+
+  let beta = 0.5;
+  let L0   = 100;
+
+  // ── Ruler ticks ──
+  function buildTicks() {
+    const container = document.getElementById('restTicks');
+    container.innerHTML = '';
+    for (let i = 0; i <= 10; i++) {
+      const t = document.createElement('div');
+      t.className = 'tick';
+      t.style.left  = (i * 10) + '%';
+      t.style.height = i % 5 === 0 ? '8px' : '4px';
+      container.appendChild(t);
+    }
+  }
+  buildTicks();
+
+  // ── Physics ──
+  function gamma(b) { return 1 / Math.sqrt(1 - b * b); }
+  function contracted(b) { return L0 / gamma(b); }
+
+  // ── Update UI ──
+  function update() {
+    const g  = gamma(beta);
+    const L  = contracted(beta);
+    const pct = ((1 - L / L0) * 100);
+    const shipW = Math.max(20, (L / L0) * 280);
+    const v  = beta * C;
+
+    // ship
+    document.getElementById('movingShip').style.width = shipW + 'px';
+    document.getElementById('movingShip').style.boxShadow = `0 0 ${8 + beta*22}px rgba(0,255,204,${0.3 + beta*0.4})`;
+    document.getElementById('movingText').style.display = shipW > 60 ? 'inline' : 'none';
+
+    // blur trail
+    const opacity = Math.round(beta * 80).toString(16).padStart(2,'0');
+    document.getElementById('shipBlur').style.background =
+      `linear-gradient(90deg, #00ffcc${opacity}, transparent)`;
+    document.getElementById('shipBlur').style.width = (20 + beta * 50) + 'px';
+
+    // labels
+    document.getElementById('restLabel').textContent    = `L₀ = ${L0} m`;
+    document.getElementById('movingLabel').textContent  = `L = ${L.toFixed(1)} m`;
+    document.getElementById('betaVal').textContent      = `β = ${beta.toFixed(4)}`;
+    document.getElementById('lengthVal').textContent    = `${L0} m`;
+
+    // contraction bar
+    document.getElementById('cbarLabel').textContent = `CONTRACTION: ${pct.toFixed(2)}%`;
+    document.getElementById('cbarFill').style.width  = pct + '%';
+
+    // stats
+    document.getElementById('sVelocity').textContent  = `${(beta*100).toFixed(2)}% c`;
+    document.getElementById('sGamma').textContent     = g.toFixed(6);
+    document.getElementById('sL0').textContent        = `${L0} m`;
+    document.getElementById('sL').textContent         = `${L.toFixed(4)} m`;
+    document.getElementById('sAbsV').textContent      = `${(v/1e6).toFixed(2)} × 10⁶ m/s`;
+    document.getElementById('sReduction').textContent = `${pct.toFixed(2)}%`;
+  }
+
+  betaSlider.addEventListener('input', e => {
+    beta = parseFloat(e.target.value);
+    allBtns.forEach(b => b.classList.remove('active'));
+    update();
+  });
+  lengthSlider.addEventListener('input', e => {
+    L0 = parseFloat(e.target.value);
+    update();
+  });
+
+  // Preset buttons
+  const allBtns = document.querySelectorAll('.preset-btn');
+  allBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      beta = parseFloat(btn.dataset.v);
+      betaSlider.value = beta;
+      allBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      update();
+    });
+  });
+
+  // ── Starfield ──
+  const canvas = document.getElementById('starCanvas');
+  const ctx    = canvas.getContext('2d');
+
+  const stars = Array.from({length: 60}, () => ({
+    x: Math.random(),
+    y: Math.random() * 100,
+    size: Math.random() * 1.4 + 0.4,
+  }));
+
+  function resizeCanvas() {
+    const card = document.getElementById('vizCard');
+    canvas.width  = card.offsetWidth;
+    canvas.height = card.offsetHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  let lastT = 0;
+  function drawStars(ts) {
+    const dt = ts - lastT;
+    lastT = ts;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const speed = beta * 0.00025 * dt;
+
+    stars.forEach(s => {
+      s.x = (s.x + speed) % 1;
+      const x = s.x * canvas.width;
+      const y = (s.y / 100) * canvas.height;
+      const streakLen = beta * 60;
+      const alpha = 0.15 + beta * 0.5;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + streakLen, y);
+      ctx.strokeStyle = `rgba(180,210,255,${alpha})`;
+      ctx.lineWidth   = s.size * 0.6;
+      ctx.stroke();
+    });
+
+    requestAnimationFrame(drawStars);
+  }
+  requestAnimationFrame(drawStars);
+
+  // Init
+  update();
+</script>
+</body>
+</html>

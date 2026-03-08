@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnetic Field — Bar Magnet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;1,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #07090f;
+    --field-n: #e85d3a;
+    --field-s: #3ab4e8;
+    --magnet-body: #1a1e2e;
+    --magnet-border: #2e3450;
+    --label: #8892b0;
+    --accent: #f0e6d3;
+    --glow-n: rgba(232, 93, 58, 0.35);
+    --glow-s: rgba(58, 180, 232, 0.35);
+  }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Subtle starfield */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.18) 0%, transparent 100%),
+      radial-gradient(1px 1px at 78% 34%, rgba(255,255,255,0.12) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 72%, rgba(255,255,255,0.10) 0%, transparent 100%),
+      radial-gradient(1px 1px at 89% 81%, rgba(255,255,255,0.14) 0%, transparent 100%),
+      radial-gradient(1px 1px at 23% 55%, rgba(255,255,255,0.09) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 60% 12%, rgba(255,255,255,0.16) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 90%, rgba(255,255,255,0.11) 0%, transparent 100%),
+      radial-gradient(1px 1px at 95% 50%, rgba(255,255,255,0.13) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .scene {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Compass rose in corner */
+  .compass {
+    position: fixed;
+    top: 28px; right: 32px;
+    width: 80px; height: 80px;
+    opacity: 0.85;
+  }
+
+  .title-block {
+    position: fixed;
+    top: 28px; left: 36px;
+    line-height: 1.4;
+  }
+  .title-block h1 {
+    font-family: 'Crimson Pro', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .title-block p {
+    font-size: 0.6rem;
+    color: var(--label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 6px;
+  }
+
+  .info {
+    margin-top: 18px;
+    display: flex;
+    gap: 36px;
+    align-items: center;
+  }
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.65rem;
+    color: var(--label);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-dot.n { background: var(--field-n); box-shadow: 0 0 6px var(--field-n); }
+  .legend-dot.s { background: var(--field-s); box-shadow: 0 0 6px var(--field-s); }
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <h1>Bar Magnet Field</h1>
+  <p>North pole → Geographic South</p>
+</div>
+
+<!-- Compass rose SVG -->
+<svg class="compass" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- dial -->
+  <circle cx="40" cy="40" r="36" stroke="#2e3450" stroke-width="1.2"/>
+  <circle cx="40" cy="40" r="30" stroke="#1a1e2e" stroke-width="0.6" fill="#0d1020"/>
+  <!-- tick marks -->
+  <g stroke="#3a4060" stroke-width="0.8">
+    <line x1="40" y1="8" x2="40" y2="14"/>
+    <line x1="40" y1="66" x2="40" y2="72"/>
+    <line x1="8" y1="40" x2="14" y2="40"/>
+    <line x1="66" y1="40" x2="72" y2="40"/>
+  </g>
+  <!-- Cardinal letters -->
+  <text x="40" y="23" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#8892b0" font-weight="700">N</text>
+  <text x="40" y="61" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#8892b0" font-weight="700">S</text>
+  <text x="60" y="43" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#8892b0" font-weight="700">E</text>
+  <text x="20" y="43" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#8892b0" font-weight="700">W</text>
+  <!-- Needle: N points down (south geographic) because magnet's N faces south -->
+  <!-- Red = north needle tip = points to geo-south (down in our vertical layout) -->
+  <polygon points="40,52 37,40 40,28 43,40" fill="#3ab4e8" opacity="0.9"/>
+  <polygon points="40,28 37,40 40,52 43,40" fill="#e85d3a" opacity="0.9"/>
+  <!-- Center dot -->
+  <circle cx="40" cy="40" r="2.5" fill="#f0e6d3"/>
+  <!-- label: geo directions -->
+  <text x="40" y="6" text-anchor="middle" font-family="Space Mono,monospace" font-size="5" fill="#3ab4e8" opacity="0.7">GEO N</text>
+  <text x="40" y="78" text-anchor="middle" font-family="Space Mono,monospace" font-size="5" fill="#e85d3a" opacity="0.7">GEO S</text>
+</svg>
+
+<div class="scene">
+  <canvas id="c"></canvas>
+  <div class="info">
+    <div class="legend"><div class="legend-dot n"></div>Field lines from N pole</div>
+    <div class="legend"><div class="legend-dot s"></div>Field lines into S pole</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const W = Math.min(window.innerWidth - 40, 820);
+const H = Math.min(window.innerHeight - 140, 600);
+canvas.width  = W;
+canvas.height = H;
+
+const MX = W / 2, MY = H / 2;
+const MW = 22;   // half-width (thin bar)
+const MH = 100;  // half-height
+
+// N pole = bottom (geographic south), S pole = top (geo north)
+const POLE_N = { x: MX, y: MY + MH };
+const POLE_S = { x: MX, y: MY - MH };
+const K = 5e7;
+
+function fieldAt(x, y) {
+  const dxN = x-POLE_N.x, dyN = y-POLE_N.y;
+  const rN2 = dxN*dxN+dyN*dyN+8000, rN = Math.sqrt(rN2);
+  const dxS = x-POLE_S.x, dyS = y-POLE_S.y;
+  const rS2 = dxS*dxS+dyS*dyS+8000, rS = Math.sqrt(rS2);
+  return {
+    bx:  K*dxN/(rN2*rN) - K*dxS/(rS2*rS),
+    by:  K*dyN/(rN2*rN) - K*dyS/(rS2*rS)
+  };
+}
+
+function traceLine(sx, sy, dt, maxSteps, stopAtBorder) {
+  const pts = [{x:sx, y:sy}];
+  let cx=sx, cy=sy;
+  for (let s=0; s<maxSteps; s++) {
+    const {bx,by} = fieldAt(cx,cy);
+    const mag = Math.sqrt(bx*bx+by*by);
+    if (mag===0) break;
+    cx += bx/mag*dt; cy += by/mag*dt;
+    const dS=(cx-POLE_S.x)**2+(cy-POLE_S.y)**2;
+    if (dS < 250) { pts.push({x:cx,y:cy}); break; }
+    if (stopAtBorder && (cx<-150||cx>W+150||cy<-150||cy>H+150)) break;
+    const dN=(cx-POLE_N.x)**2+(cy-POLE_N.y)**2;
+    if (dN < 250 && s>20) break;
+    if (s%2===0) pts.push({x:cx,y:cy});
+  }
+  return pts;
+}
+
+// ── Build field lines ──────────────────────────────────────────
+
+// 1. THIN external lines — symmetric left & right
+const thinLines = [];
+// Angles from N pole: left side (negative x = left) and mirror for right
+// In canvas: left = angles between PI/2 and 3PI/2, right = -PI/2 to PI/2
+// Seeds pointing left-ish and right-ish, excluding straight up (through magnet interior)
+const thinAnglesLeft  = [Math.PI*0.55, Math.PI*0.65, Math.PI*0.75, Math.PI*0.85];
+const thinAnglesRight = thinAnglesLeft.map(a => -a);  // mirror
+for (const a of [...thinAnglesLeft, ...thinAnglesRight]) {
+  const pts = traceLine(POLE_N.x+Math.cos(a)*13, POLE_N.y+Math.sin(a)*13, 1.8, 2000, false);
+  if (pts.length > 5) thinLines.push(pts);
+}
+
+// 2. WIDE external lines — 3 per side, perfectly symmetric
+const wideLines = [];
+const wideAnglesLeft  = [Math.PI*0.38, Math.PI*0.48, Math.PI*0.58];
+const wideAnglesRight = wideAnglesLeft.map(a => -a);   // mirror on right
+for (const a of [...wideAnglesLeft, ...wideAnglesRight]) {
+  const pts = traceLine(POLE_N.x+Math.cos(a)*20, POLE_N.y+Math.sin(a)*20, 2.5, 4000, false);
+  if (pts.length > 5) wideLines.push(pts);
+}
+
+// 3. INTERNAL lines — S pole (top) → N pole (bottom) inside magnet
+//    Physics: inside a bar magnet, B field goes from S→N (opposite to outside).
+//    S is at top (MY-MH), N is at bottom (MY+MH).
+//    Points go from top (S) to bottom (N) = correct S→N direction.
+//    We place lines on BOTH left and right sides of the magnet center.
+const internalLines = [];
+// offsets: negative = left of center, positive = right of center
+const internalOffsets = [-MW*0.62, -MW*0.22, MW*0.22, MW*0.62];
+for (const ox of internalOffsets) {
+  const pts = [];
+  const steps = 80;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    // gentle S-curve so lines look natural inside the magnet
+    const curve = Math.sin(t * Math.PI) * ox * 0.25;
+    pts.push({
+      x: POLE_S.x + ox - curve,   // start at S pole x-offset, curve slightly inward
+      y: POLE_S.y + t * (POLE_N.y - POLE_S.y)  // travel from S (top) → N (bottom)
+    });
+  }
+  internalLines.push(pts);
+}
+
+// ── Neutral points along axial line ───────────────────────────
+// ── Neutral Points on Axial Line ──────────────────────────────
+// When N pole faces geographic south (our setup):
+//   - Magnet's axial field outside both poles points DOWNWARD (+y canvas)
+//     because dipole moment = S→N = top→bottom = +y direction
+//   - Earth B_H points geographic NORTH = UPWARD (−y canvas)
+//   - They OPPOSE on the axial line → neutral points exist above S pole AND below N pole
+//
+// Find neutral point by scanning: neutral where magnet by_field = EARTH_EQUIV (in canvas units).
+// We define EARTH_EQUIV so that neutral points fall at a visually sensible distance.
+// Dipole axial field: by ≈ 2K*l / (r²)^(3/2) where l = MH (pole distance from center)
+// We want NP at ~r_np from center. Set EARTH_EQUIV = by at r_np.
+// Use r_np = MH * 2.0 from CENTER (so ~MH from each pole tip).
+
+const R_NP   = MH * 2.0;           // distance from magnet center to neutral point
+const NP_BELOW_Y = MY + R_NP;      // below N pole (center + R_NP downward)
+const NP_ABOVE_Y = MY - R_NP;      // above S pole (center + R_NP upward)
+
+// Verify these are outside the magnet body
+const neutralPoints = [];
+if (NP_BELOW_Y > MY + MH + 10) neutralPoints.push({ x: MX, y: NP_BELOW_Y, side: 'below' });
+if (NP_ABOVE_Y < MY - MH - 10) neutralPoints.push({ x: MX, y: NP_ABOVE_Y, side: 'above' });
+
+let npPulse = 0;
+const mkState = (speed) => ({ progress: Math.random(), speed });
+const thinStates     = thinLines.map(()     => mkState(0.002  + Math.random()*0.001));
+const wideStates     = wideLines.map(()     => mkState(0.0010 + Math.random()*0.0006));
+const internalStates = internalLines.map(() => mkState(0.003  + Math.random()*0.001));
+
+// ── Draw helpers ──────────────────────────────────────────────
+function drawArrow(x1,y1,x2,y2,size) {
+  const angle = Math.atan2(y2-y1, x2-x1);
+  ctx.save();
+  ctx.translate(x2,y2); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(-size,-size*0.42); ctx.lineTo(-size,size*0.42);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawLineSet(lines, states, bw, ba, pw, pLen, arrowSize) {
+  const r1=232,g1=93,b1=58, r2=58,g2=180,b2=232;
+  for (let li=0; li<lines.length; li++) {
+    const pts=lines[li]; if(pts.length<2) continue;
+    const st=states[li]; st.progress=(st.progress+st.speed)%1;
+    const n=pts.length;
+
+    // base line
+    for (let p=0;p<n-1;p++) {
+      const t=p/(n-1);
+      const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
+      ctx.beginPath(); ctx.moveTo(pts[p].x,pts[p].y); ctx.lineTo(pts[p+1].x,pts[p+1].y);
+      ctx.strokeStyle=`rgba(${r},${g},${b},${ba})`; ctx.lineWidth=bw; ctx.stroke();
+    }
+
+    // pulse
+    const head=st.progress, tail=head-pLen;
+    for (let p=0;p<n-1;p++) {
+      const t=p/(n-1);
+      let la=0;
+      if (tail<0) { const t2=tail+1; if(t>=t2||t<=head){const d=(t<=head)?(head-t):(head+1-t); la=Math.max(0,1-d/pLen);} }
+      else { if(t>=tail&&t<=head) la=Math.max(0,1-(head-t)/pLen); }
+      if(la<0.02) continue;
+      const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
+      ctx.beginPath(); ctx.moveTo(pts[p].x,pts[p].y); ctx.lineTo(pts[p+1].x,pts[p+1].y);
+      ctx.strokeStyle=`rgba(${r},${g},${b},${la})`; ctx.lineWidth=pw+la*2;
+      ctx.shadowColor=`rgba(${r},${g},${b},0.85)`; ctx.shadowBlur=pw*2.5; ctx.stroke(); ctx.shadowBlur=0;
+    }
+
+    // arrow
+    const hi=Math.min(Math.floor(head*(n-1)),n-2);
+    const t2=hi/(n-1);
+    const ra=Math.round(r1+(r2-r1)*t2), ga=Math.round(g1+(g2-g1)*t2), ba2=Math.round(b1+(b2-b1)*t2);
+    ctx.fillStyle=`rgba(${ra},${ga},${ba2},1)`;
+    ctx.shadowColor=`rgba(${ra},${ga},${ba2},0.9)`; ctx.shadowBlur=8;
+    drawArrow(pts[hi].x,pts[hi].y,pts[Math.min(hi+1,n-1)].x,pts[Math.min(hi+1,n-1)].y,arrowSize);
+    ctx.shadowBlur=0;
+  }
+}
+
+// Internal lines: S pole (top, blue) → N pole (bottom, red)
+// Direction: index 0 = S pole top, index end = N pole bottom → pulse travels top→bottom = S→N ✓
+function drawInternalLines(lines, states) {
+  // Color: blue at S (start/top) → red at N (end/bottom)
+  const r1=100,g1=200,b1=255;  // bright cyan-blue at S pole
+  const r2=255,g2=100,b2=50;   // bright orange-red at N pole
+  for (let li=0;li<lines.length;li++) {
+    const pts=lines[li]; if(pts.length<2) continue;
+    const st=states[li]; st.progress=(st.progress+st.speed)%1;
+    const n=pts.length;
+
+    // base line — visible and bright
+    for (let p=0;p<n-1;p++) {
+      const t=p/(n-1);
+      const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
+      ctx.beginPath(); ctx.moveTo(pts[p].x,pts[p].y); ctx.lineTo(pts[p+1].x,pts[p+1].y);
+      ctx.strokeStyle=`rgba(${r},${g},${b},0.65)`; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // animated pulse travelling S→N (top→bottom, index 0→end)
+    const head=st.progress, tail=head-0.25, pLen=0.25;
+    for (let p=0;p<n-1;p++) {
+      const t=p/(n-1);
+      let la=0;
+      if(tail<0){const t2=tail+1;if(t>=t2||t<=head){const d=(t<=head)?(head-t):(head+1-t);la=Math.max(0,1-d/pLen);}}
+      else{if(t>=tail&&t<=head)la=Math.max(0,1-(head-t)/pLen);}
+      if(la<0.02) continue;
+      const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
+      ctx.beginPath(); ctx.moveTo(pts[p].x,pts[p].y); ctx.lineTo(pts[p+1].x,pts[p+1].y);
+      ctx.strokeStyle=`rgba(${r},${g},${b},${la})`; ctx.lineWidth=3.5+la*2;
+      ctx.shadowColor=`rgba(${r},${g},${b},0.9)`; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0;
+    }
+
+    // arrowhead — pointing from S toward N (downward in canvas)
+    const hi=Math.min(Math.floor(head*(n-1)),n-2);
+    const t3=hi/(n-1);
+    const ra=Math.round(r1+(r2-r1)*t3), ga=Math.round(g1+(g2-g1)*t3), ba3=Math.round(b1+(b2-b1)*t3);
+    ctx.fillStyle=`rgba(${ra},${ga},${ba3},1)`;
+    ctx.shadowColor=`rgba(${ra},${ga},${ba3},0.9)`; ctx.shadowBlur=10;
+    // pts go top→bottom so arrow naturally points downward (S→N)
+    drawArrow(pts[hi].x,pts[hi].y, pts[Math.min(hi+1,n-1)].x, pts[Math.min(hi+1,n-1)].y, 6);
+    ctx.shadowBlur=0;
+  }
+}
+
+
+function roundRect(x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawNeutralPoints(pulse) {
+  if (neutralPoints.length === 0) return;
+
+  // Draw the axial line connecting through both neutral points
+  const topNP  = neutralPoints.find(p => p.side === 'above');
+  const botNP  = neutralPoints.find(p => p.side === 'below');
+  const axY1   = topNP  ? topNP.y  : MY - MH - 10;
+  const axY2   = botNP  ? botNP.y  : MY + MH + 10;
+
+  // Dashed axial reference line
+  ctx.save();
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(255, 235, 60, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(MX, axY1 - 30); ctx.lineTo(MX, axY2 + 30); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  for (const np of neutralPoints) {
+    const x = np.x, y = np.y;
+
+    // Large pulsing aura
+    const auraR = 30 + Math.sin(pulse) * 8;
+    const auraAlpha = 0.12 + Math.sin(pulse) * 0.06;
+    const auraGrad = ctx.createRadialGradient(x, y, 0, x, y, auraR);
+    auraGrad.addColorStop(0,   `rgba(255,235,60,${auraAlpha * 2.5})`);
+    auraGrad.addColorStop(0.5, `rgba(255,220,40,${auraAlpha})`);
+    auraGrad.addColorStop(1,   'rgba(255,220,40,0)');
+    ctx.beginPath(); ctx.arc(x, y, auraR, 0, Math.PI*2);
+    ctx.fillStyle = auraGrad; ctx.fill();
+
+    // Outer ring pulse 1
+    const r1 = 18 + Math.sin(pulse) * 4;
+    ctx.beginPath(); ctx.arc(x, y, r1, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,235,60,${0.55 + Math.sin(pulse)*0.2})`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(255,230,50,0.9)'; ctx.shadowBlur = 14;
+    ctx.stroke(); ctx.shadowBlur = 0;
+
+    // Outer ring pulse 2 (offset phase)
+    const r2 = 28 + Math.sin(pulse + 1.2) * 5;
+    ctx.beginPath(); ctx.arc(x, y, r2, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,235,60,${0.25 + Math.sin(pulse+1.2)*0.1})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Inner bright dot
+    const dotGrad = ctx.createRadialGradient(x, y, 0, x, y, 8);
+    dotGrad.addColorStop(0, 'rgba(255,255,180,1)');
+    dotGrad.addColorStop(0.5, 'rgba(255,230,40,1)');
+    dotGrad.addColorStop(1, 'rgba(255,200,0,0)');
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI*2);
+    ctx.fillStyle = dotGrad;
+    ctx.shadowColor = 'rgba(255,230,50,1)'; ctx.shadowBlur = 20;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    // Cross-hair (4 short lines radiating from center)
+    const cLen = 24;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,240,80,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(255,230,50,0.5)'; ctx.shadowBlur = 6;
+    // horizontal
+    ctx.beginPath(); ctx.moveTo(x - cLen, y); ctx.lineTo(x - 10, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 10, y);   ctx.lineTo(x + cLen, y); ctx.stroke();
+    // vertical
+    ctx.beginPath(); ctx.moveTo(x, y - cLen); ctx.lineTo(x, y - 10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y + 10);   ctx.lineTo(x, y + cLen); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Label box
+    const labelX = x + 38, labelY = y;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,24,40,0.75)';
+    ctx.beginPath(); ctx.roundRect(labelX - 4, labelY - 14, 80, 32, 4); ctx.fill();
+
+    ctx.font = 'bold 11px Space Mono, monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,240,80,1)';
+    ctx.shadowColor = 'rgba(255,220,0,0.8)'; ctx.shadowBlur = 8;
+    ctx.fillText('N.P.', labelX, labelY - 4);
+    ctx.shadowBlur = 0;
+    ctx.font = '9px Space Mono, monospace';
+    ctx.fillStyle = 'rgba(255,240,80,0.65)';
+    ctx.fillText('B = 0', labelX, labelY + 10);
+    ctx.restore();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg = ctx.createRadialGradient(MX,MY,50,MX,MY,Math.max(W,H)*0.8);
+  bg.addColorStop(0,'#0f1225'); bg.addColorStop(1,'#07090f');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // ── 1. Internal lines (drawn BEFORE magnet so magnet overlays them with transparency) ──
+  drawInternalLines(internalLines, internalStates);
+
+  // ── 2. Transparent magnet body ──────────────────────────────
+  const rx=MX-MW, ry=MY-MH, rw=MW*2, rh=MH*2, cr=7;
+
+  // Pole glows
+  ctx.save();
+  ctx.shadowColor='rgba(58,180,232,0.4)'; ctx.shadowBlur=40;
+  ctx.strokeStyle='rgba(58,180,232,0.2)'; ctx.lineWidth=22;
+  roundRect(rx,ry,rw,MH,cr); ctx.stroke(); ctx.restore();
+
+  ctx.save();
+  ctx.shadowColor='rgba(232,93,58,0.4)'; ctx.shadowBlur=40;
+  ctx.strokeStyle='rgba(232,93,58,0.2)'; ctx.lineWidth=22;
+  roundRect(rx,MY,rw,MH,cr); ctx.stroke(); ctx.restore();
+
+  // S half – semi-transparent blue tint
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(rx,ry,rw,MH,[cr,cr,0,0]); ctx.clip();
+  const gs=ctx.createLinearGradient(rx,ry,rx+rw,ry+MH);
+  gs.addColorStop(0,'rgba(26,40,72,0.45)'); gs.addColorStop(1,'rgba(29,47,82,0.35)');
+  ctx.fillStyle=gs; ctx.fillRect(rx,ry,rw,MH); ctx.restore();
+
+  // N half – semi-transparent red tint
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(rx,MY,rw,MH,[0,0,cr,cr]); ctx.clip();
+  const gn=ctx.createLinearGradient(rx,MY,rx+rw,MY+MH);
+  gn.addColorStop(0,'rgba(61,26,16,0.45)'); gn.addColorStop(1,'rgba(74,31,18,0.35)');
+  ctx.fillStyle=gn; ctx.fillRect(rx,MY,rw,MH); ctx.restore();
+
+  // Divider
+  ctx.beginPath(); ctx.moveTo(rx,MY); ctx.lineTo(rx+rw,MY);
+  ctx.strokeStyle='rgba(10,12,20,0.7)'; ctx.lineWidth=2; ctx.stroke();
+
+  // Thin glass border
+  ctx.save();
+  roundRect(rx,ry,rw,rh,cr);
+  const borderGrad=ctx.createLinearGradient(rx,ry,rx+rw,ry+rh);
+  borderGrad.addColorStop(0,'rgba(100,140,220,0.5)');
+  borderGrad.addColorStop(0.5,'rgba(60,80,160,0.25)');
+  borderGrad.addColorStop(1,'rgba(220,100,60,0.5)');
+  ctx.strokeStyle=borderGrad; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+
+  // Pole labels
+  ctx.save(); ctx.font='bold 20px Space Mono,monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#3ab4e8'; ctx.shadowColor='rgba(58,180,232,0.9)'; ctx.shadowBlur=14;
+  ctx.fillText('S',MX,MY-MH/2);
+  ctx.fillStyle='#e85d3a'; ctx.shadowColor='rgba(232,93,58,0.9)'; ctx.shadowBlur=14;
+  ctx.fillText('N',MX,MY+MH/2); ctx.restore();
+
+  // ── 3. External field lines on top ───────────────────────────
+  drawLineSet(thinLines, thinStates, 1.5, 0.50, 3,   0.18, 5);
+  drawLineSet(wideLines, wideStates, 3.5, 0.70, 6.5, 0.20, 9);
+
+  // Geographic labels
+  ctx.save(); ctx.font='9px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(58,180,232,0.5)'; ctx.fillText('GEOGRAPHIC NORTH',MX,ry-14);
+  ctx.fillStyle='rgba(232,93,58,0.5)';  ctx.fillText('GEOGRAPHIC SOUTH',MX,ry+rh+14);
+  ctx.restore();
+
+  // ── 4. Neutral points ────────────────────────────────────────
+  npPulse += 0.04;
+  drawNeutralPoints(npPulse);
+
+  // ── 5. Formula panel (bottom-left) ───────────────────────────
+  drawFormulaPanel();
+
+  // ── 6. Instructor credit (bottom-right) ──────────────────────
+  drawInstructorTag();
+
+  requestAnimationFrame(draw);
+}
+
+function drawFormulaPanel() {
+  const gap = 32;
+  const pw = 218, ph = 178, pr = 9;
+  const px = MX + MW + gap;
+  const py = MY - ph / 2;
+
+  // Dashed connector line from magnet right edge to panel
+  ctx.save();
+  ctx.strokeStyle = 'rgba(120,150,220,0.28)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(MX + MW + 3, MY);
+  ctx.lineTo(px, MY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Panel shadow/glow
+  ctx.save();
+  ctx.shadowColor = 'rgba(60,100,200,0.25)';
+  ctx.shadowBlur = 20;
+  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, pr);
+  ctx.fillStyle = 'rgba(12,16,36,0.96)';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(90,130,220,0.40)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Title bar background
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(px, py, pw, 26, [pr, pr, 0, 0]);
+  ctx.fillStyle = 'rgba(40,65,150,0.40)';
+  ctx.fill();
+  ctx.restore();
+
+  // Title text
+  ctx.save();
+  ctx.font = 'bold 9.5px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(180,215,255,0.90)';
+  ctx.fillText('MAGNETIC MOMENT', px + pw/2, py + 13);
+  ctx.restore();
+
+  // ── horizontal rule ──
+  function hRule(y, alpha=0.18) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(100,140,220,${alpha})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px+12, y); ctx.lineTo(px+pw-12, y); ctx.stroke();
+    ctx.restore();
+  }
+
+  hRule(py + 26);
+
+  const lx = px + 16;
+
+  // ── Section 1: M = m × 2l ──────────────────────────────────
+  // Label
+  ctx.save();
+  ctx.font = '8px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(140,170,230,0.50)';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('Magnetic Moment', lx, py + 38);
+  ctx.restore();
+
+  // Formula  M = m × 2l  big and clear
+  ctx.save();
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const row1y = py + 57;
+
+  // M  (blue, bold)
+  ctx.font = 'bold 20px Georgia, serif';
+  ctx.fillStyle = '#7ecfff';
+  ctx.shadowColor = 'rgba(80,190,255,0.55)'; ctx.shadowBlur = 8;
+  ctx.fillText('M', lx, row1y);
+  ctx.shadowBlur = 0;
+
+  // = m × 2l
+  ctx.font = '19px Georgia, serif';
+  ctx.fillStyle = 'rgba(230,238,255,0.92)';
+  ctx.fillText(' = m × 2ℓ', lx + 18, row1y);
+  ctx.restore();
+
+  // definitions
+  ctx.save();
+  ctx.font = '9.5px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(148,170,215,0.68)';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('m = pole strength  (A·m)', lx + 4, py + 75);
+  ctx.fillText('2ℓ = magnetic length  (m)', lx + 4, py + 88);
+  ctx.restore();
+
+  hRule(py + 98, 0.14);
+
+  // ── Section 2: B_axial formula ─────────────────────────────
+  ctx.save();
+  ctx.font = '8px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(140,170,230,0.50)';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('Axial Field  (on magnetic axis)', lx, py + 108);
+  ctx.restore();
+
+  // Draw  B_axial  =  μ₀/4π  ×  2Mr / (r²−ℓ²)²
+  // Layout it as two rows: numerator over denominator with a fraction bar
+  ctx.save();
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+
+  const brow = py + 127;   // baseline of the B_axial label row
+  const numY = py + 124;   // numerator row
+  const denY = py + 141;   // denominator row
+  const barY = py + 133;   // fraction bar y
+
+  // "B" subscript "axial"
+  ctx.font = 'bold 15px Georgia, serif';
+  ctx.fillStyle = '#7ecfff';
+  ctx.shadowColor = 'rgba(80,190,255,0.4)'; ctx.shadowBlur = 6;
+  ctx.fillText('B', lx, brow);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '9px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(120,165,225,0.75)';
+  ctx.fillText('axial', lx + 13, brow + 4);
+
+  // "="
+  ctx.font = '15px Georgia, serif';
+  ctx.fillStyle = 'rgba(220,232,255,0.85)';
+  ctx.fillText('=', lx + 54, brow);
+
+  // "μ₀" over "4π"  (small fraction)
+  const mu0x = lx + 72;
+  ctx.font = '12px Georgia, serif';
+  ctx.fillStyle = 'rgba(220,232,255,0.85)';
+  ctx.fillText('μ₀', mu0x, numY);
+  // bar for μ₀/4π
+  ctx.strokeStyle = 'rgba(200,218,255,0.60)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(mu0x, barY); ctx.lineTo(mu0x + 22, barY); ctx.stroke();
+  ctx.fillText('4π', mu0x + 1, denY);
+
+  // "×"
+  ctx.font = '14px Georgia, serif';
+  ctx.fillStyle = 'rgba(180,200,245,0.70)';
+  ctx.fillText('×', lx + 99, brow);
+
+  // big fraction:  2Mr  /  (r²−ℓ²)²
+  const fracX = lx + 116;
+  ctx.font = '12px Georgia, serif';
+  ctx.fillStyle = 'rgba(230,238,255,0.92)';
+  ctx.fillText('2Mr', fracX, numY);
+  // fraction bar
+  ctx.strokeStyle = 'rgba(200,218,255,0.65)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(fracX - 2, barY); ctx.lineTo(fracX + 60, barY); ctx.stroke();
+  ctx.font = '11px Georgia, serif';
+  ctx.fillStyle = 'rgba(210,225,255,0.85)';
+  ctx.fillText('(r²−ℓ²)²', fracX, denY);
+
+  ctx.restore();
+
+  hRule(py + 154, 0.14);
+
+  // ── Units row ──
+  ctx.save();
+  ctx.font = '8.5px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(120,148,200,0.45)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('M : A·m²  |  B : Tesla  |  r : metres', px + pw/2, py + 165);
+  ctx.restore();
+}
+
+function drawInstructorTag() {
+  const tw = 210, th = 52, tx = W - tw - 18, ty = H - th - 18, tr = 8;
+
+  // Panel background
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(tx, ty, tw, th, tr);
+  const bg2 = ctx.createLinearGradient(tx, ty, tx, ty+th);
+  bg2.addColorStop(0, 'rgba(14,18,36,0.88)');
+  bg2.addColorStop(1, 'rgba(10,13,26,0.92)');
+  ctx.fillStyle = bg2; ctx.fill();
+  ctx.strokeStyle = 'rgba(232,160,80,0.30)'; ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+
+  // Small tag label
+  ctx.font = '8px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(200,170,100,0.5)';
+  ctx.fillText('INSTRUCTOR', tx+12, ty+13);
+
+  // Name
+  ctx.font = 'bold 14px Georgia, serif';
+  ctx.fillStyle = 'rgba(255,220,140,0.95)';
+  ctx.shadowColor = 'rgba(255,200,80,0.4)'; ctx.shadowBlur = 8;
+  ctx.fillText('Dr. S. Karna', tx+12, ty+32);
+  ctx.shadowBlur = 0;
+
+  // Decorative accent line
+  ctx.strokeStyle = 'rgba(232,160,80,0.45)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(tx+12, ty+42); ctx.lineTo(tx+tw-12, ty+42); ctx.stroke();
+
+  ctx.restore();
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

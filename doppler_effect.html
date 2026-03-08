@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Doppler Effect – Sound Wave Animation</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050a14;
+  --panel:#0a1628;
+  --border:#1a2d4a;
+  --cyan:#00e5ff;
+  --yellow:#ffd700;
+  --green:#39ff14;
+  --red:#ff4444;
+  --orange:#ff8c00;
+  --purple:#bf5fff;
+  --text:#c8ddf0;
+  --muted:#4a6080;
+}
+body{
+  background:var(--bg);
+  font-family:'Rajdhani',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px 12px 40px;
+  overflow-x:hidden;
+}
+
+/* ── Header ── */
+.header{text-align:center;margin-bottom:22px}
+.header-sub{font-size:11px;letter-spacing:.5em;color:var(--orange);text-transform:uppercase;margin-bottom:6px}
+h1{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(20px,4.5vw,36px);
+  font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.06em;
+}
+.header-formula{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.12em}
+.instructor{
+  display:inline-block;margin-top:8px;
+  font-size:11px;letter-spacing:.25em;color:var(--orange);
+  border:1px solid rgba(255,140,0,.25);padding:4px 14px;border-radius:20px;
+}
+
+/* ── Canvas area ── */
+.canvas-wrap{
+  width:100%;max-width:820px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  position:relative;
+  margin-bottom:18px;
+  box-shadow:0 0 40px rgba(0,229,255,.05);
+}
+canvas{display:block;width:100%;height:auto}
+
+/* ── Mode tabs ── */
+.mode-tabs{
+  display:flex;gap:8px;justify-content:center;
+  flex-wrap:wrap;margin-bottom:16px;
+  width:100%;max-width:820px;
+}
+.tab-btn{
+  font-family:'Rajdhani',sans-serif;
+  font-size:13px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 20px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);
+  background:var(--panel);color:var(--muted);
+  transition:all .2s;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.07)}
+.tab-btn:active{transform:scale(.96)}
+.tab-btn.active{background:rgba(0,229,255,.13);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.2)}
+
+/* ── Controls panel ── */
+.controls{
+  width:100%;max-width:820px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px 22px;
+  margin-bottom:16px;
+}
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.ctrl-group{}
+.ctrl-label{font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
+.ctrl-label span{color:var(--yellow);font-size:13px;font-weight:700}
+input[type=range]{
+  width:100%;height:5px;
+  -webkit-appearance:none;appearance:none;
+  background:var(--border);border-radius:99px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;cursor:pointer;
+}
+.slider-source::-webkit-slider-thumb{background:var(--cyan)}
+.slider-observer::-webkit-slider-thumb{background:var(--green)}
+.slider-sound::-webkit-slider-thumb{background:var(--yellow)}
+
+/* ── Direction buttons ── */
+.dir-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.dir-btn{
+  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:.1em;padding:7px 14px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--border);background:var(--panel);color:var(--muted);
+  transition:all .18s;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;flex:1;min-width:70px;text-align:center;
+}
+.dir-btn:hover{color:var(--text);border-color:#3a5070}
+.dir-btn:active{transform:scale(.95)}
+.dir-btn.on-left{background:rgba(0,229,255,.12);border-color:var(--cyan);color:var(--cyan)}
+.dir-btn.on-right{background:rgba(57,255,20,.1);border-color:var(--green);color:var(--green)}
+.dir-btn.stopped{background:rgba(255,68,68,.1);border-color:var(--red);color:var(--red)}
+
+/* ── Stats row ── */
+.stats-row{
+  width:100%;max-width:820px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;margin-bottom:16px;
+}
+.stat-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;text-align:center;
+}
+.stat-box-label{font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.stat-box-val{font-size:18px;font-weight:700}
+
+/* ── Waveform panel ── */
+.wave-panel{
+  width:100%;max-width:820px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:16px 18px;margin-bottom:16px;
+}
+.wave-panel-title{font-size:11px;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.wave-canvas-wrap{display:flex;gap:10px;flex-wrap:wrap}
+.wave-item{flex:1;min-width:200px}
+.wave-item-label{font-size:10px;letter-spacing:.15em;margin-bottom:4px}
+canvas.waveform{width:100%;height:60px;border-radius:6px;background:#060d1a;border:1px solid var(--border)}
+
+/* ── Legend ── */
+.legend{
+  display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+  font-size:11px;color:var(--muted);margin-bottom:16px;
+}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* ── Note ── */
+.note{font-size:10px;color:var(--muted);text-align:center;max-width:600px;line-height:1.8;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-sub">Physics Simulation</div>
+  <h1>DOPPLER EFFECT</h1>
+  <div class="header-formula">f' = f₀ · (v ± v_obs) / (v ∓ v_src)</div>
+  <div class="instructor">Instructor: Dr. S Karna</div>
+</div>
+
+<!-- Main simulation canvas -->
+<div class="canvas-wrap">
+  <canvas id="simCanvas" width="820" height="320"></canvas>
+</div>
+
+<!-- Mode tabs -->
+<div class="mode-tabs">
+  <button class="tab-btn active" data-mode="source">🔊 Source Moving</button>
+  <button class="tab-btn" data-mode="observer">👁 Observer Moving</button>
+  <button class="tab-btn" data-mode="both">⚡ Both Moving</button>
+  <button class="tab-btn" data-mode="stationary">⏸ Both Stationary</button>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="ctrl-grid">
+    <!-- Source -->
+    <div class="ctrl-group">
+      <div class="ctrl-label">Source Velocity <span id="srcVelVal">80 m/s</span></div>
+      <input type="range" class="slider-source" id="srcVel" min="0" max="320" step="1" value="80"/>
+      <div class="dir-row">
+        <button class="dir-btn on-left" id="srcLeft" onclick="setSrcDir('left')">◀ Left</button>
+        <button class="dir-btn stopped" id="srcStop" onclick="setSrcDir('stop')">■ Stop</button>
+        <button class="dir-btn" id="srcRight" onclick="setSrcDir('right')">Right ▶</button>
+      </div>
+    </div>
+    <!-- Observer -->
+    <div class="ctrl-group">
+      <div class="ctrl-label">Observer Velocity <span id="obsVelVal">0 m/s</span></div>
+      <input type="range" class="slider-observer" id="obsVel" min="0" max="200" step="1" value="0"/>
+      <div class="dir-row">
+        <button class="dir-btn" id="obsLeft" onclick="setObsDir('left')">◀ Left</button>
+        <button class="dir-btn on-left stopped" id="obsStop" onclick="setObsDir('stop')">■ Stop</button>
+        <button class="dir-btn" id="obsRight" onclick="setObsDir('right')">Right ▶</button>
+      </div>
+    </div>
+    <!-- Sound speed -->
+    <div class="ctrl-group">
+      <div class="ctrl-label">Speed of Sound <span id="soundSpeedVal">343 m/s</span></div>
+      <input type="range" class="slider-sound" id="soundSpeed" min="200" max="500" step="1" value="343"/>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+        <span>200 m/s</span><span>343 m/s (air)</span><span>500 m/s</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-box" style="border-color:rgba(0,229,255,.2)">
+    <div class="stat-box-label">Source Freq (f₀)</div>
+    <div class="stat-box-val" id="statF0" style="color:var(--cyan)">440 Hz</div>
+  </div>
+  <div class="stat-box" style="border-color:rgba(57,255,20,.2)">
+    <div class="stat-box-label">Observed Freq (f')</div>
+    <div class="stat-box-val" id="statFobs" style="color:var(--green)">— Hz</div>
+  </div>
+  <div class="stat-box" style="border-color:rgba(255,215,0,.2)">
+    <div class="stat-box-label">Wavelength (λ)</div>
+    <div class="stat-box-val" id="statLambda" style="color:var(--yellow)">— m</div>
+  </div>
+  <div class="stat-box" style="border-color:rgba(191,95,255,.2)">
+    <div class="stat-box-label">Mach Number</div>
+    <div class="stat-box-val" id="statMach" style="color:var(--purple)">—</div>
+  </div>
+  <div class="stat-box" style="border-color:rgba(255,140,0,.2)">
+    <div class="stat-box-label">Doppler Shift</div>
+    <div class="stat-box-val" id="statShift" style="color:var(--orange)">— Hz</div>
+  </div>
+</div>
+
+<!-- Waveforms -->
+<div class="wave-panel">
+  <div class="wave-panel-title">Waveform Comparison (Ahead vs Behind)</div>
+  <div class="wave-canvas-wrap">
+    <div class="wave-item">
+      <div class="wave-item-label" style="color:var(--red)">▶ Ahead of Source (Compressed)</div>
+      <canvas class="waveform" id="waveAhead" width="360" height="60"></canvas>
+    </div>
+    <div class="wave-item">
+      <div class="wave-item-label" style="color:var(--cyan)">◀ Behind Source (Stretched)</div>
+      <canvas class="waveform" id="waveBehind" width="360" height="60"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <span><span class="legend-dot" style="background:var(--cyan)"></span>Sound Source</span>
+  <span><span class="legend-dot" style="background:var(--green)"></span>Observer</span>
+  <span><span class="legend-dot" style="background:rgba(255,100,100,.6);border:1px solid #f66"></span>Wavefronts</span>
+  <span><span class="legend-dot" style="background:var(--yellow)"></span>Emitted waves</span>
+</div>
+
+<div class="note">
+  The Doppler Effect occurs when a source of sound and an observer move relative to each other.
+  Waves compress (higher pitch) when approaching and stretch (lower pitch) when receding.
+  At Mach 1 a sonic boom occurs. Formula: f' = f₀ · (v ± v_obs) / (v ∓ v_src)
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const F0 = 440; // Hz source frequency
+let soundSpeed = 343;
+let srcSpeed = 80;
+let srcDir = -1;   // -1=left, 0=stop, 1=right
+let obsSpeed = 0;
+let obsDir = 0;    // -1=left, 0=stop, 1=right
+let mode = 'source';
+
+// Positions (0-1 normalised)
+let srcX = 0.5;
+let obsX = 0.78;
+
+// Waves array: each {x, y, r, age, maxR}
+let waves = [];
+let waveTimer = 0;
+const WAVE_INTERVAL = 0.045; // seconds between wave emissions (at F0=440 not realistic but visual)
+
+let lastTime = null;
+let animId;
+
+// ══════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ══════════════════════════════════════════════════════
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const W = 820, H = 320;
+
+const wAhead = document.getElementById('waveAhead');
+const ctxA = wAhead.getContext('2d');
+const wBehind = document.getElementById('waveBehind');
+const ctxB = wBehind.getContext('2d');
+
+// ══════════════════════════════════════════════════════
+//  PHYSICS
+// ══════════════════════════════════════════════════════
+function dopplerFreq() {
+  const vs = srcDir * srcSpeed;   // positive = rightward
+  const vo = obsDir * obsSpeed;
+  const v  = soundSpeed;
+
+  // Observer is to the right of source in default layout
+  // For simplified 1D: observer on right side of source
+  // f' = f0 * (v + vo_towards) / (v - vs_towards)
+  // "towards" from observer's perspective (observer moving left = towards source if source is left)
+  const srcToObs = obsX > srcX ? 1 : -1; // +1 if obs is to the right
+
+  // Component of source velocity toward observer
+  const vSrcToward = vs * srcToObs;
+  // Component of observer velocity toward source
+  const vObsToward = -vo * srcToObs;  // obs moving right when src is left = moving away
+
+  const denom = v - vSrcToward;
+  if (denom <= 0) return Infinity; // sonic boom
+  return F0 * (v + vObsToward) / denom;
+}
+
+function lambdaAhead() {
+  // wavelength in direction of motion
+  const vs = srcDir * srcSpeed;
+  const srcToObs = obsX > srcX ? 1 : -1;
+  const vSrcToward = vs * srcToObs;
+  const denom = soundSpeed - vSrcToward;
+  if (denom <= 0) return 0;
+  return denom / F0;
+}
+
+function lambdaBehind() {
+  const vs = srcDir * srcSpeed;
+  const srcToObs = obsX > srcX ? 1 : -1;
+  const vSrcAway = -vs * srcToObs;
+  return (soundSpeed + vSrcAway) / F0;
+}
+
+function machNumber() {
+  return (srcSpeed / soundSpeed).toFixed(3);
+}
+
+// ══════════════════════════════════════════════════════
+//  UPDATE STATS
+// ══════════════════════════════════════════════════════
+function updateStats() {
+  const fObs = dopplerFreq();
+  const fStr = isFinite(fObs) ? fObs.toFixed(1) + ' Hz' : '∞ (Boom!)';
+  const shift = isFinite(fObs) ? (fObs - F0).toFixed(1) + ' Hz' : '—';
+  const lam   = lambdaAhead();
+  const mach  = machNumber();
+
+  document.getElementById('statF0').textContent    = F0 + ' Hz';
+  document.getElementById('statFobs').textContent  = fStr;
+  document.getElementById('statLambda').textContent = lam > 0 ? lam.toFixed(3) + ' m' : '0 m';
+  document.getElementById('statMach').textContent  = mach;
+  document.getElementById('statShift').textContent = shift;
+
+  // Colour shift indicator
+  const el = document.getElementById('statFobs');
+  if (!isFinite(fObs)) { el.style.color = '#fff'; }
+  else if (fObs > F0 + 5) { el.style.color = 'var(--red)'; }
+  else if (fObs < F0 - 5) { el.style.color = 'var(--cyan)'; }
+  else { el.style.color = 'var(--green)'; }
+}
+
+// ══════════════════════════════════════════════════════
+//  WAVEFORM CANVASES
+// ══════════════════════════════════════════════════════
+function drawWaveform(c, ctx2, freq, color) {
+  const w = c.width, h = c.height;
+  ctx2.clearRect(0,0,w,h);
+  ctx2.fillStyle = '#060d1a';
+  ctx2.fillRect(0,0,w,h);
+
+  // baseline
+  ctx2.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx2.lineWidth = 1;
+  ctx2.beginPath(); ctx2.moveTo(0,h/2); ctx2.lineTo(w,h/2); ctx2.stroke();
+
+  if (!isFinite(freq) || freq <= 0) return;
+
+  // scale: fit ~3 cycles of source freq into canvas, compressed/stretched for observed
+  const cyclesShown = 3;
+  const basePixPerCycle = w / cyclesShown;
+  const ratio = F0 / freq; // >1 = stretched, <1 = compressed
+  const pixPerCycle = basePixPerCycle * ratio;
+
+  ctx2.beginPath();
+  ctx2.strokeStyle = color;
+  ctx2.lineWidth = 2;
+
+  for (let px = 0; px < w; px++) {
+    const angle = (px / pixPerCycle) * Math.PI * 2;
+    const y = h/2 + Math.sin(angle) * (h * 0.38);
+    if (px === 0) ctx2.moveTo(px, y);
+    else ctx2.lineTo(px, y);
+  }
+  ctx2.stroke();
+
+  // label
+  ctx2.fillStyle = color;
+  ctx2.font = '11px Rajdhani, monospace';
+  ctx2.fillText(freq.toFixed(0) + ' Hz', 6, 14);
+}
+
+// ══════════════════════════════════════════════════════
+//  MAIN DRAW
+// ══════════════════════════════════════════════════════
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(26,45,74,0.5)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // Ground line
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H*0.72); ctx.lineTo(W, H*0.72); ctx.stroke();
+
+  // ── Draw wavefronts ──
+  const srcPx = srcX * W;
+  const srcPy = H * 0.55;
+
+  waves.forEach(w => {
+    const t = w.age / w.maxAge;
+    const alpha = Math.max(0, 1 - t);
+    if (alpha <= 0.02) return;
+
+    // Color: ahead of source = compressed (red/orange), behind = stretched (cyan/blue)
+    // We split the circle: left half behind, right half ahead (relative to source motion)
+    // For simplicity color whole ring by position relative to source at emit time
+    const isAhead = (srcDir >= 0)
+      ? w.cx <= srcX * W   // source moved right → ahead is left of emit point... actually use current src
+      : w.cx >= srcX * W;
+
+    // Outer glow ring
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,180,80,${alpha * 0.25})`;
+    ctx.lineWidth = 7;
+    ctx.stroke();
+
+    // Main ring — bright and thick
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
+
+    // Draw left half (behind source if moving right) in cyan, right half in red
+    // Use two arcs: right semicircle = ahead (compressed, red), left = behind (stretched, cyan)
+    // Ahead = direction source is moving toward (srcDir > 0 → right side compressed)
+    const aheadColor = `rgba(255, 80, 60, ${alpha * 0.95})`;
+    const behindColor = `rgba(0, 210, 255, ${alpha * 0.95})`;
+
+    // Right semicircle
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, -Math.PI/2, Math.PI/2);
+    ctx.strokeStyle = srcDir >= 0 ? aheadColor : behindColor;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Left semicircle
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, Math.PI/2, -Math.PI/2);
+    ctx.strokeStyle = srcDir >= 0 ? behindColor : aheadColor;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Inner highlight ring (thin white core)
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.18})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // ── Source ──
+  const sx = srcX * W;
+  // glow
+  const glowSrc = ctx.createRadialGradient(sx, srcPy, 0, sx, srcPy, 28);
+  glowSrc.addColorStop(0, 'rgba(0,229,255,0.35)');
+  glowSrc.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = glowSrc;
+  ctx.beginPath(); ctx.arc(sx, srcPy, 28, 0, Math.PI*2); ctx.fill();
+
+  // source body (speaker)
+  ctx.fillStyle = '#00c8e0';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(sx-16, srcPy-12, 32, 24, 4);
+  ctx.fill(); ctx.stroke();
+
+  // speaker cone
+  ctx.fillStyle = '#003344';
+  ctx.beginPath(); ctx.arc(sx, srcPy, 8, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(sx, srcPy, 8, 0, Math.PI*2); ctx.stroke();
+
+  // velocity arrow for source
+  if (srcDir !== 0 && srcSpeed > 0) {
+    drawArrow(ctx, sx, srcPy + 24, srcDir * Math.min(srcSpeed * 0.25, 55), '#00e5ff', 'SRC');
+  }
+
+  // label
+  ctx.fillStyle = '#00e5ff';
+  ctx.font = 'bold 11px Rajdhani, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SOURCE', sx, srcPy - 20);
+  ctx.fillText(F0 + ' Hz', sx, srcPy - 8);
+
+  // ── Observer ──
+  const ox = obsX * W;
+  const oy = H * 0.55;
+
+  const glowObs = ctx.createRadialGradient(ox, oy, 0, ox, oy, 22);
+  glowObs.addColorStop(0, 'rgba(57,255,20,0.3)');
+  glowObs.addColorStop(1, 'rgba(57,255,20,0)');
+  ctx.fillStyle = glowObs;
+  ctx.beginPath(); ctx.arc(ox, oy, 22, 0, Math.PI*2); ctx.fill();
+
+  // observer (person silhouette - simple)
+  ctx.fillStyle = '#39ff14';
+  ctx.strokeStyle = '#5fff40';
+  ctx.lineWidth = 2;
+  // body
+  ctx.beginPath(); ctx.arc(ox, oy-10, 7, 0, Math.PI*2); ctx.fill(); // head
+  ctx.beginPath();
+  ctx.moveTo(ox, oy-3); ctx.lineTo(ox, oy+10);
+  ctx.moveTo(ox-8, oy+2); ctx.lineTo(ox+8, oy+2);  // arms
+  ctx.moveTo(ox, oy+10); ctx.lineTo(ox-6, oy+20);
+  ctx.moveTo(ox, oy+10); ctx.lineTo(ox+6, oy+20);  // legs
+  ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // ear indicator
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath(); ctx.arc(ox+6, oy-11, 3, 0, Math.PI*2); ctx.fill();
+
+  if (obsDir !== 0 && obsSpeed > 0) {
+    drawArrow(ctx, ox, oy + 30, obsDir * Math.min(obsSpeed * 0.25, 45), '#39ff14', 'OBS');
+  }
+
+  ctx.fillStyle = '#39ff14';
+  ctx.font = 'bold 11px Rajdhani, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('OBSERVER', ox, oy - 26);
+
+  // ── Doppler info overlay ──
+  const fObs = dopplerFreq();
+  const fStr = isFinite(fObs) ? fObs.toFixed(0) + ' Hz' : 'SONIC BOOM';
+  ctx.fillStyle = isFinite(fObs) ? (fObs > F0+5 ? '#ff4444' : fObs < F0-5 ? '#00e5ff' : '#ffffff') : '#ffffff';
+  ctx.font = 'bold 14px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText("f' = " + fStr, ox, oy + 46);
+
+  // wavelength compression visual (arrow between wavefronts ahead/behind)
+  drawWavelengthIndicator();
+
+  // ── Mach cone if supersonic ──
+  if (srcSpeed >= soundSpeed) {
+    const halfAngle = Math.asin(soundSpeed / Math.max(srcSpeed, soundSpeed + 1));
+    const coneLen = 180;
+    ctx.strokeStyle = 'rgba(255,215,0,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    ctx.moveTo(sx, srcPy);
+    ctx.lineTo(sx - coneLen, srcPy - Math.tan(halfAngle)*coneLen);
+    ctx.moveTo(sx, srcPy);
+    ctx.lineTo(sx - coneLen, srcPy + Math.tan(halfAngle)*coneLen);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 12px Orbitron';
+    ctx.textAlign = 'left';
+    ctx.fillText('MACH CONE', sx - coneLen + 4, srcPy - Math.tan(halfAngle)*coneLen - 6);
+  }
+
+  ctx.textAlign = 'left'; // reset
+}
+
+function drawArrow(ctx2, x, y, len, color, label) {
+  const ex = x + len;
+  ctx2.strokeStyle = color;
+  ctx2.fillStyle = color;
+  ctx2.lineWidth = 2;
+  ctx2.beginPath(); ctx2.moveTo(x, y); ctx2.lineTo(ex, y); ctx2.stroke();
+  // arrowhead
+  const dir = len > 0 ? 1 : -1;
+  ctx2.beginPath();
+  ctx2.moveTo(ex, y);
+  ctx2.lineTo(ex - dir*8, y-4);
+  ctx2.lineTo(ex - dir*8, y+4);
+  ctx2.closePath(); ctx2.fill();
+}
+
+function drawWavelengthIndicator() {
+  const la = lambdaAhead();
+  const lb = lambdaBehind();
+  const srcPx = srcX * W;
+  const srcPy = H * 0.55;
+  const y = H * 0.85;
+
+  if (la > 0 && lb > 0) {
+    // Scale: show relative widths
+    const scale = 80; // pixels per unit lambda
+    const laDisp = Math.min(la * scale * 12, 120);
+    const lbDisp = Math.min(lb * scale * 12, 140);
+
+    // Ahead annotation
+    ctx.strokeStyle = 'rgba(255,80,80,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(srcPx - 8, y); ctx.lineTo(srcPx - 8 - laDisp, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,80,80,0.8)';
+    ctx.font = '10px Rajdhani, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('λ ahead = ' + la.toFixed(2)+'m', srcPx - 8 - laDisp/2, y - 6);
+
+    // Behind annotation
+    ctx.strokeStyle = 'rgba(0,229,255,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(srcPx + 8, y); ctx.lineTo(srcPx + 8 + lbDisp, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(0,229,255,0.8)';
+    ctx.textAlign = 'center';
+    ctx.fillText('λ behind = ' + lb.toFixed(2)+'m', srcPx + 8 + lbDisp/2, y - 6);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ══════════════════════════════════════════════════════
+function animate(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  const SCALE = 300; // pixels per 343 m/s
+
+  // Move source
+  if (srcDir !== 0 && (mode === 'source' || mode === 'both')) {
+    srcX += (srcDir * srcSpeed / 343) * (soundSpeed / 343) * dt * 0.4;
+    srcX = Math.max(0.05, Math.min(0.9, srcX));
+  }
+
+  // Move observer
+  if (obsDir !== 0 && (mode === 'observer' || mode === 'both')) {
+    obsX += (obsDir * obsSpeed / 343) * (soundSpeed / 343) * dt * 0.4;
+    obsX = Math.max(0.05, Math.min(0.95, obsX));
+  }
+
+  // Emit wave — fewer, well-spaced rings
+  waveTimer += dt;
+  const emitInterval = 1 / F0 * 14; // wider spacing = fewer rings on screen at once
+  if (waveTimer >= emitInterval) {
+    waveTimer = 0;
+    if (waves.length < 10) { // hard cap: max 10 rings visible
+      waves.push({
+        cx: srcX * W,
+        r: 0,
+        age: 0,
+        maxAge: 3.4,
+      });
+    }
+  }
+
+  // Expand waves — slightly slower so rings are visible longer
+  const speedPx = (soundSpeed / 343) * 90; // visual speed in px/s
+  waves.forEach(w => {
+    w.r += speedPx * dt;
+    w.age += dt;
+  });
+
+  // Remove old waves
+  waves = waves.filter(w => w.age < w.maxAge && w.r < Math.max(W, H) * 0.85);
+
+  draw();
+  updateStats();
+
+  // Waveforms
+  const fA = (() => {
+    const srcToObs = 1;
+    const vs = srcDir * srcSpeed;
+    const vo = obsDir * obsSpeed;
+    const vSrcToward = vs * srcToObs;
+    const vObsToward = -vo * srcToObs;
+    const d = soundSpeed - vSrcToward;
+    if (d <= 0) return Infinity;
+    return F0 * (soundSpeed + vObsToward) / d;
+  })();
+  const fB = (() => {
+    const srcToObs = -1;
+    const vs = srcDir * srcSpeed;
+    const vo = obsDir * obsSpeed;
+    const vSrcToward = vs * srcToObs;
+    const vObsToward = -vo * srcToObs;
+    const d = soundSpeed - vSrcToward;
+    if (d <= 0) return 0;
+    return F0 * (soundSpeed + vObsToward) / d;
+  })();
+
+  drawWaveform(wAhead, ctxA, fA, '#ff5555');
+  drawWaveform(wBehind, ctxB, fB, '#00e5ff');
+
+  animId = requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+// ══════════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════════
+document.getElementById('srcVel').addEventListener('input', e => {
+  srcSpeed = parseInt(e.target.value);
+  document.getElementById('srcVelVal').textContent = srcSpeed + ' m/s';
+});
+document.getElementById('obsVel').addEventListener('input', e => {
+  obsSpeed = parseInt(e.target.value);
+  document.getElementById('obsVelVal').textContent = obsSpeed + ' m/s';
+});
+document.getElementById('soundSpeed').addEventListener('input', e => {
+  soundSpeed = parseInt(e.target.value);
+  document.getElementById('soundSpeedVal').textContent = soundSpeed + ' m/s';
+});
+
+// Mode tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Reset positions
+    srcX = 0.35; obsX = 0.72;
+    waves = []; waveTimer = 0;
+    if (mode === 'stationary') { srcDir = 0; obsDir = 0; }
+    if (mode === 'source') { srcDir = -1; updateSrcBtns(); }
+    if (mode === 'observer') { obsDir = -1; updateObsBtns(); }
+    if (mode === 'both') { srcDir = -1; obsDir = 1; updateSrcBtns(); updateObsBtns(); }
+  });
+});
+
+function setSrcDir(d) {
+  srcDir = d === 'left' ? -1 : d === 'right' ? 1 : 0;
+  updateSrcBtns();
+}
+function setObsDir(d) {
+  obsDir = d === 'left' ? -1 : d === 'right' ? 1 : 0;
+  updateObsBtns();
+}
+function updateSrcBtns() {
+  ['srcLeft','srcStop','srcRight'].forEach(id => {
+    document.getElementById(id).className = 'dir-btn';
+  });
+  if (srcDir === -1) document.getElementById('srcLeft').classList.add('on-left');
+  else if (srcDir === 1) document.getElementById('srcRight').classList.add('on-right');
+  else document.getElementById('srcStop').classList.add('stopped');
+}
+function updateObsBtns() {
+  ['obsLeft','obsStop','obsRight'].forEach(id => {
+    document.getElementById(id).className = 'dir-btn';
+  });
+  if (obsDir === -1) document.getElementById('obsLeft').classList.add('on-left');
+  else if (obsDir === 1) document.getElementById('obsRight').classList.add('on-right');
+  else document.getElementById('obsStop').classList.add('stopped');
+}
+
+// Init
+updateSrcBtns();
+updateObsBtns();
+</script>
+</body>
+</html>

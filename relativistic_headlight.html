@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Relativistic Headlight & Doppler Effect of Light</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#02040a;
+  --panel:#060d1c;
+  --border:#0f2040;
+  --cyan:#00f0ff;
+  --red:#ff2244;
+  --blue:#2255ff;
+  --yellow:#ffe840;
+  --green:#00ff88;
+  --violet:#cc44ff;
+  --white:#f0f8ff;
+  --muted:#3a5070;
+  --text:#b0cce0;
+}
+body{
+  background:var(--bg);
+  font-family:'Share Tech Mono',monospace;
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:18px 10px 44px;
+  overflow-x:hidden;
+}
+
+/* ─── HEADER ─── */
+.hdr{text-align:center;margin-bottom:20px}
+.hdr-sub{font-size:10px;letter-spacing:.55em;color:var(--violet);text-transform:uppercase;margin-bottom:6px}
+h1{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(18px,4vw,34px);font-weight:900;
+  background:linear-gradient(100deg,var(--cyan) 0%,var(--violet) 55%,var(--red) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.07em;line-height:1.15;
+}
+.hdr-formula{font-size:11px;color:var(--muted);margin-top:7px;letter-spacing:.1em;line-height:1.8}
+.instructor-tag{
+  display:inline-block;margin-top:8px;padding:4px 16px;
+  font-size:11px;letter-spacing:.25em;color:var(--yellow);
+  border:1px solid rgba(255,232,64,.22);border-radius:20px;
+}
+
+/* ─── MAIN CANVAS ─── */
+.sim-wrap{
+  width:100%;max-width:860px;
+  background:var(--panel);
+  border:1px solid var(--border);border-radius:18px;
+  overflow:hidden;position:relative;
+  margin-bottom:16px;
+  box-shadow:0 0 60px rgba(0,240,255,.04),0 0 120px rgba(200,60,255,.03);
+}
+#simCanvas{display:block;width:100%;height:auto}
+
+/* ─── CONTROLS ─── */
+.ctrl-panel{
+  width:100%;max-width:860px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:18px 20px;margin-bottom:14px;
+}
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.ctrl-row{margin-bottom:0}
+.ctrl-lbl{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10px;letter-spacing:.2em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:7px;
+}
+.ctrl-lbl b{font-size:14px;font-weight:700;letter-spacing:0}
+input[type=range]{
+  width:100%;height:5px;-webkit-appearance:none;appearance:none;
+  background:var(--border);border-radius:99px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;cursor:pointer;
+}
+#betaSlider{accent-color:var(--cyan)}
+#betaSlider::-webkit-slider-thumb{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.tick-row{display:flex;justify-content:space-between;font-size:9px;color:#1e3050;margin-top:3px}
+
+/* ─── MODE BUTTONS ─── */
+.mode-row{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  width:100%;max-width:860px;margin-bottom:14px;
+}
+.mode-btn{
+  font-family:'Share Tech Mono',monospace;
+  font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 18px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);background:var(--panel);color:var(--muted);
+  transition:all .18s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  min-width:120px;text-align:center;
+}
+.mode-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.06)}
+.mode-btn:active{transform:scale(.95)}
+.mode-btn.active{background:rgba(0,240,255,.11);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(0,240,255,.18)}
+
+/* ─── STATS ─── */
+.stats-grid{
+  width:100%;max-width:860px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;margin-bottom:14px;
+}
+.stat{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;
+}
+.stat-lbl{font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.stat-val{font-size:16px;font-weight:700;font-family:'Orbitron',sans-serif}
+
+/* ─── SPECTRUM BAR ─── */
+.spectrum-panel{
+  width:100%;max-width:860px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:16px 20px;margin-bottom:14px;
+}
+.spectrum-title{font-size:10px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.spectrum-wrap{position:relative}
+.spectrum-bar{
+  width:100%;height:28px;border-radius:6px;
+  background:linear-gradient(90deg,
+    #6600cc 0%,     /* UV */
+    #4400ff 8%,
+    #2244ff 14%,    /* Violet */
+    #0044ff 18%,    /* Blue */
+    #0099ff 24%,    /* Cyan */
+    #00ee44 36%,    /* Green */
+    #aaee00 46%,    /* Yellow-green */
+    #ffee00 54%,    /* Yellow */
+    #ffaa00 62%,    /* Orange */
+    #ff4400 72%,    /* Red */
+    #cc0000 80%,    /* Deep red */
+    #660000 90%,    /* Near IR */
+    #220000 100%    /* IR */
+  );
+  border:1px solid #1a2d4a;
+}
+.spectrum-markers{position:relative;height:22px;margin-top:2px}
+.spec-marker{
+  position:absolute;top:0;
+  font-size:9px;letter-spacing:.08em;transform:translateX(-50%);
+  white-space:nowrap;
+}
+#srcMarker{color:#ffffff;font-weight:bold}
+#obsMarker{
+  top:11px;
+}
+.marker-line{
+  position:absolute;top:-30px;width:2px;height:26px;
+  transform:translateX(-50%);border-radius:1px;
+}
+
+/* ─── BEAMING DIAGRAM ─── */
+.beam-panel{
+  width:100%;max-width:860px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:16px 20px;margin-bottom:14px;
+}
+.beam-title{font-size:10px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+#beamCanvas{display:block;width:100%;height:auto;border-radius:8px;background:#030810}
+
+/* ─── NOTE ─── */
+.note{
+  font-size:10px;color:var(--muted);text-align:center;
+  max-width:600px;line-height:1.9;letter-spacing:.05em;
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-sub">Special Relativity · Electromagnetism</div>
+  <h1>RELATIVISTIC HEADLIGHT<br>& DOPPLER EFFECT OF LIGHT</h1>
+  <div class="hdr-formula">
+    f' = f₀ · √(1−β) / √(1+β) &nbsp;[Receding] &nbsp;|&nbsp; f' = f₀ · √(1+β) / √(1−β) &nbsp;[Approaching]<br>
+    Headlight angle: cos θ' = (cos θ − β) / (1 − β·cos θ)
+  </div>
+  <div class="instructor-tag">Instructor: Dr. S Karna</div>
+</div>
+
+<!-- Main simulation -->
+<div class="sim-wrap">
+  <canvas id="simCanvas" width="860" height="360"></canvas>
+</div>
+
+<!-- Mode buttons -->
+<div class="mode-row">
+  <button class="mode-btn active" data-mode="approach">▶ Approaching</button>
+  <button class="mode-btn" data-mode="recede">◀ Receding</button>
+  <button class="mode-btn" data-mode="flyby">↔ Fly-by</button>
+  <button class="mode-btn" data-mode="headlight">💡 Headlight Beam</button>
+</div>
+
+<!-- Controls -->
+<div class="ctrl-panel">
+  <div class="ctrl-grid">
+    <div class="ctrl-row">
+      <div class="ctrl-lbl">
+        <span>Velocity β = v/c</span>
+        <b id="betaDisp" style="color:var(--cyan)">0.00</b>
+      </div>
+      <input type="range" id="betaSlider" min="0" max="0.9999" step="0.0001" value="0"/>
+      <div class="tick-row"><span>0</span><span>0.25c</span><span>0.5c</span><span>0.75c</span><span>→c</span></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-lbl">
+        <span>Source Frequency</span>
+        <b id="f0Disp" style="color:var(--yellow)">550 THz</b>
+      </div>
+      <input type="range" id="f0Slider" min="380" max="750" step="1" value="550"
+        style="accent-color:var(--yellow)"/>
+      <div class="tick-row"><span>380 THz (Red)</span><span>550 THz (Green)</span><span>750 THz (Violet)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat" style="border-color:rgba(0,240,255,.18)">
+    <div class="stat-lbl">β = v/c</div>
+    <div class="stat-val" id="sB" style="color:var(--cyan)">0.000</div>
+  </div>
+  <div class="stat" style="border-color:rgba(204,68,255,.18)">
+    <div class="stat-lbl">Lorentz γ</div>
+    <div class="stat-val" id="sG" style="color:var(--violet)">1.000</div>
+  </div>
+  <div class="stat" style="border-color:rgba(255,232,64,.18)">
+    <div class="stat-lbl">Source f₀</div>
+    <div class="stat-val" id="sF0" style="color:var(--yellow)">550 THz</div>
+  </div>
+  <div class="stat" style="border-color:rgba(0,255,136,.18)">
+    <div class="stat-lbl">Observed f' (ahead)</div>
+    <div class="stat-val" id="sFobs" style="color:var(--green)">550 THz</div>
+  </div>
+  <div class="stat" style="border-color:rgba(255,34,68,.18)">
+    <div class="stat-lbl">Redshift (behind)</div>
+    <div class="stat-val" id="sFred" style="color:var(--red)">550 THz</div>
+  </div>
+  <div class="stat" style="border-color:rgba(255,255,255,.1)">
+    <div class="stat-lbl">Headlight Angle</div>
+    <div class="stat-val" id="sAngle" style="color:var(--white)">90°</div>
+  </div>
+</div>
+
+<!-- Spectrum bar -->
+<div class="spectrum-panel">
+  <div class="spectrum-title">Visible Spectrum — Doppler Shift Indicator</div>
+  <div class="spectrum-wrap">
+    <div class="spectrum-bar"></div>
+    <div class="spectrum-markers" id="specMarkers">
+      <div class="marker-line" id="srcLine" style="background:rgba(255,255,255,0.9)"></div>
+      <div class="spec-marker" id="srcMarker">▼ f₀</div>
+      <div class="marker-line" id="obsLine" style="background:rgba(0,255,136,0.9)"></div>
+      <div class="spec-marker" id="obsMarker" style="color:var(--green)">▼ f'</div>
+    </div>
+  </div>
+</div>
+
+<!-- Beaming diagram -->
+<div class="beam-panel">
+  <div class="beam-title">Relativistic Aberration &amp; Headlight Beaming (Source Frame → Lab Frame)</div>
+  <canvas id="beamCanvas" width="860" height="180"></canvas>
+</div>
+
+<div class="note">
+  <b style="color:var(--cyan)">Relativistic Doppler Effect:</b> Unlike sound, light Doppler shift is purely relativistic —
+  there is no medium. Approaching sources blueshift (higher freq), receding sources redshift (lower freq).
+  The <b style="color:var(--violet)">Headlight Effect</b>: at relativistic speeds, a source emitting light isotropically
+  in its rest frame beams almost all photons forward in the lab frame — like a lighthouse turned into a laser.
+</div>
+
+<script>
+// ══════════════════════════ CONSTANTS & STATE ════════════════════════════
+const C = 3e8; // m/s (not used in calc, just symbolic)
+let beta = 0.0;
+let f0_THz = 550; // THz
+let mode = 'approach';
+
+// wavelength range THz → color
+function freqToColor(f_THz) {
+  // approximate visible spectrum mapping
+  const nm = 3e8 / (f_THz * 1e12) * 1e9; // convert to nm
+  return nmToRGB(nm);
+}
+
+function nmToRGB(wl) {
+  let r=0,g=0,b=0;
+  if      (wl >= 380 && wl < 440) { r=(440-wl)/(440-380); g=0; b=1; }
+  else if (wl >= 440 && wl < 490) { r=0; g=(wl-440)/(490-440); b=1; }
+  else if (wl >= 490 && wl < 510) { r=0; g=1; b=(510-wl)/(510-490); }
+  else if (wl >= 510 && wl < 580) { r=(wl-510)/(580-510); g=1; b=0; }
+  else if (wl >= 580 && wl < 645) { r=1; g=(645-wl)/(645-580); b=0; }
+  else if (wl >= 645 && wl <= 780) { r=1; g=0; b=0; }
+  else if (wl < 380) { r=0.5; g=0; b=0.8; } // UV → violet
+  else { r=0.6; g=0; b=0; } // IR → dark red
+  // gamma correction
+  const gamma_c = 0.8;
+  const factor = wl >= 380 && wl <= 780 ? 1.0 : 0.3;
+  r = Math.round(255 * Math.pow(r * factor, gamma_c));
+  g = Math.round(255 * Math.pow(g * factor, gamma_c));
+  b = Math.round(255 * Math.pow(b * factor, gamma_c));
+  return `rgb(${r},${g},${b})`;
+}
+
+function THzToNm(f) { return 3e5 / f; } // nm  (c in nm/ps)
+
+// Relativistic Doppler
+function dopplerApproach(f0, b) {
+  if (b >= 1) return Infinity;
+  return f0 * Math.sqrt((1 + b) / (1 - b));
+}
+function dopplerRecede(f0, b) {
+  if (b >= 1) return 0;
+  return f0 * Math.sqrt((1 - b) / (1 + b));
+}
+function lorentzGamma(b) { return 1 / Math.sqrt(1 - b * b); }
+
+// Headlight aberration angle
+// cos θ_lab = (cos θ_src + β) / (1 + β cos θ_src)
+// Half-angle: at θ_src = 90°, cos θ_lab = β  → θ_lab = acos(β)
+function headlightHalfAngle(b) {
+  return Math.acos(b) * 180 / Math.PI;
+}
+
+// ══════════════════════════ MAIN SIM CANVAS ══════════════════════════════
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const W = 860, H = 360;
+
+// Wavefront rings
+let waves = [];
+let wTimer = 0;
+let shipX = 0.12; // normalised, used in flyby
+let flyDir = 1;
+let animT = 0;
+
+function emitInterval() {
+  // fewer rings, nicely spaced
+  return 0.18;
+}
+
+function drawSim(dt) {
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Deep space background ──
+  drawSpaceBackground();
+
+  const srcPy = H * 0.5;
+  let srcPx;
+
+  if (mode === 'flyby') {
+    shipX += flyDir * beta * dt * 0.22;
+    if (shipX > 0.92) { flyDir = -1; }
+    if (shipX < 0.08) { flyDir = 1; }
+    srcPx = shipX * W;
+  } else if (mode === 'approach') {
+    // source comes from right, wraps
+    shipX -= beta * dt * 0.18;
+    if (shipX < -0.1) shipX = 1.1;
+    srcPx = shipX * W;
+  } else if (mode === 'recede') {
+    shipX += beta * dt * 0.18;
+    if (shipX > 1.1) shipX = -0.1;
+    srcPx = shipX * W;
+  } else {
+    srcPx = W * 0.42;
+  }
+
+  // Emit rings
+  wTimer += dt;
+  if (wTimer >= emitInterval()) {
+    wTimer = 0;
+    if (waves.length < 12) {
+      waves.push({ cx: srcPx, r: 0, age: 0, maxAge: 3.5 });
+    }
+  }
+
+  // Expand rings
+  const ringSpeed = 110 + beta * 60;
+  waves.forEach(w => { w.r += ringSpeed * dt; w.age += dt; });
+  waves = waves.filter(w => w.age < w.maxAge && w.r < Math.max(W, H));
+
+  // ── Draw wavefronts ──
+  waves.forEach(w => {
+    const t = w.age / w.maxAge;
+    const alpha = Math.max(0, 1 - t * t);
+    if (alpha < 0.02) return;
+
+    // Ahead color = blueshifted, behind = redshifted
+    const fAhead = dopplerApproach(f0_THz, beta);
+    const fBehind = dopplerRecede(f0_THz, beta);
+    const colAhead = isFinite(fAhead) ? freqToColor(Math.min(fAhead, 900)) : '#ffffff';
+    const colBehind = freqToColor(Math.max(fBehind, 100));
+
+    // Glow outer
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.07})`;
+    ctx.lineWidth = 9;
+    ctx.stroke();
+
+    // Right half (ahead direction if mode=approach/recede)
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, -Math.PI / 2, Math.PI / 2); // right
+    ctx.strokeStyle = colAhead.replace('rgb', 'rgba').replace(')', `,${alpha * 0.9})`);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Left half
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, Math.PI / 2, -Math.PI / 2); // left
+    ctx.strokeStyle = colBehind.replace('rgb', 'rgba').replace(')', `,${alpha * 0.9})`);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Bright core
+    ctx.beginPath();
+    ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.12})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // ── Draw source (spacecraft) ──
+  drawSpacecraft(srcPx, srcPy, mode === 'recede' ? -1 : 1);
+
+  // ── Observer dot (center) ──
+  const obsPx = W * 0.5;
+  drawObserver(obsPx, srcPy);
+
+  // ── Headlight cone (headlight mode) ──
+  if (mode === 'headlight') {
+    drawHeadlightCone(srcPx, srcPy);
+  }
+
+  // ── Labels ──
+  drawLabels(srcPx, srcPy, obsPx);
+}
+
+function drawSpaceBackground() {
+  // Star field
+  ctx.fillStyle = '#02040a';
+  ctx.fillRect(0, 0, W, H);
+  // subtle grid
+  ctx.strokeStyle = 'rgba(15,32,64,0.4)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  // static stars (seeded)
+  const starSeed = [
+    [0.07,0.12],[0.15,0.88],[0.22,0.35],[0.31,0.67],[0.44,0.18],
+    [0.51,0.82],[0.63,0.44],[0.72,0.09],[0.81,0.73],[0.90,0.28],
+    [0.10,0.55],[0.38,0.92],[0.58,0.07],[0.76,0.60],[0.95,0.45],
+    [0.04,0.78],[0.27,0.22],[0.48,0.63],[0.69,0.88],[0.85,0.14],
+  ];
+  starSeed.forEach(([nx,ny],i) => {
+    const blink = 0.5 + 0.5 * Math.sin(animT * 1.2 + i * 1.7);
+    ctx.fillStyle = `rgba(180,220,255,${0.3 + blink * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(nx*W, ny*H, 1 + (i%3)*0.4, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function drawSpacecraft(px, py, dir) {
+  ctx.save();
+  ctx.translate(px, py);
+  if (dir < 0) ctx.scale(-1, 1);
+
+  // Engine glow
+  const glow = ctx.createRadialGradient(-22, 0, 0, -22, 0, 30);
+  glow.addColorStop(0, `rgba(0,180,255,${0.3 + beta * 0.5})`);
+  glow.addColorStop(1, 'rgba(0,60,120,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(-22, 0, 30, 0, Math.PI*2); ctx.fill();
+
+  // Engine exhaust (length grows with beta)
+  if (beta > 0.05) {
+    const exhaustLen = 18 + beta * 60;
+    const exGrad = ctx.createLinearGradient(-14, 0, -14 - exhaustLen, 0);
+    exGrad.addColorStop(0, `rgba(100,200,255,${0.8 * beta})`);
+    exGrad.addColorStop(0.4, `rgba(0,100,255,${0.5 * beta})`);
+    exGrad.addColorStop(1, 'rgba(0,0,80,0)');
+    ctx.fillStyle = exGrad;
+    ctx.beginPath();
+    ctx.moveTo(-14, -5);
+    ctx.lineTo(-14 - exhaustLen, 0);
+    ctx.lineTo(-14, 5);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Body
+  ctx.fillStyle = '#c8ddf0';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 1.5;
+  // Fuselage
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 20, 8, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // Nose cone
+  ctx.fillStyle = '#e0f0ff';
+  ctx.beginPath();
+  ctx.moveTo(20, 0); ctx.lineTo(10, -6); ctx.lineTo(10, 6); ctx.closePath();
+  ctx.fill();
+  // Wing
+  ctx.fillStyle = '#6688aa';
+  ctx.strokeStyle = '#00c0e0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-5, -8); ctx.lineTo(8, -8); ctx.lineTo(5, 0); ctx.lineTo(-8, 0); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-5, 8); ctx.lineTo(8, 8); ctx.lineTo(5, 0); ctx.lineTo(-8, 0); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Cockpit
+  ctx.fillStyle = `rgba(0,220,255,${0.6 + beta * 0.3})`;
+  ctx.beginPath(); ctx.ellipse(10, 0, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawObserver(px, py) {
+  // Glow
+  const g = ctx.createRadialGradient(px, py, 0, px, py, 20);
+  g.addColorStop(0, 'rgba(255,232,64,0.25)');
+  g.addColorStop(1, 'rgba(255,232,64,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 20, 0, Math.PI*2); ctx.fill();
+  // Circle
+  ctx.strokeStyle = '#ffe840'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#ffe840'; ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+  // Label
+  ctx.fillStyle = '#ffe840';
+  ctx.font = 'bold 10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('OBSERVER', px, py + 22);
+}
+
+function drawHeadlightCone(srcPx, srcPy) {
+  const halfDeg = headlightHalfAngle(beta);
+  const halfRad = halfDeg * Math.PI / 180;
+  const coneLen = 320;
+
+  // Source-frame (isotropic) — draw faint half-circle fan
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  for (let a = -Math.PI/2; a <= Math.PI/2; a += Math.PI/12) {
+    ctx.strokeStyle = freqToColor(f0_THz);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    ctx.moveTo(srcPx, srcPy);
+    ctx.lineTo(srcPx + Math.cos(a)*coneLen*0.6, srcPy + Math.sin(a)*coneLen*0.6);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Lab-frame cone — beamed forward
+  const fAhead = dopplerApproach(f0_THz, beta);
+  const coneColor = isFinite(fAhead) ? freqToColor(Math.min(fAhead, 900)) : '#ffffff';
+
+  ctx.save();
+  ctx.globalAlpha = 0.55 + beta * 0.3;
+  const grad = ctx.createConicalGradient
+    ? null
+    : ctx.createRadialGradient(srcPx, srcPy, 0, srcPx, srcPy, coneLen);
+
+  if (grad) {
+    grad.addColorStop(0, coneColor);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+  } else {
+    ctx.fillStyle = coneColor;
+  }
+
+  // Draw cone as filled arc
+  ctx.beginPath();
+  ctx.moveTo(srcPx, srcPy);
+  ctx.arc(srcPx, srcPy, coneLen, -halfRad, halfRad);
+  ctx.closePath();
+
+  // Use gradient fill
+  const cGrad = ctx.createRadialGradient(srcPx, srcPy, 0, srcPx, srcPy, coneLen);
+  cGrad.addColorStop(0, coneColor.replace('rgb','rgba').replace(')'  ,',0.8)'));
+  cGrad.addColorStop(0.7, coneColor.replace('rgb','rgba').replace(')',',0.2)'));
+  cGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cGrad;
+  ctx.fill();
+
+  // Cone edges
+  ctx.strokeStyle = coneColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(srcPx, srcPy);
+  ctx.lineTo(srcPx + Math.cos(-halfRad)*coneLen, srcPy + Math.sin(-halfRad)*coneLen);
+  ctx.moveTo(srcPx, srcPy);
+  ctx.lineTo(srcPx + Math.cos(halfRad)*coneLen, srcPy + Math.sin(halfRad)*coneLen);
+  ctx.stroke();
+
+  // Angle label
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px Share Tech Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText(`θ' = ${halfDeg.toFixed(1)}°`, srcPx + coneLen * 0.5, srcPy - halfRad*coneLen*0.4 - 8);
+  ctx.restore();
+}
+
+function drawLabels(srcPx, srcPy, obsPx) {
+  // Source label
+  ctx.fillStyle = '#00e5ff';
+  ctx.font = 'bold 10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('LIGHT SOURCE', srcPx, srcPy - 30);
+  ctx.fillText(`β = ${beta.toFixed(4)}`, srcPx, srcPy - 19);
+
+  // Freq labels on rings (ahead/behind)
+  const fA = dopplerApproach(f0_THz, beta);
+  const fB = dopplerRecede(f0_THz, beta);
+  if (srcPx < W * 0.8) {
+    ctx.font = '10px Share Tech Mono';
+    ctx.fillStyle = isFinite(fA) ? freqToColor(Math.min(fA, 900)) : '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText(`▶ ${isFinite(fA) ? fA.toFixed(0) : '∞'} THz (blueshift)`, srcPx + 50, srcPy - 15);
+    ctx.fillStyle = freqToColor(Math.max(fB, 100));
+    ctx.textAlign = 'right';
+    ctx.fillText(`${fB.toFixed(0)} THz (redshift) ◀`, srcPx - 50, srcPy - 15);
+  }
+}
+
+// ══════════════════════════ BEAM CANVAS ══════════════════════════════════
+const beamCanvas = document.getElementById('beamCanvas');
+const bctx = beamCanvas.getContext('2d');
+const BW = 860, BH = 180;
+
+function drawBeamDiagram() {
+  bctx.clearRect(0, 0, BW, BH);
+  bctx.fillStyle = '#030810';
+  bctx.fillRect(0, 0, BW, BH);
+
+  const cx1 = BW * 0.22, cx2 = BW * 0.72;
+  const cy = BH * 0.5;
+  const R = 60;
+
+  // Labels
+  bctx.fillStyle = '#3a5070';
+  bctx.font = '10px Share Tech Mono';
+  bctx.textAlign = 'center';
+  bctx.fillText("SOURCE REST FRAME (isotropic)", cx1, 16);
+  bctx.fillText("LAB FRAME (headlight beaming)", cx2, 16);
+
+  // — Left: isotropic source —
+  bctx.strokeStyle = '#1a3060';
+  bctx.lineWidth = 1;
+  bctx.beginPath(); bctx.arc(cx1, cy, R, 0, Math.PI*2); bctx.stroke();
+
+  // Ray lines evenly distributed 360°
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const nm = THzToNm(f0_THz);
+    bctx.strokeStyle = nmToRGB(nm);
+    bctx.lineWidth = 1.5;
+    bctx.beginPath();
+    bctx.moveTo(cx1, cy);
+    bctx.lineTo(cx1 + Math.cos(a) * R, cy + Math.sin(a) * R);
+    bctx.stroke();
+  }
+
+  // Source dot
+  bctx.fillStyle = '#00e5ff';
+  bctx.beginPath(); bctx.arc(cx1, cy, 5, 0, Math.PI*2); bctx.fill();
+
+  // Velocity arrow
+  bctx.fillStyle = '#00e5ff';
+  bctx.font = '10px Share Tech Mono';
+  bctx.textAlign = 'center';
+  bctx.fillText('v = 0 (rest)', cx1, cy + R + 18);
+
+  // — Right: beamed ——
+  const halfRad = headlightHalfAngle(beta) * Math.PI / 180;
+  // N rays distributed in lab frame using aberration
+  for (let i = 0; i < 16; i++) {
+    // original isotropic angle in source frame
+    const theta_src = (i / 16) * Math.PI * 2;
+    // aberrated angle in lab frame
+    const cos_lab = (Math.cos(theta_src) + beta) / (1 + beta * Math.cos(theta_src));
+    const sin_src = Math.sin(theta_src);
+    const sin_lab = sin_src / (lorentzGamma(beta) * (1 + beta * Math.cos(theta_src)));
+    const theta_lab = Math.atan2(sin_lab, cos_lab);
+
+    // Doppler shifted color
+    const f_obs = f0_THz / (lorentzGamma(beta) * (1 - beta * Math.cos(theta_lab)));
+    const col = freqToColor(Math.max(100, Math.min(900, f_obs)));
+
+    // ray length: longer for beamed rays
+    const density = 1 / (lorentzGamma(beta) * (1 - beta * Math.cos(theta_lab)));
+    const rayLen = Math.min(R * 0.4 + density * 20, R);
+
+    bctx.strokeStyle = col;
+    bctx.lineWidth = 1.5;
+    bctx.beginPath();
+    bctx.moveTo(cx2, cy);
+    bctx.lineTo(cx2 + Math.cos(theta_lab) * rayLen, cy + Math.sin(theta_lab) * rayLen);
+    bctx.stroke();
+  }
+
+  // Reference circle
+  bctx.strokeStyle = '#1a3060';
+  bctx.lineWidth = 1;
+  bctx.beginPath(); bctx.arc(cx2, cy, R, 0, Math.PI*2); bctx.stroke();
+
+  // Headlight cone arc
+  if (beta > 0.01) {
+    const fAhead = dopplerApproach(f0_THz, beta);
+    const cCol = isFinite(fAhead) ? freqToColor(Math.min(fAhead * 1.0, 900)) : '#fff';
+    bctx.strokeStyle = cCol;
+    bctx.lineWidth = 2.5;
+    bctx.beginPath();
+    bctx.arc(cx2, cy, R + 8, -halfRad, halfRad);
+    bctx.stroke();
+
+    // angle label
+    bctx.fillStyle = '#aaccee';
+    bctx.font = '10px Share Tech Mono';
+    bctx.textAlign = 'left';
+    bctx.fillText(`θ'=${headlightHalfAngle(beta).toFixed(1)}°`, cx2 + R + 12, cy - 6);
+  }
+
+  // Source dot
+  bctx.fillStyle = '#00e5ff';
+  bctx.beginPath(); bctx.arc(cx2, cy, 5, 0, Math.PI*2); bctx.fill();
+
+  bctx.fillStyle = '#00e5ff';
+  bctx.font = '10px Share Tech Mono';
+  bctx.textAlign = 'center';
+  bctx.fillText(`v = ${beta.toFixed(3)}c → `, cx2, cy + R + 18);
+
+  // velocity arrow between diagrams
+  bctx.fillStyle = '#3a5070';
+  bctx.font = 'bold 18px Share Tech Mono';
+  bctx.textAlign = 'center';
+  bctx.fillText('→', BW * 0.47, cy + 7);
+  bctx.font = '9px Share Tech Mono';
+  bctx.fillText('aberration', BW * 0.47, cy + 20);
+}
+
+// ══════════════════════════ SPECTRUM UPDATE ══════════════════════════════
+function updateSpectrum() {
+  const specW = document.querySelector('.spectrum-bar').offsetWidth;
+  const fMin = 100, fMax = 900; // THz range shown
+
+  const fToPos = f => ((f - fMin) / (fMax - fMin)) * 100; // %
+
+  const f0pos = fToPos(f0_THz);
+  const fAhead = dopplerApproach(f0_THz, beta);
+  const fBehind = dopplerRecede(f0_THz, beta);
+  const fAheadPos = fToPos(Math.min(fAhead, fMax));
+  const fBehindPos = fToPos(Math.max(fBehind, fMin));
+
+  document.getElementById('srcLine').style.left = f0pos + '%';
+  document.getElementById('srcMarker').style.left = f0pos + '%';
+  document.getElementById('srcMarker').textContent = `▼ f₀ ${f0_THz}THz`;
+
+  // Show ahead/behind as two separate markers using obsMarker for ahead
+  document.getElementById('obsLine').style.left = fAheadPos + '%';
+  document.getElementById('obsLine').style.background = isFinite(fAhead) ? freqToColor(Math.min(fAhead,900)) : '#fff';
+  document.getElementById('obsMarker').style.left = fAheadPos + '%';
+  document.getElementById('obsMarker').textContent = `▼ ${isFinite(fAhead) ? fAhead.toFixed(0) : '∞'} THz`;
+  document.getElementById('obsMarker').style.color = isFinite(fAhead) ? freqToColor(Math.min(fAhead,900)) : '#fff';
+}
+
+// ══════════════════════════ STATS UPDATE ══════════════════════════════════
+function updateStats() {
+  const g = lorentzGamma(beta);
+  const fA = dopplerApproach(f0_THz, beta);
+  const fB = dopplerRecede(f0_THz, beta);
+  const ha = headlightHalfAngle(beta);
+
+  document.getElementById('sB').textContent = beta.toFixed(4);
+  document.getElementById('sG').textContent = g.toFixed(4);
+  document.getElementById('sF0').textContent = f0_THz + ' THz';
+  document.getElementById('sFobs').textContent = isFinite(fA) ? fA.toFixed(1) + ' THz' : '∞';
+  document.getElementById('sFred').textContent = fB.toFixed(1) + ' THz';
+  document.getElementById('sAngle').textContent = ha.toFixed(1) + '°';
+
+  document.getElementById('sFobs').style.color = isFinite(fA) ? freqToColor(Math.min(fA,900)) : '#fff';
+  document.getElementById('sFred').style.color = freqToColor(Math.max(fB,100));
+}
+
+// ══════════════════════════ ANIMATION LOOP ═══════════════════════════════
+let lastT = null;
+function loop(ts) {
+  if (!lastT) lastT = ts;
+  const dt = Math.min((ts - lastT) / 1000, 0.05);
+  lastT = ts;
+  animT += dt;
+
+  drawSim(dt);
+  drawBeamDiagram();
+  updateStats();
+  updateSpectrum();
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ══════════════════════════ CONTROLS ═════════════════════════════════════
+document.getElementById('betaSlider').addEventListener('input', e => {
+  beta = parseFloat(e.target.value);
+  document.getElementById('betaDisp').textContent = beta.toFixed(4);
+});
+document.getElementById('f0Slider').addEventListener('input', e => {
+  f0_THz = parseInt(e.target.value);
+  document.getElementById('f0Disp').textContent = f0_THz + ' THz';
+});
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    waves = []; wTimer = 0;
+    shipX = mode === 'recede' ? 0.1 : mode === 'approach' ? 0.9 : 0.12;
+  });
+});
+</script>
+</body>
+</html>

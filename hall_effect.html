@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hall Effect — Interactive Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap');
+
+  :root {
+    --bg: #050a12;
+    --panel: #0b1320;
+    --border: #1a2a40;
+    --accent-blue: #00c8ff;
+    --accent-cyan: #00ffcc;
+    --accent-orange: #ff6b35;
+    --accent-red: #ff3366;
+    --accent-yellow: #ffd600;
+    --text: #c8dff0;
+    --text-dim: #4a6a8a;
+    --glow-blue: 0 0 20px rgba(0,200,255,0.4);
+    --glow-cyan: 0 0 20px rgba(0,255,204,0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 24px;
+  }
+
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--accent-cyan); }
+
+  .subtitle {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+  }
+
+  /* === CANVAS AREA === */
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 10px; left: 14px;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .instructor-label {
+    position: absolute;
+    top: 10px; right: 14px;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.10em;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .instructor-label span {
+    color: var(--accent-cyan);
+    font-weight: 600;
+  }
+
+  /* === SIDE PANEL === */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .card-title {
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .meter {
+    margin-bottom: 12px;
+  }
+
+  .meter-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  .meter-label .val {
+    color: var(--accent-cyan);
+    font-weight: 600;
+  }
+
+  .meter-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.15s ease;
+  }
+
+  /* Controls */
+  .ctrl {
+    margin-bottom: 14px;
+  }
+
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-bottom: 7px;
+  }
+
+  .ctrl label .cv {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0,255,204,0.6);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .leg-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+
+  .leg-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .leg-line {
+    width: 22px; height: 2px;
+    flex-shrink: 0;
+    border-radius: 1px;
+  }
+
+  /* Btn */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  button {
+    flex: 1;
+    padding: 9px 0;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+
+  button:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  button.active { background: rgba(0,255,204,0.08); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+  .formula {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    padding: 10px;
+    background: rgba(0,200,255,0.04);
+    border-left: 2px solid var(--accent-blue);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .formula .sym { color: var(--accent-cyan); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Hall <span>Effect</span></h1>
+    <div class="subtitle">Interactive Physics Simulation · EM Field Dynamics</div>
+  </header>
+
+  <div class="main-grid">
+    <div class="canvas-wrap">
+      <div class="canvas-label">Conductor Cross-Section — XY Plane</div>
+      <div class="instructor-label">Instructor: <span>Dr. S Karna</span></div>
+      <canvas id="c"></canvas>
+    </div>
+
+    <div class="side-panel">
+
+      <div class="card">
+        <div class="card-title">Live Readings</div>
+        <div class="meter">
+          <div class="meter-label">Hall Voltage V<sub>H</sub> <span class="val" id="vH">0.00 mV</span></div>
+          <div class="meter-bar"><div class="meter-fill" id="vHbar" style="width:0%;background:var(--accent-cyan)"></div></div>
+        </div>
+        <div class="meter">
+          <div class="meter-label">Charge Separation <span class="val" id="sep">0.00</span></div>
+          <div class="meter-bar"><div class="meter-fill" id="sepbar" style="width:0%;background:var(--accent-orange)"></div></div>
+        </div>
+        <div class="meter">
+          <div class="meter-label">Lorentz Force F<sub>B</sub> <span class="val" id="fb">0.00</span></div>
+          <div class="meter-bar"><div class="meter-fill" id="fbbar" style="width:0%;background:var(--accent-blue)"></div></div>
+        </div>
+        <div class="meter">
+          <div class="meter-label">Equilibrium <span class="val" id="eq">0%</span></div>
+          <div class="meter-bar"><div class="meter-fill" id="eqbar" style="width:0%;background:var(--accent-yellow)"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Parameters</div>
+        <div class="ctrl">
+          <label>Current Density <span class="cv" id="cvJ">0.6</span></label>
+          <input type="range" id="sJ" min="0.1" max="1" step="0.05" value="0.6">
+        </div>
+        <div class="ctrl">
+          <label>B-Field Strength <span class="cv" id="cvB">0.5</span> T</label>
+          <input type="range" id="sB" min="0.1" max="1" step="0.05" value="0.5">
+        </div>
+        <div class="ctrl">
+          <label>Carrier Charge <span class="cv" id="cvC">−</span></label>
+          <div class="btn-row">
+            <button id="btnN" class="active" onclick="setCharge(-1)">− Electrons</button>
+            <button id="btnP" onclick="setCharge(1)">+ Holes</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Animation <span class="cv"></span></label>
+          <div class="btn-row">
+            <button id="btnPlay" class="active" onclick="togglePlay()">⏸ Pause</button>
+            <button onclick="resetSim()">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Legend</div>
+        <div class="legend">
+          <div class="leg-row"><div class="leg-dot" style="background:#00ffcc"></div>Negative charge (e⁻)</div>
+          <div class="leg-row"><div class="leg-dot" style="background:#ff6b35"></div>Positive charge (holes)</div>
+          <div class="leg-row"><div class="leg-line" style="background:#4488ff;opacity:0.7"></div>B-field (into page ⊗)</div>
+          <div class="leg-row"><div class="leg-line" style="background:#ff3366;opacity:0.7"></div>Electric field E<sub>H</sub></div>
+          <div class="leg-row"><div class="leg-line" style="background:rgba(255,255,255,0.2)"></div>Charge trace</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Physics</div>
+        <div class="formula">
+          <span class="sym">F</span> = q(<span class="sym">E</span> + <span class="sym">v</span> × <span class="sym">B</span>)<br>
+          <span class="sym">V<sub>H</sub></span> = (I·B) / (n·q·t)<br>
+          <span class="sym">R<sub>H</sub></span> = 1/(n·q)<br><br>
+          Equilibrium when:<br>
+          q<span class="sym">E<sub>H</sub></span> = q<span class="sym">v<sub>d</sub></span>B
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// --- Simulation state ---
+let W, H;
+let playing = true;
+let chargeSign = -1; // -1 electrons, +1 holes
+
+let J = 0.6;   // current density (affects drift speed)
+let Bmag = 0.5; // B-field magnitude
+
+const N_PARTICLES = 38;
+let particles = [];
+let time = 0;
+let hallVoltage = 0;   // normalized 0-1
+let equilibrium = 0;   // 0-1
+
+// Trace config
+const TRACE_LEN = 60;
+
+class Particle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vy = 0;
+    this.traces = [];
+    this.id = Math.random();
+    this.size = 4 + Math.random() * 2;
+  }
+
+  reset(W, H) {
+    this.x = 20 + Math.random() * 30;
+    this.y = H * 0.15 + Math.random() * H * 0.70;
+    this.vy = (Math.random() - 0.5) * 0.5;
+    this.traces = [];
+  }
+}
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < N_PARTICLES; i++) {
+    const p = new Particle(0, 0);
+    p.x = 20 + Math.random() * (W - 40);
+    p.y = H * 0.15 + Math.random() * H * 0.70;
+    p.vy = (Math.random() - 0.5) * 0.5;
+    p.traces = [[p.x, p.y]];
+    particles.push(p);
+  }
+  hallVoltage = 0;
+  equilibrium = 0;
+}
+
+function resize() {
+  const wrap = canvas.parentElement;
+  W = wrap.clientWidth;
+  H = Math.round(W * 0.56);
+  canvas.width = W;
+  canvas.height = H;
+  initParticles();
+}
+
+// =====================
+//   DRAW HELPERS
+// =====================
+
+function drawConductorBody() {
+  const top = H * 0.12;
+  const bot = H * 0.88;
+  const left = W * 0.04;
+  const right = W * 0.96;
+
+  // Background
+  ctx.save();
+  const grad = ctx.createLinearGradient(0, top, 0, bot);
+  grad.addColorStop(0, '#0a1828');
+  grad.addColorStop(0.5, '#0d1f35');
+  grad.addColorStop(1, '#0a1828');
+  ctx.fillStyle = grad;
+  ctx.fillRect(left, top, right-left, bot-top);
+
+  // Border
+  ctx.strokeStyle = '#1e3a5a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(left, top, right-left, bot-top);
+
+  // Electrode labels
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(left, top, 14, bot-top);
+  ctx.fillRect(right-14, top, 14, bot-top);
+
+  ctx.fillStyle = '#2a4a6a';
+  ctx.font = `bold ${W*0.012}px IBM Plex Mono`;
+  ctx.textAlign = 'center';
+  ctx.fillText('−', left+7, (top+bot)/2+4);
+  ctx.fillText('+', right-7, (top+bot)/2+4);
+
+  // Current arrows (left edge entering)
+  const arrowY = [0.25, 0.5, 0.75];
+  arrowY.forEach(t => {
+    const y = top + (bot-top)*t;
+    ctx.strokeStyle = 'rgba(100,180,255,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.moveTo(left-30, y);
+    ctx.lineTo(left, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // arrowhead
+    ctx.fillStyle = 'rgba(100,180,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(left+1, y);
+    ctx.lineTo(left-7, y-4);
+    ctx.lineTo(left-7, y+4);
+    ctx.fill();
+  });
+
+  // B-field dots (into page ⊗)
+  const cols = 6, rows = 4;
+  const px0 = left + 30, px1 = right - 30;
+  const py0 = top + 18, py1 = bot - 18;
+  for (let ci = 0; ci <= cols; ci++) {
+    for (let ri = 0; ri <= rows; ri++) {
+      const bx = px0 + (px1-px0) * ci/cols;
+      const by = py0 + (py1-py0) * ri/rows;
+      const alpha = 0.15 + Bmag * 0.2;
+      ctx.strokeStyle = `rgba(80,140,255,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(bx, by, 4, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(80,140,255,${alpha*0.6})`;
+      ctx.beginPath();
+      ctx.arc(bx, by, 1.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawPotentialField() {
+  const top = H * 0.12;
+  const bot = H * 0.88;
+  const left = W * 0.04;
+  const right = W * 0.96;
+  const cw = right - left;
+
+  if (hallVoltage < 0.02) return;
+
+  // Color gradient showing potential
+  const resolution = 60;
+  for (let i = 0; i < resolution; i++) {
+    const t = i / resolution;
+    const y = top + (bot-top)*t;
+    // potential varies from top to bottom based on hallVoltage and chargeSign
+    let potT;
+    if (chargeSign < 0) {
+      potT = hallVoltage * (1 - t); // positive top, negative bottom for electrons
+    } else {
+      potT = hallVoltage * t;
+    }
+    const alpha = potT * 0.18;
+    const r = chargeSign < 0 ? (potT > 0.5 ? 255 : 0) : (potT > 0.5 ? 0 : 255);
+    const g = 60;
+    const b = chargeSign < 0 ? (potT < 0.5 ? 255 : 0) : (potT < 0.5 ? 255 : 0);
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.fillRect(left+14, y, cw-28, (bot-top)/resolution + 1);
+  }
+
+  // Equipotential lines
+  const nLines = 6;
+  for (let li = 0; li <= nLines; li++) {
+    const t = li / nLines;
+    const y = top + (bot-top)*t;
+    const pot = chargeSign < 0 ? (1-t) : t;
+    const alpha = hallVoltage * pot * 0.5;
+    ctx.strokeStyle = `rgba(255,100,100,${alpha})`;
+    ctx.lineWidth = 0.6;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(left+18, y);
+    ctx.lineTo(right-18, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Hall E-field arrows (vertical)
+  if (hallVoltage > 0.05) {
+    const nArrows = 5;
+    const arrowX = [0.25, 0.375, 0.5, 0.625, 0.75];
+    arrowX.forEach(ax => {
+      const x = left + cw * ax;
+      const dir = chargeSign < 0 ? 1 : -1; // E-field direction
+      const len = 30 * hallVoltage * dir;
+      const midY = (top+bot)/2;
+      ctx.strokeStyle = `rgba(255,80,80,${hallVoltage*0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, midY - len/2);
+      ctx.lineTo(x, midY + len/2);
+      ctx.stroke();
+      // arrowhead
+      const aY = midY + len/2;
+      ctx.fillStyle = `rgba(255,80,80,${hallVoltage*0.7})`;
+      ctx.beginPath();
+      ctx.moveTo(x, aY + 5*dir);
+      ctx.lineTo(x-4, aY - 3*dir);
+      ctx.lineTo(x+4, aY - 3*dir);
+      ctx.fill();
+    });
+  }
+}
+
+function drawTraces() {
+  particles.forEach(p => {
+    if (p.traces.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(p.traces[0][0], p.traces[0][1]);
+    for (let i = 1; i < p.traces.length; i++) {
+      ctx.lineTo(p.traces[i][0], p.traces[i][1]);
+    }
+    const col = chargeSign < 0 ? '0,255,200' : '255,107,53';
+    ctx.strokeStyle = `rgba(${col},0.18)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function drawParticles() {
+  const top = H * 0.12, bot = H * 0.88;
+
+  particles.forEach(p => {
+    const col = chargeSign < 0 ? [0, 255, 200] : [255, 107, 53];
+    const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size*2.5);
+    grd.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},0.9)`);
+    grd.addColorStop(0.4, `rgba(${col[0]},${col[1]},${col[2]},0.4)`);
+    grd.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*2.5, 0, Math.PI*2);
+    ctx.fill();
+
+    // core
+    ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*0.7, 0, Math.PI*2);
+    ctx.fill();
+
+    // charge symbol
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${p.size*0.9}px IBM Plex Mono`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(chargeSign < 0 ? '−' : '+', p.x, p.y+0.5);
+  });
+}
+
+function drawVoltmeter() {
+  // Hall voltage gauge on side
+  const top = H * 0.12, bot = H * 0.88;
+  const x = W * 0.96 + 6;
+
+  // Gauge bar
+  const gH = (bot-top) * 0.5;
+  const gY = (top+bot)/2 - gH/2;
+  const fillH = gH * hallVoltage;
+  const fillDir = chargeSign < 0 ? -1 : 1;
+
+  // We draw on the right side as a small voltage indicator
+  // Actually draw inside panel near right edge
+  const rx = W * 0.90;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,255,204,0.3)';
+  ctx.lineWidth = 1;
+  // Connecting lines
+  ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(rx, top+2); ctx.lineTo(rx, bot-2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawLabels() {
+  const top = H * 0.12, bot = H * 0.88;
+
+  ctx.font = `${W*0.011}px IBM Plex Mono`;
+  ctx.fillStyle = 'rgba(100,160,200,0.6)';
+  ctx.textAlign = 'center';
+
+  // B label
+  ctx.fillText('B ⊗ (into page)', W/2, top - 6);
+
+  // Current direction
+  ctx.fillStyle = 'rgba(80,160,255,0.5)';
+  ctx.textAlign = 'left';
+  ctx.fillText('I →', W*0.04 + 2, top + 14);
+
+  // Top/bottom labels showing charge accumulation
+  if (hallVoltage > 0.05) {
+    const sign1 = chargeSign < 0 ? '− −' : '+ +';
+    const sign2 = chargeSign < 0 ? '+ +' : '− −';
+    const col1 = chargeSign < 0 ? 'rgba(0,255,200,0.8)' : 'rgba(255,107,53,0.8)';
+    const col2 = chargeSign < 0 ? 'rgba(255,107,53,0.8)' : 'rgba(0,255,200,0.8)';
+    ctx.textAlign = 'center';
+    ctx.font = `${W*0.013}px IBM Plex Mono`;
+    ctx.fillStyle = col1;
+    ctx.fillText(sign1, W/2, top + 22);
+    ctx.fillStyle = col2;
+    ctx.fillText(sign2, W/2, bot - 10);
+
+    // VH label
+    ctx.fillStyle = 'rgba(255,200,0,0.7)';
+    ctx.font = `bold ${W*0.014}px IBM Plex Mono`;
+    ctx.textAlign = 'right';
+    ctx.fillText(`V_H = ${(hallVoltage * 8.4).toFixed(2)} mV`, W*0.95, top - 6);
+  }
+}
+
+// =====================
+//   PHYSICS UPDATE
+// =====================
+function updateParticles(dt) {
+  const top = H * 0.13, bot = H * 0.87;
+  const left = W * 0.05, right = W * 0.95;
+
+  const vdrift = J * 3.5;                   // drift velocity rightward
+  const lorentzF = chargeSign * Bmag * vdrift;  // qv×B → vertical force
+  // For electrons moving right (+x), B into page (−z): F = q(v×B) = (−e)(vx_hat × (−B z_hat)) = (−e)(vB ŷ) → downward for e−
+  // So chargeSign < 0, lorentzF pushes down initially
+
+  // Hall electric field opposes Lorentz (builds up over time)
+  const hallE = hallVoltage * Bmag * vdrift * chargeSign; // opposing force
+
+  particles.forEach(p => {
+    // Save trace
+    p.traces.push([p.x, p.y]);
+    if (p.traces.length > TRACE_LEN) p.traces.shift();
+
+    // Drift right
+    p.x += vdrift * dt;
+
+    // Lorentz force (vertical, decreases as equilibrium grows)
+    const netF = lorentzF - hallE;
+    p.vy += netF * dt * 4;
+    p.vy *= 0.85; // damping
+
+    // Random thermal motion
+    p.vy += (Math.random()-0.5) * 0.4;
+
+    p.y += p.vy * dt * 8;
+
+    // Bounce off walls
+    if (p.y < top + 6) { p.y = top + 6; p.vy = Math.abs(p.vy) * 0.5; }
+    if (p.y > bot - 6) { p.y = bot - 6; p.vy = -Math.abs(p.vy) * 0.5; }
+
+    // Wrap horizontally
+    if (p.x > right - 10) {
+      p.x = left + 10 + Math.random()*20;
+      p.y = top + 10 + Math.random()*(bot-top-20);
+      p.vy = (Math.random()-0.5)*1;
+      p.traces = [[p.x, p.y]];
+    }
+  });
+
+  // Build up Hall voltage (charge separation)
+  const target = Math.min(1, Bmag * J);
+  hallVoltage += (target - hallVoltage) * 0.005 * dt * 60;
+
+  // Equilibrium approaches as E_H balances F_B
+  equilibrium = hallVoltage / target;
+
+  time += dt;
+}
+
+function updateUI() {
+  const vH = (hallVoltage * 8.4).toFixed(2);
+  document.getElementById('vH').textContent = `${vH} mV`;
+  document.getElementById('vHbar').style.width = `${hallVoltage*100}%`;
+
+  const sep = (hallVoltage * 0.85).toFixed(2);
+  document.getElementById('sep').textContent = sep;
+  document.getElementById('sepbar').style.width = `${hallVoltage*85}%`;
+
+  const fb = (Bmag * J * 0.9).toFixed(2);
+  document.getElementById('fb').textContent = fb;
+  document.getElementById('fbbar').style.width = `${Bmag*J*90}%`;
+
+  const eq = Math.round(equilibrium * 100);
+  document.getElementById('eq').textContent = `${eq}%`;
+  document.getElementById('eqbar').style.width = `${eq}%`;
+}
+
+// =====================
+//   RENDER LOOP
+// =====================
+let last = 0;
+function frame(ts) {
+  if (!last) last = ts;
+  const dt = Math.min((ts - last)/1000, 0.05);
+  last = ts;
+
+  ctx.clearRect(0, 0, W, H);
+
+  drawConductorBody();
+  drawPotentialField();
+  drawTraces();
+  drawParticles();
+  drawLabels();
+  // drawVoltmeter();
+
+  if (playing) updateParticles(dt);
+  updateUI();
+
+  requestAnimationFrame(frame);
+}
+
+// =====================
+//   CONTROLS
+// =====================
+document.getElementById('sJ').addEventListener('input', function() {
+  J = parseFloat(this.value);
+  document.getElementById('cvJ').textContent = J.toFixed(2);
+  resetSim();
+});
+
+document.getElementById('sB').addEventListener('input', function() {
+  Bmag = parseFloat(this.value);
+  document.getElementById('cvB').textContent = Bmag.toFixed(2);
+  resetSim();
+});
+
+function setCharge(sign) {
+  chargeSign = sign;
+  document.getElementById('cvC').textContent = sign < 0 ? '−' : '+';
+  document.getElementById('btnN').className = sign < 0 ? 'active' : '';
+  document.getElementById('btnP').className = sign > 0 ? 'active' : '';
+  resetSim();
+}
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('btnPlay').textContent = playing ? '⏸ Pause' : '▶ Play';
+  document.getElementById('btnPlay').className = playing ? 'active' : '';
+  last = 0;
+}
+
+function resetSim() {
+  hallVoltage = 0;
+  equilibrium = 0;
+  initParticles();
+}
+
+// =====================
+//   INIT
+// =====================
+window.addEventListener('resize', () => { resize(); });
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

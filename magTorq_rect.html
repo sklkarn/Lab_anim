@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnetic Torque — Current Loop</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400;700&display=swap');
+
+:root {
+  --bg: #080d14;
+  --panel-bg: #0c1420;
+  --ink: #dde8f5;
+  --ink-dim: #6a8aaa;
+  --ink-faint: #2a3a50;
+  --red: #ff5566;
+  --blue: #4a9aff;
+  --gold: #ffd060;
+  --green: #40e080;
+  --border: #1a2a40;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Crimson Pro', serif;
+  min-height: 100vh;
+  padding: 28px 24px;
+  background-image:
+    radial-gradient(ellipse at 10% 20%, rgba(255,208,96,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 80%, rgba(74,154,255,0.05) 0%, transparent 50%);
+}
+
+.app { max-width: 1080px; margin: 0 auto; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1.5px solid var(--ink);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+h1 em { font-style: italic; color: var(--red); }
+
+.instructor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  text-align: right;
+}
+
+.instructor strong { color: var(--blue); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+}
+
+/* Canvas */
+.canvas-wrap {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  position: relative;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+canvas { display: block; width: 100%; }
+
+.canvas-tag {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Side */
+.side { display: flex; flex-direction: column; gap: 16px; }
+
+.card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 16px;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.card-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+/* Gauges */
+.gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.gauge-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--ink-dim);
+  width: 55px;
+  flex-shrink: 0;
+}
+
+.gauge-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  transition: width 0.1s, background 0.3s;
+}
+
+.gauge-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+/* Angle dial */
+.dial-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.dial {
+  position: relative;
+  width: 90px;
+  height: 90px;
+}
+
+/* Controls */
+.ctrl { margin-bottom: 14px; }
+
+.ctrl label {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+
+.ctrl label .cv { color: var(--ink); font-weight: 700; }
+
+input[type=range] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--ink);
+  cursor: pointer;
+}
+
+.btn-row { display: flex; gap: 8px; margin-top: 4px; }
+
+button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  cursor: pointer;
+  color: var(--ink-dim);
+  transition: all 0.15s;
+  letter-spacing: 0.05em;
+}
+
+button:hover { border-color: var(--ink); color: var(--ink); }
+button.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Legend */
+.leg { display: flex; flex-direction: column; gap: 7px; }
+.leg-row { display: flex; align-items: center; gap: 9px; font-size: 0.85rem; color: var(--ink-dim); }
+.leg-swatch { width: 18px; height: 3px; flex-shrink: 0; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Formula box */
+.formula {
+  font-family: 'Crimson Pro', serif;
+  font-size: 0.95rem;
+  line-height: 2;
+  color: var(--ink-dim);
+  border-left: 3px solid var(--gold);
+  padding-left: 12px;
+}
+
+.formula .sym { color: var(--red); font-style: italic; font-weight: 600; }
+.formula .val { color: var(--blue); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Magnetic <em>Torque</em><br>on a Current Loop</h1>
+    <div class="instructor">
+      INSTRUCTOR<br>
+      <strong>Dr. S Karna</strong>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="canvas-wrap">
+      <canvas id="c"></canvas>
+      <div class="canvas-tag">3D Perspective · Isometric View</div>
+    </div>
+
+    <div class="side">
+
+      <div class="card">
+        <div class="card-title">Live Measurements</div>
+        <div class="gauge-row">
+          <div class="gauge-label">Angle θ</div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gAngle" style="background:#ff5566"></div></div>
+          <div class="gauge-val" id="vAngle" style="color:#ff5566">0°</div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label">Torque τ</div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gTorque" style="background:#4a9aff"></div></div>
+          <div class="gauge-val" id="vTorque" style="color:#4a9aff">0.00</div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label">μ·B cos</div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gPE" style="background:#40e080"></div></div>
+          <div class="gauge-val" id="vPE" style="color:#40e080">0.00</div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label">Mag. Mom</div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gMM" style="background:#ffd060"></div></div>
+          <div class="gauge-val" id="vMM" style="color:#ffd060">0.00</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Parameters</div>
+        <div class="ctrl">
+          <label>Current I <span class="cv" id="cvI">2.0 A</span></label>
+          <input type="range" id="sI" min="0.5" max="5" step="0.1" value="2.0">
+        </div>
+        <div class="ctrl">
+          <label>B-Field <span class="cv" id="cvB">1.0 T</span></label>
+          <input type="range" id="sB" min="0.2" max="3" step="0.1" value="1.0">
+        </div>
+        <div class="ctrl">
+          <label>Loop Width (a) <span class="cv" id="cvA">1.2 m</span></label>
+          <input type="range" id="sA" min="0.4" max="2.0" step="0.1" value="1.2">
+        </div>
+        <div class="ctrl">
+          <label>Animation <span class="cv"></span></label>
+          <div class="btn-row">
+            <button id="btnPlay" class="active" onclick="togglePlay()">⏸ Pause</button>
+            <button onclick="resetSim()">↺ Reset</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Mode <span class="cv"></span></label>
+          <div class="btn-row">
+            <button id="btnFree" class="active" onclick="setMode('free')">Free Spin</button>
+            <button id="btnOsc" onclick="setMode('osc')">Oscillate</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Legend</div>
+        <div class="leg">
+          <div class="leg-row"><div class="leg-swatch" style="background:#ff5566"></div>Current loop (red)</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#4a9aff"></div>B-field lines (blue)</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#40e080;height:2px;border-top:2px dashed #40e080;background:none"></div>Magnetic moment μ</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#ffd060"></div>Torque vector τ</div>
+          <div class="leg-row"><div class="leg-dot" style="border:2px solid #888;background:transparent"></div>Force on wire segment</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Physics</div>
+        <div class="formula">
+          <span class="sym">τ</span> = <span class="sym">μ</span> × <span class="sym">B</span><br>
+          <span class="sym">τ</span> = NIAB sin<span class="sym">θ</span><br>
+          <span class="sym">μ</span> = NIA <span class="sym">n̂</span><br>
+          U = −<span class="sym">μ</span>·<span class="sym">B</span> = −μB cos<span class="sym">θ</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+let playing = true;
+let mode = 'free'; // 'free' or 'osc'
+
+let I = 2.0, Bmag = 1.0;
+let loopW = 1.2, loopH = 0.9;   // rectangular coil: width (a) × height (b)
+// Area is loopW * loopH; moment of inertia of thin rect frame about central y-axis:
+// J = m/12*(a²) for the horizontal bars + m/2*(a/2)² for vertical bars ≈ normalized below
+let A = loopW * loopH;
+let theta = Math.PI / 3;         // start at 60° — clearly off-equilibrium
+let omega = 0.0;                  // starts from rest — torque accelerates it
+
+function resize() {
+  const wrap = canvas.parentElement;
+  W = wrap.clientWidth;
+  H = Math.round(W * 0.72);
+  canvas.width = W;
+  canvas.height = H;
+}
+
+// ============================
+// 3D → 2D projection (isometric-ish)
+// ============================
+const CAM = { ax: 0.4, ay: 0.6 }; // view angles
+
+function project(x, y, z) {
+  // Simple oblique projection
+  const sx = x * Math.cos(CAM.ay) - z * Math.sin(CAM.ay);
+  const sy = -y + (x * Math.sin(CAM.ay) + z * Math.cos(CAM.ay)) * Math.sin(CAM.ax);
+  return {
+    px: W/2 + sx * scale(),
+    py: H/2 + sy * scale()
+  };
+}
+
+function scale() { return Math.min(W, H) * 0.22; }
+
+// ============================
+// DRAW FUNCTIONS
+// ============================
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(40,80,130,0.25)';
+  ctx.lineWidth = 0.5;
+  const ext = 2.5;
+  const steps = 5;
+  for (let i = -steps; i <= steps; i++) {
+    const t = i / steps * ext;
+    // x lines
+    const a = project(t, 0, -ext), b = project(t, 0, ext);
+    ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+    // z lines
+    const c = project(-ext, 0, t), d = project(ext, 0, t);
+    ctx.beginPath(); ctx.moveTo(c.px, c.py); ctx.lineTo(d.px, d.py); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAxes() {
+  ctx.save();
+  const axes = [
+    { v: [1.8,0,0], label:'x', color:'rgba(255,120,120,0.6)' },
+    { v: [0,1.8,0], label:'y', color:'rgba(120,160,255,0.6)' },
+    { v: [0,0,1.8], label:'z', color:'rgba(80,220,140,0.6)' }
+  ];
+  axes.forEach(ax => {
+    const o = project(0,0,0);
+    const e = project(...ax.v);
+    ctx.strokeStyle = ax.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(o.px,o.py); ctx.lineTo(e.px,e.py); ctx.stroke();
+    ctx.fillStyle = ax.color;
+    ctx.font = `${W*0.013}px JetBrains Mono`;
+    ctx.fillText(ax.label, e.px+4, e.py+4);
+  });
+  ctx.restore();
+}
+
+function drawBField() {
+  // B along +x axis, draw field lines
+  ctx.save();
+  const nLines = 5;
+  for (let li = 0; li < nLines; li++) {
+    const z = -1.8 + li * 0.9;
+    const yArr = [-0.8, 0, 0.8];
+    yArr.forEach(yv => {
+      const p1 = project(-2.2, yv, z);
+      const p2 = project(2.2, yv, z);
+      ctx.strokeStyle = 'rgba(74,154,255,0.2)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(p1.px,p1.py); ctx.lineTo(p2.px,p2.py); ctx.stroke();
+      ctx.setLineDash([]);
+      // arrowhead
+      const mx = (p1.px+p2.px)/2, my = (p1.py+p2.py)/2;
+      const dx = p2.px-p1.px, dy = p2.py-p1.py;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      ctx.fillStyle = 'rgba(74,154,255,0.45)';
+      ctx.beginPath();
+      ctx.moveTo(mx + dx/len*8, my + dy/len*8);
+      ctx.lineTo(mx - dy/len*5 - dx/len*6, my + dx/len*5 - dy/len*6);
+      ctx.lineTo(mx + dy/len*5 - dx/len*6, my - dx/len*5 - dy/len*6);
+      ctx.fill();
+    });
+  }
+  // B label
+  const bLbl = project(2.4, 0.6, 0);
+  ctx.fillStyle = 'rgba(74,154,255,0.9)';
+  ctx.font = `bold ${W*0.016}px Crimson Pro`;
+  ctx.fillText('B →', bLbl.px, bLbl.py);
+  ctx.restore();
+}
+
+// ── Rectangular coil geometry ───────────────────────────
+// Coil rotates around y-axis (the axle).
+// B is along +x.  theta = angle between coil normal and B.
+// Coil half-width = loopW/2 along the u-axis (perpendicular to axle in coil plane)
+// Coil half-height = loopH/2 along y (the axle direction)
+// u-basis in world: (cos θ, 0, -sin θ)   ← this swings with the coil
+// v-basis in world: (0, 1, 0)             ← fixed (axle)
+
+function rectCorners(th) {
+  const hw = loopW / 2, hh = loopH / 2;
+  // 4 corners: (±hw along u) × (±hh along v)
+  // TL=(-hw,+hh), TR=(+hw,+hh), BR=(+hw,-hh), BL=(-hw,-hh)
+  const pts = [
+    [-hw,  hh],
+    [ hw,  hh],
+    [ hw, -hh],
+    [-hw, -hh],
+  ];
+  return pts.map(([lu, lv]) => [
+    lu * Math.cos(th),
+    lv,
+    lu * (-Math.sin(th))
+  ]);
+}
+
+function drawArrow3d(p0, p1, col, lw, dash) {
+  const a = project(...p0), b = project(...p1);
+  ctx.save();
+  ctx.strokeStyle = col; ctx.lineWidth = lw;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+  ctx.setLineDash([]);
+  const dx = b.px-a.px, dy = b.py-a.py, len = Math.sqrt(dx*dx+dy*dy)||1;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(b.px, b.py);
+  ctx.lineTo(b.px - dy/len*5 - dx/len*9, b.py + dx/len*5 - dy/len*9);
+  ctx.lineTo(b.px + dy/len*5 - dx/len*9, b.py - dx/len*5 - dy/len*9);
+  ctx.fill();
+  ctx.restore();
+  return b; // return screen end
+}
+
+function drawLoop() {
+  const th = theta;
+  const corners = rectCorners(th); // [TL, TR, BR, BL]
+  const [TL, TR, BR, BL] = corners;
+
+  // ── Shadow on ground plane ──
+  ctx.save();
+  ctx.beginPath();
+  [...corners, corners[0]].forEach(([x,y,z], i) => {
+    const p = project(x*0.55, -loopH/2 - 0.12, z*0.55);
+    i === 0 ? ctx.moveTo(p.px,p.py) : ctx.lineTo(p.px,p.py);
+  });
+  ctx.strokeStyle = 'rgba(255,85,102,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Draw the 4 sides ──
+  // Side order: top (TL→TR), right (TR→BR), bottom (BR→BL), left (BL→TL)
+  const sides = [
+    { from: TL, to: TR, label: null,  isAxial: false }, // top horizontal  (⊥ axle)
+    { from: TR, to: BR, label: 'F₁',  isAxial: true  }, // right vertical  (∥ axle) → force
+    { from: BR, to: BL, label: null,  isAxial: false }, // bottom horizontal
+    { from: BL, to: TL, label: 'F₂',  isAxial: true  }, // left vertical   (∥ axle) → force
+  ];
+
+  // Draw back sides first (depth sort: axial sides behind when |sinθ| small)
+  const drawOrder = Math.abs(Math.sin(th)) > 0.1 ? [0,2,1,3] : [1,3,0,2];
+
+  drawOrder.forEach(si => {
+    const s = sides[si];
+    const pa = project(...s.from), pb = project(...s.to);
+    const isAxial = s.isAxial;
+    const col = isAxial ? '#ff5566' : 'rgba(255,130,150,0.75)';
+    const lw  = isAxial ? 3.5 : 2;
+
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    if (isAxial) { ctx.shadowColor = 'rgba(255,85,102,0.55)'; ctx.shadowBlur = 10; }
+    ctx.beginPath(); ctx.moveTo(pa.px, pa.py); ctx.lineTo(pb.px, pb.py); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Corner dots
+    [pa, pb].forEach(p => {
+      ctx.fillStyle = 'rgba(255,85,102,0.8)';
+      ctx.beginPath(); ctx.arc(p.px, p.py, 3, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+
+    // Current-direction mini-arrows on each side
+    drawCurrentArrows(s.from, s.to, si);
+
+    // Force arrows on axial sides (right=F₁, left=F₂)
+    if (isAxial) drawForceOnSide(s.from, s.to, si, s.label);
+  });
+
+  // ── Dimension labels ──
+  ctx.save();
+  const topMid = project((TL[0]+TR[0])/2, loopH/2+0.18, (TL[2]+TR[2])/2);
+  ctx.fillStyle = 'rgba(0,229,255,0.5)';
+  ctx.font = `${W*0.011}px JetBrains Mono`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`a=${loopW.toFixed(1)}`, topMid.px, topMid.py);
+  const rtMid = project((TR[0]+BR[0])/2, 0, (TR[2]+BR[2])/2);
+  const rOff = project((TR[0]+BR[0])/2+0.18*Math.cos(th+Math.PI/2), 0, (TR[2]+BR[2])/2+0.18*(-Math.sin(th+Math.PI/2)));
+  ctx.fillStyle = 'rgba(255,85,102,0.5)';
+  ctx.fillText(`b=${loopH.toFixed(1)}`, rOff.px, rOff.py);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawCurrentArrows(from, to, sideIdx) {
+  // Place 2 small current arrows along the side
+  for (let t of [0.3, 0.7]) {
+    const mx = from[0]+(to[0]-from[0])*t, my = from[1]+(to[1]-from[1])*t, mz = from[2]+(to[2]-from[2])*t;
+    const nx = from[0]+(to[0]-from[0])*(t+0.08), ny = from[1]+(to[1]-from[1])*(t+0.08), nz = from[2]+(to[2]-from[2])*(t+0.08);
+    const pa = project(mx, my, mz), pb = project(nx, ny, nz);
+    const dx = pb.px-pa.px, dy = pb.py-pa.py, len = Math.sqrt(dx*dx+dy*dy)||1;
+    if (len < 1) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,180,190,0.7)';
+    ctx.beginPath();
+    ctx.moveTo(pb.px, pb.py);
+    ctx.lineTo(pb.px - dy/len*3 - dx/len*5, pb.py + dx/len*3 - dy/len*5);
+    ctx.lineTo(pb.px + dy/len*3 - dx/len*5, pb.py - dx/len*3 - dy/len*5);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawForceOnSide(from, to, sideIdx, label) {
+  // F = I·L×B  on axial (vertical) side:
+  // Current ∥ ŷ (up on right side, down on left side).
+  // B ∥ x̂.  F = I(±ŷ × x̂)·B·b = I·B·b·(∓ẑ)
+  // BUT that ẑ must be transformed by the coil orientation.
+  // The force is always perpendicular to both the wire and B:
+  //   right side current +y: F = I·b·B (ŷ×x̂) = -I·b·B ẑ  → pushes in -z world
+  //   left  side current -y: F = I·b·B (-ŷ×x̂)= +I·b·B ẑ  → pushes in +z world
+  // This creates the torque couple.
+  const fMag = I * Bmag * loopH * 0.38;
+  const fDir = sideIdx === 1 ? -1 : +1; // right side → -z; left side → +z
+
+  const midW = [(from[0]+to[0])/2, (from[1]+to[1])/2, (from[2]+to[2])/2];
+  const fEnd = [midW[0], midW[1], midW[2] + fDir * fMag];
+
+  const col = sideIdx === 1 ? 'rgba(0,229,255,0.85)' : 'rgba(255,200,60,0.85)';
+  const ep = drawArrow3d(midW, fEnd, col, 2, [4,3]);
+
+  // Label
+  const mp = project(...midW);
+  ctx.save();
+  ctx.fillStyle = col;
+  ctx.font = `bold ${W*0.013}px Crimson Pro`;
+  ctx.fillText(label, ep.px+5, ep.py);
+  ctx.restore();
+}
+
+function drawMomentVector() {
+  const mu = I * loopW * loopH;
+  const nx = Math.cos(theta) * mu * 0.9;
+  const nz = Math.sin(theta) * mu * 0.9;
+
+  const o = project(0, 0, 0);
+  const e = project(nx, 0, nz);
+
+  // Dashed line
+  ctx.save();
+  ctx.strokeStyle = '#40e080';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(o.px, o.py);
+  ctx.lineTo(e.px, e.py);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arrowhead
+  const dx = e.px-o.px, dy = e.py-o.py;
+  const len = Math.sqrt(dx*dx+dy*dy)||1;
+  ctx.fillStyle = '#40e080';
+  ctx.beginPath();
+  ctx.moveTo(e.px, e.py);
+  ctx.lineTo(e.px - dy/len*5 - dx/len*10, e.py + dx/len*5 - dy/len*10);
+  ctx.lineTo(e.px + dy/len*5 - dx/len*10, e.py - dx/len*5 - dy/len*10);
+  ctx.fill();
+
+  ctx.fillStyle = '#40e080';
+  ctx.font = `italic bold ${W*0.014}px Crimson Pro`;
+  ctx.fillText('μ', e.px+7, e.py-4);
+  ctx.restore();
+}
+
+function drawTorqueVector() {
+  // τ = μ × B = μB sin(theta) in ŷ direction
+  const tau = I * A * Bmag * Math.sin(theta);
+  const tScale = tau * 0.35;
+  const sign = Math.sin(theta) >= 0 ? 1 : -1;
+
+  const o = project(0, 0, 0);
+  const e = project(0, sign * Math.abs(tScale), 0);
+
+  ctx.save();
+  ctx.strokeStyle = '#ffd060';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = 'rgba(255,208,96,0.5)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(o.px, o.py);
+  ctx.lineTo(e.px, e.py);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const dx = e.px-o.px, dy = e.py-o.py;
+  const len = Math.sqrt(dx*dx+dy*dy)||1;
+  ctx.fillStyle = '#ffd060';
+  ctx.beginPath();
+  ctx.moveTo(e.px, e.py);
+  ctx.lineTo(e.px - dy/len*5 - dx/len*10, e.py + dx/len*5 - dy/len*10);
+  ctx.lineTo(e.px + dy/len*5 - dx/len*10, e.py - dx/len*5 - dy/len*10);
+  ctx.fill();
+
+  ctx.font = `italic bold ${W*0.014}px Crimson Pro`;
+  ctx.fillText('τ', e.px+6, e.py);
+  ctx.restore();
+}
+
+function drawAngleArc() {
+  // Show theta angle between μ and B
+  ctx.save();
+  const o = project(0, 0, 0);
+  // draw arc in screen space between B direction projection and μ projection
+  const bScreenAngle = Math.atan2(
+    project(0.5,0,0).py - o.py,
+    project(0.5,0,0).px - o.px
+  );
+  const muScreenAngle = Math.atan2(
+    project(Math.cos(theta)*0.5,0,Math.sin(theta)*0.5).py - o.py,
+    project(Math.cos(theta)*0.5,0,Math.sin(theta)*0.5).px - o.px
+  );
+  const arcR = scale() * 0.4;
+  ctx.strokeStyle = 'rgba(200,170,80,0.5)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();
+  ctx.arc(o.px, o.py, arcR, Math.min(bScreenAngle,muScreenAngle), Math.max(bScreenAngle,muScreenAngle));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const midAngle = (bScreenAngle + muScreenAngle) / 2;
+  ctx.fillStyle = 'rgba(200,170,80,0.9)';
+  ctx.font = `italic ${W*0.012}px Crimson Pro`;
+  ctx.fillText('θ', o.px + arcR*1.2*Math.cos(midAngle), o.py + arcR*1.2*Math.sin(midAngle));
+  ctx.restore();
+}
+
+function drawTorqueCurve() {
+  // Mini torque vs angle plot in corner
+  const px = W*0.72, py = H*0.06, pw = W*0.25, ph = H*0.2;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,20,36,0.88)';
+  ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = 'rgba(30,60,100,0.7)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(px, py, pw, ph);
+
+  // Axes
+  ctx.strokeStyle = 'rgba(60,100,160,0.5)';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(px+8, py+ph/2); ctx.lineTo(px+pw-4, py+ph/2);
+  ctx.moveTo(px+8, py+4); ctx.lineTo(px+8, py+ph-4);
+  ctx.stroke();
+
+  // τ = sin(θ) curve
+  ctx.strokeStyle = '#4a9aff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let xi = 0; xi <= 100; xi++) {
+    const t = xi/100 * Math.PI*2;
+    const tx = px + 8 + (xi/100) * (pw-12);
+    const ty = py + ph/2 - Math.sin(t) * (ph/2-6);
+    xi === 0 ? ctx.moveTo(tx,ty) : ctx.lineTo(tx,ty);
+  }
+  ctx.stroke();
+
+  // Current angle marker
+  const markerX = px + 8 + (theta % (Math.PI*2))/(Math.PI*2) * (pw-12);
+  const markerY = py + ph/2 - Math.sin(theta) * (ph/2-6);
+  ctx.fillStyle = '#ff5566';
+  ctx.beginPath();
+  ctx.arc(markerX, markerY, 4, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(100,160,220,0.7)';
+  ctx.font = `${W*0.01}px JetBrains Mono`;
+  ctx.textAlign = 'center';
+  ctx.fillText('τ vs θ', px+pw/2, py+ph-3);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// ============================
+// PHYSICS UPDATE
+// Rectangular coil rotating about its central y-axis (axle).
+// Moment of inertia of a rectangular frame (mass m, width a=loopW, height b=loopH):
+//   J = (m * loopW²) / 12  ← dominated by width (the lever arms)
+// We use normalized mass m=1.
+// Key behaviour: torque τ = I·A·B·sinθ accelerates the coil.
+// At θ=0° (aligned) or θ=180° (anti-aligned), τ=0 but ω≠0 → coil overshoots.
+// In 'free' mode: no friction → continuous rotation (motor effect).
+// In 'osc' mode: light damping → oscillates and settles at equilibrium.
+// ============================
+function update(dt) {
+  A = loopW * loopH;
+  const tau = I * A * Bmag * Math.sin(theta); // restoring/driving torque
+  // Moment of inertia for rectangular coil about central axle (y-axis)
+  const J = (1.0 * loopW * loopW) / 12.0 + (1.0 * loopH * loopH) / 48.0;
+  const alpha = tau / J; // angular acceleration
+
+  if (mode === 'free') {
+    // Pure inertial: torque drives, no artificial damping.
+    // The coil gains KE, overshoots equilibrium, continues spinning.
+    omega += alpha * dt;
+    // Very tiny air-drag only (ω-dependent, not angle-dependent):
+    omega -= omega * 0.008 * dt * 60;
+    theta += omega * dt;
+  } else {
+    // Oscillate: add viscous damping so coil settles at θ=0 (stable equilibrium)
+    // τ = NIAB sinθ acts as restoring torque toward θ=0
+    omega += alpha * dt;
+    omega -= omega * 0.06 * dt * 60; // viscous damping
+    theta += omega * dt;
+  }
+}
+
+function updateUI() {
+  A = loopW * loopH;
+  const thetaDeg = ((theta * 180 / Math.PI) % 360 + 360) % 360;
+  const tau = I * A * Bmag * Math.sin(theta);
+  const pe = -I * A * Bmag * Math.cos(theta);
+  const mu = I * A;
+
+  document.getElementById('vAngle').textContent = `${thetaDeg.toFixed(0)}°`;
+  document.getElementById('gAngle').style.width = `${(thetaDeg/360)*100}%`;
+
+  const tMax = 5*3*2*2;
+  document.getElementById('vTorque').textContent = Math.abs(tau).toFixed(2);
+  document.getElementById('gTorque').style.width = `${Math.min(Math.abs(tau)/tMax*100,100)}%`;
+
+  document.getElementById('vPE').textContent = pe.toFixed(2);
+  document.getElementById('gPE').style.width = `${Math.min(Math.abs(pe)/tMax*100,100)}%`;
+
+  document.getElementById('vMM').textContent = mu.toFixed(2);
+  document.getElementById('gMM').style.width = `${Math.min((mu/10)*100,100)}%`;
+}
+
+// ============================
+// RENDER
+// ============================
+let last = 0;
+function frame(ts) {
+  if (!last) last = ts;
+  const dt = Math.min((ts-last)/1000, 0.05);
+  last = ts;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Dark background
+  const bg = ctx.createRadialGradient(W/2,H/2,0, W/2,H/2,Math.max(W,H)*0.7);
+  bg.addColorStop(0, '#0f1a28');
+  bg.addColorStop(1, '#070c14');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  drawGrid();
+  drawAxes();
+  drawBField();
+  drawLoop();
+  drawMomentVector();
+  drawTorqueVector();
+  drawAngleArc();
+  drawTorqueCurve();
+
+  if (playing) update(dt);
+  updateUI();
+
+  requestAnimationFrame(frame);
+}
+
+// ============================
+// CONTROLS
+// ============================
+document.getElementById('sI').addEventListener('input', function() {
+  I = parseFloat(this.value);
+  document.getElementById('cvI').textContent = `${I.toFixed(1)} A`;
+});
+document.getElementById('sB').addEventListener('input', function() {
+  Bmag = parseFloat(this.value);
+  document.getElementById('cvB').textContent = `${Bmag.toFixed(1)} T`;
+});
+document.getElementById('sA').addEventListener('input', function() {
+  loopW = parseFloat(this.value);
+  document.getElementById('cvA').textContent = `${loopW.toFixed(1)} m`;
+});
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('btnPlay').textContent = playing ? '⏸ Pause' : '▶ Play';
+  document.getElementById('btnPlay').className = playing ? 'active' : '';
+  last = 0;
+}
+
+function resetSim() {
+  theta = Math.PI / 3;
+  omega = 0.0;
+}
+
+function setMode(m) {
+  mode = m;
+  omega = 0.0;
+  theta = Math.PI / 3;
+  document.getElementById('btnFree').className = m === 'free' ? 'active' : '';
+  document.getElementById('btnOsc').className = m === 'osc' ? 'active' : '';
+}
+
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
