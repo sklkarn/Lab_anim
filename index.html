@@ -63,7 +63,8 @@
 }
 
 #tab-basic:checked ~ .tab-labels label[for="tab-basic"],
-#tab-advanced:checked ~ .tab-labels label[for="tab-advanced"] {
+#tab-advanced:checked ~ .tab-labels label[for="tab-advanced"], 
+#tab-waves:checked ~ .tab-labels label[for="tab-waves"] {
   background: white;
   border-bottom: none;
   color: #2c3e50;
@@ -79,7 +80,8 @@
 }
 
 #tab-basic:checked ~ #content-basic,
-#tab-advanced:checked ~ #content-advanced {
+#tab-advanced:checked ~ #content-advanced, 
+#tab-waves:checked ~ #content-waves {
   display: block;
 }
   </style>
@@ -93,11 +95,13 @@
   <!-- Hidden radio buttons control which tab is active -->
   <input type="radio" name="physics-tabs" id="tab-basic" checked>
   <input type="radio" name="physics-tabs" id="tab-advanced">
+  <input type="radio" name="physics-tabs" id="tab-waves">
 
   <!-- Tab buttons/labels -->
   <div class="tab-labels">
     <label for="tab-basic" class="tab-label">Basic & Mechanics</label>
     <label for="tab-advanced" class="tab-label">Electromagnetism & Modern Physics</label>
+    <label for="tab-waves" class="tab-label">Waves & Thermodynamics</label>
   </div>
 
   <!-- Tab contents -->
@@ -108,14 +112,11 @@
       <li><a href="retrograde.html">Retrograde Motion</a></li>
       <li><a href="spectra.html">Dispersion of Light Through a Prism</a></li>
       <li><a href="tide.html">Tides</a></li>
-      <li><a href="waves.html">Longitudinal Waves and Transverse Waves</a></li>
-      <li><a href="doubleslitInterf.html">Double Slit Experiment</a></li>
       <li><a href="Hatom.html">Hydrogen Atom</a></li>
       <li><a href="rainbow.html">Rainbow Formation</a></li>
       <li><a href="double_rainbow.html">Double Rainbow Formation</a></li>
       <li><a href="color-mixing.html">Color Mixing Schema</a></li>
       <li><a href="solenoid.html">Magnetic Field of a Solenoid</a></li>
-      <li><a href="doppler_effect.html">Doppler Effect Experiment</a></li>
       <li><a href="solar_system.html">Solar System</a></li>
        <li><a href="laws_of_reflection.html">Law's of Reflection of Light</a></li>
     </ul>
@@ -163,6 +164,22 @@
       <li><a href="compton_effect.html">Compton Effect</a></li>
     </ul>
   </div>
+
+
+   <div class="tab-content" id="content-waves">
+    <h2>Waves</h2>
+    <ul>
+        <li><a href="waves.html">Longitudinal Waves and Transverse Waves</a></li>
+      <li><a href="doubleslitInterf.html">Double Slit Experiment</a></li>
+       <li><a href="doppler_effect.html">Doppler Effect Experiment</a></li>
+    </ul>
+
+    <h2>Thermodynamics</h2>
+    <ul>
+            <li><a href="blackbody_radiation.html">Blackbody Radiation</a></li>
+      </ul>
+  </div>
+
 
 </div>
 
