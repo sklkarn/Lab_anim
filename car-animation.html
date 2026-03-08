@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Motion Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c14;
+    --panel: #0f1220;
+    --border: #1e2540;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6e;
+    --text: #c8d4f0;
+    --dim: #4a5580;
+    --glow: 0 0 20px rgba(0,229,255,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.1rem, 3vw, 1.6rem);
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .ctrl-group {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+    flex: 1;
+  }
+
+  .ctrl-group label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .ctrl-group .value-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .mode-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: rgba(0,229,255,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    cursor: pointer;
+  }
+
+  /* ── ACTION BUTTONS ── */
+  .action-btns {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    padding: 10px 24px;
+    border: 1px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-start {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn-start:hover, .btn-start.active {
+    background: rgba(127,255,110,0.12);
+    box-shadow: 0 0 16px rgba(127,255,110,0.3);
+  }
+
+  .btn-reset {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-reset:hover {
+    background: rgba(255,107,53,0.12);
+    box-shadow: 0 0 16px rgba(255,107,53,0.3);
+  }
+
+  /* ── TRACK ── */
+  .track-wrapper {
+    width: 100%;
+    max-width: 900px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Sky gradient */
+  .sky {
+    height: 80px;
+    background: linear-gradient(180deg, #07090f 0%, #0d1428 60%, #12203a 100%);
+    border-radius: 6px 6px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Stars */
+  .sky::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 25%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 80%, rgba(255,255,255,0.35) 0%, transparent 100%);
+  }
+
+  /* Road */
+  .road {
+    height: 90px;
+    background: linear-gradient(180deg, #1a1f2e 0%, #141820 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Road markings container */
+  .road-markings {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 6px;
+    display: flex;
+    align-items: center;
+  }
+
+  .dashes-track {
+    display: flex;
+    gap: 0;
+    position: absolute;
+    left: 0;
+    width: 200%;
+    height: 100%;
+  }
+
+  .dash {
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    margin-right: 40px;
+    flex-shrink: 0;
+  }
+
+  /* Ground strip */
+  .ground {
+    height: 24px;
+    background: linear-gradient(180deg, #0e1a0f 0%, #0a1209 100%);
+    border-radius: 0 0 6px 6px;
+  }
+
+  /* ── CAR ── */
+  .car-container {
+    position: absolute;
+    bottom: 25px; /* sits on road */
+    left: 20px;
+    transition: none;
+  }
+
+  .car-svg {
+    width: 100px;
+    height: 48px;
+    filter: drop-shadow(0 4px 12px rgba(0,229,255,0.3));
+  }
+
+  /* Wheel spin */
+  .wheel-anim {
+    transform-origin: center;
+  }
+
+  /* Headlight glow */
+  .headlight-glow {
+    position: absolute;
+    right: -60px;
+    top: 8px;
+    width: 70px;
+    height: 30px;
+    background: radial-gradient(ellipse at left, rgba(255,240,180,0.35) 0%, transparent 80%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .running .headlight-glow { opacity: 1; }
+
+  /* Exhaust particles */
+  .exhaust {
+    position: absolute;
+    left: -8px;
+    top: 22px;
+    pointer-events: none;
+  }
+
+  .puff {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(180,190,210,0.4);
+    animation: none;
+  }
+
+  @keyframes puffAnim {
+    0%   { transform: translate(0,0) scale(1);   opacity: 0.5; }
+    100% { transform: translate(-30px,-10px) scale(2.5); opacity: 0; }
+  }
+
+  .running .puff { animation: puffAnim 0.6s ease-out infinite; }
+  .running .puff:nth-child(2) { animation-delay: 0.2s; width: 6px; height: 6px; top: 18px; }
+  .running .puff:nth-child(3) { animation-delay: 0.4s; width: 5px; height: 5px; top: 24px; }
+
+  /* ── METRICS HUD ── */
+  .hud {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 24px;
+  }
+
+  .hud-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hud-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .hud-card.timer::before   { background: var(--accent); }
+  .hud-card.distance::before { background: var(--accent3); }
+  .hud-card.speed::before   { background: var(--accent2); }
+
+  .hud-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .hud-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .hud-unit {
+    font-size: 0.65rem;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  .hud-card.timer .hud-value   { color: var(--accent);  text-shadow: 0 0 16px rgba(0,229,255,0.5); }
+  .hud-card.distance .hud-value { color: var(--accent3); text-shadow: 0 0 16px rgba(127,255,110,0.4); }
+  .hud-card.speed .hud-value   { color: var(--accent2); text-shadow: 0 0 16px rgba(255,107,53,0.4); }
+
+  /* ── PHYSICS FORMULA ── */
+  .formula-bar {
+    width: 100%;
+    max-width: 800px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+
+  .formula-bar span {
+    color: var(--accent);
+  }
+
+  /* speed bar */
+  .speed-bar-wrap {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .speed-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent2));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px var(--accent2);
+  }
+</style>
+</head>
+<body>
+
+<h1>⚡ Motion Simulator</h1>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Mode</label>
+    <div class="mode-btns">
+      <button class="mode-btn active" id="modeConst" onclick="setMode('constant')">Constant V</button>
+      <button class="mode-btn" id="modeAccel" onclick="setMode('accelerating')">Accelerating</button>
+    </div>
+  </div>
+
+  <div class="ctrl-group" id="velGroup">
+    <label>Initial Velocity</label>
+    <div class="value-display" id="velDisplay">20 m/s</div>
+    <input type="range" id="velSlider" min="5" max="60" value="20" step="1"
+           oninput="updateVel(this.value)">
+  </div>
+
+  <div class="ctrl-group" id="accelGroup" style="display:none">
+    <label>Acceleration</label>
+    <div class="value-display" id="accelDisplay">3 m/s²</div>
+    <input type="range" id="accelSlider" min="1" max="15" value="3" step="0.5"
+           oninput="updateAccel(this.value)">
+  </div>
+</div>
+
+<!-- Buttons -->
+<div class="action-btns">
+  <button class="btn btn-start" id="startBtn" onclick="toggleStart()">▶ START</button>
+  <button class="btn btn-reset" onclick="resetSim()">↺ RESET</button>
+</div>
+
+<!-- Track -->
+<div class="track-wrapper">
+  <div class="sky"></div>
+
+  <div class="road" id="road">
+    <div class="road-markings">
+      <div class="dashes-track" id="dashTrack">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- Car -->
+    <div class="car-container" id="carEl">
+      <div class="headlight-glow"></div>
+      <div class="exhaust">
+        <div class="puff"></div>
+        <div class="puff"></div>
+        <div class="puff"></div>
+      </div>
+      <svg class="car-svg" viewBox="0 0 120 55" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <defs>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1e4a8a"/>
+            <stop offset="100%" stop-color="#0d2a5a"/>
+          </linearGradient>
+          <linearGradient id="windowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a0d4ff" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#5090cc" stop-opacity="0.7"/>
+          </linearGradient>
+        </defs>
+        <!-- Lower body -->
+        <rect x="5" y="30" width="110" height="18" rx="5" fill="url(#bodyGrad)"/>
+        <!-- Upper body (cabin) -->
+        <path d="M25,30 L35,14 L80,14 L95,30 Z" fill="url(#bodyGrad)"/>
+        <!-- Windows -->
+        <path d="M38,28 L44,16 L70,16 L76,28 Z" fill="url(#windowGrad)" rx="2"/>
+        <!-- Window divider -->
+        <line x1="57" y1="16" x2="57" y2="28" stroke="#1e4a8a" stroke-width="1.5"/>
+        <!-- Headlight -->
+        <ellipse cx="110" cy="35" rx="6" ry="4" fill="#fff9c4" opacity="0.9"/>
+        <ellipse cx="110" cy="35" rx="4" ry="2.5" fill="#fff" opacity="0.6"/>
+        <!-- Tail light -->
+        <ellipse cx="8" cy="35" rx="5" ry="3.5" fill="#ff4444" opacity="0.85"/>
+        <!-- Bumper lines -->
+        <line x1="8" y1="42" x2="20" y2="42" stroke="#1a2a5a" stroke-width="1.5"/>
+        <line x1="100" y1="42" x2="112" y2="42" stroke="#1a2a5a" stroke-width="1.5"/>
+        <!-- Stripe -->
+        <rect x="5" y="33" width="110" height="3" rx="1" fill="rgba(0,229,255,0.2)"/>
+        <!-- Wheel back -->
+        <circle cx="30" cy="46" r="9" fill="#111" id="wb"/>
+        <circle cx="30" cy="46" r="6" fill="#222" id="wbr"/>
+        <circle cx="30" cy="46" r="3" fill="#00e5ff" opacity="0.7"/>
+        <line x1="24" y1="46" x2="36" y2="46" stroke="#555" stroke-width="1.5" class="wheel-anim" id="wbspoke1"/>
+        <line x1="30" y1="40" x2="30" y2="52" stroke="#555" stroke-width="1.5" class="wheel-anim" id="wbspoke2"/>
+        <!-- Wheel front -->
+        <circle cx="90" cy="46" r="9" fill="#111" id="wf"/>
+        <circle cx="90" cy="46" r="6" fill="#222" id="wfr"/>
+        <circle cx="90" cy="46" r="3" fill="#00e5ff" opacity="0.7"/>
+        <line x1="84" y1="46" x2="96" y2="46" stroke="#555" stroke-width="1.5" class="wheel-anim" id="wfspoke1"/>
+        <line x1="90" y1="40" x2="90" y2="52" stroke="#555" stroke-width="1.5" class="wheel-anim" id="wfspoke2"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="ground"></div>
+
+  <!-- Instructor label on canvas -->
+  <div style="
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: rgba(0,229,255,0.55);
+    text-transform: uppercase;
+    pointer-events: none;
+    line-height: 1.5;
+    text-align: right;
+  ">
+    <div style="font-size:0.55rem; color:rgba(0,229,255,0.35); letter-spacing:0.2em;">INSTRUCTOR</div>
+    <div style="color:rgba(0,229,255,0.7); text-shadow: 0 0 8px rgba(0,229,255,0.3);">Dr. S Karna</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-card timer">
+    <div class="hud-label">⏱ Time</div>
+    <div class="hud-value" id="timeVal">0.00</div>
+    <div class="hud-unit">seconds</div>
+  </div>
+  <div class="hud-card distance">
+    <div class="hud-label">📍 Distance</div>
+    <div class="hud-value" id="distVal">0.0</div>
+    <div class="hud-unit">metres</div>
+  </div>
+  <div class="hud-card speed">
+    <div class="hud-label">🚀 Speed</div>
+    <div class="hud-value" id="speedVal">0.0</div>
+    <div class="hud-unit">m/s</div>
+    <div class="speed-bar-wrap">
+      <div class="speed-bar-fill" id="speedBar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Formula -->
+<div class="formula-bar" id="formulaBar">
+  Select a mode and press START
+</div>
+
+<script>
+  // ── STATE ──
+  let mode = 'constant';
+  let v0 = 20;
+  let accel = 3;
+  let running = false;
+  let t = 0;
+  let dist = 0;
+  let lastTs = null;
+  let rafId = null;
+  let wheelAngle = 0;
+  let dashOffset = 0;
+  let carPosX = 20; // px within track
+  let trackWidth = 0;
+
+  // ── SETUP DASHES ──
+  const dashTrack = document.getElementById('dashTrack');
+  for (let i = 0; i < 30; i++) {
+    const d = document.createElement('div');
+    d.className = 'dash';
+    dashTrack.appendChild(d);
+  }
+
+  // ── MODE / PARAM SETTERS ──
+  function setMode(m) {
+    mode = m;
+    document.getElementById('modeConst').classList.toggle('active', m === 'constant');
+    document.getElementById('modeAccel').classList.toggle('active', m === 'accelerating');
+    document.getElementById('velGroup').style.display = 'flex';
+    document.getElementById('accelGroup').style.display = m === 'accelerating' ? 'flex' : 'none';
+    updateFormula();
+  }
+
+  function updateVel(v) {
+    v0 = parseFloat(v);
+    document.getElementById('velDisplay').textContent = v0 + ' m/s';
+    updateFormula();
+  }
+
+  function updateAccel(a) {
+    accel = parseFloat(a);
+    document.getElementById('accelDisplay').textContent = accel + ' m/s²';
+    updateFormula();
+  }
+
+  function updateFormula() {
+    const f = document.getElementById('formulaBar');
+    if (!running && t === 0) {
+      if (mode === 'constant') {
+        f.innerHTML = `Formula: <span>x = v₀·t</span> &nbsp;|&nbsp; v₀ = ${v0} m/s &nbsp;|&nbsp; a = 0`;
+      } else {
+        f.innerHTML = `Formula: <span>x = v₀·t + ½·a·t²</span> &nbsp;|&nbsp; v₀ = ${v0} m/s &nbsp;|&nbsp; a = ${accel} m/s²`;
+      }
+    }
+  }
+
+  // ── TOGGLE START / PAUSE ──
+  function toggleStart() {
+    if (!running) {
+      running = true;
+      document.getElementById('startBtn').textContent = '⏸ PAUSE';
+      document.getElementById('startBtn').classList.add('active');
+      document.getElementById('carEl').classList.add('running');
+      lastTs = null;
+      rafId = requestAnimationFrame(tick);
+    } else {
+      running = false;
+      document.getElementById('startBtn').textContent = '▶ RESUME';
+      document.getElementById('startBtn').classList.remove('active');
+      cancelAnimationFrame(rafId);
+    }
+  }
+
+  // ── RESET ──
+  function resetSim() {
+    running = false;
+    cancelAnimationFrame(rafId);
+    t = 0; dist = 0; carPosX = 20; dashOffset = 0; wheelAngle = 0;
+    lastTs = null;
+    document.getElementById('startBtn').textContent = '▶ START';
+    document.getElementById('startBtn').classList.remove('active');
+    document.getElementById('carEl').classList.remove('running');
+    document.getElementById('carEl').style.left = carPosX + 'px';
+    document.getElementById('timeVal').textContent = '0.00';
+    document.getElementById('distVal').textContent = '0.0';
+    document.getElementById('speedVal').textContent = '0.0';
+    document.getElementById('speedBar').style.width = '0%';
+    dashTrack.style.transform = 'translateX(0)';
+    document.getElementById('wbspoke1').setAttribute('transform', '');
+    document.getElementById('wbspoke2').setAttribute('transform', '');
+    document.getElementById('wfspoke1').setAttribute('transform', '');
+    document.getElementById('wfspoke2').setAttribute('transform', '');
+    updateFormula();
+  }
+
+  // ── MAIN LOOP ──
+  function tick(ts) {
+    if (!lastTs) lastTs = ts;
+    const dtMs = Math.min(ts - lastTs, 50); // cap delta
+    const dt = dtMs / 1000;
+    lastTs = ts;
+
+    t += dt;
+
+    // Physics
+    let v;
+    if (mode === 'constant') {
+      v = v0;
+      dist = v0 * t;
+    } else {
+      v = v0 + accel * t;
+      dist = v0 * t + 0.5 * accel * t * t;
+    }
+
+    // Update HUD
+    document.getElementById('timeVal').textContent = t.toFixed(2);
+    document.getElementById('distVal').textContent = dist.toFixed(1);
+    document.getElementById('speedVal').textContent = v.toFixed(1);
+    const maxSpeed = mode === 'constant' ? v0 : v0 + accel * 30;
+    document.getElementById('speedBar').style.width = Math.min(100, v / maxSpeed * 100) + '%';
+
+    // Formula live update
+    const f = document.getElementById('formulaBar');
+    if (mode === 'constant') {
+      f.innerHTML = `x = v₀·t = ${v0}×${t.toFixed(2)} = <span>${dist.toFixed(1)} m</span> &nbsp;|&nbsp; v = <span>${v.toFixed(1)} m/s</span>`;
+    } else {
+      f.innerHTML = `x = v₀t + ½at² = ${v0}×${t.toFixed(2)} + ½×${accel}×${(t*t).toFixed(2)} = <span>${dist.toFixed(1)} m</span> &nbsp;|&nbsp; v = <span>${v.toFixed(1)} m/s</span>`;
+    }
+
+    // Visual speed scale: pixels/second in animation
+    const trackW = document.getElementById('road').clientWidth;
+    const pixelsPerMeter = 2.5; // visual scale
+    const vPx = v * pixelsPerMeter;
+
+    // Dash animation (infinite scrolling)
+    dashOffset -= vPx * dt;
+    dashTrack.style.transform = `translateX(${dashOffset % 80}px)`;
+
+    // Car position: car stays roughly at 1/4 of track (camera follows)
+    const carTargetX = Math.min(trackW * 0.25, 20 + dist * pixelsPerMeter);
+    carPosX = carTargetX;
+    document.getElementById('carEl').style.left = carPosX + 'px';
+
+    // Wheel spin
+    const wheelRadius = 9; // px in SVG
+    wheelAngle += (vPx * dt / wheelRadius) * (180 / Math.PI);
+
+    rotateSpokes('wbspoke1', 30, 46, wheelAngle);
+    rotateSpokes('wbspoke2', 30, 46, wheelAngle + 90);
+    rotateSpokes('wfspoke1', 90, 46, wheelAngle);
+    rotateSpokes('wfspoke2', 90, 46, wheelAngle + 90);
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function rotateSpokes(id, cx, cy, angle) {
+    const el = document.getElementById(id);
+    el.setAttribute('transform', `rotate(${angle}, ${cx}, ${cy})`);
+  }
+
+  // Init
+  updateFormula();
+</script>
+</body>
+</html>

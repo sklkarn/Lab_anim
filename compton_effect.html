@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compton Effect — Interactive Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #020b14;
+    --panel: #040f1c;
+    --border: #0a3a5c;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #b8d4e8;
+    --dim: #3a5a72;
+    --xray: #a78bfa;
+    --scatter: #fbbf24;
+    --electron: #39ff14;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,100,180,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,212,255,0.03) 39px, rgba(0,212,255,0.03) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,212,255,0.03) 39px, rgba(0,212,255,0.03) 40px);
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(0,212,255,0.6), 0 0 60px rgba(0,212,255,0.2);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+    color: var(--dim);
+    letter-spacing: 0.3em;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 1100px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 220px;
+    flex: 0 0 220px;
+  }
+
+  .canvas-area {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #010810;
+  }
+
+  .control-row {
+    margin-bottom: 14px;
+  }
+
+  .control-row label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .control-row label span {
+    color: var(--accent);
+    font-size: 0.75rem;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0,212,255,0.8);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    margin-top: 6px;
+  }
+
+  .btn:hover {
+    background: rgba(0,212,255,0.1);
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+
+  .btn.fire {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn.fire:hover {
+    background: rgba(255,107,53,0.1);
+    box-shadow: 0 0 20px rgba(255,107,53,0.3);
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .data-item {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 3px;
+    padding: 8px;
+  }
+
+  .data-label {
+    font-size: 0.58rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+
+  .data-value {
+    font-size: 0.85rem;
+    color: var(--accent3);
+    font-weight: bold;
+  }
+
+  .data-value.highlight {
+    color: var(--scatter);
+  }
+
+  .data-value.purple {
+    color: var(--xray);
+  }
+
+  .equation-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-radius: 3px;
+    padding: 10px;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .equation {
+    font-size: 0.78rem;
+    color: var(--xray);
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+  }
+
+  .eq-highlight {
+    color: var(--scatter);
+    font-size: 0.9rem;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.63rem;
+    color: var(--dim);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .angle-display {
+    text-align: center;
+    padding: 8px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+    border: 1px solid rgba(0,212,255,0.2);
+    margin-top: 8px;
+  }
+
+  .angle-big {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    color: var(--accent2);
+    line-height: 1;
+  }
+
+  .angle-label {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+  }
+
+  @media (max-width: 700px) {
+    .left-panel { flex: 0 0 100%; }
+    .canvas-area { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⚛ Compton Effect</h1>
+<p class="subtitle">X-RAY PHOTON SCATTERING ON GRAPHITE TARGET — 1923</p>
+
+<div class="main-layout">
+  <!-- LEFT CONTROLS -->
+  <div class="left-panel">
+    <div class="panel">
+      <div class="panel-title">⚙ Parameters</div>
+
+      <div class="control-row">
+        <label>INCIDENT WAVELENGTH (λ₀) <span id="lambdaVal">0.071</span> Å</label>
+        <input type="range" id="lambda" min="0.02" max="0.3" step="0.001" value="0.071">
+      </div>
+
+      <div class="control-row">
+        <label>SCATTER ANGLE (θ) <span id="thetaVal">90</span>°</label>
+        <input type="range" id="theta" min="0" max="180" step="1" value="90">
+      </div>
+
+      <div class="angle-display">
+        <div class="angle-big" id="angleBig">90°</div>
+        <div class="angle-label">SCATTERING ANGLE θ</div>
+      </div>
+
+      <button class="btn fire" id="fireBtn" onclick="firePulse()">▶ FIRE X-RAY PULSE</button>
+      <button class="btn" onclick="toggleAuto()">⟳ AUTO SWEEP</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📊 Compton Shift</div>
+      <div class="data-grid">
+        <div class="data-item">
+          <div class="data-label">λ₀ INCIDENT</div>
+          <div class="data-value purple" id="d_lambda0">0.0710 Å</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">λ' SCATTERED</div>
+          <div class="data-value highlight" id="d_lambda1">0.0954 Å</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">Δλ SHIFT</div>
+          <div class="data-value" id="d_deltalambda">0.0243 Å</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">E₀ INCIDENT</div>
+          <div class="data-value purple" id="d_E0">174.9 keV</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">E' SCATTERED</div>
+          <div class="data-value highlight" id="d_E1">130.2 keV</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">e⁻ RECOIL KE</div>
+          <div class="data-value" id="d_KE">44.7 keV</div>
+        </div>
+      </div>
+
+      <div class="equation-box">
+        <div class="equation">
+          Δλ = λ<sub>c</sub>(1 − cos θ)<br>
+          λ<sub>c</sub> = h/m<sub>e</sub>c = <span style="color:var(--accent)">0.02426 Å</span><br>
+          <span class="eq-highlight" id="eq_result">Δλ = 0.0243 Å</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🔬 Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Incident X-ray</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>Scattered X-ray</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#39ff14"></div>Recoil electron</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div>Slit</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div>Detector</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div class="canvas-area">
+    <div class="panel" style="padding:10px">
+      <div class="panel-title">🔭 Experimental Setup</div>
+      <canvas id="setupCanvas" height="320"></canvas>
+    </div>
+    <div class="panel" style="padding:10px">
+      <div class="panel-title">📈 Intensity Spectrum — Detector Output</div>
+      <canvas id="spectrumCanvas" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────
+const h = 6.626e-34, me = 9.109e-31, c = 3e8, eV = 1.602e-19;
+const lambdaC_ang = 0.024263; // Compton wavelength in Angstroms
+const hc_keVang = 12.398;     // hc in keV·Å
+
+// ── State ─────────────────────────────────────────────────────────────
+let theta = 90, lambda0 = 0.071;
+let photons = [], electrons = [];
+let autoSweep = false, autoDir = 1, autoTimer = null;
+let animFrame;
+
+// ── Elements ──────────────────────────────────────────────────────────
+const setupCanvas = document.getElementById('setupCanvas');
+const sCtx = setupCanvas.getContext('2d');
+const specCanvas = document.getElementById('spectrumCanvas');
+const pCtx = specCanvas.getContext('2d');
+
+function resize() {
+  const w = setupCanvas.parentElement.clientWidth - 20;
+  setupCanvas.width = w;
+  setupCanvas.height = 320;
+  specCanvas.width = w;
+  specCanvas.height = 180;
+  draw();
+}
+
+// ── Compton Physics ───────────────────────────────────────────────────
+function comptonShift(thetaDeg) {
+  return lambdaC_ang * (1 - Math.cos(thetaDeg * Math.PI / 180));
+}
+
+function computeAll() {
+  const dL = comptonShift(theta);
+  const lambda1 = lambda0 + dL;
+  const E0 = hc_keVang / lambda0;
+  const E1 = hc_keVang / lambda1;
+  const KE = E0 - E1;
+
+  document.getElementById('d_lambda0').textContent = lambda0.toFixed(4) + ' Å';
+  document.getElementById('d_lambda1').textContent = lambda1.toFixed(4) + ' Å';
+  document.getElementById('d_deltalambda').textContent = dL.toFixed(4) + ' Å';
+  document.getElementById('d_E0').textContent = E0.toFixed(1) + ' keV';
+  document.getElementById('d_E1').textContent = E1.toFixed(1) + ' keV';
+  document.getElementById('d_KE').textContent = KE.toFixed(1) + ' keV';
+  document.getElementById('eq_result').textContent =
+    `Δλ = ${dL.toFixed(4)} Å`;
+  document.getElementById('thetaVal').textContent = theta;
+  document.getElementById('angleBig').textContent = theta + '°';
+  document.getElementById('lambdaVal').textContent = lambda0.toFixed(3);
+  document.getElementById('lambda').value = lambda0;
+  document.getElementById('theta').value = theta;
+}
+
+// ── Setup Drawing ─────────────────────────────────────────────────────
+function drawSetup() {
+  const W = setupCanvas.width, H = setupCanvas.height;
+  sCtx.clearRect(0, 0, W, H);
+
+  // Background subtle grid
+  sCtx.strokeStyle = 'rgba(0,212,255,0.05)';
+  sCtx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { sCtx.beginPath(); sCtx.moveTo(x,0); sCtx.lineTo(x,H); sCtx.stroke(); }
+  for (let y = 0; y < H; y += 40) { sCtx.beginPath(); sCtx.moveTo(0,y); sCtx.lineTo(W,y); sCtx.stroke(); }
+
+  const thetaRad = theta * Math.PI / 180;
+  // Layout anchors
+  const sourceX = W * 0.07, sourceY = H * 0.5;
+  const slitX = W * 0.22, slitY = H * 0.5, slitGap = 18;
+  const targetX = W * 0.46, targetY = H * 0.5;
+  const detR = Math.min(W, H) * 0.27; // detector orbit radius
+  const detX = targetX + Math.cos(-thetaRad) * detR;
+  const detY = targetY + Math.sin(-thetaRad) * detR;
+
+  // Electron recoil direction (momentum conservation, approx)
+  const phi = Math.atan2(Math.sin(thetaRad), 1 - Math.cos(thetaRad)) * 0.85;
+  const elecLen = detR * 0.5;
+  const elecX = targetX + Math.cos(phi) * elecLen;
+  const elecY = targetY + Math.sin(phi) * elecLen;
+
+  // ── X-Ray Source ──
+  drawSource(sCtx, sourceX, sourceY);
+
+  // ── Beam from source to slit ──
+  drawBeam(sCtx, sourceX + 22, sourceY, slitX - 8, slitY, '#a78bfa', lambda0);
+
+  // ── Slit ──
+  drawSlit(sCtx, slitX, slitY, slitGap);
+
+  // ── Beam from slit to target ──
+  drawBeam(sCtx, slitX + 8, slitY, targetX - 14, targetY, '#a78bfa', lambda0);
+
+  // ── Graphite Target ──
+  drawTarget(sCtx, targetX, targetY);
+
+  // ── Scattered X-ray beam ──
+  if (theta > 0 && theta < 180) {
+    drawBeam(sCtx, targetX, targetY, detX, detY, '#fbbf24', lambda0 + comptonShift(theta));
+  } else {
+    drawBeam(sCtx, targetX, targetY, targetX + detR, targetY, '#fbbf24', lambda0 + comptonShift(theta));
+  }
+
+  // ── Recoil Electron ──
+  drawElectronTrack(sCtx, targetX, targetY, elecX, elecY, phi);
+
+  // ── Detector ──
+  drawDetector(sCtx, detX, detY);
+
+  // ── Angle arc ──
+  drawAngleArc(sCtx, targetX, targetY, detR * 0.45, thetaRad);
+
+  // ── Animated photons ──
+  drawPhotons(sCtx, sourceX + 22, sourceY, slitX - 8, slitY,
+              slitX + 8, slitY, targetX - 14, targetY,
+              targetX, targetY, detX, detY,
+              elecX, elecY, phi, elecLen);
+
+  // ── Labels ──
+  labelSetup(sCtx, sourceX, sourceY, slitX, slitY, targetX, targetY, detX, detY, W, H);
+}
+
+function drawSource(ctx, x, y) {
+  // Glow
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 30);
+  g.addColorStop(0, 'rgba(167,139,250,0.5)');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.fillStyle = '#1a0a2e';
+  ctx.strokeStyle = '#a78bfa';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x-18, y-22, 36, 44, 4); ctx.fill(); ctx.stroke();
+
+  // X label
+  ctx.fillStyle = '#a78bfa';
+  ctx.font = 'bold 14px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('X', x, y - 4);
+  ctx.font = '8px Share Tech Mono, monospace';
+  ctx.fillStyle = '#7c5cbf';
+  ctx.fillText('SOURCE', x, y + 10);
+
+  // Emission lines
+  for (let i = -1; i <= 1; i++) {
+    ctx.strokeStyle = 'rgba(167,139,250,0.6)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(x+18, y+i*6); ctx.lineTo(x+28, y+i*6); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawSlit(ctx, x, y, gap) {
+  const bH = 30, bW = 14;
+  ctx.fillStyle = '#0a2540';
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  // top block
+  ctx.fillRect(x - bW/2, y - bH - gap, bW, bH);
+  ctx.strokeRect(x - bW/2, y - bH - gap, bW, bH);
+  // bottom block
+  ctx.fillRect(x - bW/2, y + gap, bW, bH);
+  ctx.strokeRect(x - bW/2, y + gap, bW, bH);
+
+  // Glow on gap
+  const g = ctx.createLinearGradient(x-10, y-gap, x+10, y+gap);
+  g.addColorStop(0, 'rgba(0,212,255,0)');
+  g.addColorStop(0.5, 'rgba(0,212,255,0.3)');
+  g.addColorStop(1, 'rgba(0,212,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x-8, y-gap, 16, gap*2);
+}
+
+function drawTarget(ctx, x, y) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 20);
+  g.addColorStop(0, 'rgba(100,200,100,0.3)');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, 28, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#0d2010';
+  ctx.strokeStyle = '#4ade80';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x-13, y-18, 26, 36, 3); ctx.fill(); ctx.stroke();
+
+  // Carbon hexagon hint
+  ctx.strokeStyle = 'rgba(74,222,128,0.5)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI/3;
+    const bx = x + Math.cos(a) * 7, by = y + Math.sin(a) * 7;
+    const a2 = (i+1) * Math.PI/3;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a)*7, y + Math.sin(a)*7);
+    ctx.lineTo(x + Math.cos(a2)*7, y + Math.sin(a2)*7);
+    ctx.stroke();
+  }
+}
+
+function drawDetector(ctx, x, y) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 20);
+  g.addColorStop(0, 'rgba(255,107,53,0.4)');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#200a00';
+  ctx.strokeStyle = '#ff6b35';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x-12, y-14, 24, 28, 3); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = '7px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('DET', x, y+4);
+}
+
+function drawBeam(ctx, x1, y1, x2, y2, color, lambda) {
+  const intensity = Math.min(1, 0.03 / lambda);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, intensity * 4);
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Arrow
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(mx + Math.cos(angle)*8, my + Math.sin(angle)*8);
+  ctx.lineTo(mx + Math.cos(angle+2.4)*5, my + Math.sin(angle+2.4)*5);
+  ctx.lineTo(mx + Math.cos(angle-2.4)*5, my + Math.sin(angle-2.4)*5);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawElectronTrack(ctx, x1, y1, x2, y2, phi) {
+  ctx.strokeStyle = '#39ff14';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // Arrow at end
+  ctx.fillStyle = '#39ff14';
+  ctx.beginPath();
+  ctx.moveTo(x2 + Math.cos(phi)*8, y2 + Math.sin(phi)*8);
+  ctx.lineTo(x2 + Math.cos(phi+2.4)*5, y2 + Math.sin(phi+2.4)*5);
+  ctx.lineTo(x2 + Math.cos(phi-2.4)*5, y2 + Math.sin(phi-2.4)*5);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawAngleArc(ctx, cx, cy, r, thetaRad) {
+  ctx.strokeStyle = 'rgba(255,107,53,0.6)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  // Reference line (forward)
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + r + 20, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arc
+  ctx.strokeStyle = 'rgba(255,107,53,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -thetaRad, 0, thetaRad < 0);
+  ctx.stroke();
+
+  // Angle label
+  const midA = -thetaRad/2;
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = '11px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('θ=' + theta + '°', cx + Math.cos(midA)*(r+18), cy + Math.sin(midA)*(r+18));
+}
+
+// ── Animated Photons ──────────────────────────────────────────────────
+let t = 0;
+function drawPhotons(ctx, sx1, sy1, sx2, sy2, sx3, sy3, tx, ty, scx, scy, dx, dy, ex, ey, phi, elen) {
+  t += 0.02;
+  const seg1 = {x1:sx1, y1:sy1, x2:sx2, y2:sy2};
+  const seg2 = {x1:sx3, y1:sy3, x2:tx, y2:ty};
+  const seg3 = {x1:scx, y1:scy, x2:dx, y2:dy};
+  const segE = {x1:scx, y1:scy, x2:ex, y2:ey};
+
+  // Incident photons (purple)
+  for (let i = 0; i < 3; i++) {
+    const f = ((t * 0.6 + i * 0.33) % 1);
+    // segment 1
+    const p1 = interp(seg1, f);
+    drawDot(ctx, p1.x, p1.y, '#a78bfa', 3);
+    // segment 2
+    const p2 = interp(seg2, f);
+    drawDot(ctx, p2.x, p2.y, '#a78bfa', 3);
+  }
+
+  // Scattered photons (gold)
+  for (let i = 0; i < 2; i++) {
+    const f = ((t * 0.5 + i * 0.5) % 1);
+    const p = interp(seg3, f);
+    drawDot(ctx, p.x, p.y, '#fbbf24', 3);
+  }
+
+  // Recoil electron (green)
+  const ef = ((t * 0.3) % 1);
+  const pe = interp(segE, ef);
+  drawDot(ctx, pe.x, pe.y, '#39ff14', 4);
+
+  // Glow at target on hit
+  const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+  ctx.fillStyle = `rgba(100,220,100,${pulse * 0.2})`;
+  ctx.beginPath(); ctx.arc(scx, scy, 18 + pulse*8, 0, Math.PI*2); ctx.fill();
+}
+
+function interp(seg, f) {
+  return { x: seg.x1 + (seg.x2 - seg.x1) * f, y: seg.y1 + (seg.y2 - seg.y1) * f };
+}
+
+function drawDot(ctx, x, y, color, r) {
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function labelSetup(ctx, srcX, srcY, slitX, slitY, tgtX, tgtY, detX, detY, W, H) {
+  ctx.textAlign = 'center';
+  ctx.font = '9px Share Tech Mono, monospace';
+
+  ctx.fillStyle = 'rgba(167,139,250,0.8)';
+  ctx.fillText('X-RAY', srcX, srcY + 34);
+  ctx.fillText('SOURCE', srcX, srcY + 44);
+
+  ctx.fillStyle = 'rgba(0,212,255,0.8)';
+  ctx.fillText('SLIT', slitX, slitY + 52);
+
+  ctx.fillStyle = 'rgba(74,222,128,0.8)';
+  ctx.fillText('GRAPHITE', tgtX, tgtY + 30);
+  ctx.fillText('TARGET', tgtX, tgtY + 40);
+
+  ctx.fillStyle = 'rgba(255,107,53,0.9)';
+  const detLabelY = detY > H/2 ? detY + 26 : detY - 18;
+  ctx.fillText('DETECTOR', detX, detLabelY);
+
+  ctx.fillStyle = 'rgba(57,255,20,0.7)';
+  ctx.font = '8px Share Tech Mono, monospace';
+  ctx.fillText('e⁻ recoil', tgtX + 30, tgtY + 60);
+}
+
+// ── Spectrum Drawing ──────────────────────────────────────────────────
+function drawSpectrum() {
+  const W = specCanvas.width, H = specCanvas.height;
+  pCtx.clearRect(0, 0, W, H);
+
+  pCtx.fillStyle = 'rgba(0,8,16,0.8)';
+  pCtx.fillRect(0, 0, W, H);
+
+  const pad = {l:50, r:20, t:20, b:35};
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  // Axes
+  pCtx.strokeStyle = 'rgba(0,212,255,0.4)';
+  pCtx.lineWidth = 1;
+  pCtx.beginPath();
+  pCtx.moveTo(pad.l, pad.t); pCtx.lineTo(pad.l, pad.t+plotH);
+  pCtx.lineTo(pad.l+plotW, pad.t+plotH);
+  pCtx.stroke();
+
+  // Instructor name top right of setup canvas
+  sCtx.save();
+  sCtx.textAlign = 'right';
+  sCtx.font = '10px Share Tech Mono, monospace';
+  sCtx.fillStyle = 'rgba(0,212,255,0.55)';
+  sCtx.fillText('Instructor: Dr. S Karna', W - 10, 16);
+  sCtx.restore();
+
+  // Axis labels
+  pCtx.fillStyle = '#3a5a72';
+  pCtx.font = '9px Share Tech Mono, monospace';
+  pCtx.textAlign = 'center';
+  pCtx.fillText('Wavelength (Å)', pad.l + plotW/2, H - 4);
+  pCtx.save(); pCtx.translate(12, pad.t + plotH/2);
+  pCtx.rotate(-Math.PI/2); pCtx.fillText('Intensity', 0, 0); pCtx.restore();
+
+  const dL = comptonShift(theta);
+  const lambda1 = lambda0 + dL;
+
+  // Range
+  const lMin = lambda0 * 0.7, lMax = lambda1 * 1.4;
+  const lRange = lMax - lMin;
+  const toX = l => pad.l + ((l - lMin) / lRange) * plotW;
+
+  // Gaussian peaks
+  function gaussian(l, center, width, height) {
+    return height * Math.exp(-0.5 * ((l - center)/width)**2);
+  }
+
+  // Draw unmodified peak (λ₀) — purple
+  const sig0 = lambda0 * 0.015;
+  pCtx.beginPath();
+  for (let px = 0; px <= plotW; px++) {
+    const l = lMin + (px / plotW) * lRange;
+    const iy = gaussian(l, lambda0, sig0, 1);
+    const y = pad.t + plotH - iy * plotH * 0.85;
+    px === 0 ? pCtx.moveTo(pad.l + px, y) : pCtx.lineTo(pad.l + px, y);
+  }
+  pCtx.strokeStyle = '#a78bfa';
+  pCtx.lineWidth = 2.5;
+  pCtx.stroke();
+
+  // Fill under
+  pCtx.lineTo(toX(lambda0 + sig0*3), pad.t+plotH);
+  pCtx.lineTo(toX(lambda0 - sig0*3), pad.t+plotH);
+  pCtx.closePath();
+  pCtx.fillStyle = 'rgba(167,139,250,0.15)';
+  pCtx.fill();
+
+  // Draw shifted peak (λ') — gold
+  const heightRatio = lambda0 / lambda1; // energy conservation
+  const sig1 = lambda1 * 0.016;
+  pCtx.beginPath();
+  for (let px = 0; px <= plotW; px++) {
+    const l = lMin + (px / plotW) * lRange;
+    const iy = gaussian(l, lambda1, sig1, heightRatio);
+    const y = pad.t + plotH - iy * plotH * 0.85;
+    px === 0 ? pCtx.moveTo(pad.l + px, y) : pCtx.lineTo(pad.l + px, y);
+  }
+  pCtx.strokeStyle = '#fbbf24';
+  pCtx.lineWidth = 2.5;
+  pCtx.stroke();
+
+  pCtx.lineTo(toX(lambda1 + sig1*3), pad.t+plotH);
+  pCtx.lineTo(toX(lambda1 - sig1*3), pad.t+plotH);
+  pCtx.closePath();
+  pCtx.fillStyle = 'rgba(251,191,36,0.12)';
+  pCtx.fill();
+
+  // Δλ arrow
+  if (dL > 0.001) {
+    const x0 = toX(lambda0), x1 = toX(lambda1), arrowY = pad.t + plotH * 0.15;
+    pCtx.strokeStyle = '#39ff14';
+    pCtx.lineWidth = 1.5;
+    pCtx.beginPath(); pCtx.moveTo(x0, arrowY); pCtx.lineTo(x1, arrowY); pCtx.stroke();
+    pCtx.fillStyle = '#39ff14';
+    // arrowheads
+    pCtx.beginPath(); pCtx.moveTo(x0, arrowY); pCtx.lineTo(x0+6,arrowY-4); pCtx.lineTo(x0+6,arrowY+4); pCtx.closePath(); pCtx.fill();
+    pCtx.beginPath(); pCtx.moveTo(x1, arrowY); pCtx.lineTo(x1-6,arrowY-4); pCtx.lineTo(x1-6,arrowY+4); pCtx.closePath(); pCtx.fill();
+    pCtx.fillStyle = '#39ff14';
+    pCtx.font = '9px Share Tech Mono, monospace';
+    pCtx.textAlign = 'center';
+    pCtx.fillText('Δλ = ' + dL.toFixed(4) + ' Å', (x0+x1)/2, arrowY - 6);
+  }
+
+  // X-axis ticks
+  pCtx.fillStyle = '#3a5a72';
+  pCtx.font = '8px Share Tech Mono, monospace';
+  pCtx.textAlign = 'center';
+  const tickLambdas = [lambda0, lambda1];
+  tickLambdas.forEach(l => {
+    const x = toX(l);
+    pCtx.strokeStyle = 'rgba(0,212,255,0.25)';
+    pCtx.lineWidth = 1;
+    pCtx.setLineDash([2,3]);
+    pCtx.beginPath(); pCtx.moveTo(x, pad.t); pCtx.lineTo(x, pad.t+plotH); pCtx.stroke();
+    pCtx.setLineDash([]);
+    pCtx.fillStyle = l === lambda0 ? '#a78bfa' : '#fbbf24';
+    pCtx.fillText(l.toFixed(4), x, pad.t+plotH+14);
+  });
+
+  // Legend
+  pCtx.font = '8px Share Tech Mono, monospace';
+  pCtx.fillStyle = '#a78bfa'; pCtx.textAlign = 'left';
+  pCtx.fillText('λ₀ = ' + lambda0.toFixed(4) + ' Å (incident)', pad.l + plotW - 130, pad.t + 14);
+  pCtx.fillStyle = '#fbbf24';
+  pCtx.fillText("λ' = " + lambda1.toFixed(4) + ' Å (scattered)', pad.l + plotW - 130, pad.t + 26);
+}
+
+// ── Animation Loop ─────────────────────────────────────────────────────
+function draw() {
+  drawSetup();
+  drawSpectrum();
+  computeAll();
+}
+
+function animate() {
+  draw();
+  animFrame = requestAnimationFrame(animate);
+}
+
+// ── Pulse animation ────────────────────────────────────────────────────
+function firePulse() {
+  // Blink the fire button
+  const btn = document.getElementById('fireBtn');
+  btn.style.background = 'rgba(255,107,53,0.3)';
+  setTimeout(() => btn.style.background = 'transparent', 200);
+}
+
+// ── Auto Sweep ─────────────────────────────────────────────────────────
+function toggleAuto() {
+  autoSweep = !autoSweep;
+  if (autoSweep) {
+    autoTimer = setInterval(() => {
+      theta += autoDir * 2;
+      if (theta >= 180) { theta = 180; autoDir = -1; }
+      if (theta <= 0) { theta = 0; autoDir = 1; }
+      document.getElementById('theta').value = theta;
+    }, 60);
+  } else {
+    clearInterval(autoTimer);
+  }
+}
+
+// ── Event Listeners ────────────────────────────────────────────────────
+document.getElementById('theta').addEventListener('input', e => {
+  theta = parseInt(e.target.value);
+});
+
+document.getElementById('lambda').addEventListener('input', e => {
+  lambda0 = parseFloat(e.target.value);
+});
+
+window.addEventListener('resize', resize);
+
+// ── Start ──────────────────────────────────────────────────────────────
+resize();
+animate();
+</script>
+</body>
+</html>

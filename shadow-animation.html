@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Growing Shadow – Lamp Post Problem</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0b0e1a;
+    --pavement: #1a1c28;
+    --pavement2: #141620;
+    --amber: #ffb347;
+    --amber-dim: rgba(255,179,71,0.18);
+    --amber-glow: rgba(255,179,71,0.08);
+    --shadow-col: rgba(0,0,0,0.72);
+    --text: #e8dfc8;
+    --dim: #6b6580;
+    --accent: #ffb347;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--night);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    padding: 28px 16px 32px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.1rem, 3vw, 1.55rem);
+    color: var(--amber);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 22px;
+    text-align: center;
+  }
+
+  /* ── CANVAS SCENE ── */
+  .scene-wrap {
+    width: 100%;
+    max-width: 860px;
+    background: linear-gradient(180deg, #060810 0%, #0b0e1a 40%, var(--pavement) 70%, var(--pavement2) 100%);
+    border-radius: 14px;
+    border: 1px solid rgba(255,179,71,0.12);
+    overflow: hidden;
+    position: relative;
+    height: 340px;
+    margin-bottom: 22px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,0,0,0.4);
+  }
+
+  /* Stars */
+  .stars {
+    position: absolute;
+    inset: 0 0 40% 0;
+    pointer-events: none;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%,100% { opacity: 0.7; }
+    50%      { opacity: 0.2; }
+  }
+
+  /* Ground line */
+  .ground-line {
+    position: absolute;
+    bottom: 88px;
+    left: 0; right: 0;
+    height: 1px;
+    background: rgba(255,179,71,0.06);
+  }
+
+  /* Horizon glow – distant light source warmth */
+  .horizon-glow {
+    position: absolute;
+    bottom: 85px;
+    left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(180deg, transparent, rgba(255,179,71,0.03));
+    pointer-events: none;
+  }
+
+  /* Pavement texture lines */
+  .pavement-lines {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 90px;
+    overflow: hidden;
+  }
+
+  .pavement-lines::before,
+  .pavement-lines::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.04);
+  }
+  .pavement-lines::before { bottom: 60px; }
+  .pavement-lines::after  { bottom: 30px; }
+
+  /* ── LAMP POST ── */
+  .lamp-post {
+    position: absolute;
+    bottom: 88px;
+    left: 100px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .lamp-head {
+    position: relative;
+    margin-bottom: 0;
+  }
+
+  .lamp-body {
+    width: 10px;
+    height: 14px;
+    background: linear-gradient(90deg, #555, #888, #555);
+    border-radius: 2px 2px 0 0;
+  }
+
+  .lamp-shade {
+    width: 28px;
+    height: 10px;
+    background: linear-gradient(180deg, #777 0%, #444 100%);
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+    margin-left: -9px;
+  }
+
+  .lamp-bulb {
+    width: 14px;
+    height: 10px;
+    background: radial-gradient(ellipse, #fff9e0 0%, #ffcc66 60%, transparent 100%);
+    border-radius: 50%;
+    margin-left: -2px;
+    filter: drop-shadow(0 0 8px #ffb347) drop-shadow(0 0 20px rgba(255,179,71,0.6));
+  }
+
+  .lamp-pole {
+    width: 6px;
+    background: linear-gradient(90deg, #444, #777, #444);
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .lamp-base {
+    width: 18px;
+    height: 6px;
+    background: linear-gradient(90deg, #333, #666, #333);
+    border-radius: 3px 3px 0 0;
+    margin-top: -1px;
+  }
+
+  /* Cone of light */
+  .light-cone {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* ── MAN (SVG silhouette) ── */
+  .man-wrap {
+    position: absolute;
+    bottom: 88px;
+    pointer-events: none;
+  }
+
+  /* ── SHADOW ── */
+  .shadow-el {
+    position: absolute;
+    bottom: 88px;
+    pointer-events: none;
+    transform-origin: left bottom;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    width: 100%;
+    max-width: 860px;
+    margin-bottom: 18px;
+  }
+
+  .ctrl-card {
+    background: rgba(255,179,71,0.05);
+    border: 1px solid rgba(255,179,71,0.15);
+    border-radius: 8px;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 160px;
+    flex: 1;
+  }
+
+  .ctrl-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .ctrl-val {
+    font-size: 1rem;
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(255,179,71,0.2);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(255,179,71,0.6);
+    cursor: pointer;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    padding: 9px 22px;
+    border-radius: 5px;
+    border: 1px solid;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-play {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .btn-play:hover, .btn-play.active {
+    background: rgba(255,179,71,0.12);
+    box-shadow: 0 0 16px rgba(255,179,71,0.25);
+  }
+
+  .btn-reset {
+    border-color: #5a5070;
+    color: #8a80a0;
+  }
+  .btn-reset:hover {
+    background: rgba(90,80,112,0.15);
+  }
+
+  /* ── MATH PANEL ── */
+  .math-panel {
+    width: 100%;
+    max-width: 860px;
+    background: rgba(255,179,71,0.04);
+    border: 1px solid rgba(255,179,71,0.12);
+    border-radius: 10px;
+    padding: 16px 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+    margin-bottom: 16px;
+  }
+
+  .math-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .math-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .math-val {
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .math-val span { color: var(--amber); }
+
+  .formula-strip {
+    width: 100%;
+    max-width: 860px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--dim);
+    letter-spacing: 0.06em;
+    padding: 10px;
+    border: 1px solid rgba(255,179,71,0.08);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.2);
+    margin-bottom: 10px;
+  }
+
+  .formula-strip em { color: var(--amber); font-style: normal; }
+
+  /* instructor tag */
+  .instructor-tag {
+    position: absolute;
+    top: 10px; right: 14px;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    color: rgba(255,179,71,0.4);
+    text-transform: uppercase;
+    line-height: 1.6;
+    text-align: right;
+  }
+  .instructor-tag strong { color: rgba(255,179,71,0.7); display: block; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>The Growing Shadow</h1>
+<div class="subtitle">Uniform velocity · lamp post · shadow length on ground</div>
+
+<!-- SCENE -->
+<div class="scene-wrap" id="scene">
+
+  <!-- Stars -->
+  <div class="stars" id="stars"></div>
+
+  <!-- Instructor -->
+  <div class="instructor-tag">
+    Instructor<br>
+    <strong>Dr. S Karna</strong>
+  </div>
+
+  <!-- Light cone canvas -->
+  <canvas id="lightCanvas" style="position:absolute;inset:0;pointer-events:none;"></canvas>
+
+  <!-- Lamp post (fixed at left side) -->
+  <div class="lamp-post" id="lampPost">
+    <div class="lamp-head">
+      <div class="lamp-shade"></div>
+      <div class="lamp-body"></div>
+      <div class="lamp-bulb" id="bulb"></div>
+    </div>
+    <div class="lamp-pole" id="lampPole"></div>
+    <div class="lamp-base"></div>
+  </div>
+
+  <!-- Shadow (SVG stretched polygon on ground) -->
+  <svg id="shadowSvg" style="position:absolute;bottom:88px;left:0;width:100%;height:0;overflow:visible;pointer-events:none;">
+    <defs>
+      <linearGradient id="shadowGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="rgba(0,0,0,0.0)"/>
+        <stop offset="35%" stop-color="rgba(0,0,0,0.55)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0.0)"/>
+      </linearGradient>
+    </defs>
+    <ellipse id="shadowEllipse" rx="0" ry="5" fill="url(#shadowGrad)" transform="translate(0,0) rotate(-5)"/>
+  </svg>
+
+  <!-- Man SVG -->
+  <svg id="manSvg" style="position:absolute;bottom:88px;pointer-events:none;" width="28" height="70" viewBox="0 0 28 70">
+    <!-- silhouette of walking man -->
+    <g fill="#1a1c2a" stroke="none">
+      <!-- head -->
+      <circle cx="14" cy="8" r="7" fill="#2a2c3e"/>
+      <!-- torso -->
+      <rect x="9" y="15" width="10" height="22" rx="3" fill="#2a2c3e"/>
+      <!-- left arm -->
+      <line x1="9" y1="18" x2="2" y2="32" stroke="#2a2c3e" stroke-width="4" stroke-linecap="round" id="armL"/>
+      <!-- right arm -->
+      <line x1="19" y1="18" x2="26" y2="30" stroke="#2a2c3e" stroke-width="4" stroke-linecap="round" id="armR"/>
+      <!-- left leg -->
+      <line x1="11" y1="37" x2="7" y2="58" stroke="#2a2c3e" stroke-width="5" stroke-linecap="round" id="legL"/>
+      <!-- right leg -->
+      <line x1="17" y1="37" x2="21" y2="58" stroke="#2a2c3e" stroke-width="5" stroke-linecap="round" id="legR"/>
+    </g>
+  </svg>
+
+  <div class="ground-line"></div>
+  <div class="horizon-glow"></div>
+  <div class="pavement-lines"></div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="ctrl-card">
+    <div class="ctrl-label">Man's Velocity (v)</div>
+    <div class="ctrl-val" id="velVal">1.5 m/s</div>
+    <input type="range" id="velSlider" min="0.5" max="4" step="0.1" value="1.5" oninput="setVel(this.value)">
+  </div>
+  <div class="ctrl-card">
+    <div class="ctrl-label">Lamp Height (H)</div>
+    <div class="ctrl-val" id="lampHVal">5 m</div>
+    <input type="range" id="lampHSlider" min="3" max="10" step="0.5" value="5" oninput="setLampH(this.value)">
+  </div>
+  <div class="ctrl-card">
+    <div class="ctrl-label">Man's Height (h)</div>
+    <div class="ctrl-val" id="manHVal">1.8 m</div>
+    <input type="range" id="manHSlider" min="1.2" max="2.5" step="0.1" value="1.8" oninput="setManH(this.value)">
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ Start</button>
+  <button class="btn btn-reset" onclick="resetSim()">↺ Reset</button>
+</div>
+
+<!-- Math panel -->
+<div class="math-panel">
+  <div class="math-row">
+    <div class="math-label">Distance of Man (x)</div>
+    <div class="math-val" id="mX"><span>0.00</span> m</div>
+  </div>
+  <div class="math-row">
+    <div class="math-label">Shadow Length (s)</div>
+    <div class="math-val" id="mS"><span>0.00</span> m</div>
+  </div>
+  <div class="math-row">
+    <div class="math-label">Shadow tip from post</div>
+    <div class="math-val" id="mT"><span>0.00</span> m</div>
+  </div>
+  <div class="math-row">
+    <div class="math-label">Rate of shadow growth (ds/dt)</div>
+    <div class="math-val" id="mRate"><span>—</span> m/s</div>
+  </div>
+</div>
+
+<div class="formula-strip">
+  Shadow length: <em>s = x · h / (H − h)</em> &nbsp;|&nbsp;
+  ds/dt = <em>v · h / (H − h)</em> &nbsp;|&nbsp;
+  Shadow tip speed = <em>v · H / (H − h)</em>
+</div>
+
+<script>
+  // ── Physics params ──
+  let v = 1.5;    // m/s
+  let H = 5;      // lamp height (m)
+  let h = 1.8;    // man height (m)
+  let x = 0;      // man distance from lamp (m)
+  const SCALE = 28; // pixels per metre in scene
+
+  // ── Scene layout ──
+  const LAMP_POST_PX = 100; // lamp post x in scene
+  const GROUND_Y_FROM_BOTTOM = 88;
+  let scene, manSvg, shadowEllipse, lightCanvas, lampPole, bulb;
+  let running = false, rafId = null, lastTs = null;
+
+  // ── Sliders / setters ──
+  function setVel(val)   { v = parseFloat(val); document.getElementById('velVal').textContent = v.toFixed(1) + ' m/s'; }
+  function setLampH(val) { H = parseFloat(val); document.getElementById('lampHVal').textContent = H.toFixed(1) + ' m'; updateLampVisual(); render(); }
+  function setManH(val)  { h = parseFloat(val); document.getElementById('manHVal').textContent = h.toFixed(1) + ' m'; render(); }
+
+  // ── Populate stars ──
+  function makeStars() {
+    const c = document.getElementById('stars');
+    for (let i = 0; i < 55; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const sz = Math.random() * 1.8 + 0.5;
+      s.style.cssText = `
+        width:${sz}px; height:${sz}px;
+        left:${Math.random()*100}%;
+        top:${Math.random()*100}%;
+        animation-delay:${Math.random()*4}s;
+        animation-duration:${2+Math.random()*3}s;
+      `;
+      c.appendChild(s);
+    }
+  }
+
+  function updateLampVisual() {
+    const pole = document.getElementById('lampPole');
+    // H m → pixels (clamp between 60 and 160)
+    const pxH = Math.round(H * SCALE * 0.55);
+    pole.style.height = pxH + 'px';
+  }
+
+  // ── Main render (physics → visual) ──
+  function render() {
+    const sceneEl = document.getElementById('scene');
+    const sceneW = sceneEl.clientWidth;
+
+    // Physics: shadow length by similar triangles
+    // H / (x + s) = h / s  →  s = h*x / (H - h)
+    const s = (H > h) ? (h * x) / (H - h) : 0;
+    const tipDist = x + s; // distance of shadow tip from lamp
+
+    // Pixel positions (all relative to scene left)
+    const lampPx = LAMP_POST_PX;
+    const manPx  = lampPx + x * SCALE;
+    const shadowStartPx = manPx;        // shadow starts at man's feet
+    const shadowEndPx   = lampPx + tipDist * SCALE;
+
+    // Move man SVG
+    const manEl = document.getElementById('manSvg');
+    const manHpx = Math.round(h * SCALE * 0.55);
+    manEl.style.left = (manPx - 14) + 'px';
+    manEl.setAttribute('height', manHpx);
+
+    // Walking animation (leg/arm swing based on x)
+    const swing = Math.sin(x * 6) * 12;
+    document.getElementById('legL').setAttribute('x2', 7 + swing * 0.5);
+    document.getElementById('legR').setAttribute('x2', 21 - swing * 0.5);
+    document.getElementById('armL').setAttribute('x2', 2 - swing * 0.4);
+    document.getElementById('armR').setAttribute('x2', 26 + swing * 0.4);
+
+    // Shadow ellipse
+    const shadowMidPx = (shadowStartPx + shadowEndPx) / 2;
+    const shadowRx = Math.max(0, (shadowEndPx - shadowStartPx) / 2);
+    const se = document.getElementById('shadowEllipse');
+    se.setAttribute('rx', shadowRx);
+    se.setAttribute('ry', 5 + shadowRx * 0.04);
+    se.setAttribute('transform', `translate(${shadowMidPx}, 0)`);
+
+    // Light cone on canvas
+    drawLightCone(lampPx, manPx, manHpx, shadowEndPx, sceneEl);
+
+    // HUD values (convert px back to metres)
+    const dsdt = (H > h) ? (v * h) / (H - h) : 0;
+    document.getElementById('mX').innerHTML    = `<span>${x.toFixed(2)}</span> m`;
+    document.getElementById('mS').innerHTML    = `<span>${s.toFixed(2)}</span> m`;
+    document.getElementById('mT').innerHTML    = `<span>${tipDist.toFixed(2)}</span> m`;
+    document.getElementById('mRate').innerHTML = `<span>${dsdt.toFixed(3)}</span> m/s`;
+  }
+
+  function drawLightCone(lampPx, manPx, manHpx, shadowEndPx, sceneEl) {
+    const canvas = document.getElementById('lightCanvas');
+    canvas.width  = sceneEl.clientWidth;
+    canvas.height = sceneEl.clientHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const groundY = canvas.height - GROUND_Y_FROM_BOTTOM;
+    // lamp bulb position
+    const pole = document.getElementById('lampPole');
+    const poleH = parseInt(pole.style.height || '100');
+    const bulbY = canvas.height - GROUND_Y_FROM_BOTTOM - poleH - 30;
+    const bulbX = lampPx;
+
+    // Full cone from lamp to ground (wide glow)
+    const grd = ctx.createRadialGradient(bulbX, bulbY, 0, bulbX + (shadowEndPx - lampPx)*0.5, groundY, Math.abs(shadowEndPx - lampPx) + 60);
+    grd.addColorStop(0,   'rgba(255,200,80,0.22)');
+    grd.addColorStop(0.5, 'rgba(255,180,60,0.07)');
+    grd.addColorStop(1,   'rgba(255,160,40,0.00)');
+
+    ctx.beginPath();
+    ctx.moveTo(bulbX, bulbY);
+    ctx.lineTo(shadowEndPx + 10, groundY);
+    ctx.lineTo(lampPx - 20, groundY);
+    ctx.closePath();
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // Ray from lamp tip to shadow tip
+    ctx.beginPath();
+    ctx.moveTo(bulbX, bulbY);
+    ctx.lineTo(shadowEndPx, groundY);
+    ctx.strokeStyle = 'rgba(255,200,80,0.10)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Ray from lamp to man's head
+    ctx.beginPath();
+    ctx.moveTo(bulbX, bulbY);
+    ctx.lineTo(manPx, groundY - manHpx);
+    ctx.strokeStyle = 'rgba(255,200,80,0.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Lamp halo
+    const halo = ctx.createRadialGradient(bulbX, bulbY, 0, bulbX, bulbY, 60);
+    halo.addColorStop(0,   'rgba(255,220,100,0.35)');
+    halo.addColorStop(0.4, 'rgba(255,180,60,0.1)');
+    halo.addColorStop(1,   'rgba(255,160,40,0)');
+    ctx.beginPath();
+    ctx.arc(bulbX, bulbY, 60, 0, Math.PI*2);
+    ctx.fillStyle = halo;
+    ctx.fill();
+
+    // Lit ground patch
+    const groundGrd = ctx.createLinearGradient(lampPx, 0, shadowEndPx + 30, 0);
+    groundGrd.addColorStop(0,   'rgba(255,180,60,0.08)');
+    groundGrd.addColorStop(0.6, 'rgba(255,160,40,0.04)');
+    groundGrd.addColorStop(1,   'rgba(255,160,40,0)');
+    ctx.beginPath();
+    ctx.rect(lampPx - 10, groundY - 4, shadowEndPx - lampPx + 50, 10);
+    ctx.fillStyle = groundGrd;
+    ctx.fill();
+  }
+
+  // ── Animate ──
+  function tick(ts) {
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+
+    x += v * dt;
+
+    // Stop if man walks off scene
+    const sceneW = document.getElementById('scene').clientWidth;
+    const maxX = (sceneW - LAMP_POST_PX - 30) / SCALE;
+    if (x > maxX) { x = maxX; stopSim(); return; }
+
+    render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stopSim() {
+    running = false;
+    document.getElementById('playBtn').textContent = '▶ Start';
+    document.getElementById('playBtn').classList.remove('active');
+    cancelAnimationFrame(rafId);
+  }
+
+  function togglePlay() {
+    if (!running) {
+      running = true;
+      lastTs = null;
+      document.getElementById('playBtn').textContent = '⏸ Pause';
+      document.getElementById('playBtn').classList.add('active');
+      rafId = requestAnimationFrame(tick);
+    } else {
+      stopSim();
+      document.getElementById('playBtn').textContent = '▶ Resume';
+    }
+  }
+
+  function resetSim() {
+    stopSim();
+    x = 0;
+    document.getElementById('playBtn').textContent = '▶ Start';
+    render();
+  }
+
+  // ── Init ──
+  window.addEventListener('load', () => {
+    makeStars();
+    updateLampVisual();
+    render();
+  });
+
+  window.addEventListener('resize', () => render());
+</script>
+</body>
+</html>
