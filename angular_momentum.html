@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conservation of Angular Momentum</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #060a12;
+    --panel: #0c1220;
+    --border: #162035;
+    --gold: #f5c542;
+    --cyan: #00e5ff;
+    --orange: #ff6d2e;
+    --green: #39ff7a;
+    --text: #d0e4f7;
+    --muted: #4a6280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(0,229,255,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(245,197,66,0.04) 0%, transparent 50%);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(1.1rem, 3vw, 1.9rem);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 28px rgba(0,229,255,0.6);
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .instructor {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* ── LAYOUT ── */
+  .lab {
+    width: 100%;
+    max-width: 920px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ── SCENE TABS ── */
+  .tab-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .tab {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active-tab {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 14px rgba(0,229,255,0.2);
+  }
+  .tab:hover:not(.active-tab) { color: var(--text); border-color: #334; }
+
+  /* ── SCENE CARD ── */
+  .scene-card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .scene-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px 0;
+  }
+
+  .scene-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .scene-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .scene-desc {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-left: auto;
+  }
+
+  /* ── CANVAS ── */
+  canvas {
+    display: block;
+    width: 100%;
+    height: 320px;
+  }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 14px 12px;
+  }
+
+  .sbox {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  .sbox-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .sbox-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  /* ── FORMULA BAR ── */
+  .formula-bar {
+    margin: 0 14px 12px;
+    background: rgba(245,197,66,0.06);
+    border: 1px solid rgba(245,197,66,0.2);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+  }
+  .formula-bar .fg { color: var(--gold); font-weight: 600; }
+  .formula-bar .fc { color: var(--cyan); }
+  .formula-bar .fo { color: var(--orange); }
+
+  /* ── BTN ROW ── */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 14px 14px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  button {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  button:active { transform: scale(0.97) !important; }
+
+  .btn-launch {
+    background: linear-gradient(135deg, var(--cyan), #007ca8);
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 3px 14px rgba(0,229,255,0.3);
+  }
+  .btn-launch:hover { transform: translateY(-1px); box-shadow: 0 5px 22px rgba(0,229,255,0.5); }
+
+  .btn-pause {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid rgba(245,197,66,0.35);
+  }
+  .btn-pause:hover { background: rgba(245,197,66,0.08); border-color: var(--gold); }
+  .btn-pause.paused { color: var(--cyan); border-color: rgba(0,229,255,0.4); }
+
+  .btn-rst {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-rst:hover { color: var(--text); border-color: #556; }
+
+  /* ── CONTROLS ── */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .ctrl-group label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.52rem;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .ctrl-group .val {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    color: var(--cyan);
+    float: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  /* ── L BAR ── */
+  .l-bar-wrap { padding: 0 14px 12px; }
+  .l-bar-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .l-bar-track {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 12px;
+    overflow: hidden;
+  }
+  .l-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.25s;
+    background: linear-gradient(90deg, var(--gold), #e09000);
+    box-shadow: 0 0 10px rgba(245,197,66,0.4);
+  }
+
+  /* ── INFO ── */
+  .info-banner {
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+  }
+  .info-banner .hl { color: var(--cyan); font-weight: 600; }
+  .info-banner .hlg { color: var(--gold); font-weight: 600; }
+  .info-banner .hlo { color: var(--orange); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Angular Momentum</h1>
+  <p class="subtitle">Conservation Law · Interactive Simulation</p>
+  <p class="instructor">Instructor: Dr. S Karna</p>
+</div>
+
+<div class="lab">
+
+  <!-- TABS -->
+  <div class="tab-row">
+    <button class="tab active-tab" data-scene="skater" id="tab-skater">🩰 Spinning Skater</button>
+    <button class="tab" data-scene="orbit"  id="tab-orbit" >🪐 Orbital Mechanics</button>
+    <button class="tab" data-scene="disk"   id="tab-disk"  >💿 Rotating Disk</button>
+  </div>
+
+  <!-- SCENE CARD -->
+  <div class="scene-card" id="sceneCard">
+    <div class="scene-header">
+      <span class="scene-dot" id="sceneDot" style="background:#00e5ff;box-shadow:0 0 8px #00e5ff"></span>
+      <span class="scene-name" id="sceneName" style="color:#00e5ff">Spinning Skater</span>
+      <span class="scene-desc" id="sceneDesc">Arms in → faster spin · Arms out → slower spin</span>
+    </div>
+
+    <canvas id="mainCanvas"></canvas>
+
+    <!-- L conservation bar -->
+    <div class="l-bar-wrap">
+      <div class="l-bar-label">Angular Momentum L (conserved)</div>
+      <div class="l-bar-track"><div class="l-bar-fill" id="lBar" style="width:70%"></div></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="sbox"><div class="sbox-label">Moment of Inertia I</div><div class="sbox-val" id="statI" style="color:var(--orange)">—</div></div>
+      <div class="sbox"><div class="sbox-label">Angular Velocity ω</div><div class="sbox-val" id="statW" style="color:var(--cyan)">—</div></div>
+      <div class="sbox"><div class="sbox-label">Ang. Momentum L</div><div class="sbox-val" id="statL" style="color:var(--gold)">—</div></div>
+      <div class="sbox"><div class="sbox-label">Kinetic Energy</div><div class="sbox-val" id="statKE" style="color:var(--green)">—</div></div>
+    </div>
+
+    <!-- Formula -->
+    <div class="formula-bar" id="formulaBar">
+      <span class="fg">L = I · ω</span> &nbsp;·&nbsp;
+      <span class="fc">I = Σ mᵢrᵢ²</span> &nbsp;·&nbsp;
+      When I ↓ → <span class="fo">ω ↑</span> (L stays constant)
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-rst"   id="btnRst">↺ Reset</button>
+      <button class="btn-pause" id="btnPause" disabled>⏸ Pause</button>
+      <button class="btn-launch" id="btnLaunch">▶ Start</button>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="ctrlPanel">
+    <div class="ctrl-group" id="ctrl1">
+      <label>Arm Radius <span class="val" id="lbl1">0.8 m</span></label>
+      <input type="range" id="slider1" min="0.2" max="1.5" step="0.05" value="0.8">
+    </div>
+    <div class="ctrl-group" id="ctrl2">
+      <label>Body Mass <span class="val" id="lbl2">60 kg</span></label>
+      <input type="range" id="slider2" min="40" max="100" step="5" value="60">
+    </div>
+    <div class="ctrl-group" id="ctrl3">
+      <label>Initial ω <span class="val" id="lbl3">2 rad/s</span></label>
+      <input type="range" id="slider3" min="0.5" max="5" step="0.25" value="2">
+    </div>
+  </div>
+
+  <div class="info-banner" id="infoBanner">
+    <span class="hl">L = I·ω = constant</span> — In the absence of external torque, angular momentum is conserved.
+    The <span class="hlg">moment of inertia I</span> depends on mass distribution. Pull arms in → I decreases → <span class="hlo">ω increases</span> proportionally.
+    This is why a spinning skater speeds up when pulling arms inward.
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const DPR = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  canvas.width  = canvas.offsetWidth  * DPR;
+  canvas.height = canvas.offsetHeight * DPR;
+}
+window.addEventListener('resize', () => { resizeCanvas(); if (!sim.running) drawStatic(); });
+resizeCanvas();
+
+// ═══════════════════════════════════════════════════════════
+//  SIM STATE
+// ═══════════════════════════════════════════════════════════
+const sim = { running: false, paused: false, animId: null, t: 0 };
+let currentScene = 'skater';
+
+// ═══════════════════════════════════════════════════════════
+//  SCENE CONFIGS
+// ═══════════════════════════════════════════════════════════
+const scenes = {
+  skater: {
+    dot: '#00e5ff', name: 'Spinning Skater', desc: 'Arms in → faster spin · Arms out → slower spin',
+    formula: '<span class="fg">L = I·ω</span> &nbsp;·&nbsp; <span class="fc">I = m·r²</span> &nbsp;·&nbsp; Arms in: I↓ → <span class="fo">ω↑</span>',
+    info: '<span class="hl">Ice Skater Effect</span> — When the skater pulls arms in, the moment of inertia <span class="hlg">I decreases</span>. Since L = I·ω is conserved, <span class="hlo">ω must increase</span>. Adjust arm radius to see the effect live.',
+    ctrl1: { label:'Arm Radius', min:0.2, max:1.5, step:0.05, val:0.8, unit:'m' },
+    ctrl2: { label:'Body Mass',  min:40,  max:100, step:5,    val:60,  unit:'kg' },
+    ctrl3: { label:'Initial ω',  min:0.5, max:5,   step:0.25, val:2,   unit:'rad/s' },
+  },
+  orbit: {
+    dot: '#f5c542', name: 'Orbital Mechanics', desc: 'Closer to center → faster orbit (Kepler\'s 2nd Law)',
+    formula: '<span class="fg">L = m·v·r = m·r²·ω</span> &nbsp;·&nbsp; <span class="fc">r↓ → v↑</span> (Kepler\'s 2nd Law)',
+    info: '<span class="hl">Kepler\'s 2nd Law</span> — A planet sweeps equal areas in equal times. When it moves closer to the star, <span class="hlg">r decreases</span>, so <span class="hlo">v must increase</span> to keep L = m·v·r constant. Adjust eccentricity to exaggerate.',
+    ctrl1: { label:'Eccentricity', min:0.1, max:0.85, step:0.05, val:0.5,  unit:'' },
+    ctrl2: { label:'Planet Mass',  min:1,   max:10,   step:0.5,  val:3,    unit:'kg' },
+    ctrl3: { label:'Orbit Scale',  min:0.5, max:1.5,  step:0.1,  val:1,    unit:'×' },
+  },
+  disk: {
+    dot: '#39ff7a', name: 'Rotating Disk + Weight', desc: 'Drop weight on disk → ω changes to conserve L',
+    formula: '<span class="fg">L_total = (I_disk + I_weight)·ω</span> &nbsp;·&nbsp; <span class="fc">Adding I → <span class="fo">ω↓</span></span>',
+    info: '<span class="hl">Disk + Dropped Weight</span> — A weight dropped onto a spinning disk increases the total <span class="hlg">moment of inertia I</span>. Since L = I·ω is conserved, <span class="hlo">ω decreases</span> instantly. Adjust the weight radius and mass to explore.',
+    ctrl1: { label:'Weight Radius', min:0.1, max:1.2, step:0.05, val:0.6, unit:'m' },
+    ctrl2: { label:'Weight Mass',   min:1,   max:20,  step:1,    val:5,   unit:'kg' },
+    ctrl3: { label:'Disk ω',        min:1,   max:8,   step:0.5,  val:3,   unit:'rad/s' },
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+//  COLOUR / DRAW UTILITIES
+// ═══════════════════════════════════════════════════════════
+function hex2rgb(hex, a=1) {
+  const n = parseInt(hex.replace('#',''), 16);
+  return `rgba(${n>>16},${(n>>8)&0xff},${n&0xff},${a})`;
+}
+
+function glow(col, blur=20) { ctx.shadowColor = col; ctx.shadowBlur = blur; }
+function noGlow() { ctx.shadowBlur = 0; }
+
+function drawGrid(W, H) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const step = 40 * DPR;
+  for (let x=0; x<W; x+=step) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=step) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawCircle(x, y, r, fill, stroke=null, lw=2) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawLine(x1,y1,x2,y2,col,lw=2) {
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+
+function label(x,y,txt,col,size=11) {
+  ctx.save();
+  ctx.font = `${size*DPR}px 'Orbitron', monospace`;
+  ctx.fillStyle = col; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, x, y);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PARAM HELPERS
+// ═══════════════════════════════════════════════════════════
+const g  = id => document.getElementById(id);
+const s1 = () => parseFloat(g('slider1').value);
+const s2 = () => parseFloat(g('slider2').value);
+const s3 = () => parseFloat(g('slider3').value);
+
+// ═══════════════════════════════════════════════════════════
+//  SCENE: SKATER
+// ═══════════════════════════════════════════════════════════
+function drawSkater(t) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const armR   = s1();           // user arm radius (m)
+  const mass   = s2();           // kg
+  const omega0 = s3();           // initial rad/s
+  const bodyR  = 20*DPR;
+  const scale  = 90*DPR;        // m → px
+
+  // Body inertia ~ cylinder: I_body = 0.5*M*R_body²
+  const R_body = 0.15; // body radius in meters
+  const I_body = 0.5 * mass * R_body * R_body;
+  // Arms: 2 point masses
+  const armMass = mass * 0.1;
+  const I_arms = 2 * armMass * armR * armR;
+  const I = I_body + I_arms;
+
+  // L conserved from initial config
+  const armR0 = 0.8;
+  const I0 = 0.5*mass*R_body*R_body + 2*armMass*armR0*armR0;
+  const L = I0 * omega0;
+  const omega = L / I;
+  const KE = 0.5 * I * omega * omega;
+
+  const angle = omega * t;
+
+  ctx.clearRect(0,0,W,H);
+  drawGrid(W,H);
+
+  // Ground reference ring (faint)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,229,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.arc(cx,cy,armR*scale,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // Rotation arrow arc
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,229,255,0.25)';
+  ctx.lineWidth = 2*DPR;
+  ctx.beginPath();
+  ctx.arc(cx, cy, bodyR+10*DPR, angle, angle + Math.PI*1.5);
+  ctx.stroke();
+  // Arrowhead
+  const aTip = angle + Math.PI*1.5;
+  const ax = cx + (bodyR+10*DPR)*Math.cos(aTip);
+  const ay = cy + (bodyR+10*DPR)*Math.sin(aTip);
+  ctx.beginPath(); ctx.moveTo(ax,ay);
+  ctx.lineTo(ax-8*DPR*Math.cos(aTip-0.4), ay-8*DPR*Math.sin(aTip-0.4));
+  ctx.lineTo(ax-8*DPR*Math.cos(aTip+0.4), ay-8*DPR*Math.sin(aTip+0.4));
+  ctx.closePath(); ctx.fillStyle='rgba(0,229,255,0.5)'; ctx.fill();
+  ctx.restore();
+
+  // Arms
+  const arm1x = cx + armR*scale*Math.cos(angle);
+  const arm1y = cy + armR*scale*Math.sin(angle);
+  const arm2x = cx + armR*scale*Math.cos(angle+Math.PI);
+  const arm2y = cy + armR*scale*Math.sin(angle+Math.PI);
+
+  ctx.save();
+  glow('#ff6d2e', 12);
+  ctx.strokeStyle = '#ff6d2e'; ctx.lineWidth = 3*DPR;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(arm1x,arm1y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(arm2x,arm2y); ctx.stroke();
+  noGlow();
+  ctx.restore();
+
+  // Arm weights (hands)
+  [arm1x,arm2x].forEach((ax,i)=>{
+    const ay = i===0?arm1y:arm2y;
+    ctx.save(); glow('#ff6d2e',18);
+    drawCircle(ax,ay,9*DPR,'#ff6d2e','#ffaa70',2);
+    noGlow(); ctx.restore();
+  });
+
+  // Body (skater torso)
+  ctx.save(); glow('#00e5ff',22);
+  drawCircle(cx,cy,bodyR,'#0a2030','#00e5ff',2.5);
+  noGlow(); ctx.restore();
+  label(cx,cy,'★','#00e5ff',10);
+
+  // ω label
+  ctx.save();
+  ctx.font = `bold ${13*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle = omega > omega0*1.05 ? '#39ff7a' : omega < omega0*0.95 ? '#ff6d2e' : '#00e5ff';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`ω = ${omega.toFixed(2)} rad/s`, 14*DPR, 14*DPR);
+  ctx.font = `${10*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='rgba(245,197,66,0.8)';
+  ctx.fillText(`L = ${L.toFixed(2)} kg·m²/s`, 14*DPR, 34*DPR);
+  ctx.restore();
+
+  // R label
+  ctx.save();
+  ctx.font=`${9*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='rgba(255,109,46,0.7)';
+  ctx.textAlign='center';
+  ctx.fillText(`r = ${armR.toFixed(2)} m`, cx+(arm1x-cx)*0.5+14*DPR, cy+(arm1y-cy)*0.5-10*DPR);
+  ctx.restore();
+
+  updateStats(I, omega, L, KE);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENE: ORBIT
+// ═══════════════════════════════════════════════════════════
+let orbitAngle = 0;
+let orbitTrail = [];
+
+function drawOrbit(t, dt) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const ecc   = s1();           // eccentricity
+  const pMass = s2();           // planet mass
+  const scale = s3();
+  const a = 130*DPR*scale;     // semi-major axis px
+  const b = a*Math.sqrt(1-ecc*ecc); // semi-minor
+
+  // Ellipse parametric: position on ellipse by angle
+  // Focus at: f = a*ecc from center
+  const foc = a*ecc;
+
+  // Kepler: dθ/dt proportional to 1/r² (swept area)
+  // r in polar: r = a(1-e²)/(1+e·cos(θ))
+  const theta = orbitAngle;
+  const denom = 1 + ecc*Math.cos(theta);
+  const r = a*(1-ecc*ecc)/denom;
+  const px = cx - foc + r*Math.cos(theta);
+  const py = cy + r*Math.sin(theta);
+
+  // Angular momentum per unit mass h = sqrt(GM·a·(1-e²)) ~ const
+  // Angular velocity: ω = h/r²
+  const h = Math.sqrt(a*(1-ecc*ecc)); // simplified unit
+  const omega = h/(r*r) * 800;
+  if(sim.running && !sim.paused) {
+    orbitAngle += omega * (dt||0.016);
+    orbitTrail.push({x:px,y:py, age:0});
+    if(orbitTrail.length>180) orbitTrail.shift();
+    orbitTrail.forEach(p=>p.age++);
+  }
+
+  const I = pMass * r * r / (a*a); // normalized
+  const L = pMass * r * omega; // proportional
+  const v = r * omega;
+  const KE = 0.5 * pMass * v * v;
+
+  ctx.clearRect(0,0,W,H);
+  drawGrid(W,H);
+
+  // Orbit path (ellipse)
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+  ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.ellipse(cx-foc, cy, a, b, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // Area sweep shading (last ~30 frames)
+  if(orbitTrail.length>2){
+    ctx.save(); ctx.globalAlpha=0.07;
+    ctx.fillStyle='#f5c542';
+    ctx.beginPath(); ctx.moveTo(cx-foc,cy);
+    const recent=orbitTrail.slice(-30);
+    recent.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // Trail
+  orbitTrail.forEach((p,i)=>{
+    const a2 = (i/orbitTrail.length)*0.5;
+    ctx.save(); ctx.globalAlpha=a2;
+    ctx.fillStyle='#f5c542';
+    ctx.beginPath(); ctx.arc(p.x,p.y,2*DPR,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Radius line (planet to star)
+  ctx.save(); glow('#f5c542',10);
+  ctx.strokeStyle='rgba(245,197,66,0.4)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx-foc,cy); ctx.lineTo(px,py); ctx.stroke();
+  noGlow(); ctx.restore();
+
+  // Star
+  ctx.save(); glow('#ffdd44',30);
+  drawCircle(cx-foc, cy, 18*DPR, '#fff5c0','#f5c542',2);
+  label(cx-foc, cy, '★','#f5c542',11);
+  noGlow(); ctx.restore();
+
+  // Planet
+  ctx.save(); glow('#00e5ff',20);
+  drawCircle(px, py, Math.max(6,pMass)*DPR, '#0a2535','#00e5ff',2);
+  noGlow(); ctx.restore();
+
+  // velocity arrow — true tangent of the elliptical orbit at planet position
+  // r(θ) = a(1-e²)/(1+e·cosθ), so dr/dθ = r·e·sinθ / (1+e·cosθ)
+  const drdt = r * ecc * Math.sin(theta) / denom;
+  // dx/dθ = drdt·cosθ - r·sinθ,  dy/dθ = drdt·sinθ + r·cosθ
+  const tangX = drdt * Math.cos(theta) - r * Math.sin(theta);
+  const tangY = drdt * Math.sin(theta) + r * Math.cos(theta);
+  const tangLen = Math.sqrt(tangX*tangX + tangY*tangY) || 1;
+  const dxDir = tangX / tangLen;
+  const dyDir = tangY / tangLen;
+  const vLen = Math.min(omega*1200, 55)*DPR;
+  ctx.save(); glow('#39ff7a',10);
+  ctx.strokeStyle='#39ff7a'; ctx.lineWidth=2*DPR;
+  ctx.beginPath(); ctx.moveTo(px,py);
+  ctx.lineTo(px+dxDir*vLen, py+dyDir*vLen); ctx.stroke();
+  // arrowhead
+  const endX=px+dxDir*vLen, endY=py+dyDir*vLen;
+  ctx.beginPath(); ctx.moveTo(endX,endY);
+  ctx.lineTo(endX-dxDir*8*DPR-dyDir*5*DPR, endY-dyDir*8*DPR+dxDir*5*DPR);
+  ctx.lineTo(endX-dxDir*8*DPR+dyDir*5*DPR, endY-dyDir*8*DPR-dxDir*5*DPR);
+  ctx.closePath(); ctx.fillStyle='#39ff7a'; ctx.fill();
+  noGlow(); ctx.restore();
+
+  // v label
+  label(px+dxDir*vLen*0.5+15*DPR, py+dyDir*vLen*0.5, 'v','#39ff7a',9);
+
+  // r label near center
+  label((cx-foc+px)/2, (cy+py)/2-12*DPR, `r = ${(r/(a*0.01)).toFixed(0)} AU`,'rgba(245,197,66,0.7)',8);
+
+  // Stats
+  ctx.save();
+  ctx.font=`bold ${12*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='#00e5ff'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`ω = ${(omega*10).toFixed(2)} °/s`, 14*DPR, 14*DPR);
+  ctx.font=`${10*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='rgba(245,197,66,0.8)';
+  ctx.fillText(`L = ${(L*50).toFixed(2)} kg·m²/s`, 14*DPR, 34*DPR);
+  ctx.restore();
+
+  updateStats(I.toFixed(2), (omega*10).toFixed(2), (L*50).toFixed(2), (KE*0.01).toFixed(2));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENE: DISK
+// ═══════════════════════════════════════════════════════════
+let diskAngle = 0;
+let weightDropped = false;
+let dropProgress = 0; // 0→1 animation
+let dropY0 = 0;
+
+function drawDisk(t, dt) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2+10*DPR;
+  const wR     = s1();          // weight radius (m)
+  const wMass  = s2();          // weight mass (kg)
+  const omega0 = s3();          // initial ω
+  const diskR  = 100*DPR;
+  const diskM  = 20;            // disk mass (kg)
+  const I_disk = 0.5*diskM*(diskR/(DPR*100))*(diskR/(DPR*100));
+  const I_w    = wMass*wR*wR;
+  const L = I_disk * omega0;    // conserved L
+  const I_total = I_disk + (weightDropped? I_w : 0);
+  const omega = L / I_total;
+  const KE = 0.5 * I_total * omega * omega;
+
+  if(sim.running && !sim.paused) {
+    diskAngle += omega * (dt||0.016);
+    if(weightDropped && dropProgress<1) dropProgress = Math.min(1, dropProgress+0.02);
+  }
+
+  ctx.clearRect(0,0,W,H);
+  drawGrid(W,H);
+
+  // Disk shadow
+  ctx.save(); ctx.globalAlpha=0.15;
+  drawCircle(cx+6*DPR, cy+6*DPR, diskR, '#000');
+  ctx.restore();
+
+  // Disk body
+  ctx.save(); glow('#39ff7a',20);
+  const dGrad = ctx.createRadialGradient(cx-10*DPR,cy-10*DPR,5,cx,cy,diskR);
+  dGrad.addColorStop(0,'#1a3a25'); dGrad.addColorStop(1,'#0a1a10');
+  ctx.beginPath(); ctx.arc(cx,cy,diskR,0,Math.PI*2);
+  ctx.fillStyle=dGrad; ctx.fill();
+  ctx.strokeStyle='#39ff7a'; ctx.lineWidth=2.5; ctx.stroke();
+  noGlow(); ctx.restore();
+
+  // Disk spokes
+  for(let i=0;i<6;i++){
+    const a = diskAngle + i*Math.PI/3;
+    ctx.save(); glow('#39ff7a',6);
+    ctx.strokeStyle='rgba(57,255,122,0.35)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+diskR*Math.cos(a), cy+diskR*Math.sin(a)); ctx.stroke();
+    noGlow(); ctx.restore();
+  }
+
+  // Center hub
+  ctx.save(); glow('#39ff7a',25);
+  drawCircle(cx,cy,14*DPR,'#0a1a10','#39ff7a',2);
+  noGlow(); ctx.restore();
+
+  // Weight position on disk
+  const wPx = cx + (wR*diskR/1.2)*Math.cos(diskAngle+0.5);
+  const wPy = cy + (wR*diskR/1.2)*Math.sin(diskAngle+0.5);
+
+  if(!weightDropped) {
+    // Weight hovering above
+    const hoverY = cy - diskR - 60*DPR;
+    ctx.save(); glow('#ff6d2e',18);
+    drawCircle(wPx, hoverY, 12*DPR, '#3a1200','#ff6d2e',2);
+    label(wPx, hoverY, 'w','#ff6d2e',8);
+    noGlow();
+    // dashed drop line
+    ctx.strokeStyle='rgba(255,109,46,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(wPx,hoverY+12*DPR); ctx.lineTo(wPx,wPy-12*DPR); ctx.stroke();
+    ctx.restore();
+    label(wPx-30*DPR, hoverY-20*DPR,'Drop weight →','rgba(255,109,46,0.6)',7);
+  } else {
+    const curY = cy - diskR - 60*DPR + dropProgress*(wPy - (cy - diskR - 60*DPR));
+    ctx.save(); glow('#ff6d2e',18);
+    drawCircle(wPx, curY, 12*DPR, '#3a1200','#ff6d2e',2);
+    label(wPx, curY, 'w','#ff6d2e',8);
+    noGlow(); ctx.restore();
+  }
+
+  // ω arrow
+  ctx.save(); glow('#00e5ff',14);
+  ctx.strokeStyle='rgba(0,229,255,0.5)'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(cx,cy,diskR+16*DPR, diskAngle, diskAngle+Math.PI*1.4);
+  ctx.stroke();
+  const aTip = diskAngle+Math.PI*1.4;
+  const aax=cx+(diskR+16*DPR)*Math.cos(aTip), aay=cy+(diskR+16*DPR)*Math.sin(aTip);
+  ctx.beginPath(); ctx.moveTo(aax,aay);
+  ctx.lineTo(aax-10*DPR*Math.cos(aTip-0.5), aay-10*DPR*Math.sin(aTip-0.5));
+  ctx.lineTo(aax-10*DPR*Math.cos(aTip+0.5), aay-10*DPR*Math.sin(aTip+0.5));
+  ctx.closePath(); ctx.fillStyle='rgba(0,229,255,0.6)'; ctx.fill();
+  noGlow(); ctx.restore();
+
+  // Labels
+  ctx.save();
+  ctx.font=`bold ${12*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='#00e5ff'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`ω = ${omega.toFixed(2)} rad/s`, 14*DPR, 14*DPR);
+  ctx.font=`${10*DPR}px 'Orbitron',monospace`;
+  ctx.fillStyle='rgba(245,197,66,0.8)';
+  ctx.fillText(`L = ${L.toFixed(2)} kg·m²/s`, 14*DPR, 34*DPR);
+  if(weightDropped){
+    ctx.fillStyle='rgba(255,109,46,0.8)';
+    ctx.fillText(`ω reduced: ${((omega/omega0)*100).toFixed(0)}% of initial`, 14*DPR, 54*DPR);
+  }
+  ctx.restore();
+
+  label(cx, cy+diskR+28*DPR, 'Click canvas to drop weight', 'rgba(255,109,46,0.5)', 7);
+  updateStats(I_total.toFixed(2), omega.toFixed(2), L.toFixed(2), KE.toFixed(2));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATS UPDATE
+// ═══════════════════════════════════════════════════════════
+function updateStats(I, w, L, KE) {
+  g('statI').textContent  = I + ' kg·m²';
+  g('statW').textContent  = w + ' rad/s';
+  g('statL').textContent  = L + ' kg·m²/s';
+  g('statKE').textContent = KE + ' J';
+  // L bar — always full (it's conserved!)
+  g('lBar').style.width = '100%';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATIC PREVIEW
+// ═══════════════════════════════════════════════════════════
+function drawStatic() {
+  if(currentScene==='skater') drawSkater(0);
+  else if(currentScene==='orbit') { orbitAngle=0.3; drawOrbit(0,0); }
+  else drawDisk(0,0);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════
+let lastT = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastT)/1000, 0.05);
+  lastT = ts;
+  if(!sim.paused) sim.t += dt;
+
+  if(currentScene==='skater') drawSkater(sim.t);
+  else if(currentScene==='orbit') drawOrbit(sim.t, dt);
+  else drawDisk(sim.t, dt);
+
+  sim.animId = requestAnimationFrame(loop);
+}
+
+function stopSim() {
+  if(sim.animId){ cancelAnimationFrame(sim.animId); sim.animId=null; }
+  sim.running=false; sim.paused=false;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENE SWITCHER
+// ═══════════════════════════════════════════════════════════
+function switchScene(name) {
+  stopSim();
+  currentScene = name;
+  orbitAngle = 0.3; orbitTrail = [];
+  weightDropped = false; dropProgress = 0; diskAngle = 0;
+  sim.t = 0;
+
+  const sc = scenes[name];
+  g('sceneDot').style.background = sc.dot;
+  g('sceneDot').style.boxShadow  = `0 0 8px ${sc.dot}`;
+  g('sceneName').style.color = sc.dot;
+  g('sceneName').textContent = sc.name;
+  g('sceneDesc').textContent = sc.desc;
+  g('formulaBar').innerHTML   = sc.formula;
+  g('infoBanner').innerHTML   = sc.info;
+
+  // Update controls
+  ['ctrl1','ctrl2','ctrl3'].forEach((id,i)=>{
+    const ci = sc[`ctrl${i+1}`];
+    const lbl = g(`lbl${i+1}`);
+    const sl  = g(`slider${i+1}`);
+    g(id).querySelector('label').childNodes[0].textContent = ci.label + ' ';
+    sl.min=ci.min; sl.max=ci.max; sl.step=ci.step; sl.value=ci.val;
+    lbl.textContent = ci.val + ' ' + ci.unit;
+  });
+
+  // Tab highlight
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active-tab'));
+  g(`tab-${name}`).classList.add('active-tab');
+
+  g('btnPause').disabled=true; g('btnPause').textContent='⏸ Pause'; g('btnPause').classList.remove('paused');
+  ['statI','statW','statL','statKE'].forEach(id=>g(id).textContent='—');
+  g('lBar').style.width='0%';
+  drawStatic();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=> switchScene(tab.dataset.scene));
+});
+
+g('btnLaunch').addEventListener('click',()=>{
+  stopSim();
+  sim.running=true; sim.paused=false; sim.t=0;
+  orbitAngle=0.3; orbitTrail=[];
+  weightDropped=false; dropProgress=0; diskAngle=0;
+  g('btnPause').disabled=false;
+  g('btnPause').textContent='⏸ Pause';
+  g('btnPause').classList.remove('paused');
+  lastT=0;
+  sim.animId = requestAnimationFrame(ts=>{lastT=ts; loop(ts);});
+});
+
+g('btnPause').addEventListener('click',()=>{
+  if(!sim.running) return;
+  sim.paused=!sim.paused;
+  g('btnPause').textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
+  g('btnPause').classList.toggle('paused', sim.paused);
+});
+
+g('btnRst').addEventListener('click',()=>{
+  stopSim();
+  orbitAngle=0.3; orbitTrail=[];
+  weightDropped=false; dropProgress=0; diskAngle=0; sim.t=0;
+  g('btnPause').disabled=true; g('btnPause').textContent='⏸ Pause'; g('btnPause').classList.remove('paused');
+  ['statI','statW','statL','statKE'].forEach(id=>g(id).textContent='—');
+  g('lBar').style.width='0%';
+  drawStatic();
+});
+
+// Slider updates
+['1','2','3'].forEach(n=>{
+  g(`slider${n}`).addEventListener('input',()=>{
+    const sc=scenes[currentScene];
+    const ci=sc[`ctrl${n}`];
+    g(`lbl${n}`).textContent = parseFloat(g(`slider${n}`).value) + ' ' + ci.unit;
+    if(!sim.running) drawStatic();
+  });
+});
+
+// Canvas click → drop weight (disk scene)
+canvas.addEventListener('click',()=>{
+  if(currentScene==='disk' && sim.running && !sim.paused) {
+    weightDropped=true; dropProgress=0;
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════
+drawStatic();
+</script>
+</body>
+</html>

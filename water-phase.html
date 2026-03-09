@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Phase Change</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0e1117;
+  --surface: #161b27;
+  --border: #252d3f;
+  --ice: #b8e0f7;
+  --ice-dark: #7ec8e3;
+  --water: #3a9bdc;
+  --water-dark: #1a6fa8;
+  --steam: rgba(210, 235, 255, 0.55);
+  --flame-hot: #ff9500;
+  --flame-core: #fff176;
+  --text: #e0eaf8;
+  --muted: #5a7a9a;
+  --accent: #4fc3f7;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Sora', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* ── STARFIELD BG ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.15) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 15%, rgba(255,255,255,0.12) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 75%, rgba(255,255,255,0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 40%, rgba(255,255,255,0.08) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* ── TITLE ── */
+.title {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(13px, 2.5vw, 18px);
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 24px rgba(79,195,247,0.45);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* ── MAIN CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 30px 24px;
+  width: 100%;
+  max-width: 720px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 20px;
+  align-items: end;
+}
+
+/* ── SCENE ── */
+.scene-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.phase-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid;
+  display: inline-block;
+  align-self: flex-start;
+  transition: all 0.5s ease;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  background: linear-gradient(180deg, #0a0f1c 0%, #111827 100%);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* ── BEAKER ── */
+.beaker {
+  position: absolute;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  height: 150px;
+}
+
+.beaker-body {
+  position: absolute;
+  bottom: 0; left: 10px; right: 10px;
+  height: 140px;
+  border: 2.5px solid rgba(160,210,255,0.35);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  background: rgba(20, 40, 70, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.beaker-top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 20px;
+  border: 2.5px solid rgba(160,210,255,0.35);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.beaker-shine {
+  position: absolute;
+  left: 16px; top: 10px;
+  width: 6px; height: 100px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent);
+  border-radius: 3px;
+}
+
+/* ── WATER FILL ── */
+.water-fill {
+  position: absolute;
+  bottom: 2px; left: 2px; right: 2px;
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+  transition: height 1.4s cubic-bezier(0.4,0,0.2,1), opacity 0.8s;
+}
+
+.water-body {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(58,155,220,0.7), rgba(20,90,160,0.9));
+}
+
+/* Animated wave surface */
+.wave-wrap {
+  position: absolute;
+  top: -12px; left: -20px; right: -20px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.wave {
+  width: 200%;
+  height: 20px;
+  fill: rgba(58,155,220,0.75);
+  animation: waveMove 2s linear infinite;
+}
+
+.wave2 {
+  position: absolute;
+  top: 3px; left: -20px;
+  width: 200%;
+  height: 16px;
+  fill: rgba(100,185,240,0.35);
+  animation: waveMove 1.4s linear infinite reverse;
+}
+
+@keyframes waveMove {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ── BUBBLES ── */
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.6), rgba(120,200,255,0.15));
+  border: 1px solid rgba(255,255,255,0.3);
+  animation: bubbleUp var(--bd, 2.2s) ease-in infinite;
+  animation-delay: var(--bdelay, 0s);
+  opacity: 0;
+}
+
+@keyframes bubbleUp {
+  0%   { transform: translateY(0) scale(1); opacity: 0.9; }
+  80%  { opacity: 0.5; }
+  100% { transform: translateY(-160px) scale(1.4); opacity: 0; }
+}
+
+/* ── ICE CUBES ── */
+.ice-group {
+  position: absolute;
+  bottom: 6px;
+  left: 50%; transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  transition: opacity 0.7s, transform 0.9s;
+}
+
+.cube {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, rgba(210,240,255,0.92) 0%, rgba(140,210,250,0.75) 50%, rgba(90,180,240,0.6) 100%);
+  border: 2px solid rgba(220,245,255,0.85);
+  border-radius: 7px;
+  position: relative;
+  box-shadow:
+    inset 3px 3px 8px rgba(255,255,255,0.55),
+    inset -2px -2px 6px rgba(80,160,220,0.3),
+    0 4px 14px rgba(0,80,180,0.25);
+  transition: all 0.6s ease;
+}
+
+.cube::before {
+  content: '';
+  position: absolute;
+  top: 7px; left: 7px;
+  width: 12px; height: 7px;
+  background: rgba(255,255,255,0.65);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+}
+
+/* ── STEAM PUFFS ── */
+.steam-wrap {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.puff {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(210,232,255,0.38) 0%, rgba(200,225,255,0.1) 60%, transparent 100%);
+  animation: puffRise var(--pd, 3s) ease-out infinite;
+  animation-delay: var(--pdelay, 0s);
+  opacity: 0;
+  bottom: 0;
+}
+
+@keyframes puffRise {
+  0%   { transform: translateY(0) scaleX(1);    opacity: 0; }
+  12%  { opacity: 0.75; }
+  70%  { opacity: 0.4; }
+  100% { transform: translateY(-220px) scaleX(2.2); opacity: 0; }
+}
+
+/* ── FLAME ── */
+.burner {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.burner-ring {
+  width: 80px; height: 10px;
+  background: #1a2a3a;
+  border: 2px solid #2a3a4a;
+  border-radius: 4px;
+}
+
+.flame-group {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 3px;
+  height: 50px;
+  opacity: 0;
+  transition: opacity 0.7s;
+  position: relative;
+}
+
+.flame {
+  border-radius: 50% 50% 35% 35%;
+  animation: flicker var(--fspeed, 0.35s) ease-in-out infinite alternate;
+  transform-origin: bottom center;
+  position: relative;
+}
+
+.flame-outer {
+  width: 26px; height: 44px;
+  background: linear-gradient(180deg, #ff9500 0%, #ff6a00 40%, #ff3d00 80%, #bf360c 100%);
+  filter: blur(1.5px);
+  --fspeed: 0.3s;
+}
+
+.flame-mid {
+  width: 18px; height: 34px;
+  background: linear-gradient(180deg, #ffcc00 0%, #ff9500 50%, #ff6a00 100%);
+  filter: blur(1px);
+  margin-bottom: 2px;
+  --fspeed: 0.25s;
+}
+
+.flame-inner2 {
+  width: 10px; height: 22px;
+  background: linear-gradient(180deg, #fffde7 0%, #fff176 50%, #ffcc00 100%);
+  filter: blur(0.5px);
+  margin-bottom: 4px;
+  --fspeed: 0.2s;
+}
+
+@keyframes flicker {
+  from { transform: scaleX(1)   scaleY(1)    rotate(-2deg); }
+  to   { transform: scaleX(0.9) scaleY(1.06) rotate(2deg);  }
+}
+
+.flame-glow {
+  position: absolute;
+  bottom: -4px; left: 50%;
+  transform: translateX(-50%);
+  width: 70px; height: 20px;
+  background: radial-gradient(ellipse, rgba(255,140,0,0.45), transparent 70%);
+  filter: blur(6px);
+  animation: glowPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+  from { opacity: 0.7; transform: translateX(-50%) scaleX(1); }
+  to   { opacity: 1;   transform: translateX(-50%) scaleX(1.15); }
+}
+
+/* ── THERMOMETER ── */
+.thermo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.thermo-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.thermo {
+  position: relative;
+  width: 26px;
+  height: 210px;
+}
+
+.thermo-glass {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  top: 0;
+  width: 16px;
+  height: 180px;
+  border: 2px solid rgba(180,210,240,0.4);
+  border-radius: 8px 8px 0 0;
+  background: rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+.thermo-mercury {
+  position: absolute;
+  bottom: 0; left: 1px; right: 1px;
+  transition: height 0.9s cubic-bezier(0.4,0,0.2,1), background 0.9s;
+  border-radius: 5px 5px 0 0;
+}
+
+.thermo-bulb {
+  position: absolute;
+  bottom: -20px;
+  left: 50%; transform: translateX(-50%);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(180,210,240,0.4);
+  transition: background 0.9s, box-shadow 0.9s;
+}
+
+/* Tick marks */
+.tick-marks {
+  position: absolute;
+  right: -14px; top: 0;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tick {
+  display: flex; align-items: center; gap: 2px;
+}
+
+.tick-line {
+  width: 6px; height: 1px;
+  background: rgba(180,210,240,0.35);
+}
+
+.tick-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.temp-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  transition: color 0.7s;
+  text-shadow: 0 0 14px currentColor;
+  line-height: 1;
+}
+
+/* ── CONTROLS ── */
+.controls {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-lbl {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  white-space: nowrap;
+  width: 90px;
+}
+
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 5px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(90deg,
+    #00bcd4 0%, #4fc3f7 20%,
+    #2196f3 40%, #ff9800 70%,
+    #f44336 100%
+  );
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--border);
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  cursor: grab;
+}
+
+input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 7px 13px;
+  border-radius: 8px;
+  border: 1.5px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.btn-ice  { color: #80d8ff; border-color: #80d8ff; }
+.btn-ice:hover { background: rgba(128,216,255,0.12); box-shadow: 0 0 14px rgba(128,216,255,0.3); }
+.btn-warm { color: #ffb74d; border-color: #ffb74d; }
+.btn-warm:hover { background: rgba(255,183,77,0.12); box-shadow: 0 0 14px rgba(255,183,77,0.25); }
+.btn-boil { color: #ef5350; border-color: #ef5350; }
+.btn-boil:hover { background: rgba(239,83,80,0.12); box-shadow: 0 0 14px rgba(239,83,80,0.25); }
+.btn-auto { color: #ce93d8; border-color: #9c27b0; }
+.btn-auto:hover { background: rgba(156,39,176,0.12); }
+.btn-auto.active { background: rgba(156,39,176,0.22); }
+
+/* Info strip */
+.info-strip {
+  background: rgba(79,195,247,0.05);
+  border: 1px solid rgba(79,195,247,0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.info-phase-name {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.info-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* Phase scale bar */
+.scale-bar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #00bcd4, #4fc3f7 20%, #2196f3 45%, #ff9800 70%, #f44336 100%);
+  margin-top: 2px;
+}
+
+.scale-cursor {
+  position: absolute;
+  top: -5px;
+  width: 3px; height: 15px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 6px #fff;
+  transform: translateX(-50%);
+  transition: left 0.9s cubic-bezier(0.4,0,0.2,1);
+}
+
+.scale-tags {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.scale-tag {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<p class="title">H₂O Phase Transitions</p>
+<p class="subtitle">Solid · Liquid · Gas</p>
+
+<div class="card">
+  <div class="layout">
+
+    <!-- ── SCENE COLUMN ── -->
+    <div class="scene-area">
+      <div class="phase-badge" id="phaseBadge">❄ Solid — Ice</div>
+      <div class="scene" id="scene">
+
+        <!-- Steam puffs -->
+        <div class="steam-wrap" id="steamWrap"></div>
+
+        <!-- Beaker -->
+        <div class="beaker">
+          <div class="beaker-top"></div>
+          <div class="beaker-body">
+            <div class="beaker-shine"></div>
+
+            <!-- Water layer -->
+            <div class="water-fill" id="waterFill" style="height:0;opacity:0">
+              <div class="water-body"></div>
+              <div class="wave-wrap">
+                <svg class="wave" viewBox="0 0 800 20" preserveAspectRatio="none">
+                  <path d="M0,10 C100,0 200,20 300,10 C400,0 500,20 600,10 C700,0 800,20 800,10 L800,20 L0,20Z"/>
+                </svg>
+                <svg class="wave2" viewBox="0 0 800 16" preserveAspectRatio="none" style="position:absolute;top:3px;left:-20px;width:200%;height:16px;">
+                  <path d="M0,8 C100,0 200,16 300,8 C400,0 500,16 600,8 C700,0 800,16 800,8 L800,16 L0,16Z"/>
+                </svg>
+              </div>
+              <!-- Bubbles -->
+              <div id="bubblesWrap"></div>
+            </div>
+
+            <!-- Ice cubes -->
+            <div class="ice-group" id="iceGroup">
+              <div class="cube" id="c0"></div>
+              <div class="cube" id="c1"></div>
+              <div class="cube" id="c2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flame -->
+        <div class="burner">
+          <div class="flame-group" id="flameGroup">
+            <div class="flame flame-outer"></div>
+            <div class="flame flame-mid"></div>
+            <div class="flame flame-inner2"></div>
+            <div class="flame-glow"></div>
+          </div>
+          <div class="burner-ring"></div>
+        </div>
+
+      </div><!-- /scene -->
+    </div>
+
+    <!-- ── THERMOMETER COLUMN ── -->
+    <div class="thermo-col">
+      <div class="thermo-label">Temp</div>
+      <div class="thermo">
+        <div class="thermo-glass">
+          <div class="thermo-mercury" id="mercury"></div>
+        </div>
+        <div class="thermo-bulb" id="bulb"></div>
+        <div class="tick-marks" id="ticks"></div>
+      </div>
+      <div class="temp-num" id="tempNum">-20°</div>
+    </div>
+
+  </div><!-- /layout -->
+
+  <!-- ── CONTROLS ── -->
+  <div class="controls">
+    <div class="slider-wrap">
+      <span class="slider-lbl">🌡 Temperature</span>
+      <input type="range" id="slider" min="-30" max="120" value="-20" step="1">
+    </div>
+
+    <div class="scale-bar">
+      <div class="scale-cursor" id="scaleCursor"></div>
+    </div>
+    <div class="scale-tags">
+      <span class="scale-tag">Ice</span>
+      <span class="scale-tag">Melting</span>
+      <span class="scale-tag">Water</span>
+      <span class="scale-tag">Boiling</span>
+      <span class="scale-tag">Steam</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ice"  onclick="goTo(-20)">❄ Freeze  (-20°)</button>
+      <button class="btn btn-ice"  onclick="goTo(0)">Melt (0°)</button>
+      <button class="btn btn-warm" onclick="goTo(50)">Warm (50°)</button>
+      <button class="btn btn-boil" onclick="goTo(100)">Boil (100°)</button>
+      <button class="btn btn-boil" onclick="goTo(115)">☁ Steam (115°)</button>
+      <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">▶ Auto Cycle</button>
+    </div>
+
+    <div class="info-strip">
+      <div class="info-phase-name" id="infoName">Solid Phase</div>
+      <div class="info-desc" id="infoDesc">Water molecules are locked in a rigid hexagonal crystalline lattice. Hydrogen bonds hold them in fixed positions. Kinetic energy is minimal.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let temp = -20;
+let targetTemp = -20;
+let animFrame = null;
+let autoTimer = null;
+let autoCycleOn = false;
+const AUTO_STEPS = [-20, 0, 50, 100, 115, 50, 0, -20];
+let autoIdx = 0;
+
+// ── THERMOMETER TICKS ──
+const TICK_VALS = [-20, 0, 20, 40, 60, 80, 100, 120];
+function buildTicks() {
+  const tc = document.getElementById('ticks');
+  const H = 180;
+  TICK_VALS.slice().reverse().forEach(v => {
+    const pct = (v + 30) / 150;
+    const top = (1 - pct) * H;
+    const d = document.createElement('div');
+    d.className = 'tick';
+    d.style.cssText = `position:absolute;right:-1px;top:${top}px;`;
+    d.innerHTML = `<div class="tick-line"></div><div class="tick-text">${v}°</div>`;
+    tc.appendChild(d);
+  });
+}
+
+// ── INIT PARTICLES ──
+function buildBubbles() {
+  const w = document.getElementById('bubblesWrap');
+  w.innerHTML = '';
+  for (let i = 0; i < 14; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const sz = 4 + Math.random() * 7;
+    b.style.cssText = `
+      width:${sz}px;height:${sz}px;
+      left:${8 + Math.random() * 78}%;
+      bottom:${3 + Math.random() * 20}%;
+      --bd:${1.4 + Math.random() * 1.8}s;
+      --bdelay:${Math.random() * 2.5}s;
+      animation-play-state:paused;
+    `;
+    w.appendChild(b);
+  }
+}
+
+function buildSteam() {
+  const w = document.getElementById('steamWrap');
+  w.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div');
+    p.className = 'puff';
+    const sz = 28 + Math.random() * 36;
+    p.style.cssText = `
+      width:${sz}px;height:${sz * 1.5}px;
+      left:${15 + Math.random() * 65}%;
+      bottom:44px;
+      --pd:${2.2 + Math.random() * 1.8}s;
+      --pdelay:${Math.random() * 3}s;
+      animation-play-state:paused;
+    `;
+    w.appendChild(p);
+  }
+}
+
+// ── RENDER AT TEMPERATURE ──
+function render(t) {
+  const pct = Math.max(0, Math.min(1, (t + 30) / 150)); // 0 at -30°, 1 at 120°
+
+  // Thermometer mercury
+  const mercH = pct * 176;
+  const mercury = document.getElementById('mercury');
+  // Color: cold=cyan → warm=blue → hot=orange → red
+  let r, g, b;
+  if (pct < 0.2)       { r=0;   g=200+pct*200; b=255; }
+  else if (pct < 0.5)  { r=pct*400; g=160; b=255-pct*500; }
+  else                  { r=255; g=Math.max(0,150-pct*200); b=0; }
+  r = Math.min(255,Math.max(0,Math.round(r)));
+  g = Math.min(255,Math.max(0,Math.round(g)));
+  b = Math.min(255,Math.max(0,Math.round(b)));
+  const col = `rgb(${r},${g},${b})`;
+  mercury.style.height = mercH + 'px';
+  mercury.style.background = `linear-gradient(180deg, ${col}, rgb(${Math.min(255,r+40)},${Math.max(0,g-40)},${Math.max(0,b-30)}))`;
+  document.getElementById('bulb').style.background = `radial-gradient(circle at 35% 30%, rgba(255,220,200,0.5), ${col})`;
+  document.getElementById('bulb').style.boxShadow = `0 0 12px ${col}88`;
+  document.getElementById('tempNum').style.color = col;
+  document.getElementById('tempNum').textContent = Math.round(t) + '°C';
+
+  // Scale cursor
+  document.getElementById('scaleCursor').style.left = (pct * 100) + '%';
+
+  // ── ICE ──
+  const iceGroup = document.getElementById('iceGroup');
+  const cubes = [document.getElementById('c0'), document.getElementById('c1'), document.getElementById('c2')];
+  if (t <= -2) {
+    const mPct = Math.max(0, (t + 10) / 8); // 0 at -2, 1 at -10
+    iceGroup.style.opacity = '1';
+    iceGroup.style.transform = 'translateX(-50%)';
+    cubes.forEach(c => {
+      c.style.height = '46px';
+      c.style.borderRadius = '7px';
+      c.style.opacity = '1';
+    });
+  } else if (t < 10) {
+    // Melting
+    const mp = (t + 2) / 12;
+    iceGroup.style.opacity = String(1 - mp * 0.85);
+    cubes.forEach((c, i) => {
+      c.style.height = (46 - mp * 22) + 'px';
+      c.style.borderRadius = `${7 + mp * 40}% ${7 + mp * 40}% ${7 + mp * 50}% ${7 + mp * 50}%`;
+    });
+  } else {
+    iceGroup.style.opacity = '0';
+  }
+
+  // ── WATER ──
+  const wf = document.getElementById('waterFill');
+  let wH = 0;
+  if (t > -4 && t < 104) {
+    wH = Math.min(128, ((t + 4) / 108) * 136);
+    wf.style.opacity = '1';
+  } else if (t >= 104) {
+    wH = Math.max(0, 128 - (t - 104) * 16);
+    wf.style.opacity = wH > 0 ? '1' : '0';
+  } else {
+    wf.style.opacity = '0';
+  }
+  wf.style.height = wH + 'px';
+
+  // ── BUBBLES ──
+  const bubbles = document.querySelectorAll('.bubble');
+  bubbles.forEach(b => {
+    const on = t > 35 && t < 108;
+    b.style.animationPlayState = on ? 'running' : 'paused';
+    if (!on) b.style.opacity = '0';
+    const spd = t > 90 ? '0.8s' : t > 60 ? '1.4s' : '2.4s';
+    b.style.setProperty('--bd', spd);
+  });
+
+  // ── STEAM ──
+  const puffs = document.querySelectorAll('.puff');
+  const steamOn = t > 80;
+  const steamIntensity = Math.min(1, (t - 80) / 35);
+  puffs.forEach(p => {
+    p.style.animationPlayState = steamOn ? 'running' : 'paused';
+    if (!steamOn) p.style.opacity = '0';
+    p.style.filter = `blur(${4 + steamIntensity * 3}px)`;
+  });
+
+  // ── FLAME ──
+  const fg = document.getElementById('flameGroup');
+  const flameOn = t > 10;
+  const fi = Math.min(1, (t - 10) / 90);
+  fg.style.opacity = flameOn ? String(fi) : '0';
+  // Flame height scales with heat
+  if (flameOn) {
+    fg.querySelectorAll('.flame-outer, .flame-mid, .flame-inner2').forEach(f => {
+      f.style.transform = `scaleY(${0.7 + fi * 0.6})`;
+    });
+  }
+
+  // ── PHASE BADGE + INFO ──
+  updatePhaseUI(t);
+}
+
+function updatePhaseUI(t) {
+  let phase, badgeColor, badgeBg, name, desc;
+
+  if (t < 0) {
+    phase = 'ice';
+    badgeColor = '#80d8ff'; badgeBg = 'rgba(128,216,255,0.12)';
+    name = 'Solid Phase — Ice';
+    desc = 'Molecules lock into a rigid hexagonal lattice. Hydrogen bonds hold fixed positions. Low kinetic energy; molecules only vibrate.';
+  } else if (t === 0) {
+    phase = 'melting';
+    badgeColor = '#4fc3f7'; badgeBg = 'rgba(79,195,247,0.12)';
+    name = 'Phase Change: Melting (0°C)';
+    desc = 'At 0°C, absorbed heat (latent heat of fusion: 334 J/g) breaks the crystal lattice — without raising temperature — until all ice becomes liquid.';
+  } else if (t < 100) {
+    phase = 'water';
+    badgeColor = '#29b6f6'; badgeBg = 'rgba(41,182,246,0.12)';
+    name = 'Liquid Phase — Water';
+    desc = 'Molecules move freely. Hydrogen bonds constantly break and reform. Surface tension and viscosity decrease as kinetic energy rises with temperature.';
+  } else if (t === 100) {
+    phase = 'boiling';
+    badgeColor = '#ff8a65'; badgeBg = 'rgba(255,138,101,0.12)';
+    name = 'Phase Change: Boiling (100°C)';
+    desc = 'Vapor pressure equals atmospheric pressure. Latent heat of vaporization (2,260 J/g) is absorbed — temperature stays at 100°C until all water vaporizes.';
+  } else {
+    phase = 'steam';
+    badgeColor = '#ef9a9a'; badgeBg = 'rgba(239,154,154,0.12)';
+    name = 'Gas Phase — Water Vapor';
+    desc = 'Molecules move rapidly and independently with almost no intermolecular forces. Cooling below 100°C will cause condensation and release of latent heat.';
+  }
+
+  const labels = { ice: '❄ Solid — Ice', melting: '💧 Melting', water: '💧 Liquid — Water', boiling: '♨ Boiling', steam: '☁ Gas — Steam' };
+  const badge = document.getElementById('phaseBadge');
+  badge.textContent = labels[phase];
+  badge.style.color = badgeColor;
+  badge.style.borderColor = badgeColor;
+  badge.style.background = badgeBg;
+
+  document.getElementById('infoName').textContent = name;
+  document.getElementById('infoName').style.color = badgeColor;
+  document.getElementById('infoDesc').textContent = desc;
+}
+
+// ── SMOOTH ANIMATION ──
+function animateTo(target) {
+  targetTemp = Math.max(-30, Math.min(120, target));
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  function step() {
+    const diff = targetTemp - temp;
+    if (Math.abs(diff) < 0.15) {
+      temp = targetTemp;
+      document.getElementById('slider').value = temp;
+      render(temp);
+      return;
+    }
+    temp += diff * 0.055;
+    document.getElementById('slider').value = temp;
+    render(temp);
+    animFrame = requestAnimationFrame(step);
+  }
+  animFrame = requestAnimationFrame(step);
+}
+
+function goTo(t) { animateTo(t); }
+
+// ── SLIDER ──
+document.getElementById('slider').addEventListener('input', function() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  if (autoCycleOn) stopAuto();
+  temp = parseFloat(this.value);
+  targetTemp = temp;
+  render(temp);
+});
+
+// ── AUTO CYCLE ──
+function toggleAuto() {
+  if (autoCycleOn) stopAuto();
+  else startAuto();
+}
+
+function startAuto() {
+  autoCycleOn = true;
+  autoIdx = 0;
+  document.getElementById('autoBtn').classList.add('active');
+  document.getElementById('autoBtn').textContent = '⏹ Stop Cycle';
+  runAutoStep();
+}
+
+function stopAuto() {
+  autoCycleOn = false;
+  if (autoTimer) clearTimeout(autoTimer);
+  document.getElementById('autoBtn').classList.remove('active');
+  document.getElementById('autoBtn').textContent = '▶ Auto Cycle';
+}
+
+function runAutoStep() {
+  if (!autoCycleOn) return;
+  const target = AUTO_STEPS[autoIdx % AUTO_STEPS.length];
+  animateTo(target);
+  autoIdx++;
+  // Dwell time depends on step gap
+  const dwell = 3500;
+  autoTimer = setTimeout(runAutoStep, dwell);
+}
+
+// ── INIT ──
+buildTicks();
+buildBubbles();
+buildSteam();
+render(-20);
+</script>
+</body>
+</html>

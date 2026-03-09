@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer — Electromagnetic Induction</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#04060e;--surface:#070a16;--panel:#09101e;
+  --border:#141e30;--border2:#1c2840;
+  --orange:#ff7c00;--blue:#00b8ff;--green:#00e87a;
+  --yellow:#ffe040;--purple:#bb66ff;
+  --text:#c0d8f0;--dim:#3a5270;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Barlow Condensed',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;padding:18px 12px 40px;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,150,255,0.016) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,150,255,0.016) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;
+}
+header{text-align:center;margin-bottom:14px;position:relative;z-index:1;}
+.eyebrow{font-family:'Share Tech Mono';font-size:9px;letter-spacing:6px;
+  color:var(--orange);text-shadow:0 0 14px rgba(255,120,0,.65);margin-bottom:4px;text-transform:uppercase;}
+h1{font-size:clamp(22px,5vw,40px);font-weight:800;letter-spacing:4px;
+  text-transform:uppercase;color:#deeeff;line-height:1;}
+.rule{width:240px;height:1px;margin:7px auto 4px;
+  background:linear-gradient(90deg,transparent,var(--orange),var(--blue),transparent);
+  box-shadow:0 0 10px rgba(255,120,0,.35);}
+.sub{font-size:12px;color:var(--dim);letter-spacing:1px;}
+
+.card{width:100%;max-width:1020px;background:var(--surface);border:1px solid var(--border2);
+  border-radius:14px;padding:18px;position:relative;z-index:1;
+  box-shadow:0 0 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.025);}
+
+.scene-wrap{background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;margin-bottom:12px;position:relative;}
+#mainCanvas{display:block;width:100%;height:420px;}
+.play-btn{position:absolute;top:10px;right:10px;font-family:'Share Tech Mono';
+  font-size:9px;letter-spacing:2px;padding:6px 14px;border-radius:5px;
+  background:rgba(255,120,0,.1);border:1px solid rgba(255,120,0,.45);
+  color:var(--orange);cursor:pointer;transition:all .2s;z-index:10;}
+.play-btn:hover{background:rgba(255,120,0,.22);}
+.legend{position:absolute;bottom:8px;left:10px;display:flex;gap:12px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono';font-size:8px;letter-spacing:1px;}
+.leg-line{width:16px;height:2px;border-radius:1px;}
+
+/* SECONDARY CURRENT BIG PANEL */
+.sec-panel{
+  background:var(--panel);border:1px solid rgba(0,184,255,.3);
+  border-radius:10px;padding:14px;margin-bottom:12px;
+  position:relative;overflow:hidden;
+}
+.sec-panel::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(0,184,255,.055) 0%,transparent 70%);pointer-events:none;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.sec-title{font-family:'Share Tech Mono';font-size:10px;letter-spacing:3px;color:var(--blue);
+  text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 10px var(--green);animation:glow 0.9s ease-in-out infinite alternate;}
+@keyframes glow{from{opacity:.4;transform:scale(.8);}to{opacity:1;transform:scale(1.3);}}
+.live-lbl{font-family:'Share Tech Mono';font-size:8px;letter-spacing:2px;padding:3px 8px;border-radius:3px;
+  background:rgba(0,232,120,.12);border:1px solid rgba(0,232,120,.4);color:var(--green);}
+.sec-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.sec-body{grid-template-columns:1fr;}}
+
+/* METER */
+.meter{background:rgba(0,0,0,.2);border:1px solid;border-radius:8px;padding:12px;text-align:center;}
+.meter-val{font-family:'Share Tech Mono';font-size:clamp(24px,3.5vw,34px);font-weight:700;
+  letter-spacing:2px;line-height:1;transition:color .08s;}
+.meter-lbl{font-size:10px;color:var(--dim);letter-spacing:.5px;margin-top:3px;}
+.meter-bar-track{margin-top:8px;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;}
+.meter-bar{height:100%;border-radius:3px;transition:width .05s linear;}
+.dir-tag{margin-top:7px;font-family:'Share Tech Mono';font-size:9px;letter-spacing:1px;
+  padding:3px 9px;border-radius:3px;display:inline-block;transition:all .1s;}
+
+/* WAVE PANELS */
+.wave-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:540px){.wave-pair{grid-template-columns:1fr;}}
+.wave-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.wave-title{font-family:'Share Tech Mono';font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.wave-panel canvas{width:100%;height:70px;display:block;}
+.big-wave-wrap{position:relative;}
+.big-wave-wrap canvas{width:100%;height:110px;display:block;}
+.bw-sub{position:absolute;bottom:5px;left:7px;font-family:'Share Tech Mono';font-size:7px;
+  letter-spacing:1px;color:rgba(0,184,255,.55);}
+.bw-now{position:absolute;top:5px;right:7px;font-family:'Share Tech Mono';font-size:9px;
+  font-weight:700;letter-spacing:1px;transition:color .08s;}
+
+/* READOUTS */
+.readouts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
+@media(max-width:480px){.readouts{grid-template-columns:1fr 1fr;}}
+.rd{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+.rd-name{font-family:'Share Tech Mono';font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+.rd-val{font-family:'Share Tech Mono';font-size:16px;font-weight:700;margin-top:3px;}
+.rd-unit{font-size:9px;color:var(--dim);}
+
+/* CONTROLS */
+.ctrls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(max-width:560px){.ctrls{grid-template-columns:1fr 1fr;}}
+.ctrl{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:11px;}
+.ctrl-title{font-family:'Share Tech Mono';font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
+.sl-hdr{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.sl-val{font-family:'Share Tech Mono';font-size:10px;font-weight:700;}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;border:2px solid var(--panel);cursor:pointer;}
+
+/* EQ */
+.eq-strip{display:flex;flex-wrap:wrap;gap:7px;align-items:center;justify-content:center;
+  background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;font-family:'Share Tech Mono';}
+.eq-block{text-align:center;padding:5px 11px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid;}
+.eq-sep{color:var(--dim);font-size:15px;}
+.eq-sub{width:100%;text-align:center;color:var(--dim);font-size:9px;letter-spacing:1px;margin-top:5px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">⚡ Faraday's Law · Mutual Induction</div>
+  <h1>Transformer</h1>
+  <div class="rule"></div>
+  <div class="sub">Magnetic field loops generated by primary → pass through secondary → induce AC current</div>
+</header>
+
+<div class="card">
+
+  <!-- MAIN SCENE -->
+  <div class="scene-wrap">
+    <canvas id="mainCanvas"></canvas>
+    <button class="play-btn" id="playBtn">⏸ Pause</button>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-line" style="background:#ff9030;"></div><span style="color:#ff9030">Primary field loops</span></div>
+      <div class="leg-item"><div class="leg-line" style="background:#00aaff;"></div><span style="color:#00aaff">Core flux loops (mutual)</span></div>
+      <div class="leg-item"><div class="leg-line" style="background:#00e87a;"></div><span style="color:#00e87a">Leakage flux</span></div>
+      <div class="leg-item"><div class="leg-line" style="background:#bb66ff;"></div><span style="color:#bb66ff">Induced I₂ in secondary</span></div>
+    </div>
+  </div>
+
+  <!-- SECONDARY CURRENT PANEL -->
+  <div class="sec-panel">
+    <div class="sec-hdr">
+      <div class="sec-title">
+        <div class="live-dot"></div>
+        SECONDARY COIL — Induced AC Current  I₂(t)
+      </div>
+      <div class="live-lbl">● LIVE</div>
+    </div>
+    <div class="sec-body">
+      <!-- Left: two meters -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="meter" id="m_i2" style="border-color:rgba(0,184,255,.3);">
+          <div class="meter-val" id="i2_val" style="color:var(--blue)">+0.000 A</div>
+          <div class="meter-lbl">Instantaneous current  I₂(t)</div>
+          <div class="meter-bar-track"><div class="meter-bar" id="i2_bar" style="background:var(--blue);width:0%"></div></div>
+          <div class="dir-tag" id="i2_dir">→ +ve half-cycle</div>
+        </div>
+        <div class="meter" style="border-color:rgba(187,102,255,.28);">
+          <div class="meter-val" id="emf_val" style="color:var(--purple)">+0.00 V</div>
+          <div class="meter-lbl">Induced EMF  ε₂ = −N₂ · dΦ/dt</div>
+          <div class="meter-bar-track"><div class="meter-bar" id="emf_bar" style="background:var(--purple);width:0%"></div></div>
+        </div>
+      </div>
+      <!-- Right: big waveform -->
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="font-family:'Share Tech Mono';font-size:8px;letter-spacing:2px;color:rgba(0,184,255,.65);">
+          I₂(t) WAVEFORM  [blue=+ve, purple=−ve]
+        </div>
+        <div class="big-wave-wrap">
+          <canvas id="bigWave" height="110"></canvas>
+          <div class="bw-sub">I₂ = I₂_peak · sin(ωt+π)  [Lenz — opposes Φ]</div>
+          <div class="bw-now" id="bw_now" style="color:var(--blue)">+0.000 A</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:'Share Tech Mono';font-size:9px;">
+          <div style="text-align:center;padding:5px;border-radius:5px;background:rgba(0,184,255,.09);border:1px solid rgba(0,184,255,.25);color:var(--blue)">
+            I₂ peak<br><span id="i2pk_disp" style="font-size:13px;font-weight:700;">0.000 A</span>
+          </div>
+          <div style="text-align:center;padding:5px;border-radius:5px;background:rgba(0,232,120,.08);border:1px solid rgba(0,232,120,.22);color:var(--green)">
+            V₂<br><span id="v2pk_disp" style="font-size:13px;font-weight:700;">0.0 V</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAVEFORM PAIR -->
+  <div class="wave-pair">
+    <div class="wave-panel">
+      <div class="wave-title" style="color:var(--orange)">▶ Primary I₁(t) — drives magnetic flux</div>
+      <canvas id="wv1" height="70"></canvas>
+    </div>
+    <div class="wave-panel">
+      <div class="wave-title" style="color:var(--blue)">▶ Secondary I₂(t) — induced (Lenz, π phase-shifted)</div>
+      <canvas id="wv2" height="70"></canvas>
+    </div>
+  </div>
+
+  <!-- READOUTS -->
+  <div class="readouts">
+    <div class="rd">
+      <div class="rd-name">Turns Ratio</div>
+      <div class="rd-val" id="rdRatio" style="color:var(--yellow)">2.00</div>
+      <div class="rd-unit">N₁ / N₂</div>
+    </div>
+    <div class="rd">
+      <div class="rd-name">I₁ Peak</div>
+      <div class="rd-val" id="rdI1" style="color:var(--orange)">0.000 A</div>
+      <div class="rd-unit">primary</div>
+    </div>
+    <div class="rd">
+      <div class="rd-name">I₂ Peak</div>
+      <div class="rd-val" id="rdI2" style="color:var(--blue)">0.000 A</div>
+      <div class="rd-unit">secondary</div>
+    </div>
+    <div class="rd">
+      <div class="rd-name">Flux Φ_max</div>
+      <div class="rd-val" id="rdPhi" style="color:var(--green)">0.000</div>
+      <div class="rd-unit">Wb (core)</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="ctrls">
+    <div class="ctrl">
+      <div class="ctrl-title">Primary Turns N₁</div>
+      <div class="sl-hdr"><span>N₁</span><span class="sl-val" id="lN1" style="color:var(--orange)">200</span></div>
+      <input type="range" id="sN1" min="50" max="500" step="10" value="200" style="accent-color:var(--orange)">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-title">Secondary Turns N₂</div>
+      <div class="sl-hdr"><span>N₂</span><span class="sl-val" id="lN2" style="color:var(--blue)">100</span></div>
+      <input type="range" id="sN2" min="50" max="500" step="10" value="100" style="accent-color:var(--blue)">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-title">Frequency (Hz)</div>
+      <div class="sl-hdr"><span>f</span><span class="sl-val" id="lFreq" style="color:var(--yellow)">50 Hz</span></div>
+      <input type="range" id="sFreq" min="10" max="150" step="5" value="50" style="accent-color:var(--yellow)">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-title">Primary Voltage V₁</div>
+      <div class="sl-hdr"><span>V₁</span><span class="sl-val" id="lV1" style="color:var(--orange)">240 V</span></div>
+      <input type="range" id="sV1" min="10" max="480" step="5" value="240" style="accent-color:var(--orange)">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-title">Load Resistance</div>
+      <div class="sl-hdr"><span>R</span><span class="sl-val" id="lR" style="color:var(--green)">100 Ω</span></div>
+      <input type="range" id="sR" min="10" max="500" step="10" value="100" style="accent-color:var(--green)">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-title">Field Line Density</div>
+      <div class="sl-hdr"><span>Lines</span><span class="sl-val" id="lLines" style="color:var(--purple)">5</span></div>
+      <input type="range" id="sLines" min="2" max="9" step="1" value="5" style="accent-color:var(--purple)">
+    </div>
+  </div>
+
+  <!-- EQ STRIP -->
+  <div class="eq-strip">
+    <div class="eq-block" style="color:var(--orange);border-color:rgba(255,120,0,.3);background:rgba(255,120,0,.07)">V₁=<span id="eV1">240</span>V</div>
+    <div class="eq-sep">÷</div>
+    <div class="eq-block" style="color:var(--yellow);border-color:rgba(255,224,64,.25);background:rgba(255,224,64,.05)">N₁/N₂=<span id="eRatio">2.0</span></div>
+    <div class="eq-sep">=</div>
+    <div class="eq-block" style="color:var(--blue);border-color:rgba(0,184,255,.3);background:rgba(0,184,255,.07)">V₂=<span id="eV2">120</span>V</div>
+    <div class="eq-sep">→</div>
+    <div class="eq-block" style="color:var(--green);border-color:rgba(0,232,120,.3);background:rgba(0,232,120,.06)">I₂pk=<span id="eI2">1.200</span>A</div>
+    <div class="eq-sub">ε=−N·dΦ/dt &nbsp;|&nbsp; V₁/V₂=N₁/N₂ &nbsp;|&nbsp; I₁N₁=I₂N₂ &nbsp;|&nbsp; Φ(t)=Φ_max·sin(ωt) &nbsp;|&nbsp; I₂ opposes Φ [Lenz]</div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════
+// STATE
+// ═══════════════════════════════
+let P={N1:200,N2:100,freq:50,V1:240,R:100,lines:5};
+let T=0, playing=true;
+const WN=280;
+let wv1=new Array(WN).fill(0), wv2=new Array(WN).fill(0), wvBig=new Array(WN).fill(0);
+
+function V2()    { return P.V1*(P.N2/P.N1); }
+function I2pk()  { return V2()/P.R; }
+function I1pk()  { return I2pk()*(P.N2/P.N1); }
+function PHImax(){ return (P.V1/(P.N1*2*Math.PI*P.freq))*0.92; }
+
+// ═══════════════════════════════
+// CANVAS
+// ═══════════════════════════════
+const mc=document.getElementById('mainCanvas');
+const cx2d=mc.getContext('2d');
+function setup(){
+  mc.width=mc.offsetWidth*devicePixelRatio;
+  mc.height=mc.offsetHeight*devicePixelRatio;
+  cx2d.resetTransform(); cx2d.scale(devicePixelRatio,devicePixelRatio);
+}
+function geo(W,H){
+  const cx=W*.5, cy=H*.5+8;
+  const cW=Math.min(W*.23,138), cH=Math.min(H*.60,215);
+  const tk=Math.max(17,cW*.155);
+  return {cx,cy,cW,cH,tk,hw:cW/2,hh:cH/2,
+    pLX:cx-cW/2, sLX:cx+cW/2-tk};
+}
+
+// ═══════════════════════════════
+// HELPERS
+// ═══════════════════════════════
+function FR(x,y,w,h){ cx2d.beginPath();cx2d.rect(x,y,w,h);cx2d.fill();cx2d.stroke(); }
+function arrowAt(x,y,ang,col,sz){
+  cx2d.save(); cx2d.translate(x,y); cx2d.rotate(ang);
+  cx2d.fillStyle=col; cx2d.shadowColor=col; cx2d.shadowBlur=6;
+  cx2d.beginPath(); cx2d.moveTo(sz,0); cx2d.lineTo(-sz*.55,-sz*.44); cx2d.lineTo(-sz*.55,sz*.44);
+  cx2d.closePath(); cx2d.fill(); cx2d.restore();
+}
+
+// ═══════════════════════════════
+// IRON CORE
+// ═══════════════════════════════
+function drawCore(g,phi){
+  const {cx,cy,cW,cH,tk,hw,hh}=g;
+  const I=Math.abs(phi);
+  cx2d.save();
+  cx2d.fillStyle=`rgb(${70+I*32},${98+I*42},${130+I*55})`;
+  cx2d.strokeStyle='rgba(160,200,230,0.18)'; cx2d.lineWidth=1;
+  cx2d.shadowColor=`rgba(80,160,255,${I*.4})`; cx2d.shadowBlur=6+I*18;
+  FR(cx-hw,cy-hh,cW,tk);    // top
+  FR(cx-hw,cy+hh-tk,cW,tk); // bottom
+  FR(cx-hw,cy-hh,tk,cH);    // left limb
+  FR(cx+hw-tk,cy-hh,tk,cH); // right limb
+  cx2d.shadowBlur=0; cx2d.restore();
+}
+
+// ═══════════════════════════════
+// MAGNETIC FIELD LOOPS
+//
+// A) GENERATION LOOPS — small ellipses around each turn of
+//    the primary coil, showing how each loop of wire creates
+//    a field loop. These hug the outside of the left limb.
+//
+// B) CORE MUTUAL FLUX — the main closed loops that go:
+//    UP inside left window → arc OVER top bar →
+//    DOWN inside right window → arc UNDER bottom bar → back.
+//    These show flux LINKING both coils.
+//    Orange on left (primary), blue on right (secondary).
+//
+// C) LEAKAGE ELLIPSES — stray loops outside core.
+// ═══════════════════════════════
+function drawFieldLoops(g,phi,t){
+  const {cx,cy,cW,cH,tk,hw,hh,pLX,sLX}=g;
+  const I=Math.abs(phi), dir=Math.sign(phi);
+  if(I<0.015) return;
+  const omega=2*Math.PI*P.freq;
+  const spd=60*P.freq;
+
+  // ── A: GENERATION LOOPS around primary winding ──────────────
+  {
+    const primFaceX = cx-hw;         // outer face of left (primary) limb
+    const spanT = cy-cH*.30;
+    const spanB = cy+cH*.30;
+    const nGen = Math.min(P.lines+2, 9);
+    for(let i=0;i<nGen;i++){
+      const yy=spanT+(i/(nGen-1))*(spanB-spanT);
+      const rx=12+i*3.5, ry=7+i*1.5;
+      const alpha=(0.20+I*.65)*(1-i*.07);
+      cx2d.save();
+      cx2d.strokeStyle=`rgba(255,${130+i*5},20,${alpha})`;
+      cx2d.shadowColor=`rgba(255,130,20,${alpha})`;
+      cx2d.lineWidth=1.2+I*.7;
+      cx2d.shadowBlur=3+I*9;
+      cx2d.setLineDash([4,5]);
+      cx2d.lineDashOffset=-(t*spd*.9)+i*12;
+      cx2d.beginPath();
+      cx2d.ellipse(primFaceX-rx*.35, yy, rx, ry, 0, 0, Math.PI*2);
+      cx2d.stroke();
+      cx2d.setLineDash([]);
+      // rotation arrow
+      const aAng=(dir>0)?-Math.PI/2:Math.PI/2;
+      arrowAt(primFaceX-rx*.35, yy-ry, aAng, `rgba(255,150,40,${alpha+.2})`, 4+I*3);
+      cx2d.shadowBlur=0;
+      cx2d.restore();
+    }
+  }
+
+  // ── B: CORE MUTUAL FLUX LOOPS ─────────────────────────────
+  {
+    const nLoops=P.lines;
+    // inside-window boundaries
+    const winL=cx-hw+tk;
+    const winR=cx+hw-tk;
+    const winT=cy-hh+tk;
+    const winB=cy+hh-tk;
+    const winW=winR-winL;
+
+    for(let i=0;i<nLoops;i++){
+      const frac=(i+0.5)/nLoops;
+      // spread loop paths horizontally across the window
+      const xOff=(frac-0.5)*winW*.68;
+      const xL=cx+xOff-winW*.06;  // left path (inside window)
+      const xR=cx+xOff+winW*.06;  // right path (inside window)
+      const overTop  = cy-hh-(16+i*12);  // arc apex above top bar
+      const underBot = cy+hh+(16+i*12);  // arc nadir below bottom bar
+
+      const alpha=(0.28+I*.65)*(1-i*.065);
+      const lw=1.8+I*.85;
+
+      cx2d.save();
+      cx2d.setLineDash([10,6]);
+      cx2d.lineDashOffset=-(t*spd)+i*22;
+      cx2d.shadowBlur=5+I*16;
+
+      // PRIMARY side path (orange-amber): runs inside LEFT window half & across top
+      cx2d.strokeStyle=`rgba(255,${110+i*7},0,${alpha})`;
+      cx2d.shadowColor=`rgba(255,120,10,${alpha})`;
+      cx2d.lineWidth=lw;
+      cx2d.beginPath();
+      cx2d.moveTo(xL, winB);
+      cx2d.lineTo(xL, winT);
+      cx2d.bezierCurveTo(xL, overTop, xR, overTop, xR, winT);
+      cx2d.stroke();
+
+      // SECONDARY side path (blue): runs down right, across bottom, back
+      cx2d.strokeStyle=`rgba(0,${160+i*6},255,${alpha*.92})`;
+      cx2d.shadowColor=`rgba(0,170,255,${alpha})`;
+      cx2d.beginPath();
+      cx2d.moveTo(xR, winT);
+      cx2d.lineTo(xR, winB);
+      cx2d.bezierCurveTo(xR, underBot, xL, underBot, xL, winB);
+      cx2d.stroke();
+
+      cx2d.setLineDash([]);
+      cx2d.shadowBlur=0;
+
+      // Direction arrows
+      const sz=5+I*4;
+      const aO=`rgba(255,140,10,${Math.min(1,alpha+.25)})`;
+      const aB=`rgba(0,190,255,${Math.min(1,alpha+.25)})`;
+      const mY=(winT+winB)/2;
+      if(dir>0){
+        arrowAt(xL,mY-12,-Math.PI/2,aO,sz);       // up left
+        arrowAt((xL+xR)/2,overTop+10,0,aO,sz);    // right across top
+        arrowAt(xR,mY+12,Math.PI/2,aB,sz);         // down right
+        arrowAt((xL+xR)/2,underBot-10,Math.PI,aB,sz); // left across bottom
+      } else {
+        arrowAt(xL,mY+12,Math.PI/2,aO,sz);
+        arrowAt((xL+xR)/2,overTop+10,Math.PI,aO,sz);
+        arrowAt(xR,mY-12,-Math.PI/2,aB,sz);
+        arrowAt((xL+xR)/2,underBot-10,0,aB,sz);
+      }
+      cx2d.restore();
+    }
+
+    // Flux direction label inside core
+    cx2d.save();
+    cx2d.font="700 12px 'Share Tech Mono',monospace";
+    cx2d.textAlign='center';
+    const fc=dir>0?'rgba(80,190,255,':'rgba(255,130,30,';
+    cx2d.fillStyle=`${fc}${.55+I*.45})`;
+    cx2d.shadowColor=`${fc}${I})`;
+    cx2d.shadowBlur=10;
+    cx2d.fillText(dir>0?'↑ Φ':'↓ Φ', cx, cy+7);
+    cx2d.shadowBlur=0;
+    cx2d.restore();
+  }
+
+  // ── C: LEAKAGE LOOPS ──────────────────────────────────────
+  {
+    const nExt=Math.ceil(P.lines*.50);
+    for(let i=0;i<nExt;i++){
+      const ea=(0.055+I*.18)*(1-i*.30);
+      if(ea<0.012) continue;
+      const erx=hw+30+i*26, ery=hh+18+i*16;
+      cx2d.save();
+      cx2d.strokeStyle=`rgba(0,232,120,${ea})`;
+      cx2d.lineWidth=1.1;
+      cx2d.shadowColor=`rgba(0,232,120,${ea*1.7})`;
+      cx2d.shadowBlur=3+I*6;
+      cx2d.setLineDash([4,9]);
+      cx2d.lineDashOffset=-(t*spd*.52)-i*30;
+      cx2d.beginPath(); cx2d.ellipse(cx,cy,erx,ery,0,0,Math.PI*2); cx2d.stroke();
+      cx2d.setLineDash([]);
+      arrowAt(cx,cy-ery,dir>0?0:Math.PI,`rgba(0,232,120,${ea*2.5})`,4+I*3);
+      arrowAt(cx,cy+ery,dir>0?Math.PI:0,`rgba(0,232,120,${ea*2.3})`,4+I*3);
+      cx2d.shadowBlur=0; cx2d.restore();
+    }
+  }
+}
+
+// ═══════════════════════════════
+// COIL WINDINGS
+// ═══════════════════════════════
+function drawCoils(g,phi,t){
+  const {cx,cy,cW,cH,tk,hw,hh,pLX,sLX}=g;
+  drawWinding(pLX,tk,cy,cH*.65,P.N1, phi,            t,'left', false);
+  const i2n=-phi*(P.N1/P.N2);
+  drawWinding(sLX,tk,cy,cH*.65,P.N2, i2n,            t,'right',true);
+}
+
+function drawWinding(lx,tw,cy,h,turns,Inorm,t,side,isSecondary){
+  const vis=Math.min(turns,13);
+  const top=cy-h/2, stepH=h/vis;
+  const ext=13, dir=Inorm>0?1:-1;
+  const I=Math.abs(Inorm);
+
+  const baseCol   = isSecondary?[64,176,240]:[232,160,80];
+  const glowCol   = isSecondary?'rgba(64,180,255,.7)':'rgba(255,160,60,.7)';
+  const dotFill   = isSecondary?`rgba(187,100,255,`:`rgba(255,190,80,`;
+  const dotGlow   = isSecondary?'#cc44ff':'#ff9900';
+
+  cx2d.save();
+  cx2d.lineWidth=3; cx2d.lineCap='round';
+  cx2d.shadowColor=glowCol; cx2d.shadowBlur=4+I*12;
+
+  for(let i=0;i<vis;i++){
+    const y0=top+i*stepH, y1=y0+stepH*.84;
+    const al=0.40+I*.60;
+    cx2d.strokeStyle=`rgba(${baseCol[0]},${baseCol[1]},${baseCol[2]},${al})`;
+    cx2d.beginPath();
+    if(side==='left'){
+      cx2d.moveTo(lx,y0);
+      cx2d.bezierCurveTo(lx-ext*1.8,y0,lx-ext*1.8,y1,lx,y1);
+      cx2d.lineTo(lx+tw,y1); cx2d.lineTo(lx+tw,y0); cx2d.lineTo(lx,y0);
+    } else {
+      cx2d.moveTo(lx+tw,y0);
+      cx2d.bezierCurveTo(lx+tw+ext*1.8,y0,lx+tw+ext*1.8,y1,lx+tw,y1);
+      cx2d.lineTo(lx,y1); cx2d.lineTo(lx,y0); cx2d.lineTo(lx+tw,y0);
+    }
+    cx2d.stroke();
+  }
+
+  // Charge carrier dots
+  for(let d=0;d<7;d++){
+    const ph=((d/7)+t*P.freq*.35*dir+4)%1;
+    const dy=top+ph*h;
+    const dx=side==='left'?lx-ext-6:lx+tw+ext+6;
+    const br=.45+.55*I;
+    cx2d.beginPath(); cx2d.arc(dx,dy,3,0,Math.PI*2);
+    cx2d.fillStyle=`${dotFill}${br})`;
+    cx2d.shadowColor=dotGlow; cx2d.shadowBlur=9; cx2d.fill();
+  }
+
+  // Secondary: ambient glow to indicate induced current
+  if(isSecondary && I>0.05){
+    const grd=cx2d.createLinearGradient(lx-ext-10,top,lx+tw+ext+10,top+h);
+    grd.addColorStop(0,'transparent');
+    grd.addColorStop(0.5,`rgba(187,100,255,${I*.22})`);
+    grd.addColorStop(1,'transparent');
+    cx2d.fillStyle=grd;
+    cx2d.fillRect(lx-ext-12,top,tw+ext*2+24,h);
+  }
+
+  cx2d.shadowBlur=0; cx2d.restore();
+}
+
+// ═══════════════════════════════
+// AC SOURCE
+// ═══════════════════════════════
+function drawSource(g,phi,t){
+  const {cx,cy,cW,cH,tk,hw,hh}=g;
+  const omega=2*Math.PI*P.freq, v=Math.sin(omega*t);
+  const srcX=cx-hw-86, coilT=cy-cH*.32, coilB=cy+cH*.32;
+  const wa=.35+Math.abs(v)*.60;
+  cx2d.save();
+  cx2d.strokeStyle=`rgba(232,160,80,${wa})`; cx2d.lineWidth=2.3; cx2d.lineCap='round';
+  cx2d.shadowColor='rgba(255,140,0,.5)'; cx2d.shadowBlur=4+Math.abs(v)*10;
+  cx2d.beginPath(); cx2d.moveTo(srcX,cy-24); cx2d.lineTo(srcX,coilT); cx2d.lineTo(cx-hw,coilT); cx2d.stroke();
+  cx2d.beginPath(); cx2d.moveTo(srcX,cy+24); cx2d.lineTo(srcX,coilB); cx2d.lineTo(cx-hw,coilB); cx2d.stroke();
+  cx2d.beginPath(); cx2d.arc(srcX,cy,24,0,Math.PI*2);
+  cx2d.fillStyle='#070a16'; cx2d.fill();
+  cx2d.strokeStyle=`rgba(255,150,0,${.5+Math.abs(v)*.5})`; cx2d.lineWidth=2; cx2d.stroke();
+  cx2d.beginPath(); cx2d.strokeStyle=`rgba(255,220,80,${.65+Math.abs(v)*.35})`;
+  cx2d.lineWidth=1.5; cx2d.shadowBlur=5;
+  for(let i=0;i<=30;i++) cx2d.lineTo(srcX-15+i,cy+Math.sin((i/30)*Math.PI*2+omega*t)*11);
+  cx2d.stroke(); cx2d.shadowBlur=0;
+  cx2d.font="700 9px 'Share Tech Mono',monospace";
+  cx2d.fillStyle='rgba(255,175,70,.9)'; cx2d.textAlign='center';
+  cx2d.fillText('AC',srcX,cy+38); cx2d.fillText(`${P.V1}V`,srcX,cy+49);
+  cx2d.restore();
+}
+
+// ═══════════════════════════════
+// LOAD
+// ═══════════════════════════════
+function drawLoad(g,phi,t){
+  const {cx,cy,cW,cH,tk,hw}=g;
+  const omega=2*Math.PI*P.freq, v2n=Math.sin(omega*t+Math.PI);
+  const i2i=I2pk()*v2n;
+  const loadX=cx+hw+88, coilT=cy-cH*.32, coilB=cy+cH*.32, lHH=40;
+  const wa=.32+Math.abs(v2n)*.60;
+  cx2d.save();
+  // Wires in purple (secondary / induced)
+  cx2d.strokeStyle=`rgba(180,110,255,${wa})`; cx2d.lineWidth=2.3; cx2d.lineCap='round';
+  cx2d.shadowColor='rgba(170,80,255,.6)'; cx2d.shadowBlur=4+Math.abs(v2n)*10;
+  cx2d.beginPath(); cx2d.moveTo(cx+hw,coilT); cx2d.lineTo(loadX,coilT); cx2d.lineTo(loadX,cy-lHH); cx2d.stroke();
+  cx2d.beginPath(); cx2d.moveTo(cx+hw,coilB); cx2d.lineTo(loadX,coilB); cx2d.lineTo(loadX,cy+lHH); cx2d.stroke();
+  // Direction arrow
+  const aDir=v2n>0?1:-1, aY=cy-lHH-24;
+  cx2d.fillStyle=`rgba(180,110,255,${.6+Math.abs(v2n)*.4})`; cx2d.shadowBlur=8;
+  cx2d.beginPath();
+  if(aDir>0){cx2d.moveTo(loadX,aY-10);cx2d.lineTo(loadX+9,aY+5);cx2d.lineTo(loadX-9,aY+5);}
+  else       {cx2d.moveTo(loadX,aY+10);cx2d.lineTo(loadX+9,aY-5);cx2d.lineTo(loadX-9,aY-5);}
+  cx2d.closePath(); cx2d.fill();
+  // Resistor zigzag
+  cx2d.strokeStyle=`rgba(150,90,255,${.65+Math.abs(v2n)*.35})`;
+  cx2d.lineWidth=2.2; cx2d.shadowBlur=6+Math.abs(v2n)*14;
+  cx2d.beginPath(); cx2d.moveTo(loadX,cy-lHH);
+  for(let i=0;i<=8;i++) cx2d.lineTo(loadX+(i%2===0?-14:14),cy-lHH+(i/8)*lHH*2);
+  cx2d.lineTo(loadX,cy+lHH); cx2d.stroke();
+  if(Math.abs(v2n)>0.1){
+    const rg=cx2d.createRadialGradient(loadX,cy,0,loadX,cy,lHH+18);
+    rg.addColorStop(0,`rgba(170,80,255,${Math.abs(v2n)*.2})`);
+    rg.addColorStop(1,'transparent');
+    cx2d.fillStyle=rg; cx2d.fillRect(loadX-45,cy-lHH-10,90,lHH*2+20);
+  }
+  cx2d.shadowBlur=0;
+  cx2d.font="700 9px 'Share Tech Mono',monospace";
+  cx2d.fillStyle=`rgba(170,120,255,${.75+Math.abs(v2n)*.25})`;
+  cx2d.textAlign='center';
+  cx2d.fillText(`I₂=${i2i.toFixed(3)}A`,loadX,cy+lHH+17);
+  cx2d.fillText(`${P.R}Ω LOAD`,loadX,cy+lHH+28);
+  cx2d.restore();
+}
+
+// ═══════════════════════════════
+// LABELS
+// ═══════════════════════════════
+function drawLabels(g,phi,t){
+  const {cx,cy,cW,cH,tk,hw,hh}=g;
+  const omega=2*Math.PI*P.freq, pA=Math.abs(phi), phiMax=PHImax();
+  cx2d.save(); cx2d.textAlign='center';
+  cx2d.font="700 12px 'Barlow Condensed',sans-serif";
+  cx2d.fillStyle='rgba(232,160,80,.92)';
+  cx2d.fillText('PRIMARY',cx-hw,cy-hh-24);
+  cx2d.font="600 9px 'Share Tech Mono',monospace";
+  cx2d.fillText(`N₁=${P.N1}  I₁ → Φ`,cx-hw,cy-hh-11);
+  cx2d.font="700 12px 'Barlow Condensed',sans-serif";
+  cx2d.fillStyle='rgba(64,176,240,.92)';
+  cx2d.fillText('SECONDARY',cx+hw,cy-hh-24);
+  cx2d.font="600 9px 'Share Tech Mono',monospace";
+  cx2d.fillText(`N₂=${P.N2}  Φ → I₂`,cx+hw,cy-hh-11);
+  const fc=phi>0?'rgba(80,190,255,':'rgba(255,130,30,';
+  cx2d.fillStyle=`${fc}${.5+pA*.5})`;
+  cx2d.fillText(`Φ=${(pA*phiMax).toFixed(4)} Wb`,cx,cy+hh+20);
+  const emf=(P.N2*phiMax*omega*Math.abs(Math.cos(omega*t))).toFixed(2);
+  cx2d.fillStyle=`rgba(0,232,120,${.5+Math.abs(Math.cos(omega*t))*.5})`;
+  cx2d.fillText(`ε₂=${emf} V`,cx,cy+hh+33);
+  cx2d.restore();
+}
+
+// ═══════════════════════════════
+// WAVEFORM HELPERS
+// ═══════════════════════════════
+function drawWave(id,data,col,peak){
+  const cvs=document.getElementById(id);
+  const W=cvs.offsetWidth||400;
+  cvs.width=W*devicePixelRatio; cvs.height=cvs.offsetHeight*devicePixelRatio;
+  const c=cvs.getContext('2d');
+  c.resetTransform(); c.scale(devicePixelRatio,devicePixelRatio);
+  const w=W, ch=cvs.offsetHeight;
+  c.clearRect(0,0,w,ch);
+  c.strokeStyle='rgba(18,32,52,.9)'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(0,ch/2); c.lineTo(w,ch/2); c.stroke();
+  for(let i=1;i<4;i++){c.beginPath();c.moveTo(i*w/4,0);c.lineTo(i*w/4,ch);c.stroke();}
+  const mx=Math.max(...data.map(Math.abs),.001);
+  c.beginPath();
+  for(let i=0;i<data.length;i++) c.lineTo((i/data.length)*w, ch/2-(data[i]/mx)*(ch/2-4));
+  c.lineTo(w,ch/2); c.lineTo(0,ch/2); c.closePath();
+  c.fillStyle=col==='#ff7c00'?'rgba(255,124,0,.12)':'rgba(0,184,255,.12)'; c.fill();
+  c.beginPath(); c.strokeStyle=col; c.lineWidth=2.2; c.shadowColor=col; c.shadowBlur=7;
+  for(let i=0;i<data.length;i++) c.lineTo((i/data.length)*w, ch/2-(data[i]/mx)*(ch/2-4));
+  c.stroke(); c.shadowBlur=0;
+  const lv=data[data.length-1], dx=w-4, dy=ch/2-(lv/mx)*(ch/2-4);
+  c.beginPath(); c.arc(dx,dy,4.5,0,Math.PI*2); c.fillStyle=col; c.shadowColor=col; c.shadowBlur=14; c.fill(); c.shadowBlur=0;
+  c.font="bold 8px 'Share Tech Mono',monospace"; c.fillStyle=col;
+  c.textAlign='left'; c.fillText(`Pk:${peak.toFixed(3)}A`,5,11);
+  c.textAlign='right'; c.fillText(`Now:${lv.toFixed(3)}A`,w-5,11);
+}
+
+function drawBigWave(data){
+  const cvs=document.getElementById('bigWave');
+  const W=cvs.offsetWidth||500, CH=110;
+  cvs.width=W*devicePixelRatio; cvs.height=CH*devicePixelRatio;
+  const c=cvs.getContext('2d');
+  c.resetTransform(); c.scale(devicePixelRatio,devicePixelRatio);
+  const w=W, ch=CH;
+  c.clearRect(0,0,w,ch);
+  c.strokeStyle='rgba(14,26,44,.95)'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(0,ch/2); c.lineTo(w,ch/2); c.stroke();
+  for(let i=1;i<4;i++){c.beginPath();c.moveTo(i*w/4,3);c.lineTo(i*w/4,ch-3);c.stroke();}
+  const mx=Math.max(...data.map(Math.abs),.001);
+  const pts=data.map((v,i)=>[(i/data.length)*w, ch/2-(v/mx)*(ch/2-5)]);
+  // Fill
+  c.beginPath();
+  pts.forEach(([x,y])=>c.lineTo(x,y));
+  c.lineTo(w,ch/2); c.lineTo(0,ch/2); c.closePath();
+  c.fillStyle='rgba(0,184,255,.1)'; c.fill();
+  // Line — dual colour per polarity
+  for(let i=1;i<pts.length;i++){
+    const v=data[i];
+    c.beginPath(); c.moveTo(pts[i-1][0],pts[i-1][1]); c.lineTo(pts[i][0],pts[i][1]);
+    c.strokeStyle=v>=0?'rgba(0,200,255,.95)':'rgba(210,100,255,.95)';
+    c.lineWidth=2.5; c.shadowColor=v>=0?'#00b8ff':'#cc44ff'; c.shadowBlur=8;
+    c.stroke();
+  }
+  c.shadowBlur=0;
+  // Half-cycle labels
+  c.font="700 8px 'Share Tech Mono',monospace";
+  c.fillStyle='rgba(0,200,255,.75)'; c.textAlign='left'; c.fillText('+  Forward',6,ch/2-6);
+  c.fillStyle='rgba(210,100,255,.75)';                    c.fillText('−  Reverse (Lenz)',6,ch/2+14);
+  // Live dot
+  const lv=data[data.length-1], dotX=w-5, dotY=ch/2-(lv/mx)*(ch/2-5);
+  c.beginPath(); c.arc(dotX,dotY,5.5,0,Math.PI*2);
+  c.fillStyle=lv>=0?'#00b8ff':'#cc44ff'; c.shadowColor=c.fillStyle; c.shadowBlur=16; c.fill(); c.shadowBlur=0;
+}
+
+// ═══════════════════════════════
+// SECONDARY UI UPDATE
+// ═══════════════════════════════
+function updateSecUI(i2, v2){
+  const pk2=I2pk()||.001, pk2v=Math.max(V2(),.001);
+  const c2=Math.min(1,Math.abs(i2)/pk2);
+  const cv=Math.min(1,Math.abs(v2)/pk2v);
+
+  const elI=document.getElementById('i2_val');
+  elI.textContent=(i2>=0?'+':'')+i2.toFixed(3)+' A';
+  elI.style.color=i2>=0?'var(--blue)':'#cc44ff';
+
+  document.getElementById('i2_bar').style.width=(c2*100)+'%';
+  document.getElementById('i2_bar').style.background=
+    i2>=0?`rgba(0,${140+Math.round(c2*65)},255,${.6+c2*.4})`:`rgba(200,80,255,${.6+c2*.4})`;
+
+  const dEl=document.getElementById('i2_dir');
+  dEl.textContent=i2>=0?'→ +ve half-cycle  (I₂ with flux)':'← −ve half-cycle  (I₂ opposes — Lenz\'s Law)';
+  dEl.style.color=i2>=0?'var(--blue)':'#cc44ff';
+  dEl.style.background=i2>=0?'rgba(0,184,255,.11)':'rgba(200,80,255,.11)';
+
+  const elV=document.getElementById('emf_val');
+  elV.textContent=(v2>=0?'+':'')+v2.toFixed(3)+' V';
+  elV.style.color=v2>=0?'var(--purple)':'#9944dd';
+  document.getElementById('emf_bar').style.width=(cv*100)+'%';
+  document.getElementById('emf_bar').style.background=
+    v2>=0?`rgba(187,102,255,${.6+cv*.4})`:`rgba(140,60,220,${.6+cv*.4})`;
+
+  document.getElementById('bw_now').textContent=(i2>=0?'+':'')+i2.toFixed(3)+' A';
+  document.getElementById('bw_now').style.color=i2>=0?'var(--blue)':'#cc44ff';
+  document.getElementById('i2pk_disp').textContent=pk2.toFixed(3)+' A';
+  document.getElementById('v2pk_disp').textContent=V2().toFixed(1)+' V';
+}
+
+// ═══════════════════════════════
+// LOOP
+// ═══════════════════════════════
+let lastTs=0;
+function loop(ts){
+  const dt=Math.min((ts-lastTs)/1000,.04); lastTs=ts;
+  if(playing) T+=dt;
+
+  const omega=2*Math.PI*P.freq;
+  const phi=Math.sin(omega*T);
+  const i1=I1pk()*Math.sin(omega*T);
+  const i2=I2pk()*Math.sin(omega*T+Math.PI);       // π phase → opposes flux (Lenz)
+  const v2=V2()*Math.sin(omega*T+Math.PI);
+
+  wv1.shift(); wv1.push(i1);
+  wv2.shift(); wv2.push(i2);
+  wvBig.shift(); wvBig.push(i2);
+
+  setup();
+  const W=mc.offsetWidth, H=mc.offsetHeight;
+  cx2d.clearRect(0,0,W,H);
+  const g=geo(W,H);
+  drawCore(g,phi);
+  drawFieldLoops(g,phi,T);
+  drawCoils(g,phi,T);
+  drawSource(g,phi,T);
+  drawLoad(g,phi,T);
+  drawLabels(g,phi,T);
+
+  drawWave('wv1',wv1,'#ff7c00',I1pk());
+  drawWave('wv2',wv2,'#00b8ff',I2pk());
+  drawBigWave(wvBig);
+  updateSecUI(i2,v2);
+
+  document.getElementById('rdRatio').textContent=(P.N1/P.N2).toFixed(2);
+  document.getElementById('rdI1').textContent=I1pk().toFixed(3)+' A';
+  document.getElementById('rdI2').textContent=I2pk().toFixed(3)+' A';
+  document.getElementById('rdPhi').textContent=PHImax().toFixed(4);
+  document.getElementById('eV1').textContent=P.V1;
+  document.getElementById('eRatio').textContent=(P.N1/P.N2).toFixed(2);
+  document.getElementById('eV2').textContent=V2().toFixed(1);
+  document.getElementById('eI2').textContent=I2pk().toFixed(3);
+
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════
+// CONTROLS
+// ═══════════════════════════════
+function wire(id,key,lblId,fmt){
+  document.getElementById(id).addEventListener('input',function(){
+    P[key]=parseFloat(this.value);
+    document.getElementById(lblId).textContent=fmt(this.value);
+  });
+}
+wire('sN1','N1','lN1',v=>Math.round(v));
+wire('sN2','N2','lN2',v=>Math.round(v));
+wire('sFreq','freq','lFreq',v=>`${v} Hz`);
+wire('sV1','V1','lV1',v=>`${v} V`);
+wire('sR','R','lR',v=>`${v} Ω`);
+wire('sLines','lines','lLines',v=>Math.round(v));
+document.getElementById('playBtn').addEventListener('click',function(){
+  playing=!playing; this.textContent=playing?'⏸ Pause':'▶ Play';
+});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

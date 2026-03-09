@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collision Physics Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1526;
+    --border: #1e2d4a;
+    --accent: #00d4ff;
+    --elastic: #00ff9d;
+    --inelastic: #ff4d6d;
+    --text: #c8d8f0;
+    --muted: #4a6080;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 50%, rgba(255,107,53,0.04) 0%, transparent 60%);
+  }
+
+  h1 {
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 30px rgba(0,212,255,0.5);
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .lab {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .scene-card {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--panel);
+    box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .scene-card.ec { border-color: rgba(0,255,157,0.2); }
+  .scene-card.ic { border-color: rgba(255,77,109,0.2); }
+
+  .scene-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px 0;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+  .dot.e { background: var(--elastic); box-shadow: 0 0 8px var(--elastic); }
+  .dot.i { background: var(--inelastic); box-shadow: 0 0 8px var(--inelastic); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .scene-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .scene-title.e { color: var(--elastic); }
+  .scene-title.i { color: var(--inelastic); }
+
+  .scene-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-left: auto;
+    text-transform: uppercase;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 130px;
+  }
+
+  .flash {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: 12px;
+    transition: opacity 0.08s;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 12px 10px;
+  }
+
+  .stat {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 8px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.56rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: bold;
+  }
+  .sv-e { color: var(--elastic); }
+  .sv-i { color: var(--inelastic); }
+
+  .ke-wrap { padding: 0 12px 12px; }
+  .ke-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.56rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .ke-row { display: flex; flex-direction: column; gap: 5px; }
+  .ke-item { display: flex; align-items: center; gap: 8px; }
+  .ke-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+  .ke-track {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    height: 11px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .ke-fill { height: 100%; border-radius: 3px; transition: width 0.35s ease; }
+  .ke-fill.e { background: linear-gradient(90deg,#00ff9d,#00cc7a); box-shadow: 0 0 8px rgba(0,255,157,0.4); }
+  .ke-fill.i { background: linear-gradient(90deg,#ff4d6d,#cc2244); box-shadow: 0 0 8px rgba(255,77,109,0.4); }
+
+  .scene-btn-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 12px 12px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 14px;
+  }
+  .ctrl-group label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .ctrl-group .val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    float: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  button {
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-e {
+    background: linear-gradient(135deg,#00ff9d,#00cc70);
+    color: #000;
+    box-shadow: 0 3px 14px rgba(0,255,157,0.3);
+  }
+  .btn-e:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(0,255,157,0.5); }
+  .btn-i {
+    background: linear-gradient(135deg,#ff4d6d,#cc2244);
+    color: #fff;
+    box-shadow: 0 3px 14px rgba(255,77,109,0.3);
+  }
+  .btn-i:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(255,77,109,0.5); }
+  .btn-rst {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    font-size: 0.68rem;
+  }
+  .btn-rst:hover { color: var(--text); border-color: #6680aa; }
+  .btn-pause {
+    background: transparent;
+    color: #ffcc00;
+    border: 1px solid rgba(255,204,0,0.35);
+    padding: 7px 14px;
+    font-size: 0.68rem;
+  }
+  .btn-pause:hover { background: rgba(255,204,0,0.08); border-color: #ffcc00; }
+  .btn-pause.paused { color: #00d4ff; border-color: rgba(0,212,255,0.4); }
+  .btn-pause.paused:hover { background: rgba(0,212,255,0.08); border-color: #00d4ff; }
+  button:active { transform: translateY(0) !important; }
+
+  .instructor {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.61rem;
+    color: var(--muted);
+    line-height: 1.85;
+    letter-spacing: 0.04em;
+  }
+  .hle { color: var(--elastic); }
+  .hli { color: var(--inelastic); }
+  .hly { color: #ffcc00; }
+</style>
+</head>
+<body>
+
+<h1>⚛ Collision Physics Lab</h1>
+<p class="subtitle">Elastic &amp; Inelastic · Interactive Simulation</p>
+<p class="instructor">Instructor: Dr. S Karna</p>
+
+<div class="lab">
+
+  <!-- ELASTIC -->
+  <div class="scene-card ec">
+    <div class="flash" id="eFlash" style="background:rgba(0,255,157,0.1)"></div>
+    <div class="scene-header">
+      <span class="dot e"></span>
+      <span class="scene-title e">Elastic Collision</span>
+      <span class="scene-badge">KE + Momentum Conserved</span>
+    </div>
+    <canvas id="eCanvas"></canvas>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">v₁ before</div><div class="stat-value sv-e" id="e_v1b">—</div></div>
+      <div class="stat"><div class="stat-label">v₂ before</div><div class="stat-value sv-e" id="e_v2b">—</div></div>
+      <div class="stat"><div class="stat-label">v₁ after</div><div class="stat-value sv-e" id="e_v1a">—</div></div>
+      <div class="stat"><div class="stat-label">v₂ after</div><div class="stat-value sv-e" id="e_v2a">—</div></div>
+    </div>
+    <div class="ke-wrap">
+      <div class="ke-label">Kinetic Energy</div>
+      <div class="ke-row">
+        <div class="ke-item"><span class="ke-tag">Before</span><div class="ke-track"><div class="ke-fill e" id="e_ke_b" style="width:0%"></div></div></div>
+        <div class="ke-item"><span class="ke-tag">After</span><div class="ke-track"><div class="ke-fill e" id="e_ke_a" style="width:0%"></div></div></div>
+      </div>
+    </div>
+    <div class="scene-btn-row">
+      <button class="btn-rst"   id="eRst">↺ Reset</button>
+      <button class="btn-pause" id="ePause" disabled>⏸ Pause</button>
+      <button class="btn-e"     id="eLaunch">▶ Launch Elastic</button>
+    </div>
+  </div>
+
+  <!-- INELASTIC -->
+  <div class="scene-card ic">
+    <div class="flash" id="iFlash" style="background:rgba(255,77,109,0.1)"></div>
+    <div class="scene-header">
+      <span class="dot i"></span>
+      <span class="scene-title i">Inelastic Collision</span>
+      <span class="scene-badge">Momentum Conserved · KE Lost</span>
+    </div>
+    <canvas id="iCanvas"></canvas>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">v₁ before</div><div class="stat-value sv-i" id="i_v1b">—</div></div>
+      <div class="stat"><div class="stat-label">v₂ before</div><div class="stat-value sv-i" id="i_v2b">—</div></div>
+      <div class="stat"><div class="stat-label">v after</div><div class="stat-value sv-i" id="i_va">—</div></div>
+      <div class="stat"><div class="stat-label">KE lost</div><div class="stat-value sv-i" id="i_ke_lost">—</div></div>
+    </div>
+    <div class="ke-wrap">
+      <div class="ke-label">Kinetic Energy</div>
+      <div class="ke-row">
+        <div class="ke-item"><span class="ke-tag">Before</span><div class="ke-track"><div class="ke-fill i" id="i_ke_b" style="width:0%"></div></div></div>
+        <div class="ke-item"><span class="ke-tag">After</span><div class="ke-track"><div class="ke-fill i" id="i_ke_a" style="width:0%"></div></div></div>
+      </div>
+    </div>
+    <div class="scene-btn-row">
+      <button class="btn-rst"   id="iRst">↺ Reset</button>
+      <button class="btn-pause" id="iPause" disabled>⏸ Pause</button>
+      <button class="btn-i"     id="iLaunch">▶ Launch Inelastic</button>
+    </div>
+  </div>
+
+  <!-- SHARED CONTROLS -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Mass 1 <span class="val" id="lbl_m1">2 kg</span></label>
+      <input type="range" id="mass1" min="1" max="5" step="0.5" value="2">
+    </div>
+    <div class="ctrl-group">
+      <label>Mass 2 <span class="val" id="lbl_m2">2 kg</span></label>
+      <input type="range" id="mass2" min="1" max="5" step="0.5" value="2">
+    </div>
+    <div class="ctrl-group">
+      <label>Velocity 1 → <span class="val" id="lbl_v1">4 m/s</span></label>
+      <input type="range" id="vel1" min="1" max="8" step="0.5" value="4">
+    </div>
+    <div class="ctrl-group">
+      <label>Velocity 2 ← <span class="val" id="lbl_v2">-2 m/s</span></label>
+      <input type="range" id="vel2" min="-8" max="0" step="0.5" value="-2">
+    </div>
+  </div>
+
+  <div class="info-banner">
+    <span class="hle">Elastic</span> — objects bounce: v₁' = ((m₁−m₂)v₁ + 2m₂v₂)/(m₁+m₂) &nbsp;·&nbsp; v₂' = ((m₂−m₁)v₂ + 2m₁v₁)/(m₁+m₂)<br>
+    <span class="hli">Inelastic</span> — objects <span class="hly">stick together</span> and travel as one: v' = (m₁v₁ + m₂v₂)/(m₁+m₂) &nbsp;·&nbsp; kinetic energy is lost to heat &amp; deformation
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════════
+const eCanvas = document.getElementById('eCanvas');
+const iCanvas = document.getElementById('iCanvas');
+const eCtx = eCanvas.getContext('2d');
+const iCtx = iCanvas.getContext('2d');
+const DPR = window.devicePixelRatio || 1;
+
+function resizeAll() {
+  [eCanvas, iCanvas].forEach(c => {
+    c.width  = c.offsetWidth  * DPR;
+    c.height = c.offsetHeight * DPR;
+  });
+}
+window.addEventListener('resize', () => { resizeAll(); if (!E.running) drawEStatic(); if (!I.running) drawIStatic(); });
+resizeAll();
+
+// ═══════════════════════════════════════════════════════
+//  PARAMS
+// ═══════════════════════════════════════════════════════
+let m1=2, m2=2, v1=4, v2=-2;
+const FLOOR_R = 0.72;
+const SPD_BASE = 48; // px per m/s
+
+// ═══════════════════════════════════════════════════════
+//  SCENE STATE
+// ═══════════════════════════════════════════════════════
+const E = { running:false, paused:false, animId:null, collided:false, b1:null, b2:null, trail1:[], trail2:[], v1f:0, v2f:0, keBefore:0, keAfter:0 };
+const I = { running:false, paused:false, animId:null, collided:false, stuck:false, b1:null, b2:null, trail1:[], trail2:[], vf:0, keBefore:0, keAfter:0 };
+
+// ═══════════════════════════════════════════════════════
+//  PHYSICS
+// ═══════════════════════════════════════════════════════
+const elasticVels = (m1,m2,u1,u2) => [
+  ((m1-m2)*u1 + 2*m2*u2) / (m1+m2),
+  ((m2-m1)*u2 + 2*m1*u1) / (m1+m2)
+];
+const inelasticVel = (m1,m2,u1,u2) => (m1*u1 + m2*u2) / (m1+m2);
+const ke = (m,v) => 0.5*m*v*v;
+const spd = () => SPD_BASE * DPR * 0.016;
+
+// ═══════════════════════════════════════════════════════
+//  COLOURS
+// ═══════════════════════════════════════════════════════
+const C = { e1:'#00ff9d', e2:'#00d4ff', i1:'#ff4d6d', i2:'#ff8c42' };
+
+function adjHex(hex, d) {
+  const n = parseInt(hex.replace('#',''),16);
+  const clamp = (v,mn,mx) => Math.min(mx,Math.max(mn,v));
+  return `rgb(${clamp((n>>16)+d,0,255)},${clamp(((n>>8)&0xff)+d,0,255)},${clamp((n&0xff)+d,0,255)})`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW PRIMITIVES
+// ═══════════════════════════════════════════════════════
+function drawFloor(ctx, W, H) {
+  const fy = H * FLOOR_R;
+  const g = ctx.createLinearGradient(0,fy,0,H);
+  g.addColorStop(0,'rgba(30,45,74,0.7)');
+  g.addColorStop(1,'rgba(10,14,26,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,fy,W,H-fy);
+  ctx.strokeStyle = 'rgba(0,212,255,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+}
+
+function drawBall(ctx, b) {
+  ctx.save();
+  ctx.shadowColor = b.col; ctx.shadowBlur = 18;
+  const g = ctx.createRadialGradient(b.x-b.r*0.3, b.y-b.r*0.35, b.r*0.08, b.x, b.y, b.r);
+  g.addColorStop(0, adjHex(b.col, 75));
+  g.addColorStop(0.5, b.col);
+  g.addColorStop(1, adjHex(b.col, -55));
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = adjHex(b.col, 50); ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+
+function drawArrow(ctx, b) {
+  const sp = Math.abs(b.vx);
+  if (sp < 0.4) return;
+  const dir = b.vx > 0 ? 1 : -1;
+  const len = Math.min(sp * 5.5, b.r * 2.2);
+  const sx = b.x + dir*b.r, ex = sx + dir*len, y = b.y;
+  ctx.save();
+  ctx.strokeStyle = b.col; ctx.lineWidth = 2;
+  ctx.shadowColor = b.col; ctx.shadowBlur = 8; ctx.globalAlpha = 0.75;
+  ctx.beginPath(); ctx.moveTo(sx,y); ctx.lineTo(ex,y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex,y);
+  ctx.lineTo(ex-dir*8, y-5); ctx.lineTo(ex-dir*8, y+5);
+  ctx.closePath(); ctx.fillStyle = b.col; ctx.fill();
+  ctx.restore();
+}
+
+function drawLbl(ctx, b, txt) {
+  ctx.save();
+  ctx.font = `bold ${Math.max(9, b.r*0.65)}px 'Share Tech Mono', monospace`;
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, b.x, b.y);
+  ctx.restore();
+}
+
+// ─── Sticky bond visual between two touching balls ───
+function drawBond(ctx, b1, b2) {
+  // Draw a glowing chain/bond line between the touching surfaces
+  const x1 = b1.x + b1.r;
+  const x2 = b2.x - b2.r;
+  const y  = b1.y;
+  if (x2 <= x1) return; // overlapping — skip
+
+  ctx.save();
+  // glow
+  ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 14;
+  ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 2.5;
+  ctx.setLineDash([5, 3]);
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+
+  // dots at ends
+  ctx.setLineDash([]);
+  [x1, x2].forEach(px => {
+    ctx.beginPath(); ctx.arc(px, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#ffcc00'; ctx.fill();
+  });
+  ctx.restore();
+}
+
+function flashEl(id) {
+  const el = document.getElementById(id);
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 180);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+function initE() {
+  const W = eCanvas.width, H = eCanvas.height, fy = H*FLOOR_R;
+  const r1 = Math.max(14, Math.min(34, m1*10))*DPR;
+  const r2 = Math.max(14, Math.min(34, m2*10))*DPR;
+  E.b1 = {x:W*0.18, y:fy-r1, r:r1, vx: v1*spd(), col:C.e1};
+  E.b2 = {x:W*0.82, y:fy-r2, r:r2, vx: v2*spd(), col:C.e2};
+  E.trail1=[]; E.trail2=[]; E.collided=false;
+  const [v1f, v2f] = elasticVels(m1,m2,v1,v2);
+  E.v1f=v1f; E.v2f=v2f;
+  E.keBefore = ke(m1,v1)+ke(m2,v2);
+  E.keAfter  = ke(m1,v1f)+ke(m2,v2f);
+  g('e_v1b').textContent=fmt(v1); g('e_v2b').textContent=fmt(v2);
+  g('e_v1a').textContent='—';    g('e_v2a').textContent='—';
+  g('e_ke_b').style.width='80%'; g('e_ke_a').style.width='0%';
+}
+
+function initI() {
+  const W = iCanvas.width, H = iCanvas.height, fy = H*FLOOR_R;
+  const r1 = Math.max(14, Math.min(34, m1*10))*DPR;
+  const r2 = Math.max(14, Math.min(34, m2*10))*DPR;
+  I.b1 = {x:W*0.18, y:fy-r1, r:r1, vx: v1*spd(), col:C.i1};
+  I.b2 = {x:W*0.82, y:fy-r2, r:r2, vx: v2*spd(), col:C.i2};
+  I.trail1=[]; I.trail2=[]; I.collided=false; I.stuck=false;
+  const vf = inelasticVel(m1,m2,v1,v2);
+  I.vf=vf;
+  I.keBefore = ke(m1,v1)+ke(m2,v2);
+  I.keAfter  = ke(m1+m2,vf);
+  g('i_v1b').textContent=fmt(v1); g('i_v2b').textContent=fmt(v2);
+  g('i_va').textContent='—'; g('i_ke_lost').textContent='—';
+  g('i_ke_b').style.width='80%'; g('i_ke_a').style.width='0%';
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════
+function drawEScene() {
+  const ctx=eCtx, W=eCanvas.width, H=eCanvas.height;
+  ctx.clearRect(0,0,W,H); drawFloor(ctx,W,H);
+  E.trail1.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,E.b1.r*0.12,0,Math.PI*2); ctx.fillStyle=`rgba(0,255,157,${i/E.trail1.length*0.12})`; ctx.fill(); });
+  E.trail2.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,E.b2.r*0.12,0,Math.PI*2); ctx.fillStyle=`rgba(0,212,255,${i/E.trail2.length*0.12})`; ctx.fill(); });
+  drawBall(ctx,E.b1); drawBall(ctx,E.b2);
+  drawArrow(ctx,E.b1); drawArrow(ctx,E.b2);
+  drawLbl(ctx,E.b1,'m₁'); drawLbl(ctx,E.b2,'m₂');
+}
+
+function drawIScene() {
+  const ctx=iCtx, W=iCanvas.width, H=iCanvas.height;
+  ctx.clearRect(0,0,W,H); drawFloor(ctx,W,H);
+  I.trail1.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,I.b1.r*0.12,0,Math.PI*2); ctx.fillStyle=`rgba(255,77,109,${i/I.trail1.length*0.12})`; ctx.fill(); });
+  I.trail2.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,I.b2.r*0.12,0,Math.PI*2); ctx.fillStyle=`rgba(255,140,66,${i/I.trail2.length*0.12})`; ctx.fill(); });
+  // Draw bond UNDER balls so balls render on top
+  if (I.stuck) drawBond(ctx, I.b1, I.b2);
+  drawBall(ctx,I.b1); drawBall(ctx,I.b2);
+  // Only show combined arrow after sticking, one arrow on b1
+  if (I.stuck) { drawArrow(ctx,I.b1); } else { drawArrow(ctx,I.b1); drawArrow(ctx,I.b2); }
+  drawLbl(ctx,I.b1,'m₁'); drawLbl(ctx,I.b2,'m₂');
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATIC PREVIEWS
+// ═══════════════════════════════════════════════════════
+function drawEStatic() {
+  const W=eCanvas.width, H=eCanvas.height, fy=H*FLOOR_R;
+  const r1=Math.max(14,Math.min(34,m1*10))*DPR, r2=Math.max(14,Math.min(34,m2*10))*DPR;
+  eCtx.clearRect(0,0,W,H); drawFloor(eCtx,W,H);
+  const b1={x:W*0.24,y:fy-r1,r:r1,col:C.e1,vx:v1*1.4};
+  const b2={x:W*0.76,y:fy-r2,r:r2,col:C.e2,vx:v2*1.4};
+  drawBall(eCtx,b1); drawBall(eCtx,b2);
+  drawArrow(eCtx,b1); drawArrow(eCtx,b2);
+  drawLbl(eCtx,b1,'m₁'); drawLbl(eCtx,b2,'m₂');
+}
+
+function drawIStatic() {
+  const W=iCanvas.width, H=iCanvas.height, fy=H*FLOOR_R;
+  const r1=Math.max(14,Math.min(34,m1*10))*DPR, r2=Math.max(14,Math.min(34,m2*10))*DPR;
+  iCtx.clearRect(0,0,W,H); drawFloor(iCtx,W,H);
+  const b1={x:W*0.24,y:fy-r1,r:r1,col:C.i1,vx:v1*1.4};
+  const b2={x:W*0.76,y:fy-r2,r:r2,col:C.i2,vx:v2*1.4};
+  drawBall(iCtx,b1); drawBall(iCtx,b2);
+  drawArrow(iCtx,b1); drawArrow(iCtx,b2);
+  drawLbl(iCtx,b1,'m₁'); drawLbl(iCtx,b2,'m₂');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PHYSICS UPDATES
+// ═══════════════════════════════════════════════════════
+let eTick=0, iTick=0;
+
+function updateE() {
+  const b1=E.b1, b2=E.b2, W=eCanvas.width;
+  eTick++;
+  if (eTick%2===0) {
+    E.trail1.push({x:b1.x,y:b1.y}); if(E.trail1.length>24)E.trail1.shift();
+    E.trail2.push({x:b2.x,y:b2.y}); if(E.trail2.length>24)E.trail2.shift();
+  }
+  b1.x+=b1.vx; b2.x+=b2.vx;
+  if(b1.x-b1.r<0){b1.x=b1.r; b1.vx=Math.abs(b1.vx);}
+  if(b2.x+b2.r>W){b2.x=W-b2.r; b2.vx=-Math.abs(b2.vx);}
+  if(!E.collided && b1.x+b1.r >= b2.x-b2.r && b1.vx>b2.vx){
+    E.collided=true;
+    // Separate balls to prevent overlap
+    const overlap = (b1.x+b1.r)-(b2.x-b2.r);
+    b1.x -= overlap/2; b2.x += overlap/2;
+    b1.vx = E.v1f*spd();
+    b2.vx = E.v2f*spd();
+    flashEl('eFlash');
+    g('e_v1a').textContent=fmt(E.v1f);
+    g('e_v2a').textContent=fmt(E.v2f);
+    g('e_ke_a').style.width=pctW(E.keAfter,E.keBefore)+'%';
+  }
+}
+
+function updateI() {
+  const b1=I.b1, b2=I.b2, W=iCanvas.width;
+  iTick++;
+
+  if(!I.stuck){
+    if(iTick%2===0){
+      I.trail1.push({x:b1.x,y:b1.y}); if(I.trail1.length>24)I.trail1.shift();
+      I.trail2.push({x:b2.x,y:b2.y}); if(I.trail2.length>24)I.trail2.shift();
+    }
+    b1.x+=b1.vx; b2.x+=b2.vx;
+    if(b1.x-b1.r<0){b1.x=b1.r; b1.vx=Math.abs(b1.vx);}
+    if(b2.x+b2.r>W){b2.x=W-b2.r; b2.vx=-Math.abs(b2.vx);}
+
+    if(!I.collided && b1.x+b1.r >= b2.x-b2.r && b1.vx>b2.vx){
+      I.collided=true; I.stuck=true;
+      flashEl('iFlash');
+
+      // Position balls touching (no overlap)
+      const mid = (b1.x + b2.x) / 2;
+      b1.x = mid - b1.r;
+      b2.x = mid + b2.r;
+      // Both get same velocity
+      const vfPx = I.vf * spd();
+      b1.vx = vfPx;
+      b2.vx = vfPx;
+
+      const lostPct = Math.round((1 - I.keAfter/I.keBefore)*100);
+      g('i_va').textContent=fmt(I.vf);
+      g('i_ke_lost').textContent=lostPct+'%';
+      g('i_ke_a').style.width=pctW(I.keAfter,I.keBefore)+'%';
+    }
+  } else {
+    // Move as a unit — b2 stays flush against b1's right side
+    b1.x += b1.vx;
+    b2.x = b1.x + b1.r + b2.r;
+
+    // Wall collision for the combined unit
+    if(b1.x - b1.r < 0){
+      b1.x = b1.r;
+      b2.x = b1.x + b1.r + b2.r;
+      b1.vx = Math.abs(b1.vx);
+      b2.vx = b1.vx;
+    }
+    if(b2.x + b2.r > W){
+      b2.x = W - b2.r;
+      b1.x = b2.x - b1.r - b2.r;
+      b1.vx = -Math.abs(b1.vx);
+      b2.vx = b1.vx;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOOPS (independent)
+// ═══════════════════════════════════════════════════════
+function loopE(){ if(!E.paused){ updateE(); drawEScene(); } E.animId=requestAnimationFrame(loopE); }
+function loopI(){ if(!I.paused){ updateI(); drawIScene(); } I.animId=requestAnimationFrame(loopI); }
+
+function stopE(){ if(E.animId){cancelAnimationFrame(E.animId); E.animId=null;} E.running=false; }
+function stopI(){ if(I.animId){cancelAnimationFrame(I.animId); I.animId=null;} I.running=false; }
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+const g   = id => document.getElementById(id);
+const fmt = v  => v.toFixed(2)+' m/s';
+const pctW= (a,b) => Math.max(2, Math.round((a/b)*80));
+
+function readControls(){
+  m1=parseFloat(g('mass1').value);
+  m2=parseFloat(g('mass2').value);
+  v1=parseFloat(g('vel1').value);
+  v2=parseFloat(g('vel2').value);
+}
+
+// ═══════════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════════
+['mass1','mass2','vel1','vel2'].forEach(id=>{
+  g(id).addEventListener('input',()=>{
+    readControls();
+    g('lbl_m1').textContent=m1+' kg';
+    g('lbl_m2').textContent=m2+' kg';
+    g('lbl_v1').textContent=v1+' m/s';
+    g('lbl_v2').textContent=v2+' m/s';
+    if(!E.running) drawEStatic();
+    if(!I.running) drawIStatic();
+  });
+});
+
+g('eLaunch').addEventListener('click',()=>{ stopE(); readControls(); eTick=0; initE(); E.running=true; E.paused=false; g('ePause').disabled=false; g('ePause').textContent='⏸ Pause'; g('ePause').classList.remove('paused'); loopE(); });
+g('eRst').addEventListener('click',()=>{
+  stopE(); readControls(); E.paused=false; g('ePause').disabled=true; g('ePause').textContent='⏸ Pause'; g('ePause').classList.remove('paused');
+  ['e_v1b','e_v2b','e_v1a','e_v2a'].forEach(id=>g(id).textContent='—');
+  ['e_ke_b','e_ke_a'].forEach(id=>g(id).style.width='0%');
+  drawEStatic();
+});
+g('ePause').addEventListener('click',()=>{
+  if(!E.running) return;
+  E.paused = !E.paused;
+  if(E.paused){ g('ePause').textContent='▶ Resume'; g('ePause').classList.add('paused'); }
+  else        { g('ePause').textContent='⏸ Pause';  g('ePause').classList.remove('paused'); }
+});
+
+g('iLaunch').addEventListener('click',()=>{ stopI(); readControls(); iTick=0; initI(); I.running=true; I.paused=false; g('iPause').disabled=false; g('iPause').textContent='⏸ Pause'; g('iPause').classList.remove('paused'); loopI(); });
+g('iRst').addEventListener('click',()=>{
+  stopI(); readControls(); I.paused=false; g('iPause').disabled=true; g('iPause').textContent='⏸ Pause'; g('iPause').classList.remove('paused');
+  ['i_v1b','i_v2b','i_va','i_ke_lost'].forEach(id=>g(id).textContent='—');
+  ['i_ke_b','i_ke_a'].forEach(id=>g(id).style.width='0%');
+  drawIStatic();
+});
+g('iPause').addEventListener('click',()=>{
+  if(!I.running) return;
+  I.paused = !I.paused;
+  if(I.paused){ g('iPause').textContent='▶ Resume'; g('iPause').classList.add('paused'); }
+  else        { g('iPause').textContent='⏸ Pause';  g('iPause').classList.remove('paused'); }
+});
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+drawEStatic();
+drawIStatic();
+</script>
+</body>
+</html>

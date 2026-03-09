@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gas Laws — Interactive Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --bg:#05080f;
+  --surface:#090e1a;
+  --panel:#0c1220;
+  --border:#1a2540;
+  --border2:#243050;
+  --cyan:#00e5ff;
+  --green:#39ff8f;
+  --orange:#ff8c00;
+  --red:#ff3d5a;
+  --purple:#bf6fff;
+  --yellow:#ffe040;
+  --text:#b8d4f0;
+  --muted:#3a5070;
+  --dimtext:#6080a0;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Rajdhani',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:18px 14px 36px;
+  overflow-x:hidden;
+}
+
+/* grid bg */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse at 50% 0%, rgba(0,100,200,0.12) 0%, transparent 65%);
+  pointer-events:none;
+}
+
+/* ── HEADER ── */
+.hdr{text-align:center;margin-bottom:18px;position:relative;z-index:1;}
+.hdr-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:5px;
+  color:var(--cyan);text-transform:uppercase;
+  text-shadow:0 0 16px rgba(0,229,255,0.6);
+  margin-bottom:4px;
+}
+h1{
+  font-family:'Rajdhani',sans-serif;
+  font-size:clamp(22px,5vw,40px);
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:#e8f4ff;
+  text-shadow:0 0 30px rgba(0,180,255,0.3);
+  line-height:1;
+}
+.hdr-rule{
+  width:220px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  margin:8px auto;
+  box-shadow:0 0 8px var(--cyan);
+}
+.hdr-desc{font-size:14px;color:var(--dimtext);font-weight:400;letter-spacing:1px;}
+
+/* ── TAB BAR ── */
+.tabs{
+  display:flex;gap:4px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:4px;
+  margin-bottom:16px;
+  position:relative;z-index:1;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.tab{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:8px 14px;
+  border-radius:5px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  transition:all 0.25s;
+  white-space:nowrap;
+}
+.tab:hover{color:var(--text);border-color:var(--border2);}
+.tab.active{
+  color:var(--bg);
+  font-weight:700;
+}
+.tab[data-law="boyle"].active   {background:var(--cyan);  border-color:var(--cyan);  box-shadow:0 0 16px rgba(0,229,255,0.5);}
+.tab[data-law="charles"].active {background:var(--orange);border-color:var(--orange);box-shadow:0 0 16px rgba(255,140,0,0.5);}
+.tab[data-law="gay-lussac"].active{background:var(--red); border-color:var(--red);   box-shadow:0 0 16px rgba(255,61,90,0.5);}
+.tab[data-law="combined"].active{background:var(--purple);border-color:var(--purple);box-shadow:0 0 16px rgba(191,111,255,0.5);}
+.tab[data-law="ideal"].active   {background:var(--green); border-color:var(--green); box-shadow:0 0 16px rgba(57,255,143,0.5);}
+
+/* ── MAIN CARD ── */
+.card{
+  width:100%;max-width:980px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  position:relative;z-index:1;
+  box-shadow:0 0 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* law title stripe */
+.law-stripe{
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--border);
+}
+.law-icon{
+  width:40px;height:40px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+  border:1px solid;
+}
+.law-name{
+  font-family:'Rajdhani';
+  font-size:22px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+}
+.law-formula{
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;font-weight:600;
+  margin-left:auto;
+  padding:5px 12px;
+  border-radius:5px;
+  border:1px solid;
+  letter-spacing:1px;
+}
+
+/* ── SIMULATION GRID ── */
+.sim-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:16px;
+}
+@media(max-width:640px){.sim-grid{grid-template-columns:1fr;}}
+
+/* ── CYLINDER ── */
+.cylinder-wrap{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+.cyl-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:3px;
+  color:var(--dimtext);text-transform:uppercase;
+  align-self:flex-start;
+}
+
+.cylinder{
+  position:relative;
+  width:120px;
+  border:2px solid;
+  border-radius:4px 4px 8px 8px;
+  overflow:hidden;
+  background:#060b14;
+  transition:height 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* piston */
+.piston{
+  position:absolute;
+  top:0;left:0;right:0;
+  height:18px;
+  background:linear-gradient(180deg,#2a3a5a,#1a2535);
+  border-bottom:2px solid;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono';font-size:8px;letter-spacing:1px;
+  transition:height 0.4s;
+  z-index:3;
+  user-select:none;
+}
+.piston-handle{
+  position:absolute;
+  top:-14px;left:50%;transform:translateX(-50%);
+  width:6px;height:14px;
+  background:linear-gradient(180deg,#3a5070,#2a3a5a);
+  border-radius:3px 3px 0 0;
+  border:1px solid #4a6080;
+}
+
+/* gas particles canvas */
+.gas-canvas{
+  position:absolute;
+  left:0;top:0;
+  width:100%;height:100%;
+  z-index:2;
+}
+
+/* temperature glow at bottom */
+.heat-glow{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:30px;
+  transition:all 0.5s;
+  pointer-events:none;
+  z-index:1;
+}
+
+/* Cylinder labels */
+.cyl-labels{
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+}
+.cyl-lbl{
+  display:flex;flex-direction:column;
+  align-items:center;gap:2px;
+}
+.cyl-lbl-name{font-size:8px;letter-spacing:1px;color:var(--dimtext);}
+.cyl-lbl-val{font-size:13px;font-weight:700;transition:color 0.3s;}
+
+/* ── GAUGE ── */
+.gauge-wrap{
+  position:relative;
+  width:100px;height:55px;
+  margin-top:4px;
+}
+.gauge-svg{width:100%;height:100%;}
+.gauge-needle{
+  transform-origin:50px 50px;
+  transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.gauge-val{
+  position:absolute;
+  bottom:2px;left:50%;transform:translateX(-50%);
+  font-family:'JetBrains Mono';font-size:11px;font-weight:700;
+  white-space:nowrap;
+}
+
+/* ── CONTROLS ── */
+.controls-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:16px;
+}
+@media(max-width:640px){.controls-grid{grid-template-columns:1fr;}}
+
+.ctrl-panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+}
+
+.ctrl-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;letter-spacing:3px;color:var(--dimtext);
+  text-transform:uppercase;margin-bottom:12px;
+}
+
+.slider-row{margin-bottom:10px;}
+.slider-lbl{
+  display:flex;justify-content:space-between;
+  font-size:13px;color:var(--text);
+  margin-bottom:5px;letter-spacing:0.5px;
+}
+.slider-lbl .val{
+  font-family:'JetBrains Mono';font-size:12px;font-weight:600;
+}
+input[type=range]{
+  width:100%;-webkit-appearance:none;
+  height:3px;border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--border);cursor:pointer;
+  box-shadow:0 0 8px currentColor;
+}
+
+.lock-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'JetBrains Mono';font-size:8px;
+  letter-spacing:1.5px;color:var(--dimtext);
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  padding:4px 8px;border-radius:4px;
+  margin-top:6px;
+}
+.lock-dot{width:6px;height:6px;border-radius:50%;}
+
+/* ── INFO BOX ── */
+.info-box{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+@media(max-width:480px){.info-box{grid-template-columns:1fr;}}
+
+.info-stat{display:flex;flex-direction:column;gap:2px;}
+.info-stat-label{font-family:'JetBrains Mono';font-size:8px;letter-spacing:2px;color:var(--dimtext);text-transform:uppercase;}
+.info-stat-val{font-family:'JetBrains Mono';font-size:15px;font-weight:700;}
+
+.principle-text{
+  grid-column:1/-1;
+  font-size:13px;line-height:1.6;color:var(--dimtext);
+  font-style:italic;
+  border-top:1px solid var(--border);
+  padding-top:10px;
+  margin-top:4px;
+}
+.principle-eq{
+  font-family:'JetBrains Mono';font-size:13px;
+  font-weight:600;color:var(--text);
+  background:rgba(255,255,255,0.04);
+  padding:3px 8px;border-radius:4px;
+  display:inline-block;margin-top:4px;
+}
+
+/* ── GRAPH ── */
+.graph-wrap{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  margin-top:12px;
+}
+.graph-title{
+  font-family:'JetBrains Mono';font-size:8px;
+  letter-spacing:3px;color:var(--dimtext);
+  text-transform:uppercase;margin-bottom:10px;
+}
+.graph-canvas{width:100%;height:100px;display:block;}
+
+/* ── PARTICLE COLLISION flash ── */
+@keyframes flashWall{
+  0%{opacity:0.8}100%{opacity:0}
+}
+.wall-flash{
+  position:absolute;pointer-events:none;
+  border-radius:50%;
+  animation:flashWall 0.3s ease-out forwards;
+  z-index:5;
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-sub">⚗ Kinetic Theory · Thermodynamics</div>
+  <h1>Gas Laws</h1>
+  <div class="hdr-rule"></div>
+  <div class="hdr-desc">Interactive molecular simulation of ideal gas behavior</div>
+</div>
+
+<!-- Tab bar -->
+<div class="tabs">
+  <button class="tab active" data-law="boyle">Boyle's Law</button>
+  <button class="tab" data-law="charles">Charles' Law</button>
+  <button class="tab" data-law="gay-lussac">Gay-Lussac's</button>
+  <button class="tab" data-law="combined">Combined</button>
+  <button class="tab" data-law="ideal">Ideal Gas</button>
+</div>
+
+<!-- Main card -->
+<div class="card">
+  <!-- Law stripe -->
+  <div class="law-stripe">
+    <div class="law-icon" id="lawIcon"></div>
+    <div>
+      <div class="law-name" id="lawName"></div>
+      <div style="font-size:12px;color:var(--dimtext);margin-top:2px;" id="lawCondition"></div>
+    </div>
+    <div class="law-formula" id="lawFormula"></div>
+  </div>
+
+  <!-- Two cylinders side-by-side -->
+  <div class="sim-grid">
+    <div class="cylinder-wrap">
+      <div class="cyl-title">Initial State (1)</div>
+      <div style="position:relative;">
+        <div class="piston-handle" id="pHandle1"></div>
+        <div class="cylinder" id="cyl1">
+          <div class="piston" id="piston1"><span style="color:#4a6080;font-size:7px;">▓▓ PISTON ▓▓</span></div>
+          <canvas class="gas-canvas" id="canvas1"></canvas>
+          <div class="heat-glow" id="heatGlow1"></div>
+        </div>
+      </div>
+      <div class="cyl-labels">
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">PRESSURE</div>
+          <div class="cyl-lbl-val" id="p1disp" style="color:var(--cyan)">1.0</div>
+        </div>
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">VOLUME</div>
+          <div class="cyl-lbl-val" id="v1disp" style="color:var(--orange)">1.0</div>
+        </div>
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">TEMP (K)</div>
+          <div class="cyl-lbl-val" id="t1disp" style="color:var(--red)">300</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cylinder-wrap">
+      <div class="cyl-title">Final State (2)</div>
+      <div style="position:relative;">
+        <div class="piston-handle" id="pHandle2"></div>
+        <div class="cylinder" id="cyl2">
+          <div class="piston" id="piston2"><span style="color:#4a6080;font-size:7px;">▓▓ PISTON ▓▓</span></div>
+          <canvas class="gas-canvas" id="canvas2"></canvas>
+          <div class="heat-glow" id="heatGlow2"></div>
+        </div>
+      </div>
+      <div class="cyl-labels">
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">PRESSURE</div>
+          <div class="cyl-lbl-val" id="p2disp" style="color:var(--cyan)">—</div>
+        </div>
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">VOLUME</div>
+          <div class="cyl-lbl-val" id="v2disp" style="color:var(--orange)">—</div>
+        </div>
+        <div class="cyl-lbl">
+          <div class="cyl-lbl-name">TEMP (K)</div>
+          <div class="cyl-lbl-val" id="t2disp" style="color:var(--red)">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-grid" id="controlsGrid"></div>
+
+  <!-- Info box -->
+  <div class="info-box" id="infoBox"></div>
+
+  <!-- Graph -->
+  <div class="graph-wrap">
+    <div class="graph-title" id="graphTitle">P-V Relationship</div>
+    <canvas class="graph-canvas" id="graphCanvas" height="100"></canvas>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// GAS LAWS CONFIG
+// ═══════════════════════════════════
+const LAWS = {
+  'boyle': {
+    name:"Boyle's Law",
+    icon:'🔩',
+    condition:'Temperature Constant (Isothermal)',
+    formula:'P₁V₁ = P₂V₂',
+    color:'#00e5ff',
+    controls: ['P1','V1','P2'],
+    locked: ['V2'],
+    principle:'At constant temperature, pressure and volume are inversely proportional. Compressing gas increases pressure; expanding decreases it.',
+    graphLabel:'P vs V (Hyperbola)',
+    graphX:'V', graphY:'P',
+  },
+  'charles': {
+    name:"Charles' Law",
+    icon:'🌡',
+    condition:'Pressure Constant (Isobaric)',
+    formula:'V₁/T₁ = V₂/T₂',
+    color:'#ff8c00',
+    controls: ['V1','T1','T2'],
+    locked: ['V2'],
+    principle:'At constant pressure, volume is directly proportional to absolute temperature. Hot gas expands; cold gas contracts.',
+    graphLabel:'V vs T (Linear)',
+    graphX:'T', graphY:'V',
+  },
+  'gay-lussac': {
+    name:"Gay-Lussac's Law",
+    icon:'🔥',
+    condition:'Volume Constant (Isochoric)',
+    formula:'P₁/T₁ = P₂/T₂',
+    color:'#ff3d5a',
+    controls: ['P1','T1','T2'],
+    locked: ['P2'],
+    principle:'At constant volume, pressure is directly proportional to absolute temperature. Heating a sealed container increases pressure.',
+    graphLabel:'P vs T (Linear)',
+    graphX:'T', graphY:'P',
+  },
+  'combined': {
+    name:'Combined Gas Law',
+    icon:'⚗',
+    condition:'Moles of Gas Constant',
+    formula:'P₁V₁/T₁ = P₂V₂/T₂',
+    color:'#bf6fff',
+    controls: ['P1','V1','T1','T2','V2'],
+    locked: ['P2'],
+    principle:'The combined gas law unifies Boyle\'s, Charles\', and Gay-Lussac\'s laws. Change any two variables while keeping moles constant.',
+    graphLabel:'PV/T = constant',
+    graphX:'T', graphY:'PV',
+  },
+  'ideal': {
+    name:'Ideal Gas Law',
+    icon:'💡',
+    condition:'PV = nRT',
+    formula:'PV = nRT',
+    color:'#39ff8f',
+    controls: ['P1','V1','T1','n'],
+    locked: [],
+    principle:'The ideal gas law relates pressure, volume, temperature, and moles. R = 8.314 J/(mol·K). All variables interact simultaneously.',
+    graphLabel:'PV vs nT',
+    graphX:'nT', graphY:'PV',
+  },
+};
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let currentLaw = 'boyle';
+let state = { P1:1.0, V1:1.0, T1:300, P2:null, V2:null, T2:300, n:1.0 };
+const R = 8.314;
+
+// Particle systems
+let particles1 = [], particles2 = [];
+let animId1, animId2;
+const N_PARTICLES = 24;
+
+// ═══════════════════════════════════
+// COMPUTED STATE
+// ═══════════════════════════════════
+function computeState() {
+  const s = state;
+  const law = currentLaw;
+
+  if (law === 'boyle') {
+    // P1V1 = P2V2 → V2 = P1V1/P2
+    s.V2 = (s.P1 * s.V1) / s.P2;
+    s.T2 = s.T1;
+  } else if (law === 'charles') {
+    // V1/T1 = V2/T2 → V2 = V1*T2/T1
+    s.V2 = (s.V1 * s.T2) / s.T1;
+    s.P2 = s.P1;
+  } else if (law === 'gay-lussac') {
+    // P1/T1 = P2/T2 → P2 = P1*T2/T1
+    s.P2 = (s.P1 * s.T2) / s.T1;
+    s.V2 = s.V1;
+  } else if (law === 'combined') {
+    // P1V1/T1 = P2V2/T2 → P2 = P1V1T2/(T1V2)
+    s.P2 = (s.P1 * s.V1 * s.T2) / (s.T1 * s.V2);
+  } else if (law === 'ideal') {
+    // PV = nRT — display nRT and check consistency
+    // Show state 1 values as-is
+    s.P2 = (s.n * R * s.T1) / s.V1;
+    s.V2 = s.V1; s.T2 = s.T1;
+  }
+}
+
+// ═══════════════════════════════════
+// CYLINDER VISUAL
+// ═══════════════════════════════════
+const BASE_H = 200; // px at V=1
+
+function cylHeight(v) { return Math.max(60, Math.min(260, BASE_H * Math.sqrt(v))); }
+function pistonTop(v) { return 0; } // piston is always at top edge visually
+
+function updateCylindersVisual() {
+  const s = state;
+  computeState();
+
+  const h1 = cylHeight(s.V1);
+  const h2 = cylHeight(s.V2 || s.V1);
+
+  const cyl1 = document.getElementById('cyl1');
+  const cyl2 = document.getElementById('cyl2');
+  cyl1.style.height = h1 + 'px';
+  cyl2.style.height = h2 + 'px';
+
+  const law = LAWS[currentLaw];
+  cyl1.style.borderColor = law.color + '88';
+  cyl2.style.borderColor = law.color + '88';
+  document.getElementById('piston1').style.borderBottomColor = law.color;
+  document.getElementById('piston2').style.borderBottomColor = law.color;
+
+  // Heat glows
+  updateHeatGlow('heatGlow1', s.T1);
+  updateHeatGlow('heatGlow2', s.T2 ?? s.T1);
+
+  // Displays
+  document.getElementById('p1disp').textContent = s.P1.toFixed(2);
+  document.getElementById('v1disp').textContent = s.V1.toFixed(2);
+  document.getElementById('t1disp').textContent = Math.round(s.T1);
+
+  const T2show = s.T2 ?? s.T1;
+  const P2show = s.P2;
+  const V2show = s.V2;
+
+  document.getElementById('p2disp').textContent = P2show != null ? P2show.toFixed(2) : '—';
+  document.getElementById('v2disp').textContent = V2show != null ? V2show.toFixed(2) : '—';
+  document.getElementById('t2disp').textContent = T2show != null ? Math.round(T2show) : '—';
+
+  // Update particle speed for temp
+  updateParticleSpeed(particles1, s.T1);
+  updateParticleSpeed(particles2, T2show);
+
+  // Re-spawn particles2 if volume changed
+  respawnParticles(2, h2);
+
+  // Draw info box
+  drawInfoBox();
+  drawGraph();
+}
+
+function updateHeatGlow(id, T) {
+  const el = document.getElementById(id);
+  const t = Math.max(0, Math.min(1, (T - 200) / 800));
+  if (t < 0.05) { el.style.opacity = '0'; return; }
+  const r = Math.round(255 * Math.min(1, t * 2));
+  const g = Math.round(100 * Math.max(0, 1 - t));
+  el.style.opacity = String(0.3 + t * 0.5);
+  el.style.background = `radial-gradient(ellipse at 50% 100%, rgba(${r},${g},0,0.7), transparent 80%)`;
+  el.style.filter = `blur(${4 + t * 6}px)`;
+}
+
+// ═══════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════
+function makeParticle(W, H, T) {
+  const speed = 0.5 + (T / 300) * 2.5;
+  const angle = Math.random() * Math.PI * 2;
+  const r = 3 + Math.random() * 2;
+  return {
+    x: r + Math.random() * (W - r*2),
+    y: r + Math.random() * (H - r*2),
+    vx: Math.cos(angle) * speed * (0.5 + Math.random()),
+    vy: Math.sin(angle) * speed * (0.5 + Math.random()),
+    r,
+    hue: 180 + Math.random() * 60,
+    energy: speed,
+  };
+}
+
+function initParticles(idx, H) {
+  const canvas = document.getElementById('canvas' + idx);
+  const W = canvas.parentElement.offsetWidth || 120;
+  canvas.width = W; canvas.height = H;
+  const arr = [];
+  const T = idx === 1 ? state.T1 : (state.T2 ?? state.T1);
+  for (let i = 0; i < N_PARTICLES; i++) arr.push(makeParticle(W, H, T));
+  return arr;
+}
+
+function respawnParticles(idx, H) {
+  const canvas = document.getElementById('canvas' + idx);
+  const W = canvas.parentElement.offsetWidth || 120;
+  if (Math.abs(canvas.height - H) > 2) {
+    canvas.height = H;
+    if (idx === 1) { particles1 = initParticles(1, H); }
+    else           { particles2 = initParticles(2, H); }
+  }
+}
+
+function updateParticleSpeed(particles, T) {
+  const targetSpeed = 0.4 + (T / 300) * 2.2;
+  particles.forEach(p => {
+    const s = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    if (s === 0) return;
+    const scale = targetSpeed / s;
+    p.vx *= scale * (0.97 + Math.random() * 0.06);
+    p.vy *= scale * (0.97 + Math.random() * 0.06);
+    p.energy = targetSpeed;
+  });
+}
+
+function tickParticles(particles, canvas, T, P) {
+  const W = canvas.width;
+  const H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Pressure color intensity
+  const pIntensity = Math.min(1, (P || 1) / 4);
+
+  particles.forEach(p => {
+    // Move
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Walls (piston is at top, open at 18px)
+    const pistonH = 18;
+    if (p.x - p.r < 0)   { p.x = p.r;     p.vx = Math.abs(p.vx);  flashCollision(canvas, p.x, p.y); }
+    if (p.x + p.r > W)   { p.x = W - p.r; p.vx = -Math.abs(p.vx); flashCollision(canvas, p.x, p.y); }
+    if (p.y - p.r < pistonH){ p.y = pistonH + p.r; p.vy = Math.abs(p.vy); }
+    if (p.y + p.r > H)   { p.y = H - p.r; p.vy = -Math.abs(p.vy); flashCollision(canvas, p.x, p.y); }
+
+    // Temperature coloring: cold=blue, warm=cyan, hot=red
+    const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    const t = Math.min(1, speed / 5);
+    const r = Math.round(50 + t * 200);
+    const g = Math.round(200 - t * 100);
+    const b = Math.round(255 - t * 200);
+
+    // Draw particle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    const grad = ctx.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, 0, p.x, p.y, p.r);
+    grad.addColorStop(0, `rgba(255,255,255,0.9)`);
+    grad.addColorStop(0.4, `rgba(${r},${g},${b},0.9)`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0.2)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Glow
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * 1.8, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${r},${g},${b},0.06)`;
+    ctx.fill();
+  });
+}
+
+const collisionFlashes = [];
+function flashCollision(canvas, x, y) {
+  // Visual flash - just particle trail effect
+}
+
+let lastTs = 0;
+function animLoop(ts) {
+  if (ts - lastTs < 16) { requestAnimationFrame(animLoop); return; }
+  lastTs = ts;
+
+  computeState();
+  const s = state;
+  const canvas1 = document.getElementById('canvas1');
+  const canvas2 = document.getElementById('canvas2');
+
+  tickParticles(particles1, canvas1, s.T1, s.P1);
+  tickParticles(particles2, canvas2, s.T2 ?? s.T1, s.P2 ?? s.P1);
+
+  requestAnimationFrame(animLoop);
+}
+
+// ═══════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════
+const CTRL_DEFS = {
+  P1:{ label:'Pressure 1 (atm)', min:0.2, max:5, step:0.05, key:'P1', color:'var(--cyan)',   unit:'atm' },
+  V1:{ label:'Volume 1 (L)',     min:0.2, max:5, step:0.05, key:'V1', color:'var(--orange)', unit:'L'   },
+  T1:{ label:'Temperature 1 (K)',min:100, max:900,step:5,   key:'T1', color:'var(--red)',    unit:'K'   },
+  P2:{ label:'Pressure 2 (atm)', min:0.2, max:5, step:0.05, key:'P2', color:'var(--cyan)',   unit:'atm' },
+  V2:{ label:'Volume 2 (L)',     min:0.2, max:5, step:0.05, key:'V2', color:'var(--orange)', unit:'L'   },
+  T2:{ label:'Temperature 2 (K)',min:100, max:900,step:5,   key:'T2', color:'var(--red)',    unit:'K'   },
+  n:{ label:'Moles (n)',         min:0.1, max:5, step:0.1,  key:'n',  color:'var(--green)',  unit:'mol' },
+};
+
+function buildControls() {
+  const law = LAWS[currentLaw];
+  const grid = document.getElementById('controlsGrid');
+  grid.innerHTML = '';
+
+  // Active controls
+  const activeDiv = document.createElement('div');
+  activeDiv.className = 'ctrl-panel';
+  activeDiv.innerHTML = `<div class="ctrl-title">Adjustable Variables</div>`;
+
+  law.controls.forEach(key => {
+    const d = CTRL_DEFS[key];
+    const val = state[d.key] ?? 1;
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+    row.innerHTML = `
+      <div class="slider-lbl">
+        <span>${d.label}</span>
+        <span class="val" id="lbl_${key}" style="color:${d.color}">${(+val).toFixed(2)} ${d.unit}</span>
+      </div>
+      <input type="range" id="sl_${key}" min="${d.min}" max="${d.max}" step="${d.step}" value="${val}"
+        style="accent-color:${d.color};">
+    `;
+    activeDiv.appendChild(row);
+
+    // Wire up
+    row.querySelector('input').addEventListener('input', function() {
+      state[d.key] = parseFloat(this.value);
+      document.getElementById('lbl_' + key).textContent = parseFloat(this.value).toFixed(2) + ' ' + d.unit;
+      updateCylindersVisual();
+    });
+  });
+
+  grid.appendChild(activeDiv);
+
+  // Locked / computed
+  const lockedDiv = document.createElement('div');
+  lockedDiv.className = 'ctrl-panel';
+  lockedDiv.innerHTML = `<div class="ctrl-title">Computed (Locked) Variables</div>`;
+
+  const allKeys = ['P1','V1','T1','P2','V2','T2','n'];
+  const shownLocked = allKeys.filter(k => !law.controls.includes(k));
+
+  shownLocked.forEach(key => {
+    const d = CTRL_DEFS[key];
+    if (!d) return;
+    const badge = document.createElement('div');
+    badge.className = 'lock-badge';
+    badge.innerHTML = `<div class="lock-dot" style="background:${d.color}"></div> <span id="comp_${key}" style="color:${d.color}">—</span> &nbsp;<span style="color:var(--dimtext)">${d.label}</span>`;
+    lockedDiv.appendChild(badge);
+  });
+
+  // Add law description
+  const descDiv = document.createElement('div');
+  descDiv.style.cssText = 'margin-top:10px;font-size:12px;color:var(--dimtext);line-height:1.5;font-style:italic;';
+  descDiv.textContent = law.principle;
+  lockedDiv.appendChild(descDiv);
+
+  grid.appendChild(lockedDiv);
+}
+
+function updateComputedLabels() {
+  const s = state;
+  computeState();
+  const allKeys = ['P1','V1','T1','P2','V2','T2','n'];
+  allKeys.forEach(key => {
+    const el = document.getElementById('comp_' + key);
+    if (!el) return;
+    const d = CTRL_DEFS[key];
+    const val = s[d.key];
+    el.textContent = val != null ? parseFloat(val).toFixed(2) + ' ' + d.unit : '—';
+  });
+}
+
+// ═══════════════════════════════════
+// INFO BOX
+// ═══════════════════════════════════
+function drawInfoBox() {
+  const s = state;
+  computeState();
+  const box = document.getElementById('infoBox');
+  const law = LAWS[currentLaw];
+
+  let pvnrt1 = (s.P1 * s.V1) / (s.n * s.T1);
+  let pvnrt2 = s.P2 && s.V2 ? (s.P2 * s.V2) / (s.n * (s.T2 ?? s.T1)) : null;
+
+  let stats = [];
+  if (currentLaw === 'boyle') {
+    stats = [
+      { label:'P₁V₁', val:(s.P1*s.V1).toFixed(3), color:'var(--cyan)' },
+      { label:'P₂V₂', val:s.P2 ? (s.P2*s.V2).toFixed(3) : '—', color:'var(--cyan)' },
+      { label:'Ratio P₂/P₁', val:s.P2 ? (s.P2/s.P1).toFixed(3) : '—', color:'var(--yellow)' },
+      { label:'Ratio V₂/V₁', val:s.V2 ? (s.V2/s.V1).toFixed(3) : '—', color:'var(--orange)' },
+    ];
+  } else if (currentLaw === 'charles') {
+    stats = [
+      { label:'V₁/T₁', val:(s.V1/s.T1).toFixed(4), color:'var(--orange)' },
+      { label:'V₂/T₂', val:s.V2 ? (s.V2/(s.T2??s.T1)).toFixed(4) : '—', color:'var(--orange)' },
+      { label:'V₂ (L)', val:s.V2 ? s.V2.toFixed(3) : '—', color:'var(--yellow)' },
+      { label:'ΔV', val:s.V2 ? (s.V2-s.V1).toFixed(3) : '—', color:'var(--green)' },
+    ];
+  } else if (currentLaw === 'gay-lussac') {
+    stats = [
+      { label:'P₁/T₁', val:(s.P1/s.T1).toFixed(5), color:'var(--red)' },
+      { label:'P₂/T₂', val:s.P2 ? (s.P2/(s.T2??s.T1)).toFixed(5) : '—', color:'var(--red)' },
+      { label:'P₂ (atm)', val:s.P2 ? s.P2.toFixed(3) : '—', color:'var(--yellow)' },
+      { label:'ΔP', val:s.P2 ? (s.P2-s.P1).toFixed(3) : '—', color:'var(--cyan)' },
+    ];
+  } else if (currentLaw === 'combined') {
+    stats = [
+      { label:'P₁V₁/T₁', val:(s.P1*s.V1/s.T1).toFixed(4), color:'var(--purple)' },
+      { label:'P₂V₂/T₂', val:(s.P2*s.V2/(s.T2??s.T1)).toFixed(4), color:'var(--purple)' },
+      { label:'P₂ (atm)', val:s.P2 ? s.P2.toFixed(3) : '—', color:'var(--cyan)' },
+      { label:'Compression', val:s.V2 ? (s.V1/s.V2).toFixed(2)+'×' : '—', color:'var(--yellow)' },
+    ];
+  } else {
+    const pv = s.P1 * s.V1;
+    const nrt = s.n * R * s.T1;
+    stats = [
+      { label:'PV', val:pv.toFixed(3)+' J', color:'var(--green)' },
+      { label:'nRT', val:nrt.toFixed(3)+' J', color:'var(--green)' },
+      { label:'R (J/mol·K)', val:'8.314', color:'var(--yellow)' },
+      { label:'% Error', val:Math.abs((pv-nrt)/nrt*100).toFixed(2)+'%', color:'var(--dimtext)' },
+    ];
+  }
+
+  box.innerHTML = stats.map(s => `
+    <div class="info-stat">
+      <div class="info-stat-label">${s.label}</div>
+      <div class="info-stat-val" style="color:${s.color}">${s.val}</div>
+    </div>
+  `).join('') + `
+    <div class="principle-text">
+      ${law.principle}
+      <br><span class="principle-eq">${law.formula}</span>
+    </div>
+  `;
+
+  updateComputedLabels();
+}
+
+// ═══════════════════════════════════
+// GRAPH
+// ═══════════════════════════════════
+function drawGraph() {
+  const canvas = document.getElementById('graphCanvas');
+  const W = canvas.offsetWidth || 600;
+  canvas.width = W;
+  const H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const law = LAWS[currentLaw];
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(26,37,64,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    ctx.beginPath(); ctx.moveTo(i*W/5, 0); ctx.lineTo(i*W/5, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i*H/5); ctx.lineTo(W, i*H/5); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(90,112,144,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(30, 10); ctx.lineTo(30, H-20); ctx.lineTo(W-10, H-20); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(96,128,160,0.8)';
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillText(law.graphY, 2, 14);
+  ctx.fillText(law.graphX, W-28, H-6);
+
+  // Draw curve based on law
+  const color = law.color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+
+  const padL=34, padB=22, plotW=W-padL-10, plotH=H-padB-10;
+
+  const s = state;
+  computeState();
+
+  if (currentLaw === 'boyle') {
+    // P = k/V where k = P1V1
+    const k = s.P1 * s.V1;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const V = 0.1 + i/100 * 4.9;
+      const P = k / V;
+      const x = padL + (V-0.1)/4.9 * plotW;
+      const y = (H-padB) - Math.min(plotH, (P/6)*plotH);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // Current point
+    const cx = padL + (s.V1-0.1)/4.9 * plotW;
+    const cy = (H-padB) - Math.min(plotH,(s.P1/6)*plotH);
+    drawPoint(ctx, cx, cy, color, '1');
+    if (s.V2 && s.P2) {
+      const cx2 = padL + (s.V2-0.1)/4.9*plotW;
+      const cy2 = (H-padB) - Math.min(plotH,(s.P2/6)*plotH);
+      drawPoint(ctx, cx2, cy2, '#ffffff', '2');
+    }
+  } else if (currentLaw === 'charles') {
+    // V = V1/T1 * T (linear through origin)
+    const slope = s.V1 / s.T1;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const T = 100 + i/100 * 800;
+      const V = slope * T;
+      const x = padL + (T-100)/800 * plotW;
+      const y = (H-padB) - Math.min(plotH, (V/6)*plotH);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    const cx = padL + (s.T1-100)/800*plotW;
+    const cy = (H-padB) - Math.min(plotH,(s.V1/6)*plotH);
+    drawPoint(ctx, cx, cy, color, '1');
+    if (s.T2 && s.V2) {
+      const cx2 = padL+(s.T2-100)/800*plotW;
+      const cy2 = (H-padB)-Math.min(plotH,(s.V2/6)*plotH);
+      drawPoint(ctx, cx2, cy2, '#ffffff', '2');
+    }
+  } else if (currentLaw === 'gay-lussac') {
+    const slope = s.P1 / s.T1;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const T = 100 + i/100*800;
+      const P = slope * T;
+      const x = padL + (T-100)/800*plotW;
+      const y = (H-padB) - Math.min(plotH,(P/6)*plotH);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    const cx = padL+(s.T1-100)/800*plotW;
+    const cy = (H-padB)-Math.min(plotH,(s.P1/6)*plotH);
+    drawPoint(ctx, cx, cy, color, '1');
+    if (s.T2 && s.P2) {
+      const cx2 = padL+(s.T2-100)/800*plotW;
+      const cy2 = (H-padB)-Math.min(plotH,(s.P2/6)*plotH);
+      drawPoint(ctx, cx2, cy2, '#ffffff', '2');
+    }
+  } else if (currentLaw === 'combined') {
+    // PV vs T
+    const k = s.P1*s.V1/s.T1;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const T = 100+i/100*800;
+      const PV = k*T;
+      const x = padL+(T-100)/800*plotW;
+      const y = (H-padB)-Math.min(plotH,(PV/10)*plotH);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    const cx = padL+(s.T1-100)/800*plotW;
+    const cy = (H-padB)-Math.min(plotH,(s.P1*s.V1/10)*plotH);
+    drawPoint(ctx, cx, cy, color, '1');
+    const cx2 = padL+(s.T2-100)/800*plotW;
+    const cy2 = (H-padB)-Math.min(plotH,(s.P2*s.V2/10)*plotH);
+    drawPoint(ctx, cx2, cy2, '#ffffff', '2');
+  } else {
+    // Ideal: PV = nRT → PV vs nT (straight line, slope R)
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const nT = 0.1 + i/100*500;
+      const PV = R * nT;
+      const x = padL + (nT/500)*plotW;
+      const y = (H-padB) - Math.min(plotH,(PV/4000)*plotH);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    const nT = s.n * s.T1;
+    const PV = s.P1*s.V1;
+    const cx = padL+(nT/500)*plotW;
+    const cy = (H-padB)-Math.min(plotH,(PV/4000)*plotH);
+    drawPoint(ctx, cx, cy, color, '');
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+function drawPoint(ctx, x, y, color, label) {
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  if (label) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px JetBrains Mono, monospace';
+    ctx.fillText(label, x+7, y-4);
+  }
+}
+
+// ═══════════════════════════════════
+// LAW SWITCH
+// ═══════════════════════════════════
+function switchLaw(law) {
+  currentLaw = law;
+  const L = LAWS[law];
+
+  // Reset relevant state
+  state = { P1:1.0, V1:1.0, T1:300, P2:2.0, V2:1.0, T2:500, n:1.0 };
+  if (law === 'boyle') { state.P2 = 2.0; state.T2 = 300; }
+  if (law === 'charles') { state.P1 = 1.0; state.P2 = 1.0; state.T2 = 500; }
+  if (law === 'gay-lussac') { state.V1 = 1.0; state.V2 = 1.0; state.T2 = 600; }
+
+  // Tab highlight
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-law="${law}"]`).classList.add('active');
+
+  // Law stripe
+  document.getElementById('lawIcon').textContent = L.icon;
+  document.getElementById('lawIcon').style.borderColor = L.color + '60';
+  document.getElementById('lawIcon').style.background = L.color + '18';
+  document.getElementById('lawName').textContent = L.name;
+  document.getElementById('lawName').style.color = L.color;
+  document.getElementById('lawCondition').textContent = L.condition;
+  document.getElementById('lawFormula').textContent = L.formula;
+  document.getElementById('lawFormula').style.color = L.color;
+  document.getElementById('lawFormula').style.borderColor = L.color + '50';
+  document.getElementById('lawFormula').style.background = L.color + '12';
+  document.getElementById('graphTitle').textContent = L.graphLabel;
+
+  buildControls();
+  updateCylindersVisual();
+  reinitAllParticles();
+}
+
+function reinitAllParticles() {
+  const h1 = cylHeight(state.V1);
+  const h2 = cylHeight(state.V2 ?? state.V1);
+  particles1 = initParticles(1, h1);
+  particles2 = initParticles(2, h2);
+  const canvas1 = document.getElementById('canvas1');
+  const canvas2 = document.getElementById('canvas2');
+  canvas1.height = h1;
+  canvas2.height = h2;
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchLaw(tab.dataset.law));
+});
+
+// Initial setup
+switchLaw('boyle');
+requestAnimationFrame(animLoop);
+</script>
+</body>
+</html>
