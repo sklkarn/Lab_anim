@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centripetal Force</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #04040e;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px 8px 24px;
+    overflow-y: auto;
+  }
+
+  #title { color: #fff; font-size: 12px; letter-spacing: 5px; margin-bottom: 4px; opacity: 0.5; text-align:center; }
+  #subtitle { color: #48dbfb; font-size: 10px; letter-spacing: 4px; margin-bottom: 12px; opacity: 0.7; text-align:center; }
+
+  canvas { border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); display: block; }
+
+  #panels { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .panel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 8px 12px;
+    min-width: 80px; text-align: center; flex: 1;
+  }
+  .panel-label { font-size: 8px; letter-spacing: 2px; color: #555; margin-bottom: 3px; }
+  .panel-value { font-size: 15px; font-weight: bold; color: #48dbfb; }
+  .panel-unit { font-size: 7px; color: #333; margin-top: 1px; letter-spacing: 1px; }
+
+  #controls { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+  .slider-wrap { text-align: center; }
+  .slider-wrap label { font-size: 8px; letter-spacing: 2px; color: #666; display: block; margin-bottom: 4px; }
+  input[type=range] {
+    -webkit-appearance: none; width: 100px; height: 3px;
+    background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: #48dbfb; cursor: pointer; box-shadow: 0 0 6px #48dbfb;
+  }
+
+  #legend { display: flex; gap: 16px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: 2px; }
+  .leg-dot { width: 10px; height: 3px; border-radius: 2px; }
+
+  #btn-row { display: flex; gap: 10px; margin-top: 14px; justify-content: center; }
+
+  .btn {
+    font-family: 'Courier New', monospace;
+    font-size: 10px; letter-spacing: 3px;
+    padding: 9px 20px; border-radius: 6px;
+    border: none; cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  #btnDetach {
+    background: linear-gradient(135deg, #ff4757, #c0392b);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(255,71,87,0.4);
+  }
+  #btnDetach:hover { box-shadow: 0 0 22px rgba(255,71,87,0.7); transform: scale(1.04); }
+  #btnDetach:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  #btnReset {
+    background: rgba(255,255,255,0.06);
+    color: #aaa; border: 1px solid rgba(255,255,255,0.12);
+  }
+  #btnReset:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+  #statusMsg {
+    font-size: 9px; letter-spacing: 3px; color: #ff4757;
+    margin-top: 8px; height: 14px; text-align: center;
+    transition: opacity 0.4s;
+  }
+</style>
+</head>
+<body>
+
+<div id="title">◈ CENTRIPETAL FORCE ◈</div>
+<div id="subtitle">F = mv² / r</div>
+
+<canvas id="c"></canvas>
+
+<div id="legend">
+  <div class="leg"><div class="leg-dot" style="background:#ff4757"></div><span style="color:#ff4757">FORCE Fc</span></div>
+  <div class="leg"><div class="leg-dot" style="background:#2ed573"></div><span style="color:#2ed573">VELOCITY v</span></div>
+  <div class="leg"><div class="leg-dot" style="background:#c8b89a"></div><span style="color:#c8b89a">STRING</span></div>
+  <div class="leg"><div class="leg-dot" style="background:#ffd32a;height:2px;border:1px dashed #ffd32a"></div><span style="color:#ffd32a">TANGENT PATH</span></div>
+</div>
+
+<div id="btn-row">
+  <button class="btn" id="btnDetach">✂ Detach String</button>
+  <button class="btn" id="btnReset">↺ Reset</button>
+</div>
+<div id="statusMsg"></div>
+
+<div id="panels">
+  <div class="panel"><div class="panel-label">FORCE</div><div class="panel-value" id="vForce">—</div><div class="panel-unit">N (rel)</div></div>
+  <div class="panel"><div class="panel-label">VELOCITY</div><div class="panel-value" id="vVel">—</div><div class="panel-unit">m/s (rel)</div></div>
+  <div class="panel"><div class="panel-label">RADIUS</div><div class="panel-value" id="vRad">—</div><div class="panel-unit">m (rel)</div></div>
+  <div class="panel"><div class="panel-label">PERIOD</div><div class="panel-value" id="vPeriod">—</div><div class="panel-unit">seconds</div></div>
+</div>
+
+<div id="controls">
+  <div class="slider-wrap"><label>SPEED</label><input type="range" id="speedSlider" min="0.5" max="4" step="0.1" value="1.5"></div>
+  <div class="slider-wrap"><label>RADIUS</label><input type="range" id="radiusSlider" min="0.3" max="0.82" step="0.01" value="0.55"></div>
+  <div class="slider-wrap"><label>MASS</label><input type="range" id="massSlider" min="0.5" max="3" step="0.1" value="1"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const btnDetach = document.getElementById('btnDetach');
+const btnReset = document.getElementById('btnReset');
+const statusMsg = document.getElementById('statusMsg');
+
+// --- state ---
+let angle = 0;
+let trail = [];
+let tangentTrail = [];
+const TRAIL_LEN = 90;
+
+let detached = false;
+let detachX = 0, detachY = 0;
+let detachVX = 0, detachVY = 0;
+let ballX = 0, ballY = 0;
+let detachTime = 0;
+
+function resize() {
+  const size = Math.min(window.innerWidth - 16, 400);
+  canvas.width = size;
+  canvas.height = size;
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function drawArrow(x1, y1, x2, y2, color, width, label) {
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 4) return;
+  const ang = Math.atan2(dy, dx);
+  const headLen = 9;
+
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.shadowColor = color; ctx.shadowBlur = 7; ctx.stroke(); ctx.shadowBlur = 0;
+
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2 - headLen*Math.cos(ang-0.4), y2 - headLen*Math.sin(ang-0.4));
+  ctx.lineTo(x2 - headLen*Math.cos(ang+0.4), y2 - headLen*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fillStyle = color;
+  ctx.shadowColor = color; ctx.shadowBlur = 5; ctx.fill(); ctx.shadowBlur = 0;
+
+  const ux=dx/len, uy=dy/len;
+  ctx.font='bold 11px Courier New'; ctx.fillStyle=color;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, x2+ux*14, y2+uy*14);
+  ctx.textBaseline='alphabetic';
+}
+
+function drawBall(bx, by, ballR) {
+  // glow
+  const glow = ctx.createRadialGradient(bx,by,0,bx,by,ballR*2.2);
+  glow.addColorStop(0,'rgba(72,219,251,0.3)'); glow.addColorStop(1,'rgba(72,219,251,0)');
+  ctx.beginPath(); ctx.arc(bx,by,ballR*2.2,0,Math.PI*2); ctx.fillStyle=glow; ctx.fill();
+  // ball
+  const grad = ctx.createRadialGradient(bx-ballR*0.3,by-ballR*0.35,1,bx,by,ballR);
+  grad.addColorStop(0,'#b8f4ff'); grad.addColorStop(0.45,'#48dbfb'); grad.addColorStop(1,'#005f88');
+  ctx.beginPath(); ctx.arc(bx,by,ballR,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+  // shine
+  ctx.beginPath(); ctx.arc(bx-ballR*0.28,by-ballR*0.3,ballR*0.2,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fill();
+}
+
+btnDetach.addEventListener('click', () => {
+  if (detached) return;
+  detached = true;
+  btnDetach.disabled = true;
+  statusMsg.textContent = '✂ STRING DETACHED — TANGENTIAL MOTION';
+
+  const speed = parseFloat(document.getElementById('speedSlider').value);
+  const radiusFrac = parseFloat(document.getElementById('radiusSlider').value);
+  const W = canvas.width;
+  const radius = radiusFrac * (W/2 - 10);
+
+  detachX = ballX;
+  detachY = ballY;
+  // velocity is tangent = (-sin θ, cos θ) * speed scale
+  const vScale = speed * 2.2;
+  detachVX = -Math.sin(angle) * vScale;
+  detachVY =  Math.cos(angle) * vScale;
+  tangentTrail = [{ x: detachX, y: detachY }];
+  detachTime = 0;
+});
+
+btnReset.addEventListener('click', () => {
+  detached = false;
+  btnDetach.disabled = false;
+  angle = 0;
+  trail = [];
+  tangentTrail = [];
+  statusMsg.textContent = '';
+});
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+
+  const speed = parseFloat(document.getElementById('speedSlider').value);
+  const radiusFrac = parseFloat(document.getElementById('radiusSlider').value);
+  const mass = parseFloat(document.getElementById('massSlider').value);
+  const radius = radiusFrac * (W/2 - 10);
+  const ballR = 9 + mass * 4.5;
+
+  // update positions
+  if (!detached) {
+    angle += speed * 0.022;
+    ballX = cx + Math.cos(angle) * radius;
+    ballY = cy + Math.sin(angle) * radius;
+    trail.push({ x: ballX, y: ballY });
+    if (trail.length > TRAIL_LEN) trail.shift();
+  } else {
+    detachTime++;
+    ballX += detachVX;
+    ballY += detachVY;
+    tangentTrail.push({ x: ballX, y: ballY });
+  }
+
+  // physics display
+  const v = speed * 2.5;
+  const r = radius / 60;
+  document.getElementById('vForce').textContent = detached ? '0.0' : (mass * v * v / r).toFixed(1);
+  document.getElementById('vVel').textContent = v.toFixed(1);
+  document.getElementById('vRad').textContent = detached ? '∞' : r.toFixed(2);
+  document.getElementById('vPeriod').textContent = detached ? '—' : ((2*Math.PI*radius)/(speed*2.5*60)).toFixed(2);
+
+  // --- DRAW ---
+  ctx.fillStyle = '#04040e';
+  ctx.fillRect(0, 0, W, H);
+
+  // orbit ring (dashed) — only while attached
+  if (!detached) {
+    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+    ctx.setLineDash([3,7]); ctx.stroke(); ctx.setLineDash([]);
+  } else {
+    // faded orbit ghost
+    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.02)'; ctx.lineWidth=1;
+    ctx.setLineDash([3,10]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // orbit trail
+  for (let i = 1; i < trail.length; i++) {
+    const t = i / trail.length;
+    ctx.beginPath();
+    ctx.moveTo(trail[i-1].x, trail[i-1].y);
+    ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.strokeStyle = `hsla(190,100%,65%,${t*0.3})`;
+    ctx.lineWidth = lerp(0.3,2,t); ctx.stroke();
+  }
+
+  // tangent trail
+  if (tangentTrail.length > 1) {
+    for (let i = 1; i < tangentTrail.length; i++) {
+      const t = i / Math.max(tangentTrail.length, 1);
+      ctx.beginPath();
+      ctx.moveTo(tangentTrail[i-1].x, tangentTrail[i-1].y);
+      ctx.lineTo(tangentTrail[i].x, tangentTrail[i].y);
+      ctx.strokeStyle = `hsla(51,100%,58%,${Math.min(t*1.2,0.7)})`;
+      ctx.lineWidth = lerp(1, 2.5, t);
+      ctx.setLineDash([4, 5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // arrow at tip of tangent trail
+    if (tangentTrail.length >= 2) {
+      const last = tangentTrail[tangentTrail.length-1];
+      const prev = tangentTrail[tangentTrail.length-2];
+      const ang = Math.atan2(last.y-prev.y, last.x-prev.x);
+      const hl = 10;
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(last.x - hl*Math.cos(ang-0.4), last.y - hl*Math.sin(ang-0.4));
+      ctx.lineTo(last.x - hl*Math.cos(ang+0.4), last.y - hl*Math.sin(ang+0.4));
+      ctx.closePath();
+      ctx.fillStyle = '#ffd32a';
+      ctx.shadowColor = '#ffd32a'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+
+  // string — only when attached, with snap animation
+  if (!detached) {
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ballX,ballY);
+    ctx.strokeStyle='rgba(200,184,154,0.85)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // centripetal force arrow
+    const dx=cx-ballX, dy=cy-ballY, dlen=Math.sqrt(dx*dx+dy*dy);
+    const fScale=Math.min(mass*speed*speed*16, radius*0.6);
+    drawArrow(ballX,ballY, ballX+(dx/dlen)*fScale, ballY+(dy/dlen)*fScale, '#ff4757', 2.5,'Fc');
+
+    // velocity arrow
+    const vScale=speed*20;
+    drawArrow(ballX,ballY, ballX+(-Math.sin(angle))*vScale, ballY+(Math.cos(angle))*vScale, '#2ed573',2,'v');
+  } else {
+    // after detach: only velocity arrow (no Fc)
+    const vScale = speed * 18;
+    const ang2 = Math.atan2(detachVY, detachVX);
+    drawArrow(ballX,ballY,
+      ballX + Math.cos(ang2)*vScale,
+      ballY + Math.sin(ang2)*vScale,
+      '#2ed573', 2, 'v');
+
+    // detach point marker
+    ctx.beginPath(); ctx.arc(detachX, detachY, 5, 0, Math.PI*2);
+    ctx.strokeStyle='rgba(255,71,87,0.5)'; ctx.lineWidth=1.5;
+    ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font='9px Courier New'; ctx.fillStyle='rgba(255,71,87,0.5)';
+    ctx.textAlign='center';
+    ctx.fillText('DETACH PT', detachX, detachY - 10);
+  }
+
+  // center pin
+  ctx.beginPath(); ctx.arc(cx,cy,8,0,Math.PI*2); ctx.fillStyle='#1a1a2e'; ctx.fill();
+  ctx.strokeStyle='#666'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fillStyle='#bbb'; ctx.fill();
+
+  drawBall(ballX, ballY, ballR);
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
