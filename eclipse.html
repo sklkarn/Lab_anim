@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eclipse Formation — Orbital Mechanics</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #020608;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Rajdhani', sans-serif;
+  color: #ccd8e8;
+  overflow-x: hidden;
+}
+canvas#starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.ui-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1120px;
+  padding: 18px 14px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+}
+.hdr { text-align: center; }
+.hdr .presenter {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .62rem;
+  letter-spacing: .28em;
+  color: #7a9ab8;
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.hdr .presenter span {
+  color: #a8c8e8;
+  font-weight: 700;
+  letter-spacing: .22em;
+}
+.hdr h1 {
+  font-size: clamp(1.25rem, 3.5vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: .32em;
+  color: #e8f0ff;
+}
+.hdr sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .58rem;
+  letter-spacing: .2em;
+  color: #334455;
+  display: block;
+  margin-top: 4px;
+}
+.hdr .divider {
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,200,232,.3), transparent);
+  margin: 8px auto 0;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 6px;
+  padding: 3px;
+}
+.tab {
+  padding: 7px 28px;
+  border: none;
+  background: transparent;
+  color: #445;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: .83rem;
+  letter-spacing: .16em;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all .25s;
+  text-transform: uppercase;
+}
+.tab.on { background: rgba(255,255,255,.1); color: #ddeeff; }
+.tab.on.solar { color: #ffc84a; box-shadow: 0 0 14px #ffa50033; }
+.tab.on.lunar { color: #88ccff; box-shadow: 0 0 14px #4488ff33; }
+.canvas-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.panel {
+  background: rgba(4,10,20,.8);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.panel-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .54rem;
+  letter-spacing: .22em;
+  color: #2a3d52;
+  padding: 7px 12px 5px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+#orbitalCanvas { display:block; width:100%; height:auto; }
+.side-panel { flex: 0 0 210px; min-width: 170px; }
+#closeupCanvas { display:block; width:100%; height:auto; }
+.info-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+.info-card {
+  background: rgba(4,12,24,.85);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 8px;
+  padding: 9px 16px;
+  min-width: 130px;
+  text-align: center;
+}
+.info-card .val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .98rem;
+  color: #ddeeff;
+  display: block;
+}
+.info-card .lbl {
+  font-size: .58rem;
+  letter-spacing: .14em;
+  color: #334455;
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
+}
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .56rem;
+  color: #445566;
+  letter-spacing: .09em;
+}
+.leg-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+.leg-box { width:20px; height:9px; border-radius:2px; flex-shrink:0; }
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.ctrl-btn {
+  width:34px; height:34px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  border-radius: 50%;
+  color: #99aacc;
+  font-size: .85rem;
+  cursor: pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: all .2s;
+}
+.ctrl-btn:hover { background:rgba(255,255,255,.1); color:#fff; }
+.spd {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .58rem;
+  color: #445566;
+  min-width:52px;
+  text-align:center;
+}
+.phase-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .6rem;
+  letter-spacing: .2em;
+  padding: 5px 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.4);
+  transition: color .4s, border-color .4s, box-shadow .4s;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<div class="ui-wrap">
+  <div class="hdr">
+    <span class="presenter">Presented by &nbsp;<span>Dr. S Karna</span></span>
+    <h1>ECLIPSE FORMATION</h1>
+    <sub>ORBITAL MECHANICS · UMBRA · PENUMBRA · 5.1° MOON ORBITAL TILT</sub>
+    <div class="divider"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab solar on" id="tabSolar" onclick="setMode('solar')">☀ SOLAR ECLIPSE</button>
+    <button class="tab lunar" id="tabLunar" onclick="setMode('lunar')">☾ LUNAR ECLIPSE</button>
+  </div>
+
+  <div class="canvas-row">
+    <div class="panel" style="flex:1 1 580px;">
+      <div class="panel-title">TOP-DOWN ORBITAL VIEW — MOON ORBITAL TILT 5.1° FROM ECLIPTIC</div>
+      <canvas id="orbitalCanvas" width="700" height="430"></canvas>
+    </div>
+    <div class="panel side-panel">
+      <div class="panel-title" id="closeupTitle">SOLAR ECLIPSE CLOSEUP</div>
+      <canvas id="closeupCanvas" width="210" height="300"></canvas>
+    </div>
+  </div>
+
+  <div id="phaseBadge" class="phase-badge">ORBIT NOMINAL</div>
+
+  <div class="info-row">
+    <div class="info-card">
+      <span class="val" id="infoAngle">0.0°</span>
+      <span class="lbl">Moon Angle</span>
+    </div>
+    <div class="info-card">
+      <span class="val" id="infoTilt">5.1°</span>
+      <span class="lbl">Orbital Tilt</span>
+    </div>
+    <div class="info-card">
+      <span class="val" id="infoYOff">0.0 px</span>
+      <span class="lbl">Y Offset (tilt)</span>
+    </div>
+    <div class="info-card">
+      <span class="val" id="infoZone">—</span>
+      <span class="lbl">Shadow Zone</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#ffc840;box-shadow:0 0 5px #ff8800"></div>SUN</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#2a6eb5"></div>EARTH</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#b0c4d8"></div>MOON</div>
+    <div class="leg-item"><div class="leg-box" style="background:rgba(0,0,20,.95);border:1px solid #334"></div>UMBRA</div>
+    <div class="leg-item"><div class="leg-box" style="background:rgba(70,35,140,.5);border:1px solid #557"></div>PENUMBRA</div>
+    <div class="leg-item" style="flex-direction:column;gap:2px;">
+      <div style="width:40px;height:1px;background:rgba(200,200,100,.4);border-top:1px dashed rgba(200,200,100,.4)"></div>
+      <span>MOON ORBITAL PLANE</span>
+    </div>
+    <div class="leg-item" style="flex-direction:column;gap:2px;">
+      <div style="width:40px;height:1px;background:rgba(80,140,200,.35);border-top:1px dashed rgba(80,140,200,.35)"></div>
+      <span>ECLIPTIC PLANE</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="chSpd(-1)">−</button>
+    <span class="spd" id="spdLbl">1× SPD</span>
+    <button class="ctrl-btn" onclick="chSpd(1)">+</button>
+    <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">⏸</button>
+  </div>
+</div>
+
+<script>
+// ===================== STARFIELD =====================
+const sf = document.getElementById('starfield');
+const sfCtx = sf.getContext('2d');
+let stars = [];
+function initStars() {
+  sf.width = window.innerWidth; sf.height = window.innerHeight;
+  stars = Array.from({length:200}, () => ({
+    x:Math.random()*sf.width, y:Math.random()*sf.height,
+    r:Math.random()*1.4+.3,
+    a:Math.random(),
+    da:(Math.random()*.007+.001)*(Math.random()<.5?1:-1)
+  }));
+}
+function drawStars() {
+  sfCtx.clearRect(0,0,sf.width,sf.height);
+  stars.forEach(s=>{
+    s.a=Math.max(.05,Math.min(1,s.a+s.da));
+    if(s.a<=.05||s.a>=1) s.da*=-1;
+    sfCtx.beginPath(); sfCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sfCtx.fillStyle=`rgba(255,255,255,${s.a.toFixed(2)})`; sfCtx.fill();
+  });
+}
+initStars();
+window.addEventListener('resize',initStars);
+
+// ===================== CANVASES =====================
+const oC=document.getElementById('orbitalCanvas'), oCtx=oC.getContext('2d');
+const cC=document.getElementById('closeupCanvas'), cCtx=cC.getContext('2d');
+
+// ===================== STATE =====================
+let mode='solar', paused=false;
+const spdList=[.25,.5,1,2,4]; let spdI=2, speed=1;
+let moonAngle=0;
+const TILT_RAD=5.1*Math.PI/180;
+
+// ===================== DRAW PRIMITIVES =====================
+function drawSun(ctx,x,y,r){
+  // Outer halo
+  let g=ctx.createRadialGradient(x,y,r*.5,x,y,r*3);
+  g.addColorStop(0,'rgba(255,200,50,.15)'); g.addColorStop(1,'rgba(255,100,0,0)');
+  ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  // Body
+  g=ctx.createRadialGradient(x-r*.25,y-r*.25,0,x,y,r);
+  g.addColorStop(0,'#fffae8'); g.addColorStop(.4,'#ffe058'); g.addColorStop(.8,'#ff8800'); g.addColorStop(1,'#cc4400');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  // Limb darkening ring
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(200,80,0,.3)'; ctx.lineWidth=r*.15; ctx.stroke();
+}
+
+function drawEarth(ctx,x,y,r){
+  // Atmosphere glow
+  let g=ctx.createRadialGradient(x,y,r*.95,x,y,r*1.5);
+  g.addColorStop(0,'rgba(60,130,255,.28)'); g.addColorStop(1,'rgba(20,70,200,0)');
+  ctx.beginPath(); ctx.arc(x,y,r*1.5,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  // Ocean
+  g=ctx.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r);
+  g.addColorStop(0,'#5ab0f0'); g.addColorStop(.5,'#1a5090'); g.addColorStop(1,'#091d3c');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  // Continents
+  ctx.save(); ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='rgba(45,120,55,.72)';
+  [[-.28,-.18,.27,.2,-.25],[.2,-.08,.15,.3,.1],[.38,-.2,.2,.18,.35]].forEach(([dx,dy,rx,ry,rot])=>{
+    ctx.beginPath(); ctx.ellipse(x+dx*r,y+dy*r,rx*r,ry*r,rot,0,Math.PI*2); ctx.fill();
+  });
+  // Poles
+  ctx.fillStyle='rgba(210,235,255,.65)';
+  ctx.beginPath(); ctx.ellipse(x,y-r*.72,r*.42,r*.26,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x,y+r*.74,r*.36,r*.2,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawMoon(ctx,x,y,r,shadowFrac){
+  shadowFrac=shadowFrac||0;
+  let g=ctx.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r);
+  g.addColorStop(0,'#dce8f5'); g.addColorStop(.6,'#9fb8cc'); g.addColorStop(1,'#506070');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  // Craters
+  ctx.save(); ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.clip();
+  [[-.2,-.22,.22],[.26,.18,.15],[-.16,.28,.18],[.08,-.3,.12]].forEach(([dx,dy,cr])=>{
+    ctx.beginPath(); ctx.arc(x+dx*r*2,y+dy*r*2,cr*r,0,Math.PI*2);
+    ctx.fillStyle='rgba(55,75,100,.35)'; ctx.fill();
+  });
+  ctx.restore();
+  // Shadow
+  if(shadowFrac>0){
+    const sc=shadowFrac>0.75?`rgba(90,15,5,${(shadowFrac*.9).toFixed(2)})`:`rgba(0,0,18,${(shadowFrac*.78).toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=sc; ctx.fill();
+    if(shadowFrac>0.82){
+      g=ctx.createRadialGradient(x,y,r*.4,x,y,r*1.6);
+      g.addColorStop(0,'rgba(200,30,0,0)'); g.addColorStop(.65,'rgba(180,25,0,.28)'); g.addColorStop(1,'rgba(120,10,0,0)');
+      ctx.beginPath(); ctx.arc(x,y,r*1.6,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+    }
+  }
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(160,200,240,.28)'; ctx.lineWidth=.5; ctx.stroke();
+}
+
+function lbl(ctx,x,y,text,color,size){
+  ctx.font=`${size||9}px Share Tech Mono,monospace`;
+  ctx.fillStyle=color||'#8899aa';
+  ctx.textAlign='center';
+  ctx.fillText(text,x,y);
+}
+
+// ===================== SHADOW CONE HELPERS =====================
+function drawShadowCones(ctx, occluderX, occluderY, occluderR, lightX, lightY, lightR, dir){
+  // dir: direction multiplier (1 = cones go away from light)
+  const dx=occluderX-lightX, dy=occluderY-lightY;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const nx=dx/dist, ny=dy/dist;
+  const perp={x:-ny,y:nx};
+
+  const penHalfAngle=Math.atan((lightR+occluderR)/dist);
+  const umbraHalfAngle=Math.atan(Math.max(0.01,(lightR-occluderR)/dist));
+  const penLen=280, umbraLen=240;
+
+  // PENUMBRA
+  const psw=occluderR, pew=occluderR+penLen*Math.tan(penHalfAngle);
+  const pg=ctx.createLinearGradient(occluderX,occluderY,
+    occluderX+nx*penLen,occluderY+ny*penLen);
+  pg.addColorStop(0,'rgba(75,38,155,.58)');
+  pg.addColorStop(.5,'rgba(50,25,105,.38)');
+  pg.addColorStop(1,'rgba(20,8,50,0)');
+  ctx.beginPath();
+  ctx.moveTo(occluderX+perp.x*psw,occluderY+perp.y*psw);
+  ctx.lineTo(occluderX+nx*penLen+perp.x*pew,occluderY+ny*penLen+perp.y*pew);
+  ctx.lineTo(occluderX+nx*penLen-perp.x*pew,occluderY+ny*penLen-perp.y*pew);
+  ctx.lineTo(occluderX-perp.x*psw,occluderY-perp.y*psw);
+  ctx.closePath(); ctx.fillStyle=pg; ctx.fill();
+
+  // UMBRA
+  const usw=occluderR*.9;
+  const umbraTip=usw/(Math.tan(umbraHalfAngle)||.01);
+  const actualUmbraLen=Math.min(umbraLen, umbraTip*.95);
+  const uew=Math.max(1.5, usw-actualUmbraLen*Math.tan(umbraHalfAngle));
+  const ug=ctx.createLinearGradient(occluderX,occluderY,
+    occluderX+nx*actualUmbraLen,occluderY+ny*actualUmbraLen);
+  ug.addColorStop(0,'rgba(0,0,22,.98)');
+  ug.addColorStop(.75,'rgba(0,0,15,.9)');
+  ug.addColorStop(1,'rgba(0,0,8,.35)');
+  ctx.beginPath();
+  ctx.moveTo(occluderX+perp.x*usw,occluderY+perp.y*usw);
+  ctx.lineTo(occluderX+nx*actualUmbraLen+perp.x*uew,occluderY+ny*actualUmbraLen+perp.y*uew);
+  ctx.lineTo(occluderX+nx*actualUmbraLen-perp.x*uew,occluderY+ny*actualUmbraLen-perp.y*uew);
+  ctx.lineTo(occluderX-perp.x*usw,occluderY-perp.y*usw);
+  ctx.closePath(); ctx.fillStyle=ug; ctx.fill();
+
+  // ANTUMBRA (if umbra converges within range)
+  if(umbraTip<umbraLen){
+    const apexX=occluderX+nx*umbraTip, apexY=occluderY+ny*umbraTip;
+    const antLen=umbraLen-umbraTip;
+    const antW=antLen*Math.tan(umbraHalfAngle);
+    const ag=ctx.createLinearGradient(apexX,apexY,apexX+nx*antLen,apexY+ny*antLen);
+    ag.addColorStop(0,'rgba(30,15,60,.4)');
+    ag.addColorStop(1,'rgba(10,5,25,0)');
+    ctx.beginPath();
+    ctx.moveTo(apexX,apexY);
+    ctx.lineTo(apexX+nx*antLen+perp.x*antW,apexY+ny*antLen+perp.y*antW);
+    ctx.lineTo(apexX+nx*antLen-perp.x*antW,apexY+ny*antLen-perp.y*antW);
+    ctx.closePath(); ctx.fillStyle=ag; ctx.fill();
+  }
+
+  return {penHalfAngle,umbraHalfAngle,umbraTip,penLen,umbraLen:actualUmbraLen,nx,ny,perp};
+}
+
+// ===================== ORBITAL CANVAS =====================
+function drawOrbital(ang){
+  const W=oC.width, H=oC.height;
+  oCtx.clearRect(0,0,W,H);
+  oCtx.fillStyle='#020810'; oCtx.fillRect(0,0,W,H);
+  if(mode==='solar') drawSolarOrbital(ang,W,H);
+  else drawLunarOrbital(ang,W,H);
+}
+
+// ------ SOLAR ------
+function drawSolarOrbital(ang,W,H){
+  const sx=85, sy=H/2, ex=W*.62, ey=H/2;
+  const moonOrbitR=115, sunR=38, earthR=22, moonR=11;
+
+  // Moon position — tilt gives y-offset
+  const tiltY=Math.sin(ang)*moonOrbitR*Math.sin(TILT_RAD)*5.5; // exaggerated for visibility
+  const mx=ex+Math.cos(ang)*moonOrbitR;
+  const my=ey+tiltY;
+
+  // ---- ECLIPTIC (horizontal dashed) ----
+  oCtx.save();
+  oCtx.setLineDash([7,9]); oCtx.strokeStyle='rgba(70,120,180,.22)'; oCtx.lineWidth=1;
+  oCtx.beginPath(); oCtx.moveTo(0,sy); oCtx.lineTo(W,sy); oCtx.stroke();
+  oCtx.restore();
+
+  // ---- MOON ORBITAL ELLIPSE (tilted - shown as flat ellipse top-down) ----
+  const ry=moonOrbitR*Math.sin(TILT_RAD)*5.5+moonOrbitR*0.12;
+  oCtx.save();
+  oCtx.translate(ex,ey);
+  oCtx.setLineDash([5,8]); oCtx.strokeStyle='rgba(200,200,100,.32)'; oCtx.lineWidth=1.2;
+  oCtx.beginPath(); oCtx.ellipse(0,0,moonOrbitR,ry,0,0,Math.PI*2); oCtx.stroke();
+  // Node line
+  oCtx.setLineDash([2,7]); oCtx.strokeStyle='rgba(200,200,100,.22)';
+  oCtx.beginPath(); oCtx.moveTo(-moonOrbitR-12,0); oCtx.lineTo(moonOrbitR+12,0); oCtx.stroke();
+  oCtx.restore();
+  oCtx.setLineDash([]);
+
+  // ---- SHADOW CONES (Moon occluding Sun — cast away from sun) ----
+  // Only render when moon is on the Earth-side of its orbit (between sun and observer = cos<0)
+  drawShadowCones(oCtx, mx, my, moonR, sx, sy, sunR);
+
+  // ---- SUN ----
+  drawSun(oCtx,sx,sy,sunR);
+
+  // ---- EARTH ----
+  drawEarth(oCtx,ex,ey,earthR);
+
+  // ---- MOON ----
+  drawMoon(oCtx,mx,my,moonR,0);
+
+  // ---- LABELS ----
+  lbl(oCtx,sx,sy+sunR+15,'SUN','#ffc840',9);
+  lbl(oCtx,ex,ey+earthR+16,'EARTH','#5ab0f0',9);
+  const moonLblY=my+(my>=ey?moonR+12:-moonR-6);
+  lbl(oCtx,mx,moonLblY,'MOON','#b0c4d8',9);
+
+  // ---- TILT ANNOTATION ----
+  oCtx.save();
+  oCtx.translate(ex+moonOrbitR+22,ey);
+  oCtx.setLineDash([3,6]); oCtx.strokeStyle='rgba(70,120,180,.35)'; oCtx.lineWidth=1;
+  oCtx.beginPath(); oCtx.moveTo(-10,0); oCtx.lineTo(26,0); oCtx.stroke();
+  oCtx.setLineDash([]);
+  oCtx.strokeStyle='rgba(200,200,100,.6)'; oCtx.lineWidth=1.2;
+  oCtx.beginPath(); oCtx.moveTo(0,0); oCtx.lineTo(18,-ry); oCtx.stroke();
+  // arc
+  oCtx.strokeStyle='rgba(200,200,100,.4)';oCtx.lineWidth=.8;
+  oCtx.beginPath(); oCtx.arc(0,0,14,-Math.PI/2+.05,-Math.atan2(ry,18),true); oCtx.stroke();
+  oCtx.fillStyle='rgba(220,220,100,.7)'; oCtx.font='9px Share Tech Mono,monospace'; oCtx.textAlign='left';
+  oCtx.fillText('5.1°',20,-ry*.5+2);
+  oCtx.restore(); oCtx.setLineDash([]);
+
+  // Node labels
+  oCtx.font='8px Share Tech Mono,monospace'; oCtx.fillStyle='rgba(200,200,100,.35)'; oCtx.textAlign='center';
+  oCtx.fillText('↑ ASCENDING NODE',ex,ey-ry-8);
+  oCtx.fillText('↓ DESCENDING NODE',ex,ey+ry+14);
+}
+
+// ------ LUNAR ------
+function drawLunarOrbital(ang,W,H){
+  const ex=W*.42, ey=H/2;
+  const moonOrbitR=130, earthR=26, moonR=11;
+  // Sun implied far left
+  const sunX=-60, sunY=ey, sunR=100; // large offscreen sun for correct shadow angles
+
+  const tiltY=Math.sin(ang)*moonOrbitR*Math.sin(TILT_RAD)*5.5;
+  const mx=ex+Math.cos(ang)*moonOrbitR;
+  const my=ey+tiltY;
+
+  // ---- ECLIPTIC ----
+  oCtx.save();
+  oCtx.setLineDash([7,9]); oCtx.strokeStyle='rgba(70,120,180,.22)'; oCtx.lineWidth=1;
+  oCtx.beginPath(); oCtx.moveTo(0,ey); oCtx.lineTo(W,ey); oCtx.stroke();
+  oCtx.restore();
+
+  // ---- MOON ORBITAL ELLIPSE ----
+  const ry=moonOrbitR*Math.sin(TILT_RAD)*5.5+moonOrbitR*0.12;
+  oCtx.save();
+  oCtx.translate(ex,ey);
+  oCtx.setLineDash([5,8]); oCtx.strokeStyle='rgba(200,200,100,.32)'; oCtx.lineWidth=1.2;
+  oCtx.beginPath(); oCtx.ellipse(0,0,moonOrbitR,ry,0,0,Math.PI*2); oCtx.stroke();
+  oCtx.setLineDash([2,7]); oCtx.strokeStyle='rgba(200,200,100,.22)';
+  oCtx.beginPath(); oCtx.moveTo(-moonOrbitR-12,0); oCtx.lineTo(moonOrbitR+12,0); oCtx.stroke();
+  oCtx.restore(); oCtx.setLineDash([]);
+
+  // ---- EARTH SHADOW CONES (away from sun = to the right) ----
+  // Earth occluding sun → shadow points right (+x direction)
+  // Use real sun position (far left) for proper cone geometry
+  drawShadowCones(oCtx, ex, ey, earthR, sunX, sunY, sunR);
+
+  // ---- SUN ARROW (implied off-left) ----
+  oCtx.save();
+  for(let i=-2;i<=2;i++){
+    oCtx.strokeStyle=`rgba(255,190,50,${.04+.01*Math.abs(i)})`;
+    oCtx.lineWidth=1; oCtx.setLineDash([10,16]);
+    oCtx.beginPath(); oCtx.moveTo(0,ey+i*30); oCtx.lineTo(ex-earthR-5,ey+i*5); oCtx.stroke();
+  }
+  oCtx.setLineDash([]);
+  oCtx.font='10px Share Tech Mono,monospace'; oCtx.fillStyle='rgba(255,200,60,.55)';
+  oCtx.textAlign='left'; oCtx.fillText('← SUN (distant)',6,ey-14);
+  oCtx.restore();
+
+  // ---- Check moon shadow state ----
+  // Direction from sun to earth: +x roughly
+  // Earth umbra cone: from earth rightward
+  const shadowDirX=ex-sunX, shadowDirY=ey-sunY;
+  const sdLen=Math.sqrt(shadowDirX**2+shadowDirY**2);
+  const sdNx=shadowDirX/sdLen, sdNy=shadowDirY/sdLen;
+  // Project moon onto shadow axis
+  const toMoonX=mx-ex, toMoonY=my-ey;
+  const projAlong=toMoonX*sdNx+toMoonY*sdNy;
+  const projPerp=Math.abs(-toMoonX*sdNy+toMoonY*sdNx);
+  // Shadow widths at that distance
+  const umbraW=Math.max(0,earthR*.9-projAlong*(sunR-earthR*.9)/sdLen);
+  const penumbraW=earthR*1.25+projAlong*(sunR+earthR*1.25)/sdLen;
+  const inShadow=projAlong>0&&projAlong<260;
+  const shadowFrac=inShadow?(projPerp<umbraW?1:projPerp<penumbraW?.5:0):0;
+
+  // ---- EARTH ----
+  drawEarth(oCtx,ex,ey,earthR);
+
+  // ---- MOON ----
+  drawMoon(oCtx,mx,my,moonR,shadowFrac);
+
+  // ---- LABELS ----
+  lbl(oCtx,ex,ey+earthR+16,'EARTH','#5ab0f0',9);
+  const moonLblY=my+(my>=ey?moonR+12:-moonR-6);
+  lbl(oCtx,mx,moonLblY,'MOON','#b0c4d8',9);
+
+  // Shadow zone label on moon
+  if(shadowFrac>0.8) lbl(oCtx,mx,my,'●','#ff3300',8);
+
+  // ---- TILT ANNOTATION ----
+  oCtx.save();
+  oCtx.translate(ex+moonOrbitR+22,ey);
+  oCtx.setLineDash([3,6]); oCtx.strokeStyle='rgba(70,120,180,.35)'; oCtx.lineWidth=1;
+  oCtx.beginPath(); oCtx.moveTo(-10,0); oCtx.lineTo(26,0); oCtx.stroke();
+  oCtx.setLineDash([]);
+  oCtx.strokeStyle='rgba(200,200,100,.6)'; oCtx.lineWidth=1.2;
+  oCtx.beginPath(); oCtx.moveTo(0,0); oCtx.lineTo(18,-ry); oCtx.stroke();
+  oCtx.fillStyle='rgba(220,220,100,.7)'; oCtx.font='9px Share Tech Mono,monospace'; oCtx.textAlign='left';
+  oCtx.fillText('5.1°',20,-ry*.5+2);
+  oCtx.restore(); oCtx.setLineDash([]);
+
+  oCtx.font='8px Share Tech Mono,monospace'; oCtx.fillStyle='rgba(200,200,100,.35)'; oCtx.textAlign='center';
+  oCtx.fillText('↑ NODE',ex,ey-ry-8);
+  oCtx.fillText('↓ NODE',ex,ey+ry+14);
+
+  return shadowFrac;
+}
+
+// ===================== CLOSEUP CANVAS =====================
+function drawCloseup(ang){
+  const W=cC.width, H=cC.height;
+  cCtx.clearRect(0,0,W,H);
+  cCtx.fillStyle='#020810'; cCtx.fillRect(0,0,W,H);
+  if(mode==='solar') drawSolarCloseup(ang,W,H);
+  else drawLunarCloseup(ang,W,H);
+}
+
+function drawSolarCloseup(ang,W,H){
+  // Show the Sun with Moon crossing it + shadow zones pointing away
+  const cx=W*.35, cy=H*.42;
+  const sunR=52, moonOrbitR=75, moonR=24;
+
+  const mx=cx+Math.cos(ang)*moonOrbitR;
+  const my=cy+Math.sin(ang)*moonOrbitR*0.18;
+
+  // Shadow cones behind moon (away from sun)
+  drawShadowCones(cCtx,mx,my,moonR,cx,cy,sunR);
+
+  // Sun
+  drawSun(cCtx,cx,cy,sunR);
+
+  // Corona during near-total
+  const dist=Math.sqrt((mx-cx)**2+(my-cy)**2);
+  const overlap=(sunR+moonR-dist)/(moonR*2);
+  if(overlap>0.78){
+    const cg=cCtx.createRadialGradient(mx,my,moonR*.9,mx,my,moonR*2.4);
+    cg.addColorStop(0,'rgba(255,170,20,.75)'); cg.addColorStop(1,'rgba(255,80,0,0)');
+    cCtx.beginPath(); cCtx.arc(mx,my,moonR*2.4,0,Math.PI*2); cCtx.fillStyle=cg; cCtx.fill();
+  }
+
+  // Moon
+  drawMoon(cCtx,mx,my,moonR,0);
+
+  // Labels
+  lbl(cCtx,cx,cy+sunR+13,'SUN','#ffc840',8);
+  lbl(cCtx,mx,my+moonR+11,'MOON','#b0c4d8',8);
+
+  // Zone labels at bottom
+  cCtx.font='8px Share Tech Mono,monospace'; cCtx.textAlign='center';
+  cCtx.fillStyle='rgba(160,150,220,.7)';
+  cCtx.fillText('UMBRA',W*.5,H*.76);
+  cCtx.fillStyle='rgba(100,80,180,.6)';
+  cCtx.fillText('PENUMBRA',W*.5,H*.86);
+  cCtx.fillStyle='rgba(60,40,100,.55)';
+  cCtx.fillText('ANTUMBRA',W*.5,H*.94);
+
+  // Eclipse type label
+  if(overlap>0.82){
+    lbl(cCtx,W/2,H*.12,'◈ TOTAL ECLIPSE','#ff6600',8);
+  } else if(overlap>0.1){
+    lbl(cCtx,W/2,H*.12,'◑ PARTIAL ECLIPSE','#ffaa44',8);
+  } else {
+    lbl(cCtx,W/2,H*.12,'○ NO ECLIPSE','#445566',8);
+  }
+}
+
+function drawLunarCloseup(ang,W,H){
+  const cx=W*.35, cy=H*.42;
+  const earthR=44, moonOrbitR=85, moonR=18;
+  const sunX=cx-300, sunY=cy, sunR=120;
+
+  drawShadowCones(cCtx,cx,cy,earthR,sunX,sunY,sunR);
+
+  // Sun arrow
+  cCtx.font='8px Share Tech Mono,monospace'; cCtx.fillStyle='rgba(255,200,60,.5)';
+  cCtx.textAlign='left'; cCtx.fillText('← SUN',4,cy-earthR-8);
+
+  drawEarth(cCtx,cx,cy,earthR);
+
+  const mx=cx+Math.cos(ang)*moonOrbitR;
+  const my=cy+Math.sin(ang)*moonOrbitR*0.18;
+
+  // Shadow fraction
+  const toMoonX=mx-cx, toMoonY=my-cy;
+  const sdNx=1,sdNy=0; // shadow goes right
+  const projAlong=toMoonX*sdNx+toMoonY*sdNy;
+  const projPerp=Math.abs(-toMoonX*sdNy+toMoonY*sdNx);
+  const umbraW=Math.max(0,earthR*.9-projAlong*(sunR-earthR*.9)/300);
+  const penW=earthR*1.25+projAlong*(sunR+earthR*1.25)/300;
+  const inShadow=projAlong>0&&projAlong<260;
+  const sf2=inShadow?(projPerp<umbraW?1:projPerp<penW?.5:0):0;
+
+  drawMoon(cCtx,mx,my,moonR,sf2);
+
+  lbl(cCtx,cx,cy+earthR+13,'EARTH','#5ab0f0',8);
+  lbl(cCtx,mx,my+moonR+11,'MOON','#b0c4d8',8);
+
+  cCtx.font='8px Share Tech Mono,monospace'; cCtx.textAlign='center';
+  cCtx.fillStyle='rgba(160,150,220,.7)';
+  cCtx.fillText('UMBRA',W*.5,H*.76);
+  cCtx.fillStyle='rgba(100,80,180,.6)';
+  cCtx.fillText('PENUMBRA',W*.5,H*.86);
+
+  if(sf2>0.8){
+    lbl(cCtx,W/2,H*.12,'◉ TOTAL BLOOD MOON','#ff3300',8);
+  } else if(sf2>0){
+    lbl(cCtx,W/2,H*.12,'◑ PARTIAL LUNAR','#dd7733',8);
+  } else {
+    lbl(cCtx,W/2,H*.12,'○ NO ECLIPSE','#445566',8);
+  }
+}
+
+// ===================== PHASE & INFO =====================
+function getPhaseInfo(ang){
+  const c=Math.cos(ang);
+  // tilt offset fraction: how close to ecliptic node
+  const tiltOffset=Math.abs(Math.sin(ang)*Math.sin(TILT_RAD)*5.5);
+  const nearNode=tiltOffset<0.08; // close enough to ecliptic for eclipse
+
+  if(mode==='solar'){
+    // Solar eclipse: moon between sun & earth → cos(ang)≈-1 (moon at leftmost, between sx and ex)
+    if(c<-0.9&&nearNode) return {name:'TOTAL SOLAR ECLIPSE',zone:'UMBRA',col:'#ff6600'};
+    if(c<-0.75&&nearNode) return {name:'PARTIAL SOLAR ECLIPSE',zone:'PENUMBRA',col:'#ffaa33'};
+    if(c<-0.5) return {name:'NEW MOON',zone:'NEAR ALIGNMENT',col:'#667788'};
+    if(c>0.88) return {name:'FULL MOON',zone:'OPPOSITE SUN',col:'#b0c4d8'};
+    return {name:'ORBIT NOMINAL',zone:'—',col:'#334455'};
+  } else {
+    // Lunar eclipse: moon behind earth (away from sun) → cos(ang)≈+1 (moon at rightmost)
+    if(c>0.9&&nearNode) return {name:'TOTAL LUNAR ECLIPSE',zone:'UMBRA',col:'#ee3300'};
+    if(c>0.75&&nearNode) return {name:'PARTIAL LUNAR ECLIPSE',zone:'PENUMBRA',col:'#dd7733'};
+    if(c>0.5) return {name:'FULL MOON',zone:'NEAR SHADOW',col:'#88bbdd'};
+    if(c<-0.88) return {name:'NEW MOON',zone:'—',col:'#445566'};
+    return {name:'ORBIT NOMINAL',zone:'—',col:'#334455'};
+  }
+}
+
+function updateInfo(ang){
+  const deg=(((ang*180/Math.PI)%360)+360)%360;
+  const tiltOff=Math.sin(ang)*Math.sin(TILT_RAD)*5.5;
+  document.getElementById('infoAngle').textContent=deg.toFixed(1)+'°';
+  document.getElementById('infoTilt').textContent='5.1°';
+  document.getElementById('infoYOff').textContent=(tiltOff*10).toFixed(1)+' u';
+  const ph=getPhaseInfo(ang);
+  document.getElementById('infoZone').textContent=ph.zone;
+  document.getElementById('infoZone').style.color=ph.col;
+  const badge=document.getElementById('phaseBadge');
+  badge.textContent=ph.name;
+  badge.style.color=ph.col;
+  badge.style.borderColor=ph.col+'55';
+  badge.style.boxShadow=ph.col!=='#334455'?`0 0 20px ${ph.col}44`:'none';
+}
+
+// ===================== CONTROLS =====================
+function setMode(m){
+  mode=m;
+  document.getElementById('tabSolar').className='tab solar'+(m==='solar'?' on':'');
+  document.getElementById('tabLunar').className='tab lunar'+(m==='lunar'?' on':'');
+  document.getElementById('closeupTitle').textContent=
+    m==='solar'?'SOLAR ECLIPSE CLOSEUP':'LUNAR ECLIPSE CLOSEUP';
+}
+function chSpd(d){
+  spdI=Math.max(0,Math.min(spdList.length-1,spdI+d));
+  speed=spdList[spdI];
+  document.getElementById('spdLbl').textContent=speed+'× SPD';
+}
+function togglePause(){
+  paused=!paused;
+  document.getElementById('pauseBtn').textContent=paused?'▶':'⏸';
+}
+
+// ===================== LOOP =====================
+let lastT=null;
+const BASE=0.006;
+function tick(ts){
+  if(!lastT) lastT=ts;
+  const dt=ts-lastT; lastT=ts;
+  if(!paused) moonAngle+=(dt/16)*BASE*speed;
+  drawStars();
+  drawOrbital(moonAngle);
+  drawCloseup(moonAngle);
+  updateInfo(moonAngle);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

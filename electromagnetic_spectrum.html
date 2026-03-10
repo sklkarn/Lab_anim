@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electromagnetic Spectrum — Dr. S Karna</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020510;
+    --surface: #080f22;
+    --border: rgba(100,180,255,0.12);
+    --text: #c8deff;
+    --dim: #5a7aaa;
+    --accent: #00d4ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Star field ── */
+  #stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 10;
+    text-align: center;
+    padding: 40px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,20,50,0.9) 0%, transparent 100%);
+  }
+
+  header .subtitle {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.4rem, 4vw, 2.8rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    background: linear-gradient(90deg, #00d4ff, #a78bfa, #f472b6, #fbbf24, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  header .instructor {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    color: #94b4d8;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+  header .instructor span {
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(16px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* ── Main layout ── */
+  main {
+    position: relative; z-index: 5;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 30px 20px 60px;
+  }
+
+  /* ── Spectrum bar ── */
+  .spectrum-wrapper {
+    margin-bottom: 10px;
+  }
+
+  .wavelength-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+
+  .spectrum-bar {
+    height: 54px;
+    border-radius: 8px;
+    background: linear-gradient(90deg,
+      /* Radio — long waves, represented as dark slate/charcoal (invisible to eyes) */
+      #1a1a2e 0%,
+      #2a2a3e 10%,
+      #1e1e30 14.28%,
+
+      /* Microwave — slightly warmer grey-blue (invisible) */
+      #1c2a3a 14.29%,
+      #253545 24%,
+      #1c2a3a 28.56%,
+
+      /* Infrared — heat: deep red-orange glow (invisible, felt as heat) */
+      #3d0a00 28.57%,
+      #7a1a00 34%,
+      #c43200 40%,
+      #8b1c00 42.84%,
+
+      /* Visible light — full ROYGBIV rainbow (only visible portion) */
+      #ff0000 42.85%,
+      #ff6600 45%,
+      #ffff00 47%,
+      #00ee00 49.5%,
+      #00ccff 51.5%,
+      #0044ff 53.5%,
+      #6600cc 57.12%,
+
+      /* Ultraviolet — deep violet/black-light (invisible, energetic) */
+      #2d0050 57.13%,
+      #1a0035 63%,
+      #0d001a 71.40%,
+
+      /* X-Ray — cold blue-white (high energy, invisible) */
+      #001a2e 71.41%,
+      #003d5c 76%,
+      #00aacc 80%,
+      #b0e8ff 83%,
+      #003d5c 85.68%,
+
+      /* Gamma — near-black with hot white core (extreme energy) */
+      #050505 85.69%,
+      #1a1a1a 90%,
+      #ffffff 95%,
+      #0a0a0a 100%
+    );
+    position: relative;
+    cursor: crosshair;
+    box-shadow: 0 0 40px rgba(0,212,255,0.18), 0 0 80px rgba(167,139,250,0.1);
+    overflow: hidden;
+  }
+
+  /* Animated shimmer */
+  .spectrum-bar::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+    animation: shimmer 3s infinite linear;
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+
+  /* Band dividers */
+  .spectrum-bar .divider {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* Hover cursor line */
+  .spectrum-bar .cursor-line {
+    position: absolute; top: 0; bottom: 0;
+    width: 2px;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s;
+    box-shadow: 0 0 8px white;
+  }
+
+  .spectrum-bar:hover .cursor-line { opacity: 1; }
+
+  /* ── Band labels row ── */
+  .band-labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+    margin-bottom: 28px;
+  }
+
+  .band-label {
+    text-align: center;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 4px 2px;
+    cursor: pointer;
+    transition: color 0.2s;
+    border-top: 2px solid transparent;
+  }
+  .band-label:hover, .band-label.active {
+    color: #fff;
+  }
+  .band-label:nth-child(1) { border-color: #4a4a6a; }   /* Radio — dark slate */
+  .band-label:nth-child(2) { border-color: #3a5570; }   /* Microwave — grey-blue */
+  .band-label:nth-child(3) { border-color: #c43200; }   /* Infrared — heat red */
+  .band-label:nth-child(4) { border-color: #00ee00; }   /* Visible — green midpoint */
+  .band-label:nth-child(5) { border-color: #6600cc; }   /* UV — deep violet */
+  .band-label:nth-child(6) { border-color: #00aacc; }   /* X-Ray — cold cyan */
+  .band-label:nth-child(7) { border-color: #aaaaaa; }   /* Gamma — near white */
+
+  /* ── Visible light inset ── */
+  .visible-section {
+    margin-bottom: 30px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(4px);
+  }
+
+  .visible-section h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .rainbow-bar {
+    height: 36px;
+    border-radius: 6px;
+    background: linear-gradient(90deg,
+      #7b00ff 0%,      /* Violet */
+      #4400ff 12%,
+      #0040ff 22%,     /* Blue */
+      #007fff 32%,
+      #00c8ff 42%,     /* Cyan */
+      #00ff88 52%,     /* Green */
+      #aaff00 62%,
+      #ffff00 70%,     /* Yellow */
+      #ffaa00 78%,
+      #ff6600 85%,     /* Orange */
+      #ff0000 95%      /* Red */
+    );
+    box-shadow: 0 0 20px rgba(255,255,255,0.15);
+    position: relative;
+    margin-bottom: 10px;
+  }
+
+  .rainbow-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    color: #6a8aaa;
+  }
+
+  .color-swatches {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: #90aac8;
+  }
+  .swatch-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+
+  /* ── Wave animation canvas ── */
+  .wave-section {
+    margin-bottom: 30px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(0,10,30,0.6);
+    overflow: hidden;
+    padding: 16px 20px 10px;
+  }
+
+  .wave-section h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+
+  .wave-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .wave-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+    color: var(--dim);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .wave-btn:hover, .wave-btn.active {
+    background: rgba(0,212,255,0.12);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  canvas#waveCanvas {
+    width: 100%;
+    height: 120px;
+    display: block;
+    border-radius: 6px;
+  }
+
+  /* ── Cards grid ── */
+  .cards-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface);
+    padding: 18px;
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    opacity: 0;
+    animation: cardIn 0.5s forwards;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--band-color, #fff);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 20px var(--band-glow, rgba(255,255,255,0.1));
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.06em;
+  }
+
+  .card-range {
+    font-size: 0.65rem;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .card-desc {
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: #8aabcc;
+    margin-bottom: 12px;
+  }
+
+  .card-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .stat-box {
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 7px 10px;
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 3px;
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: #e0efff;
+  }
+
+  .card-uses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .use-tag {
+    font-size: 0.58rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    color: #7a9abb;
+    border: 1px solid rgba(255,255,255,0.08);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 5;
+    text-align: center;
+    padding: 30px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.12em;
+  }
+
+  footer strong { color: #94b4d8; }
+
+  /* ── Tooltip ── */
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    background: rgba(5,15,40,0.95);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.7rem;
+    color: var(--text);
+    max-width: 200px;
+    display: none;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="tooltip"></div>
+
+<header>
+  <div class="subtitle">Physics — Electromagnetic Radiation</div>
+  <h1>The Electromagnetic Spectrum</h1>
+  <div class="instructor">Instructor &nbsp;/&nbsp; <span>Dr. S Karna</span></div>
+</header>
+
+<main>
+
+  <!-- Full spectrum bar -->
+  <div class="spectrum-wrapper">
+    <div class="wavelength-labels">
+      <span>10⁴ m</span>
+      <span>1 m</span>
+      <span>1 cm</span>
+      <span>700 nm</span>
+      <span>400 nm</span>
+      <span>1 nm</span>
+      <span>0.01 nm</span>
+      <span>0.0001 nm</span>
+    </div>
+    <div class="spectrum-bar" id="spectrumBar">
+      <div class="divider" style="left:14.28%"></div>
+      <div class="divider" style="left:28.56%"></div>
+      <div class="divider" style="left:42.84%"></div>
+      <div class="divider" style="left:57.12%"></div>
+      <div class="divider" style="left:71.40%"></div>
+      <div class="divider" style="left:85.68%"></div>
+      <div class="cursor-line" id="cursorLine"></div>
+    </div>
+    <div class="band-labels" id="bandLabels">
+      <div class="band-label" data-idx="0">Radio</div>
+      <div class="band-label" data-idx="1">Microwave</div>
+      <div class="band-label" data-idx="2">Infrared</div>
+      <div class="band-label" data-idx="3">Visible</div>
+      <div class="band-label" data-idx="4">Ultraviolet</div>
+      <div class="band-label" data-idx="5">X-Ray</div>
+      <div class="band-label" data-idx="6">Gamma Ray</div>
+    </div>
+  </div>
+
+  <!-- Visible light detail -->
+  <div class="visible-section">
+    <h3>▸ Visible Light Detail &nbsp;(400 nm – 700 nm)</h3>
+    <div class="rainbow-bar"></div>
+    <div class="rainbow-ticks">
+      <span>400 nm</span><span>450 nm</span><span>490 nm</span>
+      <span>530 nm</span><span>560 nm</span><span>590 nm</span>
+      <span>620 nm</span><span>700 nm</span>
+    </div>
+    <div class="color-swatches">
+      <div class="swatch"><div class="swatch-dot" style="background:#7b00ff"></div>Violet (380–450 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#0040ff"></div>Blue (450–495 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#00c8ff"></div>Cyan (495–520 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#00e060"></div>Green (520–560 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#ffff00"></div>Yellow (560–590 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#ff7700"></div>Orange (590–625 nm)</div>
+      <div class="swatch"><div class="swatch-dot" style="background:#ff0000"></div>Red (625–700 nm)</div>
+    </div>
+  </div>
+
+  <!-- Wave visualizer -->
+  <div class="wave-section">
+    <h3>▸ Wave Visualizer — Varying Wavelength</h3>
+    <div class="wave-controls" id="waveControls">
+      <button class="wave-btn active" data-band="0">Radio</button>
+      <button class="wave-btn" data-band="1">Microwave</button>
+      <button class="wave-btn" data-band="2">Infrared</button>
+      <button class="wave-btn" data-band="3">Visible</button>
+      <button class="wave-btn" data-band="4">UV</button>
+      <button class="wave-btn" data-band="5">X-Ray</button>
+      <button class="wave-btn" data-band="6">Gamma</button>
+    </div>
+    <canvas id="waveCanvas" height="120"></canvas>
+  </div>
+
+  <!-- Band cards -->
+  <div class="cards-title">▸ Spectrum Bands — Full Reference</div>
+  <div class="cards" id="cardsContainer"></div>
+
+</main>
+
+<footer>
+  <div>Electromagnetic Spectrum &nbsp;|&nbsp; Physics Reference &nbsp;|&nbsp; <strong>Instructor: Dr. S Karna</strong></div>
+  <div style="margin-top:6px; font-size:0.62rem; color:#2a4060;">c = λf &nbsp;|&nbsp; E = hf &nbsp;|&nbsp; Speed of Light: 3 × 10⁸ m/s</div>
+</footer>
+
+<script>
+// ── Star field ──────────────────────────────────────────────
+const starCanvas = document.getElementById('stars');
+const sc = starCanvas.getContext('2d');
+function resizeStars() {
+  starCanvas.width  = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+}
+resizeStars();
+window.addEventListener('resize', resizeStars);
+
+const stars = Array.from({length: 200}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.2 + 0.2,
+  a: Math.random(),
+  speed: Math.random() * 0.003 + 0.001
+}));
+
+function drawStars() {
+  sc.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  stars.forEach(s => {
+    s.a += s.speed;
+    const alpha = 0.3 + 0.5 * Math.abs(Math.sin(s.a));
+    sc.beginPath();
+    sc.arc(s.x * starCanvas.width, s.y * starCanvas.height, s.r, 0, Math.PI*2);
+    sc.fillStyle = `rgba(180,210,255,${alpha})`;
+    sc.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+drawStars();
+
+// ── Band data ───────────────────────────────────────────────
+const bands = [
+  {
+    name: "Radio Waves",
+    icon: "📻",
+    range: "10⁴ m – 0.1 m",
+    freq:  "3 Hz – 3 GHz",
+    energy:"~10⁻³² – 10⁻²⁴ J",
+    color: "#4a4a7a",
+    glow:  "rgba(74,74,122,0.4)",
+    cycles: 0.6,
+    desc: "Longest wavelengths; pass through walls & atmosphere. Generated by oscillating electrons in antennas.",
+    uses: ["AM/FM Radio","Television","WiFi","Cell Phones","MRI Scanners","GPS"],
+  },
+  {
+    name: "Microwaves",
+    icon: "🌐",
+    range: "0.1 m – 1 mm",
+    freq:  "3 GHz – 300 GHz",
+    energy:"~10⁻²⁴ – 10⁻²² J",
+    color: "#3a6080",
+    glow:  "rgba(58,96,128,0.4)",
+    cycles: 2,
+    desc: "Absorbed by water molecules — heats food in ovens. Also used in radar systems and satellite communications.",
+    uses: ["Microwave Ovens","Radar","Bluetooth","Satellite TV","Radio Astronomy","Speed Cameras"],
+  },
+  {
+    name: "Infrared",
+    icon: "🔥",
+    range: "1 mm – 700 nm",
+    freq:  "300 GHz – 430 THz",
+    energy:"~10⁻²² – 10⁻¹⁹ J",
+    color: "#c43200",
+    glow:  "rgba(196,50,0,0.45)",
+    cycles: 5,
+    desc: "Felt as heat. Emitted by all warm objects. Divided into near-, mid-, and far-infrared regions.",
+    uses: ["Night Vision","Thermal Imaging","TV Remotes","Heat Lamps","Astronomy","Security Sensors"],
+  },
+  {
+    name: "Visible Light",
+    icon: "🌈",
+    range: "700 nm – 400 nm",
+    freq:  "430 THz – 750 THz",
+    energy:"~1.7 – 3.1 eV",
+    color: "#00ee88",
+    glow:  "rgba(0,238,136,0.3)",
+    cycles: 10,
+    desc: "The only EM radiation detectable by human eyes. White light disperses into a rainbow through a prism.",
+    uses: ["Human Vision","Photography","Lasers","Fiber Optics","Plant Photosynthesis","Lighting"],
+  },
+  {
+    name: "Ultraviolet",
+    icon: "☀️",
+    range: "400 nm – 10 nm",
+    freq:  "750 THz – 30 PHz",
+    energy:"~3 – 124 eV",
+    color: "#6600cc",
+    glow:  "rgba(102,0,204,0.45)",
+    cycles: 18,
+    desc: "Ionizing at higher frequencies. Causes sunburn, but also triggers Vitamin D synthesis in skin.",
+    uses: ["Sterilization","Fluorescent Lights","Sun Tanning","Forensics","Astronomy","Skin Therapy"],
+  },
+  {
+    name: "X-Rays",
+    icon: "🩻",
+    range: "10 nm – 0.01 nm",
+    freq:  "30 PHz – 30 EHz",
+    energy:"~0.1 – 100 keV",
+    color: "#00aacc",
+    glow:  "rgba(0,170,204,0.4)",
+    cycles: 32,
+    desc: "Penetrate soft tissue; absorbed by dense bone. Discovered by Röntgen in 1895, revolutionizing medicine.",
+    uses: ["Medical Imaging","CT Scans","Airport Security","Crystallography","Astronomy","Cancer Therapy"],
+  },
+  {
+    name: "Gamma Rays",
+    icon: "☢️",
+    range: "< 0.01 nm",
+    freq:  "> 30 EHz",
+    energy:"> 100 keV",
+    color: "#cccccc",
+    glow:  "rgba(220,220,220,0.35)",
+    cycles: 55,
+    desc: "Highest-energy EM radiation. Emitted by radioactive nuclei and cosmic phenomena like supernovae.",
+    uses: ["Cancer Radiotherapy","Nuclear Medicine","Sterilization","PET Scans","Gamma-ray Astronomy","Food Irradiation"],
+  },
+];
+
+// ── Build cards ─────────────────────────────────────────────
+const container = document.getElementById('cardsContainer');
+bands.forEach((b, i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.setProperty('--band-color', b.color);
+  card.style.setProperty('--band-glow', b.glow);
+  card.style.animationDelay = (i * 0.1) + 's';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-icon">${b.icon}</div>
+      <div>
+        <div class="card-title">${b.name}</div>
+        <div class="card-range">${b.range}</div>
+      </div>
+    </div>
+    <div class="card-desc">${b.desc}</div>
+    <div class="card-stats">
+      <div class="stat-box">
+        <div class="stat-label">Frequency</div>
+        <div class="stat-value">${b.freq}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Energy</div>
+        <div class="stat-value">${b.energy}</div>
+      </div>
+    </div>
+    <div class="card-uses">
+      ${b.uses.map(u => `<span class="use-tag">${u}</span>`).join('')}
+    </div>
+  `;
+  container.appendChild(card);
+});
+
+// ── Wave canvas ─────────────────────────────────────────────
+const waveCanvas = document.getElementById('waveCanvas');
+const wc = waveCanvas.getContext('2d');
+let activeBand = 0;
+let waveTime = 0;
+
+function resizeWave() {
+  waveCanvas.width  = waveCanvas.offsetWidth * window.devicePixelRatio;
+  waveCanvas.height = 120 * window.devicePixelRatio;
+  wc.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+resizeWave();
+window.addEventListener('resize', resizeWave);
+
+function drawWave() {
+  const W = waveCanvas.offsetWidth;
+  const H = 120;
+  wc.clearRect(0, 0, W, H);
+
+  const b = bands[activeBand];
+  const cycles = b.cycles;
+  const amp = 38;
+  const midY = H / 2;
+
+  // Background grid lines
+  wc.strokeStyle = 'rgba(255,255,255,0.04)';
+  wc.lineWidth = 1;
+  for (let y = 20; y < H; y += 20) {
+    wc.beginPath(); wc.moveTo(0, y); wc.lineTo(W, y); wc.stroke();
+  }
+
+  // Center axis
+  wc.strokeStyle = 'rgba(255,255,255,0.1)';
+  wc.setLineDash([4, 6]);
+  wc.beginPath(); wc.moveTo(0, midY); wc.lineTo(W, midY); wc.stroke();
+  wc.setLineDash([]);
+
+  // Gradient wave
+  const grad = wc.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, b.color + '00');
+  grad.addColorStop(0.1, b.color);
+  grad.addColorStop(0.9, b.color);
+  grad.addColorStop(1, b.color + '00');
+
+  wc.beginPath();
+  for (let x = 0; x <= W; x++) {
+    const phase = (x / W) * cycles * Math.PI * 2 - waveTime;
+    const y = midY + Math.sin(phase) * amp;
+    x === 0 ? wc.moveTo(x, y) : wc.lineTo(x, y);
+  }
+  wc.strokeStyle = grad;
+  wc.lineWidth = 2.5;
+  wc.stroke();
+
+  // Glow pass
+  wc.beginPath();
+  for (let x = 0; x <= W; x++) {
+    const phase = (x / W) * cycles * Math.PI * 2 - waveTime;
+    const y = midY + Math.sin(phase) * amp;
+    x === 0 ? wc.moveTo(x, y) : wc.lineTo(x, y);
+  }
+  wc.strokeStyle = b.color + '40';
+  wc.lineWidth = 8;
+  wc.stroke();
+
+  // Labels
+  wc.fillStyle = 'rgba(100,160,220,0.5)';
+  wc.font = '10px Exo 2, sans-serif';
+  wc.fillText(`λ: ${b.range}`, 14, 16);
+  wc.fillText(`f: ${b.freq}`, 14, 30);
+
+  waveTime += 0.04;
+  requestAnimationFrame(drawWave);
+}
+drawWave();
+
+// Wave controls
+document.getElementById('waveControls').addEventListener('click', e => {
+  const btn = e.target.closest('.wave-btn');
+  if (!btn) return;
+  document.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeBand = +btn.dataset.band;
+});
+
+// Band label clicks
+document.getElementById('bandLabels').addEventListener('click', e => {
+  const lbl = e.target.closest('.band-label');
+  if (!lbl) return;
+  document.querySelectorAll('.band-label').forEach(l => l.classList.remove('active'));
+  lbl.classList.add('active');
+  activeBand = +lbl.dataset.idx;
+  document.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.wave-btn[data-band="${activeBand}"]`).classList.add('active');
+});
+
+// Spectrum bar cursor
+const bar = document.getElementById('spectrumBar');
+const cursorLine = document.getElementById('cursorLine');
+const tooltip = document.getElementById('tooltip');
+
+bar.addEventListener('mousemove', e => {
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  cursorLine.style.left = (pct * 100) + '%';
+
+  const bIdx = Math.min(6, Math.floor(pct * 7));
+  const b = bands[bIdx];
+  tooltip.style.display = 'block';
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top  = (e.clientY - 40) + 'px';
+  tooltip.innerHTML = `<strong style="color:#fff">${b.icon} ${b.name}</strong><br>
+    <span style="color:#5a7aaa;font-size:0.62rem">${b.range}</span><br>
+    <span style="font-size:0.65rem">${b.freq}</span>`;
+});
+
+bar.addEventListener('mouseleave', () => {
+  tooltip.style.display = 'none';
+  cursorLine.style.opacity = '0';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Conductors — Ampère Force</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #060810;
+    --panel: #0c1020;
+    --border: #162040;
+    --cyan: #00e5ff;
+    --orange: #ff6030;
+    --gold: #ffd600;
+    --green: #00ff9d;
+    --red: #ff2d6e;
+    --text: #8ab4c8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,200,255,0.012) 3px, rgba(0,200,255,0.012) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* ── TOP BAR (title only, no download) ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6,8,16,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(0.72rem, 2vw, 1rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    text-shadow: 0 0 16px rgba(0,229,255,0.5);
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    flex: 1;
+    min-height: calc(100vh - 52px);
+  }
+
+  /* ── ANIMATION PANEL ── */
+  .anim-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    position: relative;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .anim-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,100,180,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .anim-panel svg {
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    filter: drop-shadow(0 0 40px rgba(0,180,255,0.1));
+  }
+
+  /* ── SIDE PANEL ── */
+  .side-panel {
+    background: var(--panel);
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .side-panel h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  /* ── TOGGLE BUTTONS ── */
+  .btn-row { display: flex; gap: 8px; }
+
+  .tog-btn {
+    flex: 1;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 11px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    transition: all 0.22s ease;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+
+  .tog-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.22s;
+    z-index: 0;
+  }
+
+  .tog-btn span { position: relative; z-index: 1; display: block; text-align: center; }
+
+  .tog-btn.attract { border-color: rgba(0,255,157,0.5); }
+  .tog-btn.attract::before { background: var(--green); }
+  .tog-btn.attract.active { color: #000; border-color: var(--green); }
+  .tog-btn.attract.active::before { opacity: 1; }
+  .tog-btn.attract:not(.active):hover { color: var(--green); }
+
+  .tog-btn.repel { border-color: rgba(255,45,110,0.5); }
+  .tog-btn.repel::before { background: var(--red); }
+  .tog-btn.repel.active { color: #fff; border-color: var(--red); }
+  .tog-btn.repel.active::before { opacity: 1; }
+  .tog-btn.repel:not(.active):hover { color: var(--red); }
+
+  /* ── INFO ── */
+  .info-block { display: flex; flex-direction: column; gap: 12px; }
+  .info-row   { display: flex; flex-direction: column; gap: 3px; }
+  .info-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(0,229,255,0.4); }
+  .info-val   { font-size: 0.78rem; color: #d0e8f0; line-height: 1.5; }
+  .info-val.cyan   { color: var(--cyan); }
+  .info-val.orange { color: var(--orange); }
+
+  /* ── FORMULA ── */
+  .formula-box {
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-left: 3px solid var(--cyan);
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 0.82rem;
+    color: var(--cyan);
+    letter-spacing: 0.04em;
+    line-height: 2;
+  }
+  .formula-box .flabel {
+    display: block; font-size: 0.56rem; letter-spacing: 0.2em;
+    color: rgba(0,229,255,0.4); margin-bottom: 4px; text-transform: uppercase;
+  }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; flex-direction: column; gap: 9px; }
+  .leg-item { display: flex; align-items: center; gap: 9px; font-size: 0.68rem; color: var(--text); }
+  .leg-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .leg-line { width:20px; height:3px; border-radius:2px; flex-shrink:0; }
+
+  /* ── STATUS ── */
+  .status { display: flex; align-items: center; gap: 8px; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .status-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--green); box-shadow:0 0 7px var(--green);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:0.4;transform:scale(0.65);}
+  }
+
+  /* ── MODE BADGE ── */
+  #mode-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.14em; text-align: center;
+    padding: 8px 12px; border-radius: 4px; border: 1px solid;
+    transition: all 0.3s ease;
+  }
+  #mode-badge.attract { color:var(--green); border-color:rgba(0,255,157,0.3); background:rgba(0,255,157,0.06); text-shadow:0 0 10px rgba(0,255,157,0.4); }
+  #mode-badge.repel   { color:var(--red);   border-color:rgba(255,45,110,0.3); background:rgba(255,45,110,0.06); text-shadow:0 0 10px rgba(255,45,110,0.4); }
+
+  .note { font-size:0.61rem; line-height:1.7; color:rgba(140,180,200,0.5); border-top:1px solid var(--border); padding-top:12px; }
+
+  @media (max-width:680px) {
+    .layout { grid-template-columns:1fr; }
+    .anim-panel { border-right:none; border-bottom:1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Parallel Current-Carrying Conductors — Ampère Force</h1>
+</header>
+
+<div class="layout">
+
+  <!-- ══════════════════ ANIMATION ══════════════════ -->
+  <div class="anim-panel">
+    <svg id="mainSvg" viewBox="0 0 580 540" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="g" width="28" height="28" patternUnits="userSpaceOnUse">
+          <path d="M28 0L0 0 0 28" fill="none" stroke="rgba(0,200,255,0.055)" stroke-width="0.8"/>
+        </pattern>
+        <filter id="fw" x="-60%" y="-10%" width="220%" height="120%">
+          <feGaussianBlur stdDeviation="5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fs" x="-100%" y="-100%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="14"/>
+        </filter>
+        <filter id="fp" x="-200%" y="-200%" width="600%" height="600%">
+          <feGaussianBlur stdDeviation="3" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fgold" x="-100%" y="-100%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fred" x="-100%" y="-100%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <marker id="ac" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,7 2.5,0 5" fill="#00e5ff"/>
+        </marker>
+        <marker id="ao" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,7 2.5,0 5" fill="#ff7040"/>
+        </marker>
+        <marker id="af-att" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#ffd600"/>
+        </marker>
+        <marker id="af-rep" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#ff2d6e"/>
+        </marker>
+      </defs>
+
+      <rect width="580" height="540" fill="#060810"/>
+      <rect width="580" height="540" fill="url(#g)"/>
+      <ellipse cx="290" cy="290" rx="180" ry="170"
+               fill="none" stroke="rgba(0,120,200,0.07)" stroke-width="60" filter="url(#fs)"/>
+
+      <!-- Wire 1 halo + wire (attract: bow right; repel: bow left) -->
+      <path id="halo1" d="M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510"
+            fill="none" stroke="rgba(0,200,255,0.18)" stroke-width="18" stroke-linecap="round" filter="url(#fs)"/>
+      <path id="wire1" d="M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510"
+            fill="none" stroke="#00ccff" stroke-width="6" stroke-linecap="round" filter="url(#fw)"/>
+
+      <!-- Wire 2 halo + wire -->
+      <path id="halo2" d="M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"
+            fill="none" stroke="rgba(255,96,48,0.18)" stroke-width="18" stroke-linecap="round" filter="url(#fs)"/>
+      <path id="wire2" d="M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"
+            fill="none" stroke="#ff6030" stroke-width="6" stroke-linecap="round" filter="url(#fw)"/>
+
+      <!-- Clamps -->
+      <rect x="155" y="22" width="30" height="10" rx="2" fill="#1a2a3a" stroke="#00ccff" stroke-width="1.2" opacity="0.8"/>
+      <rect x="395" y="22" width="30" height="10" rx="2" fill="#1a2a3a" stroke="#ff6030" stroke-width="1.2" opacity="0.8"/>
+      <rect x="155" y="508" width="30" height="10" rx="2" fill="#1a2a3a" stroke="#00ccff" stroke-width="1.2" opacity="0.8"/>
+      <rect x="395" y="508" width="30" height="10" rx="2" fill="#1a2a3a" stroke="#ff6030" stroke-width="1.2" opacity="0.8"/>
+
+      <!-- Wire 1 current arrows (always down) -->
+      <line x1="170" y1="58"  x2="170" y2="96"  stroke="#00e5ff" stroke-width="2.4" marker-end="url(#ac)"/>
+      <line x1="174" y1="196" x2="188" y2="233" stroke="#00e5ff" stroke-width="2.2" marker-end="url(#ac)"/>
+      <line x1="218" y1="356" x2="200" y2="390" stroke="#00e5ff" stroke-width="2.2" marker-end="url(#ac)"/>
+      <line x1="170" y1="446" x2="170" y2="482" stroke="#00e5ff" stroke-width="2.4" marker-end="url(#ac)"/>
+
+      <!-- Wire 2 current arrows: downward (attract) -->
+      <g id="w2-down">
+        <line x1="410" y1="58"  x2="410" y2="96"  stroke="#ff7040" stroke-width="2.4" marker-end="url(#ao)"/>
+        <line x1="406" y1="196" x2="392" y2="233" stroke="#ff7040" stroke-width="2.2" marker-end="url(#ao)"/>
+        <line x1="362" y1="356" x2="380" y2="390" stroke="#ff7040" stroke-width="2.2" marker-end="url(#ao)"/>
+        <line x1="410" y1="446" x2="410" y2="482" stroke="#ff7040" stroke-width="2.4" marker-end="url(#ao)"/>
+      </g>
+      <!-- Wire 2 current arrows: upward (repel) -->
+      <g id="w2-up" display="none">
+        <line x1="410" y1="96"  x2="410" y2="58"  stroke="#ff7040" stroke-width="2.4" marker-end="url(#ao)"/>
+        <line x1="392" y1="233" x2="406" y2="196" stroke="#ff7040" stroke-width="2.2" marker-end="url(#ao)"/>
+        <line x1="380" y1="390" x2="362" y2="356" stroke="#ff7040" stroke-width="2.2" marker-end="url(#ao)"/>
+        <line x1="410" y1="482" x2="410" y2="446" stroke="#ff7040" stroke-width="2.4" marker-end="url(#ao)"/>
+      </g>
+
+      <!-- Force arrows attract (gold, inward) -->
+      <g id="force-attract">
+        <line x1="192" y1="82"  x2="252" y2="82"  stroke="#ffd600" stroke-width="2.2" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.85"/>
+        <line x1="388" y1="82"  x2="328" y2="82"  stroke="#ffd600" stroke-width="2.2" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.85"/>
+        <line x1="244" y1="290" x2="275" y2="290" stroke="#ffd600" stroke-width="2.4" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.95"/>
+        <line x1="336" y1="290" x2="305" y2="290" stroke="#ffd600" stroke-width="2.4" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.95"/>
+        <line x1="192" y1="460" x2="252" y2="460" stroke="#ffd600" stroke-width="2.2" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.85"/>
+        <line x1="388" y1="460" x2="328" y2="460" stroke="#ffd600" stroke-width="2.2" marker-end="url(#af-att)" filter="url(#fgold)" opacity="0.85"/>
+        <text x="290" y="268" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="10" font-weight="700" fill="#ffd600" filter="url(#fgold)">◀ ATTRACT ▶</text>
+      </g>
+
+      <!-- Force arrows repel (red, outward) -->
+      <g id="force-repel" display="none">
+        <line x1="148" y1="82"  x2="90"  y2="82"  stroke="#ff2d6e" stroke-width="2.2" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.85"/>
+        <line x1="432" y1="82"  x2="490" y2="82"  stroke="#ff2d6e" stroke-width="2.2" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.85"/>
+        <line x1="96"  y1="290" x2="62"  y2="290" stroke="#ff2d6e" stroke-width="2.4" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.95"/>
+        <line x1="484" y1="290" x2="518" y2="290" stroke="#ff2d6e" stroke-width="2.4" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.95"/>
+        <line x1="148" y1="460" x2="90"  y2="460" stroke="#ff2d6e" stroke-width="2.2" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.85"/>
+        <line x1="432" y1="460" x2="490" y2="460" stroke="#ff2d6e" stroke-width="2.2" marker-end="url(#af-rep)" filter="url(#fred)" opacity="0.85"/>
+        <text x="290" y="268" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="10" font-weight="700" fill="#ff2d6e" filter="url(#fred)">▶ REPEL ◀</text>
+      </g>
+
+      <!-- Magnetic field rings attract -->
+      <g id="field-attract">
+        <circle cx="230" cy="290" r="28" fill="none" stroke="#00ccff" stroke-width="1"   stroke-dasharray="5 5" opacity="0.4"/>
+        <circle cx="230" cy="290" r="50" fill="none" stroke="#00ccff" stroke-width="0.7" stroke-dasharray="4 8" opacity="0.2"/>
+        <circle cx="350" cy="290" r="28" fill="none" stroke="#ff6030" stroke-width="1"   stroke-dasharray="5 5" opacity="0.4"/>
+        <circle cx="350" cy="290" r="50" fill="none" stroke="#ff6030" stroke-width="0.7" stroke-dasharray="4 8" opacity="0.2"/>
+      </g>
+      <!-- Magnetic field rings repel -->
+      <g id="field-repel" display="none">
+        <circle cx="110" cy="290" r="28" fill="none" stroke="#00ccff" stroke-width="1"   stroke-dasharray="5 5" opacity="0.4"/>
+        <circle cx="110" cy="290" r="50" fill="none" stroke="#00ccff" stroke-width="0.7" stroke-dasharray="4 8" opacity="0.2"/>
+        <circle cx="470" cy="290" r="28" fill="none" stroke="#ff6030" stroke-width="1"   stroke-dasharray="5 5" opacity="0.4"/>
+        <circle cx="470" cy="290" r="50" fill="none" stroke="#ff6030" stroke-width="0.7" stroke-dasharray="4 8" opacity="0.2"/>
+      </g>
+
+      <!-- Particles Wire 1 (always downward attract path) -->
+      <circle r="4.5" fill="#00e5ff" opacity="0.95" filter="url(#fp)">
+        <animateMotion dur="2.6s" repeatCount="indefinite"
+          path="M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510"/>
+      </circle>
+      <circle r="3.5" fill="#00e5ff" opacity="0.65" filter="url(#fp)">
+        <animateMotion dur="2.6s" repeatCount="indefinite" begin="-0.87s"
+          path="M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510"/>
+      </circle>
+      <circle r="2.8" fill="#00e5ff" opacity="0.42" filter="url(#fp)">
+        <animateMotion dur="2.6s" repeatCount="indefinite" begin="-1.73s"
+          path="M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510"/>
+      </circle>
+
+      <!-- Particles Wire 2 attract (down, bow inward) -->
+      <g id="p2-attract">
+        <circle r="4.5" fill="#ff7040" opacity="0.95" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite"
+            path="M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"/>
+        </circle>
+        <circle r="3.5" fill="#ff7040" opacity="0.65" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="-0.87s"
+            path="M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"/>
+        </circle>
+        <circle r="2.8" fill="#ff7040" opacity="0.42" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="-1.73s"
+            path="M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"/>
+        </circle>
+      </g>
+
+      <!-- Particles Wire 2 repel (up, bow outward) -->
+      <g id="p2-repel" display="none">
+        <circle r="4.5" fill="#ff7040" opacity="0.95" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite"
+            path="M 410,510 L 410,430 C 410,395 470,350 470,290 C 470,230 410,185 410,150 L 410,30"/>
+        </circle>
+        <circle r="3.5" fill="#ff7040" opacity="0.65" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="-0.87s"
+            path="M 410,510 L 410,430 C 410,395 470,350 470,290 C 470,230 410,185 410,150 L 410,30"/>
+        </circle>
+        <circle r="2.8" fill="#ff7040" opacity="0.42" filter="url(#fp)">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="-1.73s"
+            path="M 410,510 L 410,430 C 410,395 470,350 470,290 C 470,230 410,185 410,150 L 410,30"/>
+        </circle>
+      </g>
+
+      <!-- Wire labels -->
+      <text x="170" y="16" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="13" font-weight="700" fill="#00ccff" filter="url(#fw)">I₁</text>
+      <text x="410" y="16" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="13" font-weight="700" fill="#ff6030" filter="url(#fw)">I₂</text>
+
+      <!-- Direction labels -->
+      <text x="84"  y="48" font-family="Share Tech Mono,monospace" font-size="9" fill="rgba(0,200,255,0.5)">▼ downward</text>
+      <text id="dir2-lbl" x="414" y="48" font-family="Share Tech Mono,monospace" font-size="9" fill="rgba(255,100,48,0.5)">▼ downward</text>
+
+      <!-- Max deflect annotations (attract) -->
+      <g id="ann-attract">
+        <line x1="230" y1="290" x2="118" y2="278" stroke="rgba(0,200,255,0.22)" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <text x="14" y="272" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(0,200,255,0.45)">max</text>
+        <text x="6"  y="282" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(0,200,255,0.45)">deflect</text>
+        <line x1="350" y1="290" x2="462" y2="278" stroke="rgba(255,96,48,0.22)" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <text x="466" y="272" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(255,96,48,0.45)">max</text>
+        <text x="464" y="282" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(255,96,48,0.45)">deflect</text>
+        <line x1="232" y1="312" x2="348" y2="312" stroke="rgba(255,214,0,0.35)" stroke-width="0.9" stroke-dasharray="4 3"/>
+        <text x="290" y="325" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="8.5" fill="rgba(255,214,0,0.6)">gap (not touching)</text>
+      </g>
+
+      <!-- Max deflect annotations (repel) -->
+      <g id="ann-repel" display="none">
+        <line x1="110" y1="290" x2="22"  y2="278" stroke="rgba(0,200,255,0.22)" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <text x="2"   y="272" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(0,200,255,0.45)">max</text>
+        <text x="-6"  y="282" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(0,200,255,0.45)">deflect</text>
+        <line x1="470" y1="290" x2="558" y2="278" stroke="rgba(255,96,48,0.22)" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <text x="560" y="272" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(255,96,48,0.45)">max</text>
+        <text x="558" y="282" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(255,96,48,0.45)">deflect</text>
+      </g>
+
+      <!-- Fixed labels bottom -->
+      <text x="170" y="534" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(0,200,255,0.4)">fixed</text>
+      <text x="410" y="534" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="8" fill="rgba(255,96,48,0.4)">fixed</text>
+    </svg>
+  </div>
+
+  <!-- ══════════════════ SIDE PANEL ══════════════════ -->
+  <div class="side-panel">
+
+    <div class="status">
+      <div class="status-dot"></div>
+      <span style="color:var(--green);">Simulation live</span>
+    </div>
+
+    <!-- Toggle buttons -->
+    <div>
+      <h2 style="margin-bottom:12px;">Current Direction — I₂</h2>
+      <div class="btn-row">
+        <button class="tog-btn attract active" id="btn-attract" onclick="setMode('attract')">
+          <span>⇅ Same Dir<br>Attract</span>
+        </button>
+        <button class="tog-btn repel" id="btn-repel" onclick="setMode('repel')">
+          <span>⇵ Opposite<br>Repel</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mode badge -->
+    <div id="mode-badge" class="attract">ATTRACTIVE FORCE</div>
+
+    <!-- Info -->
+    <div class="info-block">
+      <h2>Conductor Setup</h2>
+      <div class="info-row">
+        <span class="info-label">Wire 1 — I₁</span>
+        <span class="info-val cyan">▼ Downward</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Wire 2 — I₂</span>
+        <span class="info-val orange" id="i2-val">▼ Downward</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Net Force</span>
+        <span class="info-val" id="force-val" style="color:var(--green);">Attraction — bends inward</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Wire Shape</span>
+        <span class="info-val" id="shape-val">Bow toward each other</span>
+      </div>
+    </div>
+
+    <!-- Formula -->
+    <div class="formula-box">
+      <span class="flabel">Ampère's Force Law</span>
+      F / L = μ₀ I₁ I₂ / 2πd<br>
+      <span style="font-size:0.6rem; color:rgba(0,229,255,0.4);">μ₀ = 4π × 10⁻⁷ T·m/A</span>
+    </div>
+
+    <!-- Physics -->
+    <div class="info-block">
+      <h2>Physics</h2>
+      <p id="physics-text" style="font-size:0.69rem; line-height:1.7; color:rgba(140,180,200,0.85);">
+        Same-direction currents: fields cancel between wires, reinforce outside — net inward force bends conductors toward each other.
+      </p>
+    </div>
+
+    <!-- Legend -->
+    <div>
+      <h2 style="margin-bottom:10px;">Legend</h2>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-line" style="background:#00ccff;box-shadow:0 0 6px #00ccff;"></div>Conductor I₁</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ff6030;box-shadow:0 0 6px #ff6030;"></div>Conductor I₂</div>
+        <div class="leg-item">
+          <div class="leg-line" id="leg-force-line" style="background:#ffd600;box-shadow:0 0 5px #ffd600;"></div>
+          <span id="leg-force-lbl">Attractive Force</span>
+        </div>
+        <div class="leg-item"><div class="leg-dot" style="background:#00e5ff;box-shadow:0 0 5px #00e5ff;"></div>Moving charges</div>
+      </div>
+    </div>
+
+    <p class="note">Ampère (1820): parallel same-direction currents attract; opposite currents repel. This defined the SI Ampere until 2019.</p>
+
+  </div>
+</div>
+
+<script>
+  const PATHS = {
+    attract: {
+      w1: "M 170,30 L 170,150 C 170,185 230,230 230,290 C 230,350 170,395 170,430 L 170,510",
+      w2: "M 410,30 L 410,150 C 410,185 350,230 350,290 C 350,350 410,395 410,430 L 410,510"
+    },
+    repel: {
+      w1: "M 170,30 L 170,150 C 170,185 110,230 110,290 C 110,350 170,395 170,430 L 170,510",
+      w2: "M 410,30 L 410,150 C 410,185 470,230 470,290 C 470,350 410,395 410,430 L 410,510"
+    }
+  };
+
+  function show(id, visible) {
+    document.getElementById(id).setAttribute('display', visible ? '' : 'none');
+  }
+
+  function setMode(mode) {
+    const isA = mode === 'attract';
+
+    // Buttons
+    document.getElementById('btn-attract').classList.toggle('active', isA);
+    document.getElementById('btn-repel').classList.toggle('active', !isA);
+
+    // Wire paths
+    const p = PATHS[mode];
+    ['wire1','halo1'].forEach(id => document.getElementById(id).setAttribute('d', p.w1));
+    ['wire2','halo2'].forEach(id => document.getElementById(id).setAttribute('d', p.w2));
+
+    // Current arrows wire 2
+    show('w2-down', isA);
+    show('w2-up', !isA);
+
+    // Force arrows
+    show('force-attract', isA);
+    show('force-repel', !isA);
+
+    // Particles wire 2
+    show('p2-attract', isA);
+    show('p2-repel', !isA);
+
+    // Field rings
+    show('field-attract', isA);
+    show('field-repel', !isA);
+
+    // Annotations
+    show('ann-attract', isA);
+    show('ann-repel', !isA);
+
+    // SVG labels
+    document.getElementById('dir2-lbl').textContent = isA ? '▼ downward' : '▲ upward';
+
+    // Badge
+    const badge = document.getElementById('mode-badge');
+    badge.className = isA ? 'attract' : 'repel';
+    badge.textContent = isA ? 'ATTRACTIVE FORCE' : 'REPULSIVE FORCE';
+
+    // Info rows
+    document.getElementById('i2-val').textContent   = isA ? '▼ Downward' : '▲ Upward';
+    document.getElementById('force-val').style.color = isA ? 'var(--green)' : 'var(--red)';
+    document.getElementById('force-val').textContent  = isA ? 'Attraction — bends inward' : 'Repulsion — bends outward';
+    document.getElementById('shape-val').textContent  = isA ? 'Bow toward each other' : 'Bow away from each other';
+
+    // Physics
+    document.getElementById('physics-text').textContent = isA
+      ? 'Same-direction currents: fields cancel between wires, reinforce outside — net inward force bends conductors toward each other.'
+      : 'Opposite-direction currents: fields reinforce between wires, cancel outside — net outward force pushes conductors apart.';
+
+    // Legend
+    const fc = isA ? '#ffd600' : '#ff2d6e';
+    document.getElementById('leg-force-line').style.cssText = `background:${fc};box-shadow:0 0 5px ${fc};width:20px;height:3px;border-radius:2px;flex-shrink:0;`;
+    document.getElementById('leg-force-lbl').textContent = isA ? 'Attractive Force' : 'Repulsive Force';
+  }
+</script>
+</body>
+</html>

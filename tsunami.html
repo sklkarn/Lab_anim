@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tsunami Animation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0e1a;
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #scene {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #ui {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    color: #e0f4ff;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 30px rgba(0,180,255,0.6);
+  }
+
+  #status {
+    font-size: 1rem;
+    color: #7dd3fc;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+
+  #instructor {
+    position: absolute;
+    bottom: 80px;
+    right: 24px;
+    text-align: right;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #instructor .label {
+    font-size: 0.72rem;
+    color: rgba(125,211,252,0.6);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  #instructor .name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.45rem;
+    color: #e0f4ff;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 18px rgba(0,180,255,0.5);
+  }
+
+  #instructor .line {
+    height: 2px;
+    background: linear-gradient(to left, rgba(0,180,255,0.6), transparent);
+    margin-top: 4px;
+    border-radius: 2px;
+  }
+
+  #warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5rem;
+    color: #ff3333;
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 60px rgba(255,50,50,0.9);
+    opacity: 0;
+    z-index: 20;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  #controls {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 20;
+  }
+
+  .ctrl-btn {
+    background: rgba(0,150,255,0.15);
+    border: 1.5px solid rgba(0,180,255,0.5);
+    color: #7dd3fc;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 28px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.25s;
+    min-width: 120px;
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(0,180,255,0.3);
+    color: #fff;
+    border-color: rgba(0,200,255,0.8);
+  }
+
+  #restart-btn { opacity: 0; pointer-events: none; }
+  #restart-btn.visible { opacity: 1; pointer-events: all; }
+
+  #pause-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,10,30,0.45);
+    z-index: 15;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #pause-overlay.active { display: flex; }
+  #pause-overlay .pause-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    color: rgba(200,230,255,0.85);
+    letter-spacing: 0.25em;
+    text-shadow: 0 0 40px rgba(0,150,255,0.6);
+  }
+</style>
+</head>
+<body>
+<div id="scene">
+  <canvas id="c"></canvas>
+
+  <div id="ui">
+    <div id="title">TSUNAMI</div>
+    <div id="status">WAVE FORMING...</div>
+  </div>
+
+  <div id="instructor">
+    <div class="label">Instructor</div>
+    <div class="name">Dr. S Karna</div>
+    <div class="line"></div>
+  </div>
+
+  <div id="warning">⚠ IMPACT ⚠</div>
+
+  <div id="pause-overlay">
+    <div class="pause-text">⏸ PAUSED</div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" id="pause-btn" onclick="togglePause()">⏸ Pause</button>
+    <button class="ctrl-btn" id="restart-btn" onclick="init()">↺ Restart</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const warning = document.getElementById('warning');
+const statusEl = document.getElementById('status');
+const restartBtn = document.getElementById('restart-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
+
+let W, H, t = 0, phase = 0;
+let isPaused = false;
+let pausedAt = 0;
+let totalPausedTime = 0;
+
+const PHASES = ['OCEAN CALM...', 'WATER RECEDING...', 'WAVE FORMING — DANGER!', 'IMPACT!', 'FLOODING HABITATION...', 'SIMULATION COMPLETE'];
+
+let buildings = [];
+let particles = [];
+let floodLevel = 0;
+let waveX = 0;
+let waveHeight = 0;
+let waveSpeed = 0;
+let shakeAmt = 0;
+let startTime = null;
+let phaseTimes = [2000, 3500, 3000, 500, 5000, 1000];
+let phaseStart = 0;
+let rafId = null;
+
+function togglePause() {
+  if (phase >= 5) return;
+  isPaused = !isPaused;
+  if (isPaused) {
+    pausedAt = performance.now();
+    pauseBtn.textContent = '▶ Resume';
+    pauseOverlay.classList.add('active');
+  } else {
+    totalPausedTime += performance.now() - pausedAt;
+    pauseBtn.textContent = '⏸ Pause';
+    pauseOverlay.classList.remove('active');
+    rafId = requestAnimationFrame(loop);
+  }
+}
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function makeBuildings() {
+  buildings = [];
+  const groundY = H * 0.68;
+  const cols = 18;
+  const spacing = W / (cols + 1);
+  for (let i = 0; i < cols; i++) {
+    const bw = 28 + Math.random() * 30;
+    const bh = 40 + Math.random() * 120;
+    const x = spacing * 0.6 + i * spacing + Math.random() * 10;
+    buildings.push({
+      x, y: groundY - bh, w: bw, h: bh,
+      color: `hsl(${200 + Math.random()*40}, ${20 + Math.random()*30}%, ${30 + Math.random()*25}%)`,
+      windows: [],
+      damage: 0,
+      offsetX: 0, offsetY: 0,
+    });
+    const wCols = Math.floor(bw / 12);
+    const wRows = Math.floor(bh / 16);
+    for (let wr = 0; wr < wRows; wr++) {
+      for (let wc = 0; wc < wCols; wc++) {
+        buildings[buildings.length-1].windows.push({
+          x: 6 + wc * 12, y: 8 + wr * 16,
+          lit: Math.random() > 0.3
+        });
+      }
+    }
+  }
+}
+
+function spawnParticles(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 6;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - Math.random() * 3,
+      life: 1.0,
+      decay: 0.012 + Math.random() * 0.02,
+      r: 2 + Math.random() * 6,
+      color
+    });
+  }
+}
+
+function init() {
+  resize();
+  t = 0;
+  phase = 0;
+  phaseStart = 0;
+  floodLevel = 0;
+  waveX = W * 1.15;
+  waveHeight = 0;
+  waveSpeed = 0;
+  shakeAmt = 0;
+  particles = [];
+  startTime = null;
+  totalPausedTime = 0;
+  pausedAt = 0;
+  isPaused = false;
+  pauseBtn.textContent = '⏸ Pause';
+  pauseOverlay.classList.remove('active');
+  warning.style.opacity = 0;
+  restartBtn.classList.remove('visible');
+  statusEl.textContent = PHASES[0];
+  makeBuildings();
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function getPhaseProgress(now) {
+  return Math.min(1, (now - phaseStart) / phaseTimes[phase]);
+}
+
+function advancePhase(now) {
+  phase++;
+  phaseStart = now;
+  statusEl.textContent = PHASES[phase] || '';
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function drawSky(prog) {
+  let skyTop, skyBot;
+  if (phase <= 1) {
+    skyTop = '#0a1628'; skyBot = '#1a3a5c';
+  } else if (phase === 2) {
+    const r = Math.floor(lerp(10, 40, prog));
+    skyTop = `rgb(${r}, ${Math.floor(lerp(22,10,prog))}, ${Math.floor(lerp(40,20,prog))})`;
+    skyBot = '#1a2a3c';
+  } else {
+    skyTop = '#200a0a'; skyBot = '#3a1010';
+  }
+  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+  grad.addColorStop(0, skyTop);
+  grad.addColorStop(1, skyBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  if (phase <= 1) {
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 137.5) % W);
+      const sy = ((i * 93.1) % (H * 0.5));
+      const sr = 0.5 + (i % 3) * 0.5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (phase <= 2) {
+    ctx.save();
+    ctx.globalAlpha = phase === 2 ? lerp(1, 0.2, prog) : 1;
+    ctx.beginPath();
+    ctx.arc(W * 0.8, H * 0.12, 28, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e0c8';
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#fff8e0';
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawOcean(now) {
+  const groundY = H * 0.68;
+  const prog = getPhaseProgress(now);
+  let oceanSurface = groundY;
+  if (phase === 1) oceanSurface = groundY + H * 0.08 * prog;
+
+  const oceanGrad = ctx.createLinearGradient(0, oceanSurface, 0, H);
+  if (phase >= 3) {
+    oceanGrad.addColorStop(0, 'rgba(0,80,180,0.95)');
+    oceanGrad.addColorStop(1, 'rgba(0,30,80,1)');
+  } else {
+    oceanGrad.addColorStop(0, 'rgba(0,100,200,0.9)');
+    oceanGrad.addColorStop(1, 'rgba(0,40,100,1)');
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(0, oceanSurface);
+  for (let x = 0; x <= W; x += 4) {
+    let waveAmp = 6;
+    if (phase === 2) waveAmp = lerp(6, 18, prog);
+    if (phase >= 3) waveAmp = 0;
+    const y = oceanSurface + Math.sin(x * 0.018 + t * 0.04) * waveAmp
+                           + Math.sin(x * 0.009 + t * 0.02) * waveAmp * 0.5;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fillStyle = oceanGrad;
+  ctx.fill();
+
+  if (phase <= 2) {
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.globalAlpha = 0.2 + i * 0.05;
+      const foamY = oceanSurface + 15 + i * 20;
+      for (let x = 0; x <= W; x += 3) {
+        const y = foamY + Math.sin(x * 0.02 + t * 0.03 + i) * 5;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = 'rgba(200,230,255,0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function drawTsunamiWave(now) {
+  if (phase < 2) return;
+  const groundY = H * 0.68;
+  const prog = getPhaseProgress(now);
+
+  if (phase === 2) {
+    waveHeight = H * 0.38 * prog;
+    waveX = W * lerp(1.05, 0.72, prog);
+    waveSpeed = lerp(0, 14, prog);
+  }
+  if (phase >= 3) {
+    waveX -= waveSpeed;
+    waveSpeed = Math.min(waveSpeed + 0.3, 22);
+  }
+
+  const wh = waveHeight;
+  const wx = waveX;
+
+  ctx.beginPath();
+  ctx.moveTo(W, groundY);
+  ctx.lineTo(W, groundY);
+  ctx.lineTo(wx + wh * 1.4, groundY + 10);
+
+  const pts = 60;
+  for (let i = 0; i <= pts; i++) {
+    const frac = i / pts;
+    const cx = wx + wh * 1.4 * (1 - frac);
+    const sigmoid = 1 / (1 + Math.exp(-10 * (frac - 0.55)));
+    const cy = groundY + 10 - wh * sigmoid
+              + Math.sin(frac * Math.PI * 3 + t * 0.08) * (8 * (1 - frac));
+    ctx.lineTo(cx, cy);
+  }
+
+  const curlR = wh * 0.18;
+  const curlX = wx;
+  const curlY = groundY + 10 - wh;
+  ctx.quadraticCurveTo(curlX - curlR * 1.5, curlY - curlR, curlX - curlR * 0.3, curlY + curlR * 1.5);
+  ctx.lineTo(curlX - wh * 0.5, curlY + curlR);
+  ctx.lineTo(curlX - wh * 0.8, groundY + 10);
+  ctx.lineTo(0, groundY);
+  ctx.lineTo(0, H);
+  ctx.lineTo(W, H);
+  ctx.closePath();
+
+  const wGrad = ctx.createLinearGradient(wx - wh, groundY - wh, wx + wh, groundY + 30);
+  wGrad.addColorStop(0, 'rgba(0,60,160,0.97)');
+  wGrad.addColorStop(0.4, 'rgba(0,110,220,0.95)');
+  wGrad.addColorStop(0.75, 'rgba(40,160,255,0.9)');
+  wGrad.addColorStop(1, 'rgba(120,200,255,0.7)');
+  ctx.fillStyle = wGrad;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(curlX - curlR * 0.3, curlY + curlR * 0.5, curlR * 1.8, curlR * 0.7, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(220,240,255,0.85)';
+  ctx.fill();
+
+  if (phase >= 2) {
+    ctx.fillStyle = 'rgba(180,220,255,0.7)';
+    for (let i = 0; i < 12; i++) {
+      const sx = curlX - curlR * 0.5 + Math.sin(t * 0.12 + i * 1.3) * wh * 0.35;
+      const sy = curlY - Math.abs(Math.cos(t * 0.1 + i)) * wh * 0.25 + i * 4;
+      const sr = 2 + Math.sin(t * 0.2 + i) * 2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawGround() {
+  const groundY = H * 0.68;
+  const gGrad = ctx.createLinearGradient(0, groundY, 0, H * 0.75);
+  gGrad.addColorStop(0, '#2d4a1e');
+  gGrad.addColorStop(0.3, '#3a5e28');
+  gGrad.addColorStop(1, '#1a2a10');
+  ctx.fillStyle = gGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  for (let x = 0; x <= W; x += 8) {
+    const y = groundY + Math.sin(x * 0.005) * 5;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, groundY + 2, W, 12);
+  ctx.fillStyle = '#fff8';
+  for (let x = 0; x < W; x += 60) {
+    ctx.fillRect(x, groundY + 6, 30, 3);
+  }
+}
+
+function drawBuildings(now) {
+  const groundY = H * 0.68;
+
+  buildings.forEach((b, idx) => {
+    b.offsetX = phase >= 3 ? (Math.random() - 0.5) * shakeAmt * 4 : 0;
+    b.offsetY = phase >= 3 ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
+
+    if (phase >= 3 && floodLevel > 0) {
+      const coverage = Math.max(0, (groundY - floodLevel) / b.h);
+      b.damage = Math.min(1, (1 - coverage) * 1.4);
+    }
+
+    const bx = b.x + b.offsetX;
+    const by = b.y + b.offsetY;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - b.damage * 0.5;
+    ctx.translate(bx + b.w / 2, groundY);
+    ctx.rotate(b.damage * (idx % 2 === 0 ? 0.08 : -0.06));
+    ctx.translate(-(bx + b.w / 2), -groundY);
+
+    ctx.fillStyle = b.color;
+    ctx.fillRect(bx, by, b.w, b.h);
+    ctx.fillStyle = `hsl(200, 15%, 20%)`;
+    ctx.fillRect(bx - 2, by, b.w + 4, 6);
+
+    b.windows.forEach(w => {
+      const wx = bx + w.x;
+      const wy = by + w.y;
+      if (b.damage > 0.4 && Math.random() < 0.02) w.lit = false;
+      ctx.fillStyle = w.lit && b.damage < 0.7
+        ? `rgba(255,240,180,${0.9 - b.damage * 0.8})`
+        : `rgba(40,60,80,0.8)`;
+      ctx.fillRect(wx, wy, 7, 8);
+    });
+
+    if (b.damage > 0.3) {
+      ctx.strokeStyle = `rgba(0,0,0,${b.damage * 0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx + b.w * 0.3, by + b.h * 0.2);
+      ctx.lineTo(bx + b.w * 0.5, by + b.h * 0.5);
+      ctx.lineTo(bx + b.w * 0.4, by + b.h * 0.8);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    if (phase >= 3 && b.damage > 0.3 && Math.random() < b.damage * 0.04) {
+      spawnParticles(bx + Math.random() * b.w, by + Math.random() * b.h * 0.5, 2,
+        `hsl(${25 + Math.random()*20},40%,${30+Math.random()*20}%)`);
+    }
+  });
+}
+
+function drawFlood(now) {
+  if (phase < 3) return;
+  const groundY = H * 0.68;
+  const prog = getPhaseProgress(now);
+  const maxFlood = H * 0.28;
+
+  if (phase === 3) floodLevel = groundY - maxFlood * 0.15 * prog;
+  else if (phase === 4) floodLevel = groundY - maxFlood * lerp(0.15, 1, prog);
+  else if (phase >= 5) floodLevel = groundY - maxFlood;
+
+  const fGrad = ctx.createLinearGradient(0, floodLevel, 0, groundY + 10);
+  fGrad.addColorStop(0, 'rgba(0,80,200,0.88)');
+  fGrad.addColorStop(0.6, 'rgba(0,60,150,0.92)');
+  fGrad.addColorStop(1, 'rgba(0,30,80,0.95)');
+
+  ctx.beginPath();
+  ctx.moveTo(0, floodLevel);
+  for (let x = 0; x <= W; x += 4) {
+    const turb = phase === 3 ? 8 : (phase === 4 ? lerp(10, 4, prog) : 2);
+    const y = floodLevel
+      + Math.sin(x * 0.02 + t * 0.09) * turb
+      + Math.sin(x * 0.05 - t * 0.07) * turb * 0.5;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fillStyle = fGrad;
+  ctx.fill();
+
+  if (phase >= 4) {
+    ctx.fillStyle = 'rgba(80,50,20,0.7)';
+    for (let i = 0; i < 15; i++) {
+      const dx = ((i * 173 + t * 1.5) % W);
+      const dy = floodLevel + Math.sin(dx * 0.02 + t * 0.06) * 5 + 5;
+      ctx.fillRect(dx, dy, 18 + (i % 4) * 8, 4);
+    }
+  }
+
+  ctx.strokeStyle = 'rgba(200,230,255,0.5)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    const fy = floodLevel + 8 + i * 12 + Math.sin(t * 0.05 + i) * 4;
+    ctx.moveTo(0, fy);
+    for (let x = 0; x <= W; x += 6) {
+      ctx.lineTo(x, fy + Math.sin(x * 0.03 + t * 0.08 + i) * 3);
+    }
+    ctx.globalAlpha = 0.3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life * 0.9;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.life -= p.decay;
+    p.r *= 0.98;
+  });
+}
+
+function loop(timestamp) {
+  if (isPaused) return;
+
+  if (!startTime) {
+    startTime = timestamp - totalPausedTime;
+    phaseStart = 0;
+  }
+
+  const now = timestamp - startTime - totalPausedTime;
+  t++;
+
+  const elapsed = now - phaseStart;
+  if (elapsed > phaseTimes[phase] && phase < 5) advancePhase(now);
+
+  if (phase === 3) shakeAmt = lerp(8, 2, getPhaseProgress(now));
+  else if (phase === 4) shakeAmt = lerp(2, 0, getPhaseProgress(now));
+  else shakeAmt = 0;
+
+  if (phase === 2 && getPhaseProgress(now) > 0.5) {
+    warning.style.opacity = Math.sin(t * 0.18) > 0 ? '0.9' : '0';
+  } else if (phase === 3) {
+    warning.style.opacity = '1';
+  } else {
+    warning.style.opacity = '0';
+  }
+
+  if (phase === 5) {
+    restartBtn.classList.add('visible');
+    pauseBtn.style.opacity = '0.3';
+    pauseBtn.style.pointerEvents = 'none';
+  }
+
+  ctx.save();
+  if (shakeAmt > 0.1) {
+    ctx.translate((Math.random() - 0.5) * shakeAmt * 5, (Math.random() - 0.5) * shakeAmt * 2);
+  }
+
+  const prog = getPhaseProgress(now);
+  drawSky(prog);
+  drawGround();
+  drawOcean(now);
+  drawBuildings(now);
+  drawTsunamiWave(now);
+  drawFlood(now);
+  drawParticles();
+  updateParticles();
+  ctx.restore();
+
+  if (phase < 5) rafId = requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', () => { resize(); makeBuildings(); });
+init();
+</script>
+</body>
+</html>
