@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map of the Universe</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --void: #00000a;
+    --deep: #020818;
+    --nebula-blue: #0a1628;
+    --plasma: #ff6b35;
+    --starlight: #e8dcc8;
+    --cosmic-gold: #f0c060;
+    --hydrogen: #4488ff;
+    --helium: #88ccff;
+    --nova: #ff4488;
+    --quantum: #44ffcc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--void);
+    color: var(--starlight);
+    font-family: 'Crimson Pro', serif;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* Starfield */
+  #starfield {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--min-op); transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 60px 20px 40px;
+  }
+
+  .title-line {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.8rem, 5vw, 4rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--cosmic-gold), var(--starlight), var(--hydrogen));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+
+  .subtitle {
+    font-style: italic;
+    font-weight: 300;
+    color: #8899bb;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    margin-top: 10px;
+  }
+
+  .timeline-bar {
+    width: 80%;
+    max-width: 900px;
+    height: 2px;
+    margin: 30px auto 0;
+    background: linear-gradient(90deg, transparent, var(--plasma), var(--cosmic-gold), var(--hydrogen), var(--quantum), transparent);
+    position: relative;
+  }
+
+  /* Timeline Container */
+  .universe-timeline {
+    position: relative;
+    z-index: 5;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 20px 80px;
+  }
+
+  /* Central spine */
+  .spine {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg,
+      var(--plasma) 0%,
+      var(--cosmic-gold) 15%,
+      var(--hydrogen) 40%,
+      #6644ff 60%,
+      var(--quantum) 80%,
+      #aaddff 100%
+    );
+    opacity: 0.4;
+  }
+
+  /* Epoch Cards */
+  .epoch {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0;
+    padding: 30px 0;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  .epoch.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .epoch:nth-child(odd) {
+    flex-direction: row-reverse;
+  }
+
+  .epoch-content {
+    width: calc(50% - 50px);
+    padding: 24px 28px;
+    border-radius: 2px;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .epoch-content:hover {
+    transform: scale(1.02);
+  }
+
+  .epoch:nth-child(odd) .epoch-content {
+    margin-right: auto;
+  }
+  .epoch:nth-child(even) .epoch-content {
+    margin-left: auto;
+  }
+
+  /* Epoch-specific styles */
+  .epoch-bigbang .epoch-content {
+    background: linear-gradient(135deg, rgba(255,107,53,0.15), rgba(255,68,136,0.08));
+    border: 1px solid rgba(255,107,53,0.4);
+    box-shadow: 0 0 40px rgba(255,107,53,0.15), inset 0 0 20px rgba(255,107,53,0.05);
+  }
+  .epoch-bigbang .epoch-content:hover {
+    box-shadow: 0 0 70px rgba(255,107,53,0.4), inset 0 0 30px rgba(255,107,53,0.1);
+  }
+
+  .epoch-inflation .epoch-content {
+    background: linear-gradient(135deg, rgba(240,192,96,0.12), rgba(255,107,53,0.06));
+    border: 1px solid rgba(240,192,96,0.35);
+    box-shadow: 0 0 30px rgba(240,192,96,0.1);
+  }
+
+  .epoch-quark .epoch-content {
+    background: linear-gradient(135deg, rgba(255,68,136,0.1), rgba(68,136,255,0.06));
+    border: 1px solid rgba(255,68,136,0.3);
+    box-shadow: 0 0 25px rgba(255,68,136,0.08);
+  }
+
+  .epoch-nucleon .epoch-content {
+    background: linear-gradient(135deg, rgba(68,136,255,0.12), rgba(136,204,255,0.06));
+    border: 1px solid rgba(68,136,255,0.35);
+    box-shadow: 0 0 25px rgba(68,136,255,0.1);
+  }
+
+  .epoch-cmb .epoch-content {
+    background: linear-gradient(135deg, rgba(136,204,255,0.1), rgba(68,136,255,0.06));
+    border: 1px solid rgba(136,204,255,0.3);
+    box-shadow: 0 0 25px rgba(136,204,255,0.08);
+  }
+
+  .epoch-darkaages .epoch-content {
+    background: linear-gradient(135deg, rgba(20,20,40,0.8), rgba(10,10,20,0.9));
+    border: 1px solid rgba(100,100,150,0.2);
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  }
+
+  .epoch-stars .epoch-content {
+    background: linear-gradient(135deg, rgba(255,220,120,0.12), rgba(255,160,60,0.06));
+    border: 1px solid rgba(255,220,120,0.3);
+    box-shadow: 0 0 30px rgba(255,220,120,0.1);
+  }
+
+  .epoch-galaxies .epoch-content {
+    background: linear-gradient(135deg, rgba(100,80,200,0.15), rgba(60,40,160,0.08));
+    border: 1px solid rgba(120,100,220,0.35);
+    box-shadow: 0 0 35px rgba(100,80,200,0.12);
+  }
+
+  .epoch-solarsystem .epoch-content {
+    background: linear-gradient(135deg, rgba(68,255,204,0.1), rgba(68,136,255,0.06));
+    border: 1px solid rgba(68,255,204,0.3);
+    box-shadow: 0 0 25px rgba(68,255,204,0.08);
+  }
+
+  .epoch-today .epoch-content {
+    background: linear-gradient(135deg, rgba(68,255,204,0.15), rgba(100,200,255,0.1));
+    border: 1px solid rgba(68,255,204,0.5);
+    box-shadow: 0 0 50px rgba(68,255,204,0.2), inset 0 0 20px rgba(68,255,204,0.05);
+  }
+
+  /* Node dot on spine */
+  .epoch-node {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+
+  .node-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid;
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+
+  .epoch:hover .node-dot {
+    transform: scale(1.6);
+  }
+
+  .epoch-bigbang .node-dot { background: var(--plasma); border-color: var(--plasma); box-shadow: 0 0 20px var(--plasma); }
+  .epoch-inflation .node-dot { background: var(--cosmic-gold); border-color: var(--cosmic-gold); box-shadow: 0 0 15px var(--cosmic-gold); }
+  .epoch-quark .node-dot { background: var(--nova); border-color: var(--nova); box-shadow: 0 0 15px var(--nova); }
+  .epoch-nucleon .node-dot { background: var(--hydrogen); border-color: var(--hydrogen); box-shadow: 0 0 15px var(--hydrogen); }
+  .epoch-cmb .node-dot { background: var(--helium); border-color: var(--helium); box-shadow: 0 0 15px var(--helium); }
+  .epoch-darkaages .node-dot { background: #334; border-color: #445; box-shadow: 0 0 8px #334; }
+  .epoch-stars .node-dot { background: #ffdc78; border-color: #ffdc78; box-shadow: 0 0 15px #ffdc78; }
+  .epoch-galaxies .node-dot { background: #9077dd; border-color: #9077dd; box-shadow: 0 0 20px #9077dd; }
+  .epoch-solarsystem .node-dot { background: var(--quantum); border-color: var(--quantum); box-shadow: 0 0 15px var(--quantum); }
+  .epoch-today .node-dot { background: var(--quantum); border-color: #aaffee; box-shadow: 0 0 25px var(--quantum), 0 0 50px rgba(68,255,204,0.3); animation: pulse-today 2s ease-in-out infinite; }
+
+  @keyframes pulse-today {
+    0%, 100% { box-shadow: 0 0 25px var(--quantum), 0 0 50px rgba(68,255,204,0.3); }
+    50% { box-shadow: 0 0 40px var(--quantum), 0 0 80px rgba(68,255,204,0.5); }
+  }
+
+  /* Connector line from card to spine */
+  .epoch-connector {
+    position: absolute;
+    top: 50%;
+    height: 1px;
+    opacity: 0.3;
+  }
+
+  .epoch:nth-child(odd) .epoch-connector {
+    left: calc(50% + 9px);
+    width: calc(50% - 50% + 1px);
+    right: calc(50% - 59px);
+    left: calc(50% + 9px);
+    width: 41px;
+  }
+
+  .epoch:nth-child(even) .epoch-connector {
+    right: calc(50% + 9px);
+    width: 41px;
+  }
+
+  /* Typography inside cards */
+  .epoch-era {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+
+  .epoch-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .epoch-time {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    font-style: italic;
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .epoch-desc {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    opacity: 0.85;
+    font-weight: 300;
+  }
+
+  .epoch-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+
+  /* Tag pills */
+  .epoch-tags {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid currentColor;
+    opacity: 0.6;
+    text-transform: uppercase;
+  }
+
+  /* Big Bang explosion visual */
+  .bigbang-visual {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .bb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    transform: translate(-50%, -50%);
+    animation: expand-ring 6s ease-out infinite;
+    top: 0; left: 0;
+  }
+
+  @keyframes expand-ring {
+    0% { width: 10px; height: 10px; opacity: 0.8; }
+    100% { width: 200px; height: 200px; opacity: 0; }
+  }
+
+  /* Scale indicator */
+  .scale-legend {
+    text-align: center;
+    padding: 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: #446688;
+    border-top: 1px solid rgba(68,102,136,0.2);
+    margin-top: 20px;
+  }
+
+  /* Responsive */
+  @media (max-width: 680px) {
+    .spine { left: 30px; }
+    .epoch, .epoch:nth-child(odd) { flex-direction: column; padding-left: 70px; }
+    .epoch-content, .epoch:nth-child(odd) .epoch-content, .epoch:nth-child(even) .epoch-content {
+      width: 100%;
+      margin: 0;
+    }
+    .epoch-node { left: 30px; }
+    .epoch-connector { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="starfield"></div>
+
+<header>
+  <div class="title-line">Map of the Universe</div>
+  <div class="subtitle">from singularity to now &nbsp;·&nbsp; 13.8 billion years</div>
+  <div class="timeline-bar"></div>
+</header>
+
+<div class="universe-timeline">
+  <div class="spine"></div>
+
+  <!-- Big Bang -->
+  <div class="epoch epoch-bigbang">
+    <div class="epoch-content">
+      <span class="epoch-icon">💥</span>
+      <div class="epoch-era">Era I</div>
+      <div class="epoch-title">The Big Bang</div>
+      <div class="epoch-time">t = 0 &nbsp;·&nbsp; Temperature: 10³² K</div>
+      <div class="epoch-desc">The universe begins — not an explosion into space, but an explosion <em>of</em> space itself. All matter, energy, space, and time emerge from an infinitely dense singularity. The four fundamental forces are unified as one.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--plasma)">Singularity</span>
+        <span class="tag" style="color:var(--plasma)">Planck Epoch</span>
+        <span class="tag" style="color:var(--plasma)">10⁻⁴³ s</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Inflation -->
+  <div class="epoch epoch-inflation">
+    <div class="epoch-content">
+      <span class="epoch-icon">🌀</span>
+      <div class="epoch-era">Era II</div>
+      <div class="epoch-title">Cosmic Inflation</div>
+      <div class="epoch-time">10⁻³⁶ – 10⁻³² seconds &nbsp;·&nbsp; Expansion: ×10⁵⁰</div>
+      <div class="epoch-desc">The universe undergoes exponential expansion — faster than light — driven by a quantum field called the inflaton. Tiny quantum fluctuations are stretched to cosmic scales, seeding the large-scale structure we observe today.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--cosmic-gold)">Inflaton Field</span>
+        <span class="tag" style="color:var(--cosmic-gold)">GUT Symmetry Breaking</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Quark Epoch -->
+  <div class="epoch epoch-quark">
+    <div class="epoch-content">
+      <span class="epoch-icon">⚛️</span>
+      <div class="epoch-era">Era III</div>
+      <div class="epoch-title">Quark–Gluon Plasma</div>
+      <div class="epoch-time">10⁻¹² – 10⁻⁶ seconds</div>
+      <div class="epoch-desc">A primordial soup of quarks, gluons, electrons, and their antimatter partners fills the universe. As it cools, quarks bind together to form protons and neutrons. For every billion antimatter particles, there are a billion and one matter particles — the slight asymmetry that saves existence.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--nova)">Quarks</span>
+        <span class="tag" style="color:var(--nova)">Baryogenesis</span>
+        <span class="tag" style="color:var(--nova)">Matter Wins</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Nucleosynthesis -->
+  <div class="epoch epoch-nucleon">
+    <div class="epoch-content">
+      <span class="epoch-icon">🔵</span>
+      <div class="epoch-era">Era IV</div>
+      <div class="epoch-title">Big Bang Nucleosynthesis</div>
+      <div class="epoch-time">1 second – 3 minutes &nbsp;·&nbsp; T: 10⁹ K</div>
+      <div class="epoch-desc">Nuclear fusion ignites for the first time. Protons and neutrons fuse to forge the first atomic nuclei — 75% hydrogen, 25% helium, with trace amounts of lithium and deuterium. The elemental recipe of the cosmos is written.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--hydrogen)">Hydrogen 75%</span>
+        <span class="tag" style="color:var(--helium)">Helium 25%</span>
+        <span class="tag" style="color:var(--hydrogen)">Nuclear Fusion</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- CMB / Recombination -->
+  <div class="epoch epoch-cmb">
+    <div class="epoch-content">
+      <span class="epoch-icon">✨</span>
+      <div class="epoch-era">Era V</div>
+      <div class="epoch-title">Recombination & First Light</div>
+      <div class="epoch-time">380,000 years &nbsp;·&nbsp; T: 3,000 K</div>
+      <div class="epoch-desc">The universe cools enough for electrons to bind with nuclei, forming neutral atoms for the first time. The cosmic fog clears. Light travels freely — this ancient glow, stretched by expansion to microwave frequencies, reaches us today as the Cosmic Microwave Background.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--helium)">CMB</span>
+        <span class="tag" style="color:var(--helium)">Universe Becomes Transparent</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Dark Ages -->
+  <div class="epoch epoch-darkaages">
+    <div class="epoch-content">
+      <span class="epoch-icon">🌑</span>
+      <div class="epoch-era">Era VI</div>
+      <div class="epoch-title">The Cosmic Dark Ages</div>
+      <div class="epoch-time">380,000 – 150 million years</div>
+      <div class="epoch-desc">The universe goes dark. There are no stars, no galaxies — only vast clouds of neutral hydrogen drifting through the void. Dark matter halos quietly accumulate under gravity, weaving the cosmic web that will become the scaffolding of all structure.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:#556">Dark Matter</span>
+        <span class="tag" style="color:#556">Cosmic Web Forms</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- First Stars -->
+  <div class="epoch epoch-stars">
+    <div class="epoch-content">
+      <span class="epoch-icon">⭐</span>
+      <div class="epoch-era">Era VII</div>
+      <div class="epoch-title">Cosmic Dawn — First Stars</div>
+      <div class="epoch-time">150 – 800 million years</div>
+      <div class="epoch-desc">The first stars — Population III stars — ignite in the darkness. They are colossal, hundreds of times the mass of our Sun, blazing with blue-white fury. Their ultraviolet light tears apart the surrounding hydrogen, reionizing the universe. When they die as supernovae, they forge heavy elements for the first time.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:#ffdc78">Pop III Stars</span>
+        <span class="tag" style="color:#ffdc78">Reionization</span>
+        <span class="tag" style="color:#ffdc78">Heavy Elements Born</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Galaxies -->
+  <div class="epoch epoch-galaxies">
+    <div class="epoch-content">
+      <span class="epoch-icon">🌌</span>
+      <div class="epoch-era">Era VIII</div>
+      <div class="epoch-title">Galaxy Formation</div>
+      <div class="epoch-time">800 million – 4 billion years</div>
+      <div class="epoch-desc">Galaxies coalesce along dark matter filaments, growing through collisions and mergers. Supermassive black holes ignite as blazing quasars at galactic cores. The Milky Way's ancestors begin to assemble. The universe blooms into its current large-scale structure — walls, filaments, voids — the cosmic web.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:#9077dd">Milky Way Forms</span>
+        <span class="tag" style="color:#9077dd">Quasars</span>
+        <span class="tag" style="color:#9077dd">Dark Energy</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Solar System -->
+  <div class="epoch epoch-solarsystem">
+    <div class="epoch-content">
+      <span class="epoch-icon">🌍</span>
+      <div class="epoch-era">Era IX</div>
+      <div class="epoch-title">Our Solar System</div>
+      <div class="epoch-time">9.2 billion years after Big Bang &nbsp;·&nbsp; 4.6 Gyr ago</div>
+      <div class="epoch-desc">From the remnants of ancient stellar explosions, a molecular cloud collapses. The Sun ignites. Dust and gas coalesce into planets. Earth forms, is struck by a Mars-sized body — the debris becomes our Moon. Oceans form, life emerges, evolves across billions of years toward complexity.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--quantum)">Sun Born</span>
+        <span class="tag" style="color:var(--quantum)">Earth Forms</span>
+        <span class="tag" style="color:var(--quantum)">Life Emerges</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+
+  <!-- Today -->
+  <div class="epoch epoch-today">
+    <div class="epoch-content">
+      <span class="epoch-icon">🔭</span>
+      <div class="epoch-era">Era X &nbsp;·&nbsp; Now</div>
+      <div class="epoch-title">The Observable Universe — Today</div>
+      <div class="epoch-time">13.8 billion years &nbsp;·&nbsp; T: 2.725 K (CMB)</div>
+      <div class="epoch-desc">The universe spans 93 billion light-years in diameter, contains 2 trillion galaxies, and is expanding at an accelerating rate driven by dark energy — a mystery yet unsolved. You are made of stardust forged in stellar cores. You are the universe observing itself.</div>
+      <div class="epoch-tags">
+        <span class="tag" style="color:var(--quantum)">2 Trillion Galaxies</span>
+        <span class="tag" style="color:var(--quantum)">93 Billion LY Wide</span>
+        <span class="tag" style="color:var(--quantum)">Accelerating Expansion</span>
+        <span class="tag" style="color:var(--quantum)">You Are Here</span>
+      </div>
+    </div>
+    <div class="epoch-node">
+      <div class="node-dot"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scale-legend">
+  THE COSMIC TIMELINE &nbsp;·&nbsp; NOT TO SCALE &nbsp;·&nbsp; PLANCK TIME = 5.39 × 10⁻⁴⁴ SECONDS &nbsp;·&nbsp; ALL SPACE AND TIME EMERGED FROM ONE POINT
+</div>
+
+<script>
+  // Starfield
+  const starfield = document.getElementById('starfield');
+  for (let i = 0; i < 280; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 2.5;
+    const minOp = (0.1 + Math.random() * 0.3).toFixed(2);
+    const dur = (2 + Math.random() * 5).toFixed(1);
+    star.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      top:${Math.random()*100}%;
+      --dur:${dur}s;
+      --min-op:${minOp};
+      animation-delay:${(Math.random()*6).toFixed(1)}s;
+    `;
+    starfield.appendChild(star);
+  }
+
+  // Scroll reveal
+  const epochs = document.querySelectorAll('.epoch');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  epochs.forEach(e => observer.observe(e));
+
+  // Shooting stars
+  function shootingStar() {
+    const s = document.createElement('div');
+    const x = Math.random() * 100;
+    const y = Math.random() * 40;
+    s.style.cssText = `
+      position:fixed; left:${x}vw; top:${y}vh;
+      width:${60 + Math.random()*80}px; height:1px;
+      background:linear-gradient(90deg, white, transparent);
+      z-index:1; pointer-events:none;
+      transform:rotate(${20 + Math.random()*15}deg);
+      opacity:0;
+      animation: shoot 0.7s ease-out forwards;
+    `;
+    document.body.appendChild(s);
+
+    if (!document.getElementById('shoot-style')) {
+      const st = document.createElement('style');
+      st.id = 'shoot-style';
+      st.textContent = `@keyframes shoot {
+        0%{opacity:0;transform:rotate(25deg) translateX(0)} 
+        20%{opacity:1} 
+        100%{opacity:0;transform:rotate(25deg) translateX(120px) translateY(50px)}
+      }`;
+      document.head.appendChild(st);
+    }
+
+    setTimeout(() => s.remove(), 800);
+  }
+
+  setInterval(shootingStar, 3500);
+  setTimeout(shootingStar, 1000);
+</script>
+</body>
+</html>

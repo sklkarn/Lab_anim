@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milky Way & Local Group Map</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #00000d;
+  color: #d8e8ff;
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+header {
+  text-align: center;
+  padding: 24px 20px 6px;
+}
+.main-title {
+  font-size: clamp(1.5rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  background: linear-gradient(120deg, #ffd060, #ffffff, #88bbff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sub-title {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  color: #7788bb;
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  margin-top: 4px;
+}
+.canvas-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 10px 0;
+}
+canvas { max-width:100%; height:auto; display:block; }
+
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(5,10,30,0.95);
+  border: 1px solid rgba(120,160,255,0.4);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  color: #ccdeff;
+  max-width: 250px;
+  line-height: 1.55;
+  z-index: 999;
+  display: none;
+  box-shadow: 0 0 20px rgba(80,120,255,0.3);
+}
+#tooltip .tt-title { font-size:15px; font-weight:700; color:#fff; margin-bottom:4px; }
+#tooltip .tt-sub   { color:#44ffdd; font-size:11px; margin-top:3px; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 28px;
+  padding: 14px 20px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: #8899cc;
+}
+.li { display:flex; align-items:center; gap:7px; }
+.ld { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.ll { width:22px; height:2px; border-radius:2px; flex-shrink:0; }
+.scale-bar {
+  text-align:center;
+  font-family:'EB Garamond',serif;
+  font-size:0.78rem;
+  color:#445566;
+  padding-bottom:18px;
+  letter-spacing:0.12em;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="main-title">Milky Way &amp; Local Group</div>
+  <div class="sub-title">top-down view · 2 major spiral arms (NASA/Spitzer confirmed)</div>
+</header>
+
+<div class="canvas-wrap">
+  <canvas id="c" width="1100" height="860"></canvas>
+</div>
+<div id="tooltip"></div>
+
+<div class="legend">
+  <div class="li"><div class="ld" style="background:#ffd060;box-shadow:0 0 5px #ffd060"></div>Galactic Core &amp; Bar</div>
+  <div class="li"><div class="ld" style="background:#ffdd88;box-shadow:0 0 5px #ffdd88"></div>★ Scutum-Centaurus Arm <em>(major)</em></div>
+  <div class="li"><div class="ld" style="background:#7ab4ff;box-shadow:0 0 5px #7ab4ff"></div>★ Perseus Arm <em>(major)</em></div>
+  <div class="li"><div class="ld" style="background:#334466"></div>Minor Gas Spurs (faint)</div>
+  <div class="li"><div class="ld" style="background:#44ffdd;box-shadow:0 0 7px #44ffdd"></div>☀ Orion Spur — Solar System</div>
+  <div class="li"><div class="ld" style="background:#ffaa66;box-shadow:0 0 5px #ffaa66"></div>Andromeda (M31)</div>
+  <div class="li"><div class="ld" style="background:#bb88ff"></div>Dwarf Galaxies</div>
+  <div class="li"><div class="ll" style="background:rgba(80,110,200,0.4);border:1px dashed rgba(80,110,200,0.5)"></div>Local Group Boundary</div>
+</div>
+<div class="scale-bar">Milky Way diameter ~105,700 ly &nbsp;·&nbsp; Andromeda 2.537 million ly away &nbsp;·&nbsp; distances compressed for display</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const MWX = 400, MWY = 455;
+const PPK = 4.8;
+function toC(kx, ky){ return [MWX + kx*PPK, MWY - ky*PPK]; }
+
+// seeded RNG
+let _s = 0;
+function sr(seed){ _s = seed; }
+function rn(){ _s=(_s*1664525+1013904223)&0xffffffff; return (_s>>>0)/0xffffffff; }
+function rr(a,b){ return a+rn()*(b-a); }
+
+// colour lerp
+function lc(a,b,t){
+  const p=s=>parseInt(s,16);
+  const ri=Math.round(p(a.slice(1,3))+(p(b.slice(1,3))-p(a.slice(1,3)))*t);
+  const gi=Math.round(p(a.slice(3,5))+(p(b.slice(3,5))-p(a.slice(3,5)))*t);
+  const bi=Math.round(p(a.slice(5,7))+(p(b.slice(5,7))-p(a.slice(5,7)))*t);
+  return `#${ri.toString(16).padStart(2,'0')}${gi.toString(16).padStart(2,'0')}${bi.toString(16).padStart(2,'0')}`;
+}
+
+// ── logarithmic spiral: angle grows as cot(pitch)*ln(r/r0) ──────────────────
+function spiralPts(startDeg, r0, r1, pitchDeg, steps=200){
+  const sa  = startDeg * Math.PI/180;
+  const cot = 1/Math.tan(pitchDeg * Math.PI/180);
+  const pts = [];
+  for(let i=0;i<=steps;i++){
+    const r = r0 + (r1-r0)*(i/steps);
+    const a = sa + cot * Math.log(r/r0);
+    pts.push([ r*Math.cos(a), r*Math.sin(a) ]);
+  }
+  return pts;
+}
+
+// ── draw arm as tapered glow ─────────────────────────────────────────────────
+function drawArm(pts, w0, w1, c0, c1, alpha){
+  if(pts.length<2) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for(let i=1;i<pts.length;i++){
+    const t  = i/pts.length;
+    const [x0,y0] = toC(...pts[i-1]);
+    const [x1,y1] = toC(...pts[i]);
+    const w  = w0 + (w1-w0)*t;
+    const dx=x1-x0, dy=y1-y0, len=Math.sqrt(dx*dx+dy*dy)||1;
+    const nx=-dy/len, ny=dx/len;
+    const gr=ctx.createLinearGradient(x0-nx*w,y0-ny*w, x0+nx*w,y0+ny*w);
+    const mid=lc(c0,c1,t);
+    gr.addColorStop(0,   'rgba(0,0,0,0)');
+    gr.addColorStop(0.25, mid+'55');
+    gr.addColorStop(0.5,  mid+'bb');
+    gr.addColorStop(0.75, mid+'55');
+    gr.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.strokeStyle=gr;
+    ctx.lineWidth=w*2;
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  BACKGROUND
+// ════════════════════════════════════════════════════════════════
+function drawBg(){
+  const bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.75);
+  bg.addColorStop(0,'#040c22'); bg.addColorStop(1,'#00000d');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  sr(99);
+  for(let i=0;i<700;i++){
+    ctx.save(); ctx.globalAlpha=rr(0.12,0.88);
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath(); ctx.arc(rr(0,W),rr(0,H),rr(0.2,1.3),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+  sr(321);
+  const cols=['#aaccff','#ffddaa','#ffbbcc'];
+  for(let i=0;i<80;i++){
+    ctx.save(); ctx.globalAlpha=rr(0.15,0.50);
+    ctx.fillStyle=cols[Math.floor(rr(0,3))];
+    ctx.beginPath(); ctx.arc(rr(0,W),rr(0,H),rr(0.3,1.1),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MILKY WAY  —  SCIENTIFICALLY CORRECT  —  2 MAJOR ARMS ONLY
+//
+//  Source: NASA Spitzer Space Telescope infrared survey (2008)
+//  The galaxy has exactly TWO major stellar arms:
+//    1. Scutum-Centaurus  (most massive, connects to near end of bar)
+//    2. Perseus           (outer arm, connects to far end of bar)
+//
+//  Sagittarius, Norma, and Outer are gas-only minor spurs,
+//  drawn here at ~20% the brightness of the major arms.
+// ════════════════════════════════════════════════════════════════
+function drawMilkyWay(){
+  const [cx,cy]=toC(0,0);
+
+  // outer halo
+  const halo=ctx.createRadialGradient(cx,cy,0,cx,cy,295);
+  halo.addColorStop(0,'rgba(120,100,200,0)');
+  halo.addColorStop(0.5,'rgba(70,80,180,0.05)');
+  halo.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=halo;
+  ctx.beginPath(); ctx.arc(cx,cy,295,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  // dust disk
+  const disk=ctx.createRadialGradient(cx,cy,0,cx,cy,248);
+  disk.addColorStop(0,   'rgba(255,220,140,0)');
+  disk.addColorStop(0.10,'rgba(180,155,85,0.11)');
+  disk.addColorStop(0.28,'rgba(110,100,165,0.07)');
+  disk.addColorStop(0.55,'rgba(55,65,140,0.05)');
+  disk.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=disk;
+  ctx.beginPath(); ctx.ellipse(cx,cy,246,236,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  // ─────────────────────────────────────────────────────────
+  //  ★ MAJOR ARM 1  —  SCUTUM-CENTAURUS
+  //  Starts at near end of galactic bar (~20° galactic lon)
+  //  Most stellar mass, warmly lit (old red + hot blue stars)
+  //  pitch angle ~12°, wraps ~1.5 turns
+  // ─────────────────────────────────────────────────────────
+  const sc1 = spiralPts(20,  4, 54, 12, 220);
+  const sc2 = spiralPts(200, 4, 54, 12, 220);   // mirror from opposite bar end
+  drawArm(sc1, 22, 7, '#ffd878', '#cc8818', 0.90);
+  drawArm(sc2, 22, 7, '#ffd878', '#cc8818', 0.90);
+
+  // ─────────────────────────────────────────────────────────
+  //  ★ MAJOR ARM 2  —  PERSEUS
+  //  Starts at far end of galactic bar (~110° galactic lon)
+  //  Rich in young OB stars, blue-white, outer arm
+  //  pitch angle ~12°, wraps ~1.5 turns
+  // ─────────────────────────────────────────────────────────
+  const pe1 = spiralPts(110, 5, 56, 12, 220);
+  const pe2 = spiralPts(290, 5, 56, 12, 220);   // mirror
+  drawArm(pe1, 20, 6, '#88c8ff', '#1a3a66', 0.88);
+  drawArm(pe2, 20, 6, '#88c8ff', '#1a3a66', 0.88);
+
+  // ─────────────────────────────────────────────────────────
+  //  MINOR GAS SPURS  —  intentionally FAINT (alpha ~0.18-0.25)
+  //  These are NOT arms. They are inter-arm gas concentrations.
+  // ─────────────────────────────────────────────────────────
+  // Sagittarius spur
+  const sg1 = spiralPts(65,  10, 42, 12, 120);
+  const sg2 = spiralPts(245, 10, 42, 12, 120);
+  drawArm(sg1, 6, 2, '#5588aa', '#0a1822', 0.22);
+  drawArm(sg2, 6, 2, '#5588aa', '#0a1822', 0.22);
+
+  // Norma spur
+  const no1 = spiralPts(155, 7, 32, 13,  90);
+  const no2 = spiralPts(335, 7, 32, 13,  90);
+  drawArm(no1, 5, 2, '#445577', '#080f1a', 0.18);
+  drawArm(no2, 5, 2, '#445577', '#080f1a', 0.18);
+
+  // Outer spur (beyond Perseus)
+  const ou1 = spiralPts(158, 44, 60, 11,  70);
+  const ou2 = spiralPts(338, 44, 60, 11,  70);
+  drawArm(ou1, 4, 1, '#334466', '#040a12', 0.15);
+  drawArm(ou2, 4, 1, '#334466', '#040a12', 0.15);
+
+  // ─────────────────────────────────────────────────────────
+  //  ORION SPUR  —  our home, short bridge off Perseus
+  // ─────────────────────────────────────────────────────────
+  const or1 = spiralPts(242, 22, 32, 14, 55);
+  drawArm(or1, 7, 4, '#55ffee', '#0a3330', 0.80);
+
+  // ── Galactic Bar ─────────────────────────────────────────
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(-0.38);
+  const bar=ctx.createLinearGradient(-94,0,94,0);
+  bar.addColorStop(0,   'rgba(255,200,80,0)');
+  bar.addColorStop(0.18,'rgba(255,200,80,0.55)');
+  bar.addColorStop(0.5, 'rgba(255,235,150,0.82)');
+  bar.addColorStop(0.82,'rgba(255,200,80,0.55)');
+  bar.addColorStop(1,   'rgba(255,200,80,0)');
+  ctx.fillStyle=bar;
+  ctx.beginPath(); ctx.ellipse(0,0,94,20,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── Bulge ──────────────────────────────────────────────
+  const bulge=ctx.createRadialGradient(cx,cy,0,cx,cy,72);
+  bulge.addColorStop(0,   'rgba(255,248,192,1)');
+  bulge.addColorStop(0.18,'rgba(255,218,132,0.97)');
+  bulge.addColorStop(0.40,'rgba(222,173,76,0.72)');
+  bulge.addColorStop(0.70,'rgba(148,108,44,0.34)');
+  bulge.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=bulge;
+  ctx.beginPath(); ctx.arc(cx,cy,72,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  // ── Core ───────────────────────────────────────────────
+  const core=ctx.createRadialGradient(cx,cy,0,cx,cy,19);
+  core.addColorStop(0,   'rgba(255,255,255,1)');
+  core.addColorStop(0.35,'rgba(255,248,202,0.96)');
+  core.addColorStop(0.75,'rgba(255,202,92,0.54)');
+  core.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.save();
+  ctx.shadowColor='#ffe880'; ctx.shadowBlur=38;
+  ctx.fillStyle=core;
+  ctx.beginPath(); ctx.arc(cx,cy,19,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  // ── Stars ──────────────────────────────────────────────
+  sr(4242);
+  for(let i=0;i<260;i++){
+    const a=rr(0,Math.PI*2), r=rr(6,54);
+    const [px,py]=toC(r*Math.cos(a),r*Math.sin(a));
+    ctx.save(); ctx.globalAlpha=rr(0.18,0.72);
+    ctx.fillStyle=['#ffffff','#ccddff','#ffeebb','#aaccff'][Math.floor(rr(0,4))];
+    ctx.beginPath(); ctx.arc(px,py,rr(0.3,1.8),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  // ── Nebulae ────────────────────────────────────────────
+  sr(8888);
+  const ncs=['rgba(200,110,255,','rgba(70,150,255,','rgba(255,130,70,','rgba(100,200,255,'];
+  for(let i=0;i<18;i++){
+    const a=rr(0,Math.PI*2), r=rr(12,48);
+    const [px,py]=toC(r*Math.cos(a),r*Math.sin(a));
+    const nr=rr(5,16);
+    const ng=ctx.createRadialGradient(px,py,0,px,py,nr);
+    const nc=ncs[Math.floor(rr(0,4))];
+    ng.addColorStop(0,nc+'0.20)'); ng.addColorStop(0.5,nc+'0.09)'); ng.addColorStop(1,nc+'0)');
+    ctx.save(); ctx.fillStyle=ng;
+    ctx.beginPath(); ctx.arc(px,py,nr,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LABELS
+// ════════════════════════════════════════════════════════════════
+function armLbl(kx,ky,txt,col,sz,rot){
+  const [px,py]=toC(kx,ky);
+  ctx.save(); ctx.translate(px,py); ctx.rotate(rot||0);
+  ctx.font=`600 ${sz}px 'Rajdhani',sans-serif`;
+  ctx.fillStyle=col; ctx.textAlign='center'; ctx.globalAlpha=0.88;
+  ctx.fillText(txt,0,0); ctx.restore();
+}
+
+function drawLabels(){
+  const [cx,cy]=toC(0,0);
+
+  // ── 2 major arm labels  (bright, ★ prefix) ──
+  armLbl( 26,  40, '★ SCUTUM-CENTAURUS ARM', '#ffdd88', 11, -0.52);
+  armLbl(-32, -28, '★ SCUTUM-CENTAURUS ARM', '#ffdd88', 11, -0.52);
+  armLbl(-20,  44, '★ PERSEUS ARM', '#88bbff', 11,  0.48);
+  armLbl( 30, -36, '★ PERSEUS ARM', '#88bbff', 11,  0.48);
+
+  // ── minor spur labels  (dim, no ★) ──
+  armLbl(  6,  24, 'Sagittarius Spur (gas)', '#3a5a78', 8.5, -0.42);
+  armLbl( -8, -15, 'Norma Spur (gas)',       '#334455', 8,    0.28);
+  armLbl(-14,  50, 'Outer Spur (gas)',        '#2a3a4a', 8,    0.52);
+
+  // ── Orion Spur ──
+  armLbl(-20, -22, 'ORION SPUR', '#33ddcc', 9.5, 0.28);
+
+  // ── Galaxy title ──
+  ctx.save();
+  ctx.font="700 17px 'Rajdhani',sans-serif";
+  ctx.fillStyle='rgba(255,230,140,0.88)';
+  ctx.shadowColor='#ffd060'; ctx.shadowBlur=12;
+  ctx.textAlign='center';
+  ctx.fillText('MILKY WAY GALAXY', cx, cy+90);
+  ctx.font="italic 10px 'EB Garamond',serif";
+  ctx.fillStyle='rgba(200,178,100,0.60)';
+  ctx.shadowBlur=0;
+  ctx.fillText('Diameter ~105,700 ly  ·  2 major spiral arms  ·  ~300 billion stars', cx, cy+105);
+  ctx.restore();
+
+  // ── Centre label ──
+  ctx.save();
+  ctx.font="700 10px 'Rajdhani',sans-serif";
+  ctx.fillStyle='rgba(255,242,180,0.80)'; ctx.textAlign='center';
+  ctx.fillText('GALACTIC CENTRE', cx, cy-27);
+  ctx.font="italic 9px 'EB Garamond',serif";
+  ctx.fillStyle='rgba(255,200,100,0.48)';
+  ctx.fillText('Sagittarius A*  ·  4 million M☉', cx, cy-15);
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SOLAR SYSTEM MARKER
+// ════════════════════════════════════════════════════════════════
+const SOL_R=26, SOL_ANG=240*Math.PI/180;
+const [SOLX,SOLY]=toC(SOL_R*Math.cos(SOL_ANG), SOL_R*Math.sin(SOL_ANG));
+
+function drawSolar(t){
+  const p=4+2.2*Math.sin(t*0.05);
+  ctx.save();
+  for(let r=p;r<=p*3.5;r+=p){
+    ctx.beginPath(); ctx.arc(SOLX,SOLY,r,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(68,255,221,${0.48-r/(p*9)})`; ctx.lineWidth=1; ctx.stroke();
+  }
+  const sg=ctx.createRadialGradient(SOLX,SOLY,0,SOLX,SOLY,7);
+  sg.addColorStop(0,'rgba(255,255,255,1)'); sg.addColorStop(0.4,'rgba(68,255,221,0.9)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.shadowColor='#44ffdd'; ctx.shadowBlur=18; ctx.fillStyle=sg;
+  ctx.beginPath(); ctx.arc(SOLX,SOLY,6,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  const lx=SOLX-80, ly=SOLY-36;
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(SOLX,SOLY); ctx.lineTo(lx+75,ly+4);
+  ctx.strokeStyle='rgba(68,255,221,0.40)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.font="700 12px 'Rajdhani',sans-serif"; ctx.fillStyle='#44ffdd';
+  ctx.shadowColor='#44ffdd'; ctx.shadowBlur=8; ctx.textAlign='right';
+  ctx.fillText('☀ YOU ARE HERE', lx+75, ly);
+  ctx.font="500 9px 'Rajdhani',sans-serif"; ctx.fillStyle='#33ccaa'; ctx.shadowBlur=0;
+  ctx.fillText('Our Solar System', lx+75, ly+13);
+  ctx.fillText('~26,000 ly from centre', lx+75, ly+25); ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ANDROMEDA
+// ════════════════════════════════════════════════════════════════
+const ANDX=MWX+318, ANDY=MWY-132;
+
+function drawAndromeda(){
+  const ax=ANDX, ay=ANDY;
+  const h=ctx.createRadialGradient(ax,ay,0,ax,ay,82);
+  h.addColorStop(0,'rgba(255,185,110,0)'); h.addColorStop(0.35,'rgba(200,140,70,0.06)');
+  h.addColorStop(0.7,'rgba(160,100,50,0.07)'); h.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=h;
+  ctx.beginPath(); ctx.ellipse(ax,ay,82,50,Math.PI*0.13,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  ctx.save(); ctx.translate(ax,ay); ctx.rotate(Math.PI*0.13); ctx.scale(1,0.40);
+  const dg=ctx.createRadialGradient(0,0,0,0,0,62);
+  dg.addColorStop(0,'rgba(255,220,150,0)'); dg.addColorStop(0.18,'rgba(240,185,100,0.15)');
+  dg.addColorStop(0.45,'rgba(190,140,70,0.10)'); dg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=dg; ctx.beginPath(); ctx.arc(0,0,62,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  for(let arm=0;arm<2;arm++){
+    ctx.save(); ctx.translate(ax,ay); ctx.rotate(Math.PI*0.13);
+    const base=arm===0?0.4:0.4+Math.PI, apts=[];
+    for(let i=0;i<=70;i++){
+      const t=i/70,r=8+40*t,a=base+0.65*t*Math.PI*2;
+      apts.push([r*Math.cos(a),r*Math.sin(a)*0.40]);
+    }
+    ctx.beginPath(); apts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    ctx.strokeStyle='rgba(255,175,90,0.28)'; ctx.lineWidth=4; ctx.stroke(); ctx.restore();
+  }
+
+  const cg=ctx.createRadialGradient(ax,ay,0,ax,ay,12);
+  cg.addColorStop(0,'rgba(255,255,220,1)'); cg.addColorStop(0.35,'rgba(255,210,130,0.92)');
+  cg.addColorStop(0.75,'rgba(220,155,70,0.48)'); cg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.shadowColor='#ffaa66'; ctx.shadowBlur=18; ctx.fillStyle=cg;
+  ctx.beginPath(); ctx.arc(ax,ay,12,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  sr(5555);
+  for(let i=0;i<100;i++){
+    const a=rr(0,Math.PI*2),r=rr(2,48);
+    ctx.save(); ctx.globalAlpha=rr(0.10,0.50);
+    ctx.fillStyle=rr(0,1)>0.5?'#ffe8cc':'#ffffff';
+    ctx.beginPath(); ctx.arc(ax+r*Math.cos(a),ay+r*Math.sin(a)*0.40,rr(0.3,1.2),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  ctx.save();
+  ctx.font="700 14px 'Rajdhani',sans-serif"; ctx.fillStyle='#ffaa66';
+  ctx.shadowColor='#ffaa66'; ctx.shadowBlur=10; ctx.textAlign='left';
+  ctx.fillText('Andromeda Galaxy (M31)', ax+16, ay-10);
+  ctx.font="italic 9.5px 'EB Garamond',serif"; ctx.fillStyle='#bb8844'; ctx.shadowBlur=0;
+  ctx.fillText('~1 trillion stars  ·  2.537 million ly away', ax+16, ay+5);
+  ctx.fillText('Approaching at 110 km/s — will merge in ~4.5 Gyr', ax+16, ay+18); ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DWARF GALAXIES
+// ════════════════════════════════════════════════════════════════
+const dwarfs=[
+  [-38,-52,'Large Magellanic Cloud',16,'#ffcc88'],
+  [-22,-66,'Small Magellanic Cloud',10,'#ddaaff'],
+  [ 56, 32,'Triangulum (M33)',      13,'#ffcc88'],
+  [-65, 18,'IC 10',                  5,'#bb88ff'],
+  [ 42,-58,'NGC 147',                4,'#bb88ff'],
+  [-50, 52,'NGC 185',                4,'#bb88ff'],
+  [ 28, 68,'NGC 205',                5,'#bb88ff'],
+  [-78,-26,'WLM Dwarf',              4,'#bb88ff'],
+];
+
+function drawDwarfs(){
+  dwarfs.forEach(([kx,ky,name,sz,col])=>{
+    const [px,py]=toC(kx,ky);
+    const g=ctx.createRadialGradient(px,py,0,px,py,sz);
+    const isM=name.includes('M33')||name.includes('Magellanic');
+    g.addColorStop(0,isM?'rgba(255,220,160,0.9)':'rgba(190,140,255,0.85)');
+    g.addColorStop(0.5,isM?'rgba(210,160,70,0.35)':'rgba(140,90,220,0.25)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=6; ctx.fillStyle=g;
+    ctx.beginPath(); ctx.ellipse(px,py,sz,sz*0.65,0.2,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.font="500 9px 'Rajdhani',sans-serif"; ctx.fillStyle=col+'aa'; ctx.textAlign='left';
+    ctx.fillText(name,px+sz+4,py+4); ctx.restore();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LOCAL GROUP BOUNDARY
+// ════════════════════════════════════════════════════════════════
+function drawLG(){
+  ctx.save(); ctx.setLineDash([8,7]);
+  ctx.strokeStyle='rgba(70,100,190,0.18)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(MWX+138,MWY-48,458,318,Math.PI*0.07,0,Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font="italic 10px 'EB Garamond',serif"; ctx.fillStyle='rgba(80,110,200,0.42)'; ctx.textAlign='center';
+  ctx.fillText('Local Group  (~10 million ly across)', MWX+138, MWY-360); ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DISTANCE LINE
+// ════════════════════════════════════════════════════════════════
+function drawDist(){
+  const [mcx,mcy]=toC(0,0);
+  ctx.save(); ctx.setLineDash([5,6]);
+  ctx.strokeStyle='rgba(255,150,70,0.14)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(mcx,mcy); ctx.lineTo(ANDX,ANDY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font="italic 9px 'EB Garamond',serif";
+  ctx.fillStyle='rgba(255,148,68,0.42)'; ctx.textAlign='center';
+  ctx.fillText('2.537 million light-years', (mcx+ANDX)/2+5,(mcy+ANDY)/2-8); ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INFO PANEL
+// ════════════════════════════════════════════════════════════════
+function drawPanel(){
+  const px=W-224,py=10,pw=214,ph=126;
+  ctx.save(); ctx.fillStyle='rgba(2,6,22,0.84)'; ctx.strokeStyle='rgba(70,100,190,0.28)';
+  ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(px,py,pw,ph,4); ctx.fill(); ctx.stroke();
+  const rows=[
+    ['MILKY WAY','#ffd060','700 13px',null],
+    ['Type:','#556688','500 10.5px','Barred Spiral  (SBbc)'],
+    ['Major arms:','#ffdd88','600 10.5px','2  (Scutum-Cen & Perseus)'],
+    ['Diameter:','#556688','500 10.5px','~105,700 ly'],
+    ['Stars:','#556688','500 10.5px','~200–400 billion'],
+    ['Age:','#556688','500 10.5px','~13.6 billion years'],
+    ['Our location:','#44ffdd','500 10.5px','Orion Spur, 26,000 ly out'],
+  ];
+  let y=py+18;
+  rows.forEach(([lbl,col,fnt,val])=>{
+    ctx.font=`${fnt} 'Rajdhani',sans-serif`; ctx.fillStyle=col; ctx.textAlign='left';
+    ctx.fillText(lbl,px+10,y);
+    if(val){ ctx.fillStyle='#99aabb'; ctx.fillText(val,px+pw*0.50,y); }
+    y+=15;
+  }); ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COMPASS
+// ════════════════════════════════════════════════════════════════
+function drawCompass(){
+  const cx=W-48,cy=H-48;
+  ctx.save(); ctx.globalAlpha=0.48;
+  [0,1,2,3].forEach(i=>{
+    const a=i*Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.sin(a)*22,cy-Math.cos(a)*22);
+    ctx.strokeStyle='rgba(90,120,200,0.55)'; ctx.lineWidth=1; ctx.stroke();
+    if(i===0){ ctx.font="600 9px 'Rajdhani'"; ctx.fillStyle='#6688bb'; ctx.textAlign='center'; ctx.fillText('N',cx,cy-26); }
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fillStyle='rgba(90,120,200,0.4)'; ctx.fill();
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HOTSPOTS
+// ════════════════════════════════════════════════════════════════
+const hotspots=[
+  {x:MWX,y:MWY,r:20,title:'Galactic Centre — Sgr A*',desc:'A supermassive black hole of 4 million solar masses. Stars orbit it at thousands of km/s.',sub:'0 ly from Earth (centre of Milky Way)'},
+  {x:SOLX,y:SOLY,r:16,title:'☀ Our Solar System',desc:'On the Orion Spur, a short inter-arm bridge off the Perseus major arm. We orbit the galactic centre once every ~225 million years.',sub:'~26,000 ly from galactic centre'},
+  {x:ANDX,y:ANDY,r:20,title:'Andromeda Galaxy (M31)',desc:'~1 trillion stars. Also a 2-major-arm barred spiral. The largest galaxy in the Local Group. On a direct collision course.',sub:'2.537 million ly away · approaching at 110 km/s'},
+  {x:toC(-38,-52)[0],y:toC(-38,-52)[1],r:14,title:'Large Magellanic Cloud',desc:'A satellite dwarf galaxy. Contains the Tarantula Nebula — the most active star-forming region in our galactic neighbourhood.',sub:'~160,000 ly away'},
+  {x:toC(-22,-66)[0],y:toC(-22,-66)[1],r:10,title:'Small Magellanic Cloud',desc:'Companion to the LMC, also a Milky Way satellite. Both are connected by the Magellanic Stream of hydrogen gas.',sub:'~200,000 ly away'},
+  {x:toC(56,32)[0],y:toC(56,32)[1],r:10,title:'Triangulum Galaxy (M33)',desc:'Third-largest galaxy in the Local Group. May be a satellite of Andromeda.',sub:'~2.73 million ly away'},
+];
+
+// ════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════════════════════════
+let frame=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawBg();
+  drawLG();
+  drawDist();
+  ctx.save();
+  ctx.translate(MWX,MWY); ctx.rotate(frame*0.000095); ctx.translate(-MWX,-MWY);
+  drawMilkyWay();
+  ctx.restore();
+  drawDwarfs();
+  drawAndromeda();
+  drawSolar(frame);
+  drawLabels();
+  drawPanel();
+  drawCompass();
+  frame++;
+  requestAnimationFrame(draw);
+}
+draw();
+
+// ════════════════════════════════════════════════════════════════
+//  TOOLTIP
+// ════════════════════════════════════════════════════════════════
+const tt=document.getElementById('tooltip');
+canvas.addEventListener('mousemove',e=>{
+  const rc=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rc.left)*(W/rc.width), my=(e.clientY-rc.top)*(H/rc.height);
+  let hit=null;
+  for(const h of hotspots){ if(Math.hypot(mx-h.x,my-h.y)<h.r+8){hit=h;break;} }
+  if(hit){
+    tt.style.display='block'; tt.style.left=(e.clientX+16)+'px'; tt.style.top=(e.clientY-12)+'px';
+    tt.innerHTML=`<div class="tt-title">${hit.title}</div><div>${hit.desc}</div><div class="tt-sub">${hit.sub}</div>`;
+    canvas.style.cursor='pointer';
+  } else { tt.style.display='none'; canvas.style.cursor='crosshair'; }
+});
+canvas.addEventListener('mouseleave',()=>{ tt.style.display='none'; });
+</script>
+</body>
+</html>

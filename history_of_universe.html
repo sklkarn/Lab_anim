@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History of the Universe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000010;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 10px;
+  }
+  canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1280, H = 820;
+canvas.width = W;
+canvas.height = H;
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function star(x,y,r,color='white'){
+  ctx.save();
+  ctx.fillStyle=color;
+  ctx.shadowColor=color; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function label(txt,x,y,size,color,align='center',font='bold'){
+  ctx.save();
+  ctx.font=`${font} ${size}px Arial`;
+  ctx.fillStyle=color;
+  ctx.textAlign=align;
+  ctx.fillText(txt,x,y);
+  ctx.restore();
+}
+function mlabel(lines,x,y,size,color,align='center',lh=size*1.3){
+  lines.forEach((l,i)=>label(l,x,y+i*lh,size,color,align));
+}
+
+// ── starfield background ──────────────────────────────────────────────────────
+function drawBackground(){
+  // deep space gradient
+  let bg = ctx.createRadialGradient(W/2,H/2,50,W/2,H/2,W*0.7);
+  bg.addColorStop(0,'#050520');
+  bg.addColorStop(1,'#000008');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // stars
+  ctx.save();
+  for(let i=0;i<350;i++){
+    let x=rnd(0,W), y=rnd(0,H), r=rnd(0.3,1.5);
+    let alpha=rnd(0.3,1);
+    ctx.globalAlpha=alpha;
+    star(x,y,r,'white');
+  }
+  // some colored stars
+  for(let i=0;i<30;i++){
+    let x=rnd(0,W), y=rnd(0,H);
+    ctx.globalAlpha=rnd(0.4,0.8);
+    star(x,y,rnd(0.5,1.2),['#aaccff','#ffddaa','#ffaaaa'][Math.floor(rnd(0,3))]);
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+// ── draw ellipse slice ────────────────────────────────────────────────────────
+// cx,cy = center, rx=half-width, ry=half-height
+function drawEllipse(cx,cy,rx,ry,fillGrad,strokeColor,strokeW=2){
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+  ctx.fillStyle=fillGrad;
+  ctx.fill();
+  if(strokeColor){
+    ctx.strokeStyle=strokeColor;
+    ctx.lineWidth=strokeW;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── clip to ellipse and draw content ─────────────────────────────────────────
+function clipEllipse(cx,cy,rx,ry,fn){
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+  ctx.clip();
+  fn();
+  ctx.restore();
+}
+
+// ── expansion horn (top & bottom curves) ─────────────────────────────────────
+// Universe drawn as expanding horn from left (Big Bang) to right (Today)
+// Ellipses placed along expansion path
+
+// Define the slices: [fraction along timeline 0-1, rx, ry, label, time, energy, color-theme]
+const slices = [
+  { t:0.13, rx:22,  ry:55,  name:'POSSIBLE\nDARK MATTER\nRELICS', time:'10⁻³⁵s', energy:'10¹⁶GeV', theme:'quark' },
+  { t:0.26, rx:32,  ry:80,  name:'NUCLEONS\nFORM',                 time:'10⁻¹⁰s', energy:'10² GeV', theme:'nucleon' },
+  { t:0.40, rx:45,  ry:115, name:'NUCLEI\nFORM',                   time:'10⁻⁴s',  energy:'10⁻¹GeV', theme:'nuclei' },
+  { t:0.57, rx:80,  ry:185, name:'CMB',                            time:'3×10⁵y', energy:'3×10⁻¹⁰GeV', theme:'cmb' },
+  { t:0.74, rx:105, ry:240, name:'STRUCTURE\nFORMATION',           time:'10⁹y',   energy:'10⁻¹²GeV', theme:'structure' },
+  { t:1.00, rx:145, ry:310, name:'TODAY',                          time:'13.8×10⁹y', energy:'2.3×10⁻¹³GeV', theme:'today' },
+];
+
+// Horn path: y-center follows a gentle curve
+function hornY(tx){ return H*0.48 - tx*8; }
+function hornX(tx){ return 95 + tx*(W-195); }
+
+// ── gradient factories ────────────────────────────────────────────────────────
+function makeGrad(cx,cy,rx,ry,theme){
+  let g = ctx.createRadialGradient(cx,cy-ry*0.1,ry*0.05, cx,cy,Math.max(rx,ry)*1.1);
+  switch(theme){
+    case 'quark':
+      g.addColorStop(0,'#ffe8a0'); g.addColorStop(0.4,'#e8a830'); g.addColorStop(0.7,'#8b4010'); g.addColorStop(1,'#3a1008'); break;
+    case 'nucleon':
+      g.addColorStop(0,'#ffcc60'); g.addColorStop(0.35,'#cc6010'); g.addColorStop(0.7,'#7a2808'); g.addColorStop(1,'#2a0808'); break;
+    case 'nuclei':
+      g.addColorStop(0,'#ffaa40'); g.addColorStop(0.3,'#ee4410'); g.addColorStop(0.65,'#aa1808'); g.addColorStop(1,'#200408'); break;
+    case 'cmb':
+      g.addColorStop(0,'#88ccff'); g.addColorStop(0.2,'#4488dd'); g.addColorStop(0.5,'#e87030'); g.addColorStop(0.8,'#cc4420'); g.addColorStop(1,'#440810'); break;
+    case 'structure':
+      g.addColorStop(0,'#9966cc'); g.addColorStop(0.3,'#6633aa'); g.addColorStop(0.6,'#441177'); g.addColorStop(1,'#100820'); break;
+    case 'today':
+      g.addColorStop(0,'#aaddff'); g.addColorStop(0.3,'#5599ee'); g.addColorStop(0.6,'#2255aa'); g.addColorStop(1,'#051030'); break;
+  }
+  return g;
+}
+
+// ── particles inside each slice ───────────────────────────────────────────────
+function drawParticles(cx,cy,rx,ry,theme){
+  ctx.save();
+  const pcount = theme==='quark'?28 : theme==='nucleon'?22 : theme==='nuclei'?14 : theme==='cmb'?10 : theme==='structure'?6 : 0;
+  for(let i=0;i<pcount;i++){
+    // random position inside ellipse
+    let angle=rnd(0,Math.PI*2), dr=rnd(0,0.82);
+    let px = cx + Math.cos(angle)*rx*dr*0.85;
+    let py = cy + Math.sin(angle)*ry*dr*0.85;
+    let r=rnd(3,7);
+    let colors = {
+      quark:['#ff4444','#ff8822','#ffcc00','#44aaff','#cc44ff','#ffffff'],
+      nucleon:['#ff6622','#ffaa44','#44ccff','#aaffaa','#ff44aa'],
+      nuclei:['#44ff88','#22cc66','#009944','#aaffcc'],
+      cmb:['#44aaff','#ffffff','#aaddff'],
+    };
+    let palette = colors[theme]||['#ffffff'];
+    let col = palette[Math.floor(rnd(0,palette.length))];
+
+    // draw particle circle
+    ctx.beginPath();
+    ctx.arc(px,py,r,0,Math.PI*2);
+    let pg = ctx.createRadialGradient(px-r*0.3,py-r*0.3,0,px,py,r);
+    pg.addColorStop(0,'white');
+    pg.addColorStop(0.3,col);
+    pg.addColorStop(1,col+'88');
+    ctx.fillStyle=pg;
+    ctx.shadowColor=col; ctx.shadowBlur=8;
+    ctx.fill();
+
+    // tiny letter label
+    if(theme==='quark'){
+      let letters=['q','ğ','e','μ','ν','τ','W','Z','g'];
+      ctx.fillStyle='white';
+      ctx.font='bold 6px Arial';
+      ctx.textAlign='center';
+      ctx.shadowBlur=0;
+      ctx.fillText(letters[Math.floor(rnd(0,letters.length))],px,py+2.5);
+    } else if(theme==='nucleon'){
+      let letters=['q','q̄','ν','ν̄','μ','τ','g'];
+      ctx.fillStyle='white'; ctx.font='bold 5.5px Arial'; ctx.textAlign='center'; ctx.shadowBlur=0;
+      ctx.fillText(letters[Math.floor(rnd(0,letters.length))],px,py+2);
+    } else if(theme==='nuclei'){
+      // draw nuclei clusters
+      ctx.beginPath(); ctx.arc(px+5,py,r*0.7,0,Math.PI*2);
+      pg = ctx.createRadialGradient(px+5,py,0,px+5,py,r*0.7);
+      pg.addColorStop(0,'white'); pg.addColorStop(0.3,'#44cc88'); pg.addColorStop(1,'#116633');
+      ctx.fillStyle=pg; ctx.fill();
+    }
+  }
+  // CMB ripples
+  if(theme==='cmb'){
+    for(let i=0;i<5;i++){
+      let px=cx+rnd(-rx*0.5,rx*0.5), py=cy+rnd(-ry*0.5,ry*0.5);
+      ctx.beginPath();
+      ctx.arc(px,py,rnd(8,20),0,Math.PI*2);
+      ctx.strokeStyle='rgba(180,220,255,0.35)';
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ── galaxies / stars in structure + today ────────────────────────────────────
+function drawGalaxies(cx,cy,rx,ry,theme){
+  ctx.save();
+  const n = theme==='structure'?8:12;
+  for(let i=0;i<n;i++){
+    let angle=rnd(0,Math.PI*2), dr=rnd(0.1,0.8);
+    let gx=cx+Math.cos(angle)*rx*dr*0.9;
+    let gy=cy+Math.sin(angle)*ry*dr*0.85;
+
+    if(theme==='structure'){
+      // draw spiral suggestion
+      let gr=rnd(10,22);
+      let gg = ctx.createRadialGradient(gx,gy,0,gx,gy,gr);
+      gg.addColorStop(0,'rgba(255,240,200,0.9)');
+      gg.addColorStop(0.4,'rgba(180,140,255,0.5)');
+      gg.addColorStop(1,'rgba(100,80,200,0)');
+      ctx.beginPath(); ctx.ellipse(gx,gy,gr,gr*0.45,rnd(0,Math.PI),0,Math.PI*2);
+      ctx.fillStyle=gg; ctx.fill();
+      // arms hint
+      ctx.save();
+      ctx.translate(gx,gy);
+      ctx.rotate(rnd(0,Math.PI));
+      ctx.strokeStyle='rgba(200,180,255,0.3)';
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(-gr,0); ctx.bezierCurveTo(-gr*0.5,-gr*0.3,gr*0.5,gr*0.3,gr,0);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      // today: galaxies + stars + black hole + neutrino wave
+      let gr=rnd(8,30);
+      let gg = ctx.createRadialGradient(gx,gy,0,gx,gy,gr);
+      gg.addColorStop(0,'rgba(255,255,255,0.95)');
+      gg.addColorStop(0.3,'rgba(180,220,255,0.7)');
+      gg.addColorStop(0.7,'rgba(80,140,220,0.3)');
+      gg.addColorStop(1,'rgba(20,60,180,0)');
+      ctx.save();
+      ctx.translate(gx,gy);
+      ctx.rotate(rnd(0,Math.PI));
+      ctx.scale(1,0.45);
+      ctx.beginPath(); ctx.arc(0,0,gr,0,Math.PI*2);
+      ctx.fillStyle=gg; ctx.fill();
+      ctx.restore();
+    }
+  }
+  // TODAY special elements
+  if(theme==='today'){
+    // black hole (green grid)
+    let bhx=cx+rx*0.5, bhy=cy-ry*0.1;
+    ctx.save();
+    ctx.strokeStyle='rgba(80,255,80,0.5)';
+    ctx.lineWidth=1;
+    for(let r=5;r<30;r+=8){
+      ctx.beginPath(); ctx.ellipse(bhx,bhy,r,r*0.5,Math.PI*0.15,0,Math.PI*2); ctx.stroke();
+    }
+    for(let a=0;a<Math.PI*2;a+=Math.PI/4){
+      ctx.beginPath();
+      ctx.moveTo(bhx,bhy);
+      ctx.lineTo(bhx+Math.cos(a)*28,bhy+Math.sin(a)*14);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // neutrino wave
+    let wx=cx-rx*0.1, wy=cy+ry*0.35;
+    ctx.save();
+    ctx.strokeStyle='rgba(80,255,200,0.6)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(let dx=-40;dx<=40;dx+=2){
+      let dy=Math.sin(dx*0.25)*8;
+      dx===-40 ? ctx.moveTo(wx+dx,wy+dy) : ctx.lineTo(wx+dx,wy+dy);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // family silhouette hint
+    ctx.save();
+    ctx.fillStyle='rgba(220,235,255,0.7)';
+    let fx=cx+rx*0.25, fy=cy-ry*0.2;
+    // simple silhouette shapes
+    ctx.beginPath(); ctx.arc(fx,fy-12,5,0,Math.PI*2); ctx.fill(); // head
+    ctx.fillRect(fx-4,fy-7,8,14); // body
+    ctx.beginPath(); ctx.arc(fx+14,fy-14,4,0,Math.PI*2); ctx.fill();
+    ctx.fillRect(fx+11,fy-10,6,12);
+    ctx.beginPath(); ctx.arc(fx+26,fy-10,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillRect(fx+23,fy-6,5,10);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ── draw the expansion horn outline ──────────────────────────────────────────
+function drawHorn(){
+  // The horn: two curved lines expanding from left (narrow) to right (wide)
+  // top curve and bottom curve
+  ctx.save();
+  ctx.strokeStyle='rgba(210,180,120,0.7)';
+  ctx.lineWidth=2.5;
+
+  // Compute top/bottom envelope from slices
+  let pts_top=[], pts_bot=[];
+  // Include big bang point
+  pts_top.push([hornX(0), hornY(0)-12]);
+  pts_bot.push([hornX(0), hornY(0)+12]);
+  slices.forEach(s=>{
+    let cx=hornX(s.t), cy=hornY(s.t);
+    pts_top.push([cx, cy-s.ry]);
+    pts_bot.push([cx, cy+s.ry]);
+  });
+
+  // Draw top curve
+  ctx.beginPath();
+  ctx.moveTo(pts_top[0][0],pts_top[0][1]);
+  for(let i=1;i<pts_top.length;i++){
+    let [x1,y1]=pts_top[i-1],[x2,y2]=pts_top[i];
+    let mx=(x1+x2)/2;
+    ctx.bezierCurveTo(mx,y1,mx,y2,x2,y2);
+  }
+  ctx.stroke();
+
+  // Draw bottom curve
+  ctx.beginPath();
+  ctx.moveTo(pts_bot[0][0],pts_bot[0][1]);
+  for(let i=1;i<pts_bot.length;i++){
+    let [x1,y1]=pts_bot[i-1],[x2,y2]=pts_bot[i];
+    let mx=(x1+x2)/2;
+    ctx.bezierCurveTo(mx,y1,mx,y2,x2,y2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── inline labels on ellipses ─────────────────────────────────────────────────
+function drawSliceLabel(cx,cy,ry,lines,theme){
+  ctx.save();
+  ctx.save();
+  // rotate text to be vertical on the face of the ellipse
+  ctx.translate(cx,cy);
+  ctx.rotate(-Math.PI/2);
+  let col = theme==='quark'?'#ffe8c0' : theme==='nucleon'?'#ffd090' : theme==='nuclei'?'#ffcc88' : theme==='cmb'?'#ffffff' : theme==='structure'?'#ddbbff' : '#aaddff';
+  lines.forEach((l,i)=>{
+    ctx.font=`bold ${ry>200?8.5:7.5}px Arial`;
+    ctx.fillStyle=col;
+    ctx.textAlign='center';
+    ctx.fillText(l, 0, i*10 - (lines.length-1)*5);
+  });
+  ctx.restore();
+  ctx.restore();
+}
+
+// ── callout boxes ─────────────────────────────────────────────────────────────
+function callout(text,tx,ty,bx,by,color='#88ccee',lines){
+  // bx,by = box top-left, tx,ty = tip
+  ctx.save();
+  let w=lines?lines.reduce((m,l)=>Math.max(m,l.length*7),0)+20:text.length*6.5+20;
+  let h=lines?lines.length*16+16:30;
+  // box
+  ctx.fillStyle='rgba(10,40,80,0.82)';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.roundRect(bx,by,w,h,3);
+  ctx.fill(); ctx.stroke();
+  // line from box center to tip
+  ctx.beginPath();
+  ctx.moveTo(bx+w/2, by+h/2);
+  ctx.lineTo(tx,ty);
+  ctx.strokeStyle=color+'99';
+  ctx.lineWidth=1;
+  ctx.setLineDash([4,3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // text
+  if(lines){
+    lines.forEach((l,i)=>{
+      ctx.font=`${i===0?'bold ':''} 11px Arial`;
+      ctx.fillStyle='white';
+      ctx.textAlign='left';
+      ctx.fillText(l, bx+10, by+16+i*16);
+    });
+  } else {
+    ctx.font='bold 11px Arial';
+    ctx.fillStyle='white';
+    ctx.textAlign='left';
+    ctx.fillText(text, bx+10, by+19);
+  }
+  ctx.restore();
+}
+
+// ── bottom time/energy labels ─────────────────────────────────────────────────
+function timeLabel(cx, cy, ry, time, energy){
+  ctx.save();
+  let bx = cx-28, by = cy+ry+12;
+  ctx.fillStyle='rgba(0,0,0,0.0)';
+  ctx.font='9px Arial';
+  ctx.fillStyle='#ddcc88';
+  ctx.textAlign='center';
+  // rotated label
+  ctx.translate(cx, cy+ry+6);
+  ctx.rotate(Math.PI/6);
+  ctx.font='bold 8px Arial';
+  ctx.fillStyle='#ddcc88';
+  ctx.textAlign='left';
+  ctx.fillText('t = '+time, 0, 0);
+  ctx.fillStyle='#aabbcc';
+  ctx.fillText('E = '+energy, 0, 12);
+  ctx.restore();
+}
+
+// ── KEY (legend) ──────────────────────────────────────────────────────────────
+function drawKey(){
+  let kx=28, ky=H-185, kw=300, kh=175;
+  ctx.save();
+  ctx.fillStyle='rgba(0,5,20,0.75)';
+  ctx.strokeStyle='rgba(100,130,180,0.4)';
+  ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(kx,ky,kw,kh,4); ctx.fill(); ctx.stroke();
+
+  label('Key', kx+12, ky+18, 13, '#ffffff', 'left', 'bold');
+
+  const items=[
+    {col:'#ee4422',sym:'●',lbl:'quark',ltr:'q'},
+    {col:'#ff8833',sym:'✳',lbl:'gluon',ltr:'g'},
+    {col:'#aaaaff',sym:'●',lbl:'electron',ltr:'e'},
+    {col:'#ff66aa',sym:'●',lbl:'muon',ltr:'μ'},
+    {col:'#ffaa66',sym:'●',lbl:'tau',ltr:'τ'},
+    {col:'#88ddff',sym:'●',lbl:'neutrino',ltr:'ν'},
+    {col:'#cc4499',sym:'W Z',lbl:'bosons',ltr:''},
+    {col:'#44bb66',sym:'●',lbl:'meson',ltr:''},
+    {col:'#3399ff',sym:'●',lbl:'baryon',ltr:''},
+    {col:'#88eebb',sym:'●',lbl:'ion',ltr:''},
+    {col:'#4488ff',sym:'◉',lbl:'atom',ltr:''},
+    {col:'#ffff88',sym:'✦',lbl:'photon',ltr:'γ'},
+    {col:'#ffffa0',sym:'★',lbl:'star',ltr:''},
+    {col:'#aaaaff',sym:'⬭',lbl:'galaxy',ltr:''},
+    {col:'#00ff88',sym:'⊞',lbl:'black hole',ltr:''},
+  ];
+
+  const cols=3, rows=Math.ceil(items.length/cols);
+  const cw=kw/cols;
+  items.forEach((item,i)=>{
+    let col=i%cols, row=Math.floor(i/cols);
+    let x=kx+8+col*cw, y=ky+32+row*21;
+    ctx.save();
+    ctx.font='bold 14px Arial';
+    ctx.fillStyle=item.col;
+    ctx.shadowColor=item.col; ctx.shadowBlur=4;
+    ctx.fillText(item.sym, x, y);
+    ctx.restore();
+    ctx.font='11px Arial';
+    ctx.fillStyle='#ccddee';
+    ctx.textAlign='left';
+    ctx.fillText(item.lbl, x+18, y);
+  });
+
+  ctx.restore();
+}
+
+// ── axes / inflation arrow ────────────────────────────────────────────────────
+function drawExpansionArrow(){
+  // "Size of visible universe" curved top label
+  ctx.save();
+  // arrow along top of horn — approximate with arc text
+  let startX=hornX(0.05)+20, startY=hornY(0.05)-80;
+  let endX=hornX(0.95)-40, endY=hornY(0.95)-slices[5].ry-35;
+  ctx.strokeStyle='rgba(200,180,100,0.6)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(startX,startY);
+  ctx.bezierCurveTo(startX+200,startY-25, endX-200,endY-10, endX,endY);
+  ctx.stroke();
+  // arrowhead
+  ctx.save();
+  ctx.translate(endX,endY);
+  ctx.rotate(-0.12);
+  ctx.fillStyle='rgba(200,180,100,0.8)';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,-5); ctx.lineTo(-10,5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.font='bold italic 14px Georgia';
+  ctx.fillStyle='rgba(230,210,140,0.9)';
+  ctx.textAlign='center';
+  ctx.fillText('Size of visible universe', (startX+endX)/2-30, startY-12);
+  ctx.restore();
+}
+
+// ── TODAY arrow (top right) ───────────────────────────────────────────────────
+function drawTodayArrow(){
+  ctx.save();
+  let tx=W-30, ty=50;
+  ctx.strokeStyle='rgba(200,200,200,0.8)';
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(tx,ty+30); ctx.lineTo(tx,ty);
+  ctx.stroke();
+  // arrowhead up
+  ctx.fillStyle='white';
+  ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-6,ty+12); ctx.lineTo(tx+6,ty+12); ctx.closePath(); ctx.fill();
+  // arrowhead down
+  ctx.beginPath(); ctx.moveTo(tx,ty+50); ctx.lineTo(tx-6,ty+38); ctx.lineTo(tx+6,ty+38); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ── main title ────────────────────────────────────────────────────────────────
+function drawTitle(){
+  ctx.save();
+  ctx.font='bold 36px Arial';
+  ctx.fillStyle='#e8c060';
+  ctx.shadowColor='#aa8020';
+  ctx.shadowBlur=15;
+  ctx.textAlign='left';
+  ctx.fillText('HISTORY OF THE UNIVERSE', 30, 46);
+  ctx.restore();
+}
+
+// ── inflation label ───────────────────────────────────────────────────────────
+function drawInflation(){
+  // Inflation balloon
+  let ix=hornX(0.02)+5, iy=hornY(0.02);
+  ctx.save();
+  // small oval for inflation
+  let gr = ctx.createRadialGradient(ix,iy,2,ix,iy,22);
+  gr.addColorStop(0,'rgba(255,255,220,0.9)'); gr.addColorStop(0.5,'rgba(220,200,100,0.4)'); gr.addColorStop(1,'rgba(180,160,50,0)');
+  ctx.beginPath(); ctx.ellipse(ix,iy,22,14,0,0,Math.PI*2); ctx.fillStyle=gr; ctx.fill();
+  ctx.strokeStyle='rgba(220,200,100,0.6)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.restore();
+  // label
+  callout('Inflation', ix-5, iy+14, ix-70, iy+20, '#ddbb44', ['Inflation']);
+}
+
+// ── accelerator labels (top) ──────────────────────────────────────────────────
+function drawAcceleratorLabels(){
+  // LHC protons
+  let s1=slices[0], cx1=hornX(s1.t), cy1=hornY(s1.t);
+  callout('',(cx1),(cy1-s1.ry), cx1-40, 80, '#aaaaaa',['Accelerators','','LHC protons']);
+  // RHIC & LHC
+  let s2=slices[1], cx2=hornX(s2.t), cy2=hornY(s2.t);
+  callout('',(cx2),(cy2-s2.ry), cx2-45, 60, '#999999',['RHIC &','LHC heavy','ions']);
+  // cosmic rays
+  callout('',hornX(0.05),hornY(0.05)-55, 28, 140, '#888888',['High-energy','cosmic rays']);
+}
+
+// ── CMB callout ───────────────────────────────────────────────────────────────
+function drawCMBCallout(){
+  let s=slices[3], cx=hornX(s.t), cy=hornY(s.t);
+  callout('',(cx),(cy-s.ry), cx-80, 80, '#44aaff',['Cosmic Microwave','Background radiation','is visible']);
+}
+
+// ── Structure callout ─────────────────────────────────────────────────────────
+function drawStructureCallout(){
+  let s=slices[4], cx=hornX(s.t), cy=hornY(s.t);
+  callout('',(cx),(cy-s.ry), cx-55, 90, '#8855cc',['Structure','formation']);
+}
+
+// ── Dark energy callout ───────────────────────────────────────────────────────
+function drawDarkEnergyCallout(){
+  let s=slices[5], cx=hornX(s.t), cy=hornY(s.t);
+  callout('',cx-20,(cy-s.ry), cx-110, 55, '#55aaff',['Dark energy','accelerated','expansion']);
+}
+
+// ── TODAY label on last ellipse ───────────────────────────────────────────────
+function drawTodayLabel(){
+  let s=slices[5], cx=hornX(s.t), cy=hornY(s.t);
+  ctx.save();
+  ctx.font='bold 22px Arial';
+  ctx.fillStyle='#ffee44';
+  ctx.shadowColor='#ffcc00'; ctx.shadowBlur=15;
+  ctx.textAlign='center';
+  ctx.fillText('TODAY', cx, cy-s.ry+28);
+  ctx.restore();
+}
+
+// ── Big Bang label ────────────────────────────────────────────────────────────
+function drawBigBang(){
+  let bx=hornX(0), by=hornY(0);
+  // small bright flash
+  ctx.save();
+  let bg=ctx.createRadialGradient(bx,by,0,bx,by,28);
+  bg.addColorStop(0,'rgba(255,255,255,1)');
+  bg.addColorStop(0.3,'rgba(255,220,100,0.7)');
+  bg.addColorStop(0.7,'rgba(255,100,20,0.3)');
+  bg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(bx,by,28,0,Math.PI*2);
+  ctx.fillStyle=bg; ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.font='bold 13px Arial'; ctx.fillStyle='white'; ctx.textAlign='right';
+  ctx.shadowColor='white'; ctx.shadowBlur=8;
+  ctx.fillText('Big', bx-18, by-5);
+  ctx.fillText('Bang', bx-18, by+10);
+  ctx.restore();
+}
+
+// ── bottom legend line ────────────────────────────────────────────────────────
+function drawLegendText(){
+  ctx.save();
+  ctx.font='10px Arial';
+  ctx.fillStyle='#aabbcc';
+  ctx.textAlign='left';
+  ctx.fillText('t = Time (seconds, years)', 28, H-14);
+  ctx.fillText('E = Energy of photons (units GeV = 1.6 × 10⁻¹⁰ joules)', 28, H-2);
+  ctx.restore();
+  // credits
+  ctx.save();
+  ctx.font='11px Arial';
+  ctx.fillStyle='#aabbdd';
+  ctx.textAlign='center';
+  ctx.fillText('Particle Data Group, LBNL © 2015', W/2+100, H-14);
+  ctx.fillText('Supported by DOE', W-100, H-14);
+  ctx.restore();
+  ctx.save();
+  ctx.font='italic 9px Arial';
+  ctx.fillStyle='#8899aa';
+  ctx.textAlign='left';
+  ctx.fillText('The concept for the above figure originated in a 1986 paper by Michael Turner.', 28, H-26);
+  ctx.restore();
+}
+
+// ── DRAW EVERYTHING ───────────────────────────────────────────────────────────
+drawBackground();
+drawTitle();
+
+// Draw ellipses back to front
+slices.forEach((s,idx)=>{
+  let cx=hornX(s.t), cy=hornY(s.t);
+  // shadow/glow behind
+  ctx.save();
+  ctx.shadowColor = ['#ff8800','#ff6600','#ff4400','#4488ff','#8844cc','#4488ff'][idx];
+  ctx.shadowBlur=30;
+  drawEllipse(cx,cy,s.rx,s.ry, makeGrad(cx,cy,s.rx,s.ry,s.theme), null, 0);
+  ctx.restore();
+
+  // main ellipse fill
+  drawEllipse(cx,cy,s.rx,s.ry, makeGrad(cx,cy,s.rx,s.ry,s.theme), 'rgba(255,255,255,0.18)', 1.5);
+
+  // inner content clipped
+  clipEllipse(cx,cy,s.rx,s.ry, ()=>{
+    if(['quark','nucleon','nuclei','cmb'].includes(s.theme)){
+      drawParticles(cx,cy,s.rx,s.ry,s.theme);
+    }
+    if(['structure','today'].includes(s.theme)){
+      // cosmic web texture
+      if(s.theme==='structure'){
+        let web=ctx.createRadialGradient(cx,cy,0,cx,cy,s.ry);
+        web.addColorStop(0,'rgba(180,120,255,0.0)');
+        web.addColorStop(0.5,'rgba(130,80,220,0.4)');
+        web.addColorStop(1,'rgba(60,20,160,0.0)');
+        ctx.fillStyle=web; ctx.fillRect(cx-s.rx,cy-s.ry,s.rx*2,s.ry*2);
+        // filament lines
+        ctx.save();
+        for(let f=0;f<18;f++){
+          let a=rnd(0,Math.PI*2);
+          let x1=cx+Math.cos(a)*rnd(5,s.rx*0.3), y1=cy+Math.sin(a)*rnd(5,s.ry*0.3);
+          let x2=cx+Math.cos(a+rnd(-0.8,0.8))*rnd(s.rx*0.4,s.rx*0.85);
+          let y2=cy+Math.sin(a+rnd(-0.8,0.8))*rnd(s.ry*0.4,s.ry*0.85);
+          ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+          ctx.strokeStyle=`rgba(${180+rnd(-30,30)},${120+rnd(-20,20)},255,${rnd(0.08,0.22)})`;
+          ctx.lineWidth=rnd(0.5,1.5); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawGalaxies(cx,cy,s.rx,s.ry,s.theme);
+    }
+  });
+
+  // vertical text label inside ellipse
+  let lblLines = s.name.split('\n');
+  drawSliceLabel(cx,cy,s.ry, lblLines, s.theme);
+
+  // time/energy below
+  timeLabel(cx,cy,s.ry, s.time, s.energy);
+});
+
+drawHorn();
+drawExpansionArrow();
+drawBigBang();
+drawInflation();
+drawTodayArrow();
+drawTodayLabel();
+drawAcceleratorLabels();
+drawCMBCallout();
+drawStructureCallout();
+drawDarkEnergyCallout();
+drawKey();
+drawLegendText();
+</script>
+</body>
+</html>

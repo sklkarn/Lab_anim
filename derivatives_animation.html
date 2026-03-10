@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derivative Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #111118;
+    --border: #1e1e2e;
+    --accent1: #00ffc8;
+    --accent2: #ff6b6b;
+    --accent3: #ffd93d;
+    --text: #e0e0f0;
+    --muted: #555577;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 28px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .fn-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    padding: 8px 18px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .fn-btn:hover, .fn-btn.active {
+    border-color: var(--accent1);
+    color: var(--accent1);
+    background: rgba(0,255,200,0.07);
+    box-shadow: 0 0 14px rgba(0,255,200,0.15);
+  }
+
+  /* Canvas area */
+  .canvas-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    animation: fadeUp 0.8s 0.4s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .leg-dot {
+    width: 28px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  /* Info panel */
+  .info-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+    animation: fadeUp 0.8s 0.6s ease both;
+  }
+
+  .info-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .info-card.fn::before { background: var(--accent1); }
+  .info-card.d1::before { background: var(--accent2); }
+  .info-card.d2::before { background: var(--accent3); }
+
+  .info-card .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .info-card .formula {
+    font-size: 1rem;
+    font-weight: 700;
+    transition: all 0.4s;
+  }
+
+  .info-card.fn .formula { color: var(--accent1); }
+  .info-card.d1 .formula { color: var(--accent2); }
+  .info-card.d2 .formula { color: var(--accent3); }
+
+  .info-card .value {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Slider */
+  .slider-wrap {
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: fadeUp 0.8s 0.7s ease both;
+  }
+
+  .slider-wrap label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    background: var(--border);
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent1);
+    box-shadow: 0 0 10px rgba(0,255,200,0.5);
+    cursor: pointer;
+  }
+
+  .play-btn {
+    background: rgba(0,255,200,0.1);
+    border: 1px solid var(--accent1);
+    color: var(--accent1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .play-btn:hover {
+    background: rgba(0,255,200,0.2);
+    box-shadow: 0 0 14px rgba(0,255,200,0.2);
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Derivative Visualizer</h1>
+    <p>f(x) · f′(x) · f″(x) — animated</p>
+  </header>
+
+  <div class="controls" id="fnBtns"></div>
+
+  <div class="canvas-wrap">
+    <canvas id="cvs"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--accent1)"></div> f(x) — function</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--accent2)"></div> f′(x) — 1st derivative</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--accent3)"></div> f″(x) — 2nd derivative</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,0.5);border:1px dashed rgba(255,255,255,0.3)"></div> tangent at x</div>
+  </div>
+
+  <div class="slider-wrap">
+    <label>X POSITION</label>
+    <input type="range" id="xSlider" min="-300" max="300" value="0">
+    <button class="play-btn" id="playBtn">▶ ANIMATE</button>
+  </div>
+
+  <div class="info-panel">
+    <div class="info-card fn">
+      <div class="label">Function</div>
+      <div class="formula" id="fnLabel">—</div>
+      <div class="value" id="fnVal">f(x) = —</div>
+    </div>
+    <div class="info-card d1">
+      <div class="label">1st Derivative</div>
+      <div class="formula" id="d1Label">—</div>
+      <div class="value" id="d1Val">f′(x) = —</div>
+    </div>
+    <div class="info-card d2">
+      <div class="label">2nd Derivative</div>
+      <div class="formula" id="d2Label">—</div>
+      <div class="value" id="d2Val">f″(x) = —</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const functions = [
+  {
+    name: 'x³ − 3x',
+    fn:  x => x**3 - 3*x,
+    d1:  x => 3*x**2 - 3,
+    d2:  x => 6*x,
+    label: 'f(x) = x³ − 3x',
+    d1label: 'f′(x) = 3x² − 3',
+    d2label: 'f″(x) = 6x'
+  },
+  {
+    name: 'sin(x)',
+    fn:  x => Math.sin(x),
+    d1:  x => Math.cos(x),
+    d2:  x => -Math.sin(x),
+    label: 'f(x) = sin(x)',
+    d1label: 'f′(x) = cos(x)',
+    d2label: 'f″(x) = −sin(x)'
+  },
+  {
+    name: 'x⁴ − 4x²',
+    fn:  x => x**4 - 4*x**2,
+    d1:  x => 4*x**3 - 8*x,
+    d2:  x => 12*x**2 - 8,
+    label: 'f(x) = x⁴ − 4x²',
+    d1label: 'f′(x) = 4x³ − 8x',
+    d2label: 'f″(x) = 12x² − 8'
+  },
+  {
+    name: 'eˣ',
+    fn:  x => Math.exp(x),
+    d1:  x => Math.exp(x),
+    d2:  x => Math.exp(x),
+    label: 'f(x) = eˣ',
+    d1label: 'f′(x) = eˣ',
+    d2label: 'f″(x) = eˣ'
+  },
+  {
+    name: 'x²·cos(x)',
+    fn:  x => x**2 * Math.cos(x),
+    d1:  x => 2*x*Math.cos(x) - x**2*Math.sin(x),
+    d2:  x => 2*Math.cos(x) - 4*x*Math.sin(x) - x**2*Math.cos(x),
+    label: 'f(x) = x²·cos(x)',
+    d1label: 'f′(x) = 2x·cos(x)−x²·sin(x)',
+    d2label: 'f″(x) = 2cos(x)−4x·sin(x)−x²cos(x)'
+  }
+];
+
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d');
+const slider = document.getElementById('xSlider');
+const playBtn = document.getElementById('playBtn');
+
+let W, H, cX, cY, scaleX, scaleY;
+let curFn = 0;
+let xPos = 0;
+let animating = false;
+let animDir = 1;
+let animT = 0;
+let drawProgress = 0;
+let drawAnim = null;
+
+function resize() {
+  const rect = cvs.parentElement.getBoundingClientRect();
+  W = Math.floor(rect.width - 40);
+  H = Math.floor(W * 0.48);
+  cvs.width = W;
+  cvs.height = H;
+  cX = W / 2;
+  cY = H / 2;
+  scaleX = W / 7.5;
+  scaleY = H / 7;
+  draw();
+}
+
+function toCanvas(x, y) {
+  return [cX + x * scaleX, cY - y * scaleY];
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(30,30,50,0.8)';
+  ctx.lineWidth = 1;
+  for (let x = -10; x <= 10; x++) {
+    const [cx] = toCanvas(x, 0);
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+  }
+  for (let y = -10; y <= 10; y++) {
+    const [, cy] = toCanvas(0, y);
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  }
+  // Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, cY); ctx.lineTo(W, cY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cX, 0); ctx.lineTo(cX, H); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(100,100,130,0.6)';
+  ctx.font = '10px JetBrains Mono';
+  for (let x = -3; x <= 3; x++) {
+    if (x === 0) continue;
+    const [cx] = toCanvas(x, 0);
+    ctx.fillText(x, cx - 4, cY + 14);
+  }
+}
+
+function drawCurve(fn, color, alpha, progress) {
+  const steps = 600;
+  const xMin = -cX / scaleX;
+  const xMax = (W - cX) / scaleX;
+  const drawn = Math.floor(steps * clamp(progress, 0, 1));
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.2;
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+
+  let started = false;
+  for (let i = 0; i <= drawn; i++) {
+    const t = i / steps;
+    const x = xMin + (xMax - xMin) * t;
+    let y = fn(x);
+    if (!isFinite(y)) { started = false; continue; }
+    y = clamp(y, -50, 50);
+    const [cx, cy] = toCanvas(x, y);
+    if (!started) { ctx.moveTo(cx, cy); started = true; }
+    else ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+function drawTangent(fn, d1fn, x) {
+  const y = fn(x);
+  const slope = d1fn(x);
+  const dx = 1.5;
+  const x0 = x - dx, x1 = x + dx;
+  const y0 = y + slope * (x0 - x);
+  const y1 = y + slope * (x1 - x);
+  const [cx0, cy0] = toCanvas(x0, y0);
+  const [cx1, cy1] = toCanvas(x1, y1);
+
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy1);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawPoint(fn, x, color) {
+  const y = fn(x);
+  if (!isFinite(y)) return;
+  const [cx, cy] = toCanvas(x, clamp(y, -50, 50));
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 16;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawXLine(x) {
+  const [cx] = toCanvas(x, 0);
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 5]);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function updateInfo(x) {
+  const f = functions[curFn];
+  const fv = f.fn(x), d1v = f.d1(x), d2v = f.d2(x);
+  document.getElementById('fnLabel').textContent = f.label;
+  document.getElementById('d1Label').textContent = f.d1label;
+  document.getElementById('d2Label').textContent = f.d2label;
+  document.getElementById('fnVal').textContent = `f(${x.toFixed(2)}) = ${isFinite(fv) ? fv.toFixed(3) : '∞'}`;
+  document.getElementById('d1Val').textContent = `f′(${x.toFixed(2)}) = ${isFinite(d1v) ? d1v.toFixed(3) : '∞'}`;
+  document.getElementById('d2Val').textContent = `f″(${x.toFixed(2)}) = ${isFinite(d2v) ? d2v.toFixed(3) : '∞'}`;
+}
+
+function draw() {
+  if (!W) return;
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+
+  const f = functions[curFn];
+  drawCurve(f.fn, 'rgba(0,255,200,0.9)', 0.9, drawProgress);
+  drawCurve(f.d1, 'rgba(255,107,107,0.85)', 0.85, drawProgress);
+  drawCurve(f.d2, 'rgba(255,217,61,0.8)', 0.8, drawProgress);
+
+  if (drawProgress >= 1) {
+    drawXLine(xPos);
+    drawTangent(f.fn, f.d1, xPos);
+    drawPoint(f.fn, xPos, '#00ffc8');
+    drawPoint(f.d1, xPos, '#ff6b6b');
+    drawPoint(f.d2, xPos, '#ffd93d');
+    updateInfo(xPos);
+  }
+}
+
+// Animate draw-in on function change
+function animateDraw() {
+  if (drawAnim) cancelAnimationFrame(drawAnim);
+  drawProgress = 0;
+  const duration = 900;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    drawProgress = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease
+    draw();
+    if (t < 1) drawAnim = requestAnimationFrame(step);
+    else { drawProgress = 1; draw(); }
+  }
+  drawAnim = requestAnimationFrame(step);
+}
+
+// Build function buttons
+const btnsEl = document.getElementById('fnBtns');
+functions.forEach((f, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'fn-btn' + (i === 0 ? ' active' : '');
+  btn.textContent = f.name;
+  btn.onclick = () => {
+    curFn = i;
+    document.querySelectorAll('.fn-btn').forEach((b,j) => b.classList.toggle('active', j===i));
+    animateDraw();
+  };
+  btnsEl.appendChild(btn);
+});
+
+// Slider
+slider.addEventListener('input', () => {
+  xPos = parseInt(slider.value) / 100;
+  draw();
+});
+
+// Play animation
+let rafId = null;
+playBtn.addEventListener('click', () => {
+  if (animating) {
+    animating = false;
+    cancelAnimationFrame(rafId);
+    playBtn.textContent = '▶ ANIMATE';
+    return;
+  }
+  animating = true;
+  playBtn.textContent = '■ STOP';
+  animT = xPos * 100;
+
+  function tick() {
+    if (!animating) return;
+    animT += animDir * 1.5;
+    if (animT >= 300) { animT = 300; animDir = -1; }
+    if (animT <= -300) { animT = -300; animDir = 1; }
+    slider.value = animT;
+    xPos = animT / 100;
+    draw();
+    rafId = requestAnimationFrame(tick);
+  }
+  tick();
+});
+
+window.addEventListener('resize', resize);
+resize();
+animateDraw();
+</script>
+</body>
+</html>

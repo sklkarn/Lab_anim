@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Big Bang — A Timeline of the Universe</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #00000a;
+    --plasma: #ff6b35;
+    --photon: #fff5d6;
+    --star-blue: #a8d8ff;
+    --galaxy-violet: #c084fc;
+    --gold: #ffd700;
+    --dim: rgba(255,255,255,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--void);
+    color: #fff;
+    font-family: 'Crimson Pro', serif;
+    overflow-x: hidden;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #hero canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-text {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    animation: fadeIn 2s ease forwards;
+  }
+
+  .hero-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.6rem, 1.2vw, 0.85rem);
+    letter-spacing: 0.35em;
+    color: var(--plasma);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    opacity: 0;
+    animation: fadeIn 1s 0.5s ease forwards;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2.4rem, 7vw, 7rem);
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 30%, var(--plasma) 70%, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0;
+    animation: fadeIn 1s 0.8s ease forwards;
+  }
+
+  .hero-sub {
+    margin-top: 1.2rem;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: rgba(255,255,255,0.55);
+    font-style: italic;
+    font-weight: 300;
+    opacity: 0;
+    animation: fadeIn 1s 1.3s ease forwards;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fadeIn 1s 2s ease forwards;
+  }
+
+  .scroll-hint span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .scroll-arrow {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
+    animation: pulse 2s infinite;
+  }
+
+  /* ── TIMELINE ── */
+  #timeline {
+    position: relative;
+    padding: 0 clamp(1rem, 5vw, 6rem);
+    padding-bottom: 8rem;
+  }
+
+  .timeline-spine {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom,
+      transparent,
+      rgba(255,100,30,0.6) 5%,
+      rgba(168,216,255,0.4) 40%,
+      rgba(192,132,252,0.5) 70%,
+      rgba(255,215,0,0.3) 90%,
+      transparent
+    );
+    transform: translateX(-50%);
+  }
+
+  /* ── ERA SECTION ── */
+  .era {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    align-items: start;
+    gap: 0 0;
+    margin-bottom: 5rem;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  .era.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .era:nth-child(odd) .era-content  { grid-column: 1; text-align: right; padding-right: 2.5rem; }
+  .era:nth-child(odd) .era-visual   { grid-column: 3; padding-left: 2.5rem; }
+  .era:nth-child(even) .era-content { grid-column: 3; text-align: left; padding-left: 2.5rem; }
+  .era:nth-child(even) .era-visual  { grid-column: 1; grid-row: 1; padding-right: 2.5rem; text-align: right; }
+  .era-node { grid-column: 2; display: flex; flex-direction: column; align-items: center; padding-top: 0.8rem; }
+
+  .era-node .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+
+  .era-node .dot::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: glow-pulse 3s ease infinite;
+  }
+
+  /* Color themes per era */
+  .era-singularity .dot { border-color: var(--plasma); background: var(--plasma); box-shadow: 0 0 20px var(--plasma); }
+  .era-singularity .dot::after { background: var(--plasma); }
+  .era-quark        .dot { border-color: #ff9f5a; background: #ff9f5a; box-shadow: 0 0 16px #ff9f5a; }
+  .era-quark        .dot::after { background: #ff9f5a; }
+  .era-firstlight   .dot { border-color: var(--photon); background: var(--photon); box-shadow: 0 0 20px var(--photon); }
+  .era-firstlight   .dot::after { background: var(--photon); }
+  .era-darkages     .dot { border-color: #4a6fa5; background: #4a6fa5; box-shadow: 0 0 14px #4a6fa5; }
+  .era-darkages     .dot::after { background: #4a6fa5; }
+  .era-reionization .dot { border-color: var(--star-blue); background: var(--star-blue); box-shadow: 0 0 18px var(--star-blue); }
+  .era-reionization .dot::after { background: var(--star-blue); }
+  .era-galaxies     .dot { border-color: var(--galaxy-violet); background: var(--galaxy-violet); box-shadow: 0 0 20px var(--galaxy-violet); }
+  .era-galaxies     .dot::after { background: var(--galaxy-violet); }
+  .era-solarsystem  .dot { border-color: var(--gold); background: var(--gold); box-shadow: 0 0 16px var(--gold); }
+  .era-solarsystem  .dot::after { background: var(--gold); }
+
+  .era-timestamp {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.55rem, 1vw, 0.72rem);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+    opacity: 0.6;
+  }
+
+  .era-singularity .era-timestamp { color: var(--plasma); }
+  .era-quark        .era-timestamp { color: #ff9f5a; }
+  .era-firstlight   .era-timestamp { color: var(--photon); }
+  .era-darkages     .era-timestamp { color: #7ba8d4; }
+  .era-reionization .era-timestamp { color: var(--star-blue); }
+  .era-galaxies     .era-timestamp { color: var(--galaxy-violet); }
+  .era-solarsystem  .era-timestamp { color: var(--gold); }
+
+  .era-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .era-desc {
+    font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+    line-height: 1.75;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+  }
+
+  .era-badge {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.3em 0.9em;
+    border-radius: 2px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .era-singularity .era-badge { background: rgba(255,107,53,0.15); border: 1px solid rgba(255,107,53,0.4); color: var(--plasma); }
+  .era-quark        .era-badge { background: rgba(255,159,90,0.12); border: 1px solid rgba(255,159,90,0.35); color: #ff9f5a; }
+  .era-firstlight   .era-badge { background: rgba(255,245,214,0.1); border: 1px solid rgba(255,245,214,0.35); color: var(--photon); }
+  .era-darkages     .era-badge { background: rgba(74,111,165,0.12); border: 1px solid rgba(74,111,165,0.35); color: #7ba8d4; }
+  .era-reionization .era-badge { background: rgba(168,216,255,0.1); border: 1px solid rgba(168,216,255,0.35); color: var(--star-blue); }
+  .era-galaxies     .era-badge { background: rgba(192,132,252,0.1); border: 1px solid rgba(192,132,252,0.35); color: var(--galaxy-violet); }
+  .era-solarsystem  .era-badge { background: rgba(255,215,0,0.1);   border: 1px solid rgba(255,215,0,0.35);   color: var(--gold); }
+
+  /* ── VISUALS ── */
+  .era-visual canvas,
+  .era-visual svg {
+    width: clamp(120px, 22vw, 200px);
+    height: clamp(120px, 22vw, 200px);
+    display: block;
+  }
+
+  .era:nth-child(odd)  .era-visual { display: flex; justify-content: flex-start; }
+  .era:nth-child(even) .era-visual { display: flex; justify-content: flex-end; }
+
+  /* ── TEMPERATURE BAR ── */
+  .temp-bar {
+    margin-top: 0.75rem;
+    height: 3px;
+    border-radius: 2px;
+    max-width: 240px;
+    opacity: 0.6;
+  }
+
+  .era:nth-child(odd) .temp-bar  { margin-left: auto; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 3rem 1rem 4rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.2);
+  }
+
+  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes pulse  { 0%,100%{opacity:0.4} 50%{opacity:1} }
+  @keyframes glow-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.6)} }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes twinkle { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+  /* responsive */
+  @media (max-width: 680px) {
+    .timeline-spine { left: 28px; }
+    .era { grid-template-columns: 56px 1fr; grid-template-rows: auto auto; }
+    .era:nth-child(odd)  .era-content,
+    .era:nth-child(even) .era-content { grid-column: 2; text-align: left; padding: 0 0 0 1rem; }
+    .era:nth-child(odd)  .era-visual,
+    .era:nth-child(even) .era-visual  { grid-column: 2; grid-row: 2; padding: 1rem 0 0 1rem; justify-content: flex-start; }
+    .era-node { grid-column: 1; grid-row: 1 / span 2; }
+    .era:nth-child(odd) .temp-bar  { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="bg-canvas"></canvas>
+  <div class="hero-text">
+    <p class="hero-label">13.8 Billion Years of Cosmic History</p>
+    <h1>THE BIG BANG</h1>
+    <p class="hero-sub">From a singularity smaller than an atom to a universe of 2 trillion galaxies</p>
+  </div>
+  <div class="scroll-hint">
+    <span>SCROLL TO EXPLORE</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="timeline">
+  <div class="timeline-spine"></div>
+
+  <!-- 1. Singularity -->
+  <div class="era era-singularity">
+    <div class="era-content">
+      <p class="era-timestamp">T = 0</p>
+      <h2 class="era-title">The Singularity &amp; Planck Epoch</h2>
+      <p class="era-desc">All matter, energy, space, and time erupted from an infinitely dense, infinitely hot singularity. The universe was tinier than a proton and hotter than 10<sup>32</sup> K — the limits of known physics.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #ff2200, #ff6b35, #ffaa00);"></div>
+      <span class="era-badge">10⁻⁴³ seconds</span>
+    </div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-visual"><canvas id="c-singularity" width="200" height="200"></canvas></div>
+  </div>
+
+  <!-- 2. Quark & Lepton -->
+  <div class="era era-quark">
+    <div class="era-visual"><canvas id="c-quark" width="200" height="200"></canvas></div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-content">
+      <p class="era-timestamp">T = 10⁻¹² – 1 second</p>
+      <h2 class="era-title">Quark–Gluon Plasma &amp; Nucleosynthesis</h2>
+      <p class="era-desc">Quarks, leptons, and gluons formed a seething plasma. As the universe cooled, protons and neutrons condensed. In the first 3 minutes, Big Bang Nucleosynthesis forged hydrogen, helium, and traces of lithium.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #ff9f5a, #ffcc88);"></div>
+      <span class="era-badge">~3 minutes old</span>
+    </div>
+  </div>
+
+  <!-- 3. First Light — Recombination / CMB -->
+  <div class="era era-firstlight">
+    <div class="era-content">
+      <p class="era-timestamp">T = 380,000 years</p>
+      <h2 class="era-title">First Light — Cosmic Microwave Background</h2>
+      <p class="era-desc">The universe cooled enough for electrons to bind to nuclei, making it transparent for the first time. Photons streamed freely — the oldest light in existence, now detected as the Cosmic Microwave Background at 2.7 K.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #fff5d6, #ffe0a0, #ffcc60);"></div>
+      <span class="era-badge">Photon Decoupling</span>
+    </div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-visual"><canvas id="c-cmb" width="200" height="200"></canvas></div>
+  </div>
+
+  <!-- 4. Cosmic Dark Ages -->
+  <div class="era era-darkages">
+    <div class="era-visual"><canvas id="c-dark" width="200" height="200"></canvas></div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-content">
+      <p class="era-timestamp">T = 380,000 – 150 million years</p>
+      <h2 class="era-title">The Cosmic Dark Ages</h2>
+      <p class="era-desc">No stars existed yet. The universe was filled only with neutral hydrogen clouds, slowly clumping under gravity. Darkness reigned for hundreds of millions of years as the first seeds of structure were quietly sown.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #1a2a4a, #2a4a7a);"></div>
+      <span class="era-badge">No Light Sources</span>
+    </div>
+  </div>
+
+  <!-- 5. First Stars — Reionization -->
+  <div class="era era-reionization">
+    <div class="era-content">
+      <p class="era-timestamp">T = 150 – 800 million years</p>
+      <h2 class="era-title">First Stars — Cosmic Reionization</h2>
+      <p class="era-desc">Population III stars — enormous, blazing hot, and short-lived — ignited for the first time. Their ultraviolet radiation reionized the surrounding hydrogen gas, ending the Dark Ages and lighting up the cosmos permanently.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #a8d8ff, #60b0ff, #3080ee);"></div>
+      <span class="era-badge">First Starlight</span>
+    </div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-visual"><canvas id="c-stars" width="200" height="200"></canvas></div>
+  </div>
+
+  <!-- 6. First Galaxies -->
+  <div class="era era-galaxies">
+    <div class="era-visual"><canvas id="c-galaxy" width="200" height="200"></canvas></div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-content">
+      <p class="era-timestamp">T = 1 – 3 billion years</p>
+      <h2 class="era-title">First Galaxies &amp; Quasars</h2>
+      <p class="era-desc">Gravity assembled gas and star clusters into the earliest galaxies. Supermassive black holes powered brilliant quasars. The cosmic web of filaments and voids began to take shape across the expanding universe.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #c084fc, #a855f7, #7c3aed);"></div>
+      <span class="era-badge">Galaxy Formation</span>
+    </div>
+  </div>
+
+  <!-- 7. Solar System & Today -->
+  <div class="era era-solarsystem">
+    <div class="era-content">
+      <p class="era-timestamp">T = 9.2 billion years → Today</p>
+      <h2 class="era-title">Our Solar System &amp; Present Universe</h2>
+      <p class="era-desc">From the ashes of earlier stellar generations, our Sun ignited 4.6 billion years ago. Earth formed shortly after. Today, an estimated 2 trillion galaxies populate the observable universe, which continues expanding — and accelerating — driven by dark energy.</p>
+      <div class="temp-bar" style="background: linear-gradient(to right, #ffd700, #ffaa00, #ff8800);"></div>
+      <span class="era-badge">13.8 Billion Years</span>
+    </div>
+    <div class="era-node"><div class="dot"></div></div>
+    <div class="era-visual"><canvas id="c-solar" width="200" height="200"></canvas></div>
+  </div>
+
+</section>
+
+<footer>
+  <p>COSMIC TIMELINE · BASED ON CURRENT COSMOLOGICAL MODELS · ΛCDM FRAMEWORK</p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════
+   HERO BACKGROUND — starfield + expanding ring
+═══════════════════════════════════════════════ */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [], ring = 0, ringSpeed = 0.4;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    stars = [];
+    for (let i = 0; i < 500; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.4 + 0.2,
+        a: Math.random(),
+        speed: Math.random() * 0.003 + 0.001
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // deep space gradient
+    const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.75);
+    bg.addColorStop(0, '#0a0018');
+    bg.addColorStop(0.5, '#020010');
+    bg.addColorStop(1, '#00000a');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // stars
+    stars.forEach(s => {
+      s.a += s.speed;
+      const alpha = 0.3 + 0.7 * Math.abs(Math.sin(s.a));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
+      ctx.fill();
+    });
+
+    // expanding explosion ring
+    ring += ringSpeed;
+    if (ring > Math.max(W, H)) ring = 0;
+    const grd = ctx.createRadialGradient(W/2, H/2, ring*0.85, W/2, H/2, ring);
+    grd.addColorStop(0, 'rgba(255,100,30,0)');
+    grd.addColorStop(0.7, 'rgba(255,100,30,0.07)');
+    grd.addColorStop(1, 'rgba(255,180,80,0)');
+    ctx.beginPath();
+    ctx.arc(W/2, H/2, ring, 0, Math.PI*2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+/* ═══════════════════════════════════════════════
+   SCROLL REVEAL
+═══════════════════════════════════════════════ */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.era').forEach(el => observer.observe(el));
+
+/* ═══════════════════════════════════════════════
+   ERA CANVAS ANIMATIONS
+═══════════════════════════════════════════════ */
+
+// 1. Singularity — pulsing plasma orb
+(function() {
+  const c = document.getElementById('c-singularity');
+  const ctx = c.getContext('2d');
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0,0,200,200);
+    const cx=100, cy=100;
+    t += 0.04;
+    const r = 18 + 10*Math.sin(t);
+    // outer halo
+    for (let i = 3; i >= 0; i--) {
+      const gr = ctx.createRadialGradient(cx,cy,0,cx,cy,r*(3.5-i*0.6));
+      gr.addColorStop(0, `rgba(255,80,0,${0.06*(4-i)})`);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(cx,cy,r*(3.5-i*0.6),0,Math.PI*2);
+      ctx.fillStyle = gr; ctx.fill();
+    }
+    // core
+    const core = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    core.addColorStop(0, '#fff');
+    core.addColorStop(0.3, '#ffcc55');
+    core.addColorStop(0.7, '#ff4400');
+    core.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = core; ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 2. Quark — chaotic colored particles
+(function() {
+  const c = document.getElementById('c-quark');
+  const ctx = c.getContext('2d');
+  const particles = Array.from({length:60}, () => ({
+    x: 100 + (Math.random()-0.5)*80,
+    y: 100 + (Math.random()-0.5)*80,
+    vx: (Math.random()-0.5)*2.5, vy: (Math.random()-0.5)*2.5,
+    r: Math.random()*3+1,
+    hue: Math.random()*60+10
+  }));
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,5,0.18)';
+    ctx.fillRect(0,0,200,200);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      const dx = p.x-100, dy = p.y-100;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if (dist > 80) { p.vx -= dx*0.008; p.vy -= dy*0.008; }
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,0.9)`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 3. CMB — glowing noise texture
+(function() {
+  const c = document.getElementById('c-cmb');
+  const ctx = c.getContext('2d');
+  let t = 0;
+  const pts = Array.from({length:200}, () => ({
+    x: Math.random()*200, y: Math.random()*200,
+    r: Math.random()*2+0.5,
+    hue: 30 + Math.random()*40,
+    phase: Math.random()*Math.PI*2,
+    speed: Math.random()*0.04+0.01
+  }));
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,5,0.35)';
+    ctx.fillRect(0,0,200,200);
+    t += 0.02;
+    pts.forEach(p => {
+      const a = 0.5 + 0.5*Math.sin(t*p.speed*50 + p.phase);
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},90%,80%,${a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 4. Dark Ages — sparse dim dots, slow drift
+(function() {
+  const c = document.getElementById('c-dark');
+  const ctx = c.getContext('2d');
+  const dots = Array.from({length:30}, () => ({
+    x: Math.random()*200, y: Math.random()*200,
+    r: Math.random()*1.2+0.3,
+    a: Math.random(), phase: Math.random()*Math.PI*2
+  }));
+  let t = 0;
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,8,0.5)';
+    ctx.fillRect(0,0,200,200);
+    t += 0.01;
+    dots.forEach(d => {
+      const alpha = 0.1 + 0.2*Math.abs(Math.sin(t + d.phase));
+      ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(80,120,200,${alpha})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 5. First Stars — bright points igniting
+(function() {
+  const c = document.getElementById('c-stars');
+  const ctx = c.getContext('2d');
+  const stars = Array.from({length:40}, () => ({
+    x: Math.random()*200, y: Math.random()*200,
+    r: Math.random()*2.5+0.5,
+    phase: Math.random()*Math.PI*2,
+    speed: Math.random()*0.05+0.02,
+    born: Math.random()*300
+  }));
+  let t = 0;
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,10,0.35)';
+    ctx.fillRect(0,0,200,200);
+    t++;
+    stars.forEach(s => {
+      if (t < s.born) return;
+      const life = (t - s.born) / 200;
+      const pulse = 0.5 + 0.5*Math.sin(t*s.speed + s.phase);
+      const alpha = Math.min(1, life) * (0.5 + 0.5*pulse);
+      // spike / cross
+      const sr = s.r * (1 + pulse*0.8);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.strokeStyle = `rgba(168,216,255,${alpha*0.5})`;
+      ctx.lineWidth = 0.5;
+      [-1,1].forEach(d => {
+        ctx.beginPath(); ctx.moveTo(-sr*3*d,0); ctx.lineTo(sr*3*d,0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-sr*3*d); ctx.lineTo(0,sr*3*d); ctx.stroke();
+      });
+      ctx.beginPath(); ctx.arc(0,0,sr,0,Math.PI*2);
+      const g = ctx.createRadialGradient(0,0,0,0,0,sr*2);
+      g.addColorStop(0,'rgba(255,255,255,1)');
+      g.addColorStop(0.3,`rgba(168,216,255,${alpha})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 6. Galaxy — spiral arms
+(function() {
+  const c = document.getElementById('c-galaxy');
+  const ctx = c.getContext('2d');
+  let angle = 0;
+  const arms = 2;
+  const pts = [];
+  for (let arm = 0; arm < arms; arm++) {
+    for (let i = 0; i < 120; i++) {
+      const t = i / 120;
+      const r = t * 80;
+      const theta = t * Math.PI * 4 + arm * Math.PI;
+      const scatter = (Math.random()-0.5)*12;
+      pts.push({
+        r, theta, scatter,
+        size: Math.random()*1.5+0.3,
+        hue: 220 + Math.random()*80,
+        bright: Math.random()*0.5+0.5
+      });
+    }
+  }
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,8,0.15)';
+    ctx.fillRect(0,0,200,200);
+    ctx.save(); ctx.translate(100,100); ctx.rotate(angle);
+    angle += 0.003;
+    // core glow
+    const gc = ctx.createRadialGradient(0,0,0,0,0,25);
+    gc.addColorStop(0,'rgba(220,180,255,0.6)');
+    gc.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,25,0,Math.PI*2);
+    ctx.fillStyle = gc; ctx.fill();
+    pts.forEach(p => {
+      const x = (p.r + p.scatter*0.3) * Math.cos(p.theta);
+      const y = (p.r + p.scatter*0.3) * Math.sin(p.theta) * 0.4;
+      ctx.beginPath(); ctx.arc(x,y,p.size,0,Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},80%,75%,${p.bright})`; ctx.fill();
+    });
+    ctx.restore();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// 7. Solar System — orbiting planets
+(function() {
+  const c = document.getElementById('c-solar');
+  const ctx = c.getContext('2d');
+  const planets = [
+    { r: 26, size: 2.5, speed: 0.05, color: '#aaa', angle: 0 },
+    { r: 42, size: 3.5, speed: 0.03, color: '#c8a87a', angle: 1 },
+    { r: 60, size: 4,   speed: 0.02, color: '#4a9eff', angle: 2 },
+    { r: 78, size: 3,   speed: 0.015, color: '#e06040', angle: 3 }
+  ];
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,10,0.3)';
+    ctx.fillRect(0,0,200,200);
+    ctx.save(); ctx.translate(100,100);
+    // sun
+    const sg = ctx.createRadialGradient(0,0,0,0,0,16);
+    sg.addColorStop(0,'#fff'); sg.addColorStop(0.4,'#ffe050'); sg.addColorStop(1,'rgba(255,160,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fillStyle = sg; ctx.fill();
+    planets.forEach(p => {
+      p.angle += p.speed;
+      // orbit ring
+      ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+      // planet
+      const px = Math.cos(p.angle)*p.r, py = Math.sin(p.angle)*p.r;
+      ctx.beginPath(); ctx.arc(px,py,p.size,0,Math.PI*2);
+      ctx.fillStyle = p.color; ctx.fill();
+    });
+    ctx.restore();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
