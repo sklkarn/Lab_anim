@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atomic Spectral Diagrams</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #05080d;
+    --border: #162030;
+    --muted: #3a5060;
+    --text: #b8ccd8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 48px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 52px;
+    width: 100%;
+    max-width: 880px;
+    position: relative;
+  }
+
+  .instructor {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text);
+    letter-spacing: 0.06em;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  .instructor .inst-label {
+    display: block;
+    font-size: 0.54rem;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  header h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  header h1 span {
+    background: linear-gradient(90deg, #3de8ff, #b86aff, #ff8c3d, #ffe03d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .group-label {
+    width: 100%;
+    max-width: 880px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    animation: rise 0.5s ease forwards;
+  }
+
+  .divider {
+    width: 100%;
+    max-width: 880px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 12px auto 36px;
+  }
+
+  .spectrum-section {
+    width: 100%;
+    max-width: 880px;
+    margin-bottom: 36px;
+    overflow: visible;
+    opacity: 0;
+    transform: translateY(18px);
+    animation: rise 0.6s ease forwards;
+  }
+
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .label-row h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+    opacity: 0.8;
+  }
+
+  .canvas-wrap {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: visible;
+    background: #000;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  /* tick marks at nm labels */
+  .canvas-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0%, transparent calc(100%/8 - 1px),
+      rgba(255,255,255,0.08) calc(100%/8 - 1px), rgba(255,255,255,0.08) calc(100%/8)
+    );
+    pointer-events: none;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 90px;
+    border-radius: 4px;
+  }
+
+  .wl-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .description {
+    margin-top: 7px;
+    font-size: 0.72rem;
+    color: #2e4555;
+    font-family: 'Space Mono', monospace;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  footer {
+    margin-top: 40px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: #162030;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Stagger animation delays */
+  .g1 { animation-delay: 0.0s; }
+  .g2 { animation-delay: 0.08s; }
+  .g3 { animation-delay: 0.16s; }
+  .g4 { animation-delay: 0.26s; }
+  .g5 { animation-delay: 0.34s; }
+  .g6 { animation-delay: 0.42s; }
+  .g7 { animation-delay: 0.50s; }
+  .g8 { animation-delay: 0.58s; }
+  .g9 { animation-delay: 0.66s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="instructor"><span class="inst-label">Instructor</span>Dr. S. Karna</div>
+  <h1>Atomic <span>Spectra</span></h1>
+  <p>Visible Range · 380 nm — 700 nm · Emission &amp; Absorption</p>
+</header>
+
+<!-- REFERENCE -->
+<div class="group-label g1">— Reference</div>
+
+<div class="spectrum-section g2">
+  <div class="label-row">
+    <h2>Continuous Spectrum</h2>
+    <span class="tag" style="color:#6affb0;border-color:#6affb0">Blackbody</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-cont" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">All wavelengths emitted continuously — hot dense sources: stars, incandescent bulbs, glowing solids.</p>
+</div>
+
+<!-- HYDROGEN -->
+<div class="divider"></div>
+<div class="group-label g3">— Hydrogen (H)</div>
+
+<div class="spectrum-section g4">
+  <div class="label-row">
+    <h2>Hydrogen — Emission</h2>
+    <span class="tag" style="color:#3de8ff;border-color:#3de8ff">Balmer Series</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-h-em" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">Hδ 410.2 · Hγ 434.0 · Hβ 486.1 · Hα 656.3 nm — electrons falling to n=2 shell.</p>
+</div>
+
+<div class="spectrum-section g4" style="animation-delay:0.22s">
+  <div class="label-row">
+    <h2>Hydrogen — Absorption</h2>
+    <span class="tag" style="color:#ff5f7a;border-color:#ff5f7a">Dark Lines</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-h-ab" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">Same wavelengths appear as dark gaps — cool H gas absorbs those photon energies from a continuous source.</p>
+</div>
+
+<!-- HELIUM -->
+<div class="divider"></div>
+<div class="group-label g5">— Helium (He)</div>
+
+<div class="spectrum-section g6">
+  <div class="label-row">
+    <h2>Helium — Emission</h2>
+    <span class="tag" style="color:#b86aff;border-color:#b86aff">Noble Gas</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-he-em" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">388.9 · 447.1 · 471.3 · 492.2 · 501.6 · 587.6 · 667.8 · 706.5 nm — richer than H due to two electrons.</p>
+</div>
+
+<!-- NITROGEN -->
+<div class="divider"></div>
+<div class="group-label g7">— Nitrogen (N₂)</div>
+
+<div class="spectrum-section g8">
+  <div class="label-row">
+    <h2>Nitrogen — Emission</h2>
+    <span class="tag" style="color:#ff8c3d;border-color:#ff8c3d">Molecular Bands</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-n-em" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">337.1 · 357.7 · 391.4 · 427.8 · 470.9 · 500.5 · 568 · 648 · 661 nm — blue-violet molecular bands; source of auroral glow.</p>
+</div>
+
+<!-- SODIUM -->
+<div class="divider"></div>
+<div class="group-label g9">— Sodium (Na)</div>
+
+<div class="spectrum-section" style="animation-delay:0.74s;opacity:0;transform:translateY(18px);animation:rise 0.6s ease 0.74s forwards">
+  <div class="label-row">
+    <h2>Sodium — Emission</h2>
+    <span class="tag" style="color:#ffe03d;border-color:#ffe03d">D-Line Doublet</span>
+  </div>
+  <div class="canvas-wrap"><canvas id="c-na-em" width="1760" height="160"></canvas></div>
+  <div class="wl-axis"><span>380</span><span>420</span><span>460</span><span>500</span><span>540</span><span>580</span><span>620</span><span>660</span><span>700 nm</span></div>
+  <p class="description">Dominated by D-doublet at 589.0 &amp; 589.6 nm — the intense yellow of sodium street lamps and flame tests.</p>
+</div>
+
+<footer>Atomic Spectroscopy Reference · Visible EM Spectrum · 380–700 nm</footer>
+
+<script>
+  const WL_MIN = 380, WL_MAX = 700;
+
+  // Accurate CIE wavelength → sRGB
+  function wlToRGB(wl) {
+    let r = 0, g = 0, b = 0;
+    if      (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; g = 0; b = 1; }
+    else if (wl >= 440 && wl < 490) { r = 0; g = (wl - 440) / 50; b = 1; }
+    else if (wl >= 490 && wl < 510) { r = 0; g = 1; b = -(wl - 510) / 20; }
+    else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; b = 0; }
+    else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; b = 0; }
+    else if (wl >= 645 && wl <= 700){ r = 1; g = 0; b = 0; }
+
+    let f = 1;
+    if      (wl >= 380 && wl < 420) f = 0.3 + 0.7 * (wl - 380) / 40;
+    else if (wl >= 420 && wl <= 680) f = 1.0;
+    else if (wl >  680 && wl <= 700) f = 0.3 + 0.7 * (700 - wl) / 20;
+
+    const gamma = 0.75;
+    return [
+      Math.round(255 * Math.pow(Math.max(r, 0) * f, gamma)),
+      Math.round(255 * Math.pow(Math.max(g, 0) * f, gamma)),
+      Math.round(255 * Math.pow(Math.max(b, 0) * f, gamma))
+    ];
+  }
+
+  function wlToX(wl, W) {
+    return (wl - WL_MIN) / (WL_MAX - WL_MIN) * W;
+  }
+
+  // Draw smooth rainbow gradient using ImageData for pixel-perfect accuracy
+  function drawContinuous(canvas) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const img = ctx.createImageData(W, H);
+    for (let x = 0; x < W; x++) {
+      const wl = WL_MIN + (x / (W - 1)) * (WL_MAX - WL_MIN);
+      const [r, g, b] = wlToRGB(wl);
+      for (let y = 0; y < H; y++) {
+        const idx = (y * W + x) * 4;
+        img.data[idx]     = r;
+        img.data[idx + 1] = g;
+        img.data[idx + 2] = b;
+        img.data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // Draw emission lines on black background
+  function drawEmission(canvas, lines) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+
+    lines.forEach(({ wl, intensity = 1.0 }) => {
+      if (wl < WL_MIN || wl > WL_MAX) return;
+      const x = wlToX(wl, W);
+      const [r, g, b] = wlToRGB(wl);
+      const alpha = intensity;
+
+      // Wide soft glow (outer)
+      let grad = ctx.createLinearGradient(x - 14, 0, x + 14, 0);
+      grad.addColorStop(0,   `rgba(${r},${g},${b},0)`);
+      grad.addColorStop(0.5, `rgba(${r},${g},${b},${0.22 * alpha})`);
+      grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - 14, 0, 28, H);
+
+      // Medium glow
+      grad = ctx.createLinearGradient(x - 5, 0, x + 5, 0);
+      grad.addColorStop(0,   `rgba(${r},${g},${b},0)`);
+      grad.addColorStop(0.5, `rgba(${r},${g},${b},${0.7 * alpha})`);
+      grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - 5, 0, 10, H);
+
+      // Bright core — exactly 1–2 px
+      const br = [Math.min(r + 90, 255), Math.min(g + 90, 255), Math.min(b + 90, 255)];
+      ctx.fillStyle = `rgba(${br[0]},${br[1]},${br[2]},${alpha})`;
+      ctx.fillRect(Math.round(x) - 1, 0, 2, H);
+    });
+  }
+
+  // Draw absorption (dark lines on rainbow)
+  function drawAbsorption(canvas, lines) {
+    drawContinuous(canvas);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    lines.forEach(({ wl }) => {
+      if (wl < WL_MIN || wl > WL_MAX) return;
+      const x = wlToX(wl, W);
+
+      // Feathered dark band
+      let grad = ctx.createLinearGradient(x - 9, 0, x + 9, 0);
+      grad.addColorStop(0,   'rgba(0,0,0,0)');
+      grad.addColorStop(0.35,'rgba(0,0,0,0.85)');
+      grad.addColorStop(0.5, 'rgba(0,0,0,0.98)');
+      grad.addColorStop(0.65,'rgba(0,0,0,0.85)');
+      grad.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - 9, 0, 18, H);
+    });
+  }
+
+  // ─── Spectral line data (all wavelengths in nm, verified) ────────────────
+
+  const H_LINES = [
+    { wl: 410.2, intensity: 0.55 },  // Hδ violet
+    { wl: 434.0, intensity: 0.65 },  // Hγ violet
+    { wl: 486.1, intensity: 0.80 },  // Hβ blue-green
+    { wl: 656.3, intensity: 1.00 },  // Hα red
+  ];
+
+  const HE_LINES = [
+    { wl: 388.9, intensity: 0.45 },  // violet
+    { wl: 402.6, intensity: 0.35 },  // violet
+    { wl: 438.8, intensity: 0.40 },  // violet-blue
+    { wl: 447.1, intensity: 0.80 },  // blue (strong)
+    { wl: 471.3, intensity: 0.65 },  // blue
+    { wl: 492.2, intensity: 0.55 },  // blue-green
+    { wl: 501.6, intensity: 0.70 },  // green
+    { wl: 587.6, intensity: 1.00 },  // yellow D3 (strongest)
+    { wl: 667.8, intensity: 0.75 },  // red
+    { wl: 706.5, intensity: 0.55 },  // red (edge)
+  ];
+
+  const N_LINES = [
+    { wl: 391.4, intensity: 0.60 },  // violet (N2+ first neg)
+    { wl: 399.8, intensity: 0.45 },
+    { wl: 405.9, intensity: 0.40 },
+    { wl: 420.0, intensity: 0.45 },
+    { wl: 423.6, intensity: 0.55 },
+    { wl: 427.8, intensity: 0.65 },  // blue-violet band head
+    { wl: 434.4, intensity: 0.50 },
+    { wl: 444.7, intensity: 0.45 },
+    { wl: 460.0, intensity: 0.55 },  // blue
+    { wl: 470.9, intensity: 0.60 },
+    { wl: 500.5, intensity: 0.65 },  // green
+    { wl: 520.0, intensity: 0.45 },
+    { wl: 568.0, intensity: 0.55 },  // yellow-green
+    { wl: 594.2, intensity: 0.50 },
+    { wl: 648.2, intensity: 0.70 },  // red band
+    { wl: 661.1, intensity: 0.75 },  // red band (stronger)
+    { wl: 670.0, intensity: 0.50 },
+  ];
+
+  const NA_LINES = [
+    { wl: 568.8, intensity: 0.35 },  // yellow-green
+    { wl: 589.0, intensity: 1.00 },  // D2 — DOMINANT yellow
+    { wl: 589.6, intensity: 0.92 },  // D1 — DOMINANT yellow
+    { wl: 615.4, intensity: 0.30 },  // orange-red (weak)
+    { wl: 616.1, intensity: 0.28 },  // orange-red (weak)
+  ];
+
+  // ─── Render ──────────────────────────────────────────────────────────────
+
+  drawContinuous(document.getElementById('c-cont'));
+  drawEmission(document.getElementById('c-h-em'),  H_LINES);
+  drawAbsorption(document.getElementById('c-h-ab'), H_LINES);
+  drawEmission(document.getElementById('c-he-em'), HE_LINES);
+  drawEmission(document.getElementById('c-n-em'),  N_LINES);
+  drawEmission(document.getElementById('c-na-em'), NA_LINES);
+</script>
+</body>
+</html>

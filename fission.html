@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuclear Fission: Uranium-235</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap');
+
+  :root {
+    --bg:       #080c0a;
+    --panel:    #0c1410;
+    --green:    #39ff14;
+    --orange:   #ff6b00;
+    --yellow:   #ffe033;
+    --red:      #ff2244;
+    --cyan:     #00e5ff;
+    --neutron:  #c8f5a0;
+    --uranium:  #7fff00;
+    --barium:   #ff9d00;
+    --krypton:  #00cfff;
+    --border:   #1e3a28;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: #d4f0dc;
+    font-family: 'Courier Prime', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+    );
+  }
+
+  header {
+    position: relative; z-index: 10;
+    text-align: center; padding: 1.8rem 1rem 0.6rem;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1.6rem, 5vw, 3rem);
+    font-weight: 700; letter-spacing: 0.18em;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(57,255,20,0.5), 0 0 40px rgba(57,255,20,0.2);
+  }
+  header p {
+    margin-top: 0.3rem; font-size: 0.8rem;
+    color: #5a9e6a; letter-spacing: 0.12em;
+  }
+
+  /* Step nav */
+  .step-bar {
+    position: relative; z-index: 10;
+    display: flex; gap: 0.4rem; margin: 1rem auto;
+    padding: 0 1rem; flex-wrap: wrap; justify-content: center;
+    width: min(820px, 98vw);
+  }
+  .step-btn {
+    padding: 0.3rem 0.85rem;
+    border: 1px solid #1e4428; background: transparent;
+    color: #5a9e6a; font-family: 'Courier Prime', monospace;
+    font-size: 0.72rem; letter-spacing: 0.04em;
+    cursor: pointer; transition: all 0.25s; border-radius: 2px;
+  }
+  .step-btn.active { background: rgba(57,255,20,0.1); border-color: var(--green); color: var(--green); box-shadow: 0 0 8px rgba(57,255,20,0.2); }
+  .step-btn:hover  { background: rgba(57,255,20,0.06); border-color: #3a7a44; color: #a0d8a8; }
+
+  /* Canvas */
+  .scene-wrapper {
+    position: relative; z-index: 10;
+    width: min(820px, 98vw); height: min(440px, 54vw);
+    margin: 0 auto;
+  }
+  canvas#fission {
+    width: 100%; height: 100%;
+    border: 1px solid #1e4428;
+    border-radius: 3px; display: block;
+  }
+
+  /* Equation bar */
+  .equation-bar {
+    position: relative; z-index: 10;
+    width: min(820px, 98vw); margin: 0.75rem auto;
+    background: var(--panel);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 0.75rem 1.2rem; text-align: center;
+    font-size: clamp(0.75rem, 2.2vw, 0.95rem); letter-spacing: 0.04em;
+  }
+  .eq-u  { color: var(--uranium);  font-weight: bold; }
+  .eq-n  { color: var(--neutron);  font-weight: bold; }
+  .eq-ba { color: var(--barium);   font-weight: bold; }
+  .eq-kr { color: var(--krypton);  font-weight: bold; }
+  .eq-e  { color: var(--yellow);   font-weight: bold; }
+
+  /* Info panel */
+  .info-panel {
+    position: relative; z-index: 10;
+    width: min(820px, 98vw); margin: 0 auto 0.75rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+  }
+  .info-box { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 0.9rem; }
+  .info-box h3 {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.65rem;
+    letter-spacing: 0.2em; color: var(--green); margin-bottom: 0.5rem; text-transform: uppercase;
+  }
+  .info-box p { font-size: 0.76rem; line-height: 1.65; color: #8ecfa0; }
+  .energy-val { font-size: 1.25rem; font-family: 'Rajdhani', sans-serif; font-weight: 700; color: var(--orange); display: block; margin-top: 0.3rem; }
+
+  /* Controls */
+  .controls {
+    position: relative; z-index: 10;
+    display: flex; gap: 0.75rem; margin-bottom: 2rem;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .ctrl-btn {
+    padding: 0.5rem 1.5rem;
+    border: 1px solid #2a6635; background: rgba(57,255,20,0.06); color: var(--green);
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    font-size: 0.85rem; letter-spacing: 0.12em;
+    cursor: pointer; border-radius: 2px; transition: all 0.2s; text-transform: uppercase;
+  }
+  .ctrl-btn:hover { background: rgba(57,255,20,0.14); border-color: var(--green); box-shadow: 0 0 10px rgba(57,255,20,0.2); }
+  .ctrl-btn.danger { border-color: #663322; background: rgba(255,107,0,0.06); color: var(--orange); }
+  .ctrl-btn.danger:hover { background: rgba(255,107,0,0.14); border-color: var(--orange); }
+
+  @media (max-width: 520px) {
+    .info-panel { grid-template-columns: 1fr; }
+    .scene-wrapper { height: 60vw; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NUCLEAR FISSION</h1>
+  <p>Uranium-235 Chain Reaction · Nuclear Physics</p>
+</header>
+
+<div class="step-bar" id="stepBar"></div>
+
+<div class="scene-wrapper">
+  <canvas id="fission"></canvas>
+</div>
+
+<div class="equation-bar">
+  <span class="eq-u">²³⁵U</span>
+  &nbsp;+&nbsp;<span class="eq-n">n⁰</span>
+  &nbsp;→&nbsp;<span class="eq-u">²³⁶U*</span>
+  &nbsp;→&nbsp;<span class="eq-ba">¹⁴¹Ba</span>
+  &nbsp;+&nbsp;<span class="eq-kr">⁹²Kr</span>
+  &nbsp;+&nbsp;<span class="eq-n">3 n⁰</span>
+  &nbsp;+&nbsp;<span class="eq-e">~200 MeV ⚡</span>
+</div>
+
+<div class="info-panel">
+  <div class="info-box">
+    <h3>Current Stage</h3>
+    <p id="stepDesc">Press INITIATE to start the Uranium-235 fission chain reaction.</p>
+  </div>
+  <div class="info-box">
+    <h3>Energy Output</h3>
+    <p>Per fission event: <span class="energy-val" id="energyDisplay">0 MeV</span></p>
+    <p style="font-size:0.71rem;color:#4a8a5a;margin-top:0.35rem">1 kg ²³⁵U ≈ 20 kilotons TNT equivalent</p>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn danger" id="playBtn">⚛ INITIATE</button>
+  <button class="ctrl-btn" id="resetBtn">↺ RESET</button>
+  <button class="ctrl-btn" id="slowBtn">◐ SLOW</button>
+</div>
+
+<script>
+// ── Starfield / particle bg ───────────────────────────────────
+// (none needed — scanlines give the retro feel)
+
+// ── Canvas setup ──────────────────────────────────────────────
+var canvas = document.getElementById('fission');
+var ctx    = canvas.getContext('2d');
+
+function resize() {
+  var r = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = r.width  * devicePixelRatio;
+  canvas.height = r.height * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+resize();
+window.addEventListener('resize', function() { resize(); render(stepT); });
+
+function W() { return canvas.width  / devicePixelRatio; }
+function H() { return canvas.height / devicePixelRatio; }
+
+// ── Math helpers ──────────────────────────────────────────────
+function lerp(a, b, t)  { return a + (b - a) * t; }
+function easeOut(t)     { return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t)   { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+function clamp(v,lo,hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ── Colors ────────────────────────────────────────────────────
+var COL = {
+  uranium:  '#7fff00',
+  excited:  '#ffe033',
+  barium:   '#ff9d00',
+  krypton:  '#00cfff',
+  neutron:  '#c8f5a0',
+  energy:   '#ff6b00',
+  glow:     '#39ff14',
+};
+
+function hexRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+// ── Draw primitives ───────────────────────────────────────────
+function drawGlow(x, y, r, hex, alpha) {
+  var rgb  = hexRgb(hex);
+  var grad = ctx.createRadialGradient(x,y,0, x,y,r);
+  grad.addColorStop(0, 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+alpha+')');
+  grad.addColorStop(1, 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle = grad; ctx.fill();
+}
+
+function drawNucleus(x, y, r, hex, label, sublabel) {
+  // outer glow
+  drawGlow(x, y, r*3, hex, 0.25);
+  // nucleus body
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  var g = ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.05, x,y,r);
+  g.addColorStop(0, '#ffffff55');
+  g.addColorStop(0.35, hex);
+  g.addColorStop(1, '#00000077');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = hex+'bb'; ctx.lineWidth = 1.5; ctx.stroke();
+  // nucleon dots
+  var rgb = hexRgb(hex);
+  for (var i=0; i<8; i++) {
+    var ang = i*Math.PI/4, dr = r*0.55;
+    var nx  = x + Math.cos(ang)*dr, ny = y + Math.sin(ang)*dr;
+    ctx.beginPath(); ctx.arc(nx,ny,r*0.12,0,Math.PI*2);
+    ctx.fillStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.6)'; ctx.fill();
+  }
+  if (label) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold '+Math.max(10,r*0.5)+'px Rajdhani,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y);
+  }
+  if (sublabel) {
+    ctx.fillStyle = hex;
+    ctx.font = '10px Courier Prime,monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(sublabel, x, y + r + 5);
+  }
+}
+
+function drawNeutron(x, y, r, alpha) {
+  alpha = alpha === undefined ? 1 : alpha;
+  drawGlow(x, y, r*4, COL.neutron, 0.3*alpha);
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  var g = ctx.createRadialGradient(x-r*0.2,y-r*0.2,r*0.05, x,y,r);
+  g.addColorStop(0, 'rgba(255,255,255,'+0.7*alpha+')');
+  g.addColorStop(0.4, 'rgba(200,245,160,'+alpha+')');
+  g.addColorStop(1, 'rgba(80,160,40,'+0.3*alpha+')');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(200,245,160,'+0.8*alpha+')'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,'+alpha+')';
+  ctx.font = 'bold 8px Rajdhani,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('n', x, y);
+}
+
+function drawArrow(x1,y1,x2,y2,color,alpha) {
+  alpha = alpha === undefined ? 1 : alpha;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+  var a = Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-9*Math.cos(a-0.4),y2-9*Math.sin(a-0.4));
+  ctx.lineTo(x2-9*Math.cos(a+0.4),y2-9*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawShockwave(cx, cy, progress, color) {
+  if (progress <= 0 || progress >= 1) return;
+  var r   = progress * 180;
+  var alp = (1 - progress) * 0.7;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle = color.replace(')',','+alp+')').replace('rgb','rgba');
+  // fallback simple approach
+  var rgb = hexRgb(color);
+  ctx.strokeStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+alp+')';
+  ctx.lineWidth = 3*(1-progress)+1;
+  ctx.stroke();
+  // inner ring
+  if (r > 30) {
+    ctx.beginPath(); ctx.arc(cx,cy,r*0.6,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(alp*0.5)+')';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function drawEnergyBurst(cx, cy, intensity, label) {
+  // radiating lines
+  ctx.save();
+  for (var i=0; i<12; i++) {
+    var ang  = i * Math.PI/6;
+    var len  = intensity * 60;
+    var alp  = intensity * 0.8;
+    ctx.strokeStyle = 'rgba(255,107,0,'+alp+')';
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang)*20, cy + Math.sin(ang)*20);
+    ctx.lineTo(cx + Math.cos(ang)*len, cy + Math.sin(ang)*len);
+    ctx.stroke();
+  }
+  ctx.restore();
+  if (label && intensity > 0.3) {
+    ctx.save();
+    ctx.font = 'bold '+Math.round(12+intensity*8)+'px Rajdhani,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = 'rgba(255,224,51,'+Math.min(1,intensity*2)+')';
+    ctx.fillText(label, cx, cy - 80*intensity);
+    ctx.restore();
+  }
+}
+
+function drawLabel(x, y, text, color, size) {
+  ctx.fillStyle = color || '#c8f5a0';
+  ctx.font = (size||11)+'px Courier Prime,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(text, x, y);
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(57,255,20,0.04)'; ctx.lineWidth = 1;
+  var w=W(), h=H();
+  for (var x=0;x<w;x+=40) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke(); }
+  for (var y=0;y<h;y+=40) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke(); }
+}
+
+// ── Steps ─────────────────────────────────────────────────────
+var STEPS = [
+  {
+    label:'Stage 1', short:'²³⁵U at rest',
+    energy: 0,
+    desc: 'A Uranium-235 nucleus sits in the reactor core — 92 protons and 143 neutrons bound by the strong nuclear force. It is fissile: capable of splitting when struck by a slow neutron.'
+  },
+  {
+    label:'Stage 2', short:'Neutron absorption',
+    energy: 0,
+    desc: 'A slow thermal neutron (from a previous fission or neutron source) is fired at the U-235 nucleus. The neutron approaches and is captured, forming an unstable compound nucleus.'
+  },
+  {
+    label:'Stage 3', short:'²³⁶U* (excited)',
+    energy: 6.5,
+    desc: 'Absorption creates Uranium-236 in a highly excited, unstable state (²³⁶U*). The extra binding energy (~6.5 MeV) sets the nucleus vibrating and deforming like a liquid drop.'
+  },
+  {
+    label:'Stage 4', short:'Nuclear splitting',
+    energy: 200,
+    desc: 'The ²³⁶U* nucleus deforms into a dumbbell shape, then the electrostatic repulsion overcomes the strong force. The nucleus splits into Barium-141 and Krypton-92 fragment nuclei.'
+  },
+  {
+    label:'Stage 5', short:'3 neutrons released',
+    energy: 200,
+    desc: 'The fission releases 3 fast neutrons — each capable of triggering another fission event. This is the chain reaction mechanism. ~200 MeV of kinetic energy is also released as heat.'
+  },
+  {
+    label:'Stage 6', short:'Chain reaction',
+    energy: 200,
+    desc: 'Each free neutron can strike another U-235 nucleus, starting new fissions. An uncontrolled chain reaction doubles with each generation. In reactors, control rods moderate this process.'
+  }
+];
+
+// ── App state ─────────────────────────────────────────────────
+var stepIndex = 0;
+var stepT     = 0;
+var animState = 'idle';
+var slowMode  = false;
+var rafId     = null;
+var lastTs    = null;
+var SPEED     = 0.00075;
+
+var stepDescEl   = document.getElementById('stepDesc');
+var energyDispEl = document.getElementById('energyDisplay');
+
+function setStep(i) {
+  stepIndex = i;
+  stepT = 0;
+  stepDescEl.textContent   = STEPS[i].desc;
+  energyDispEl.textContent = STEPS[i].energy > 0 ? ('~'+STEPS[i].energy+' MeV') : '0 MeV';
+  updateStepBtns();
+}
+
+var stepBar = document.getElementById('stepBar');
+STEPS.forEach(function(s, i) {
+  var b = document.createElement('button');
+  b.className   = 'step-btn';
+  b.id          = 'sb'+i;
+  b.textContent = s.label+': '+s.short;
+  b.onclick     = function() { setStep(i); animState='running'; startLoop(); };
+  stepBar.appendChild(b);
+});
+
+function updateStepBtns() {
+  STEPS.forEach(function(_, i) {
+    document.getElementById('sb'+i).classList.toggle('active', i === stepIndex);
+  });
+}
+updateStepBtns();
+
+// ── Chain reaction particles (Stage 6) ────────────────────────
+var chainParticles = [];
+function initChain() {
+  chainParticles = [];
+  var w=W(), h=H(), cx=w/2, cy=h/2;
+  // seed 3 neutrons flying outward
+  for (var i=0; i<3; i++) {
+    var ang = (i * Math.PI*2/3) - Math.PI/2;
+    chainParticles.push({
+      x: cx, y: cy,
+      vx: Math.cos(ang)*1.4, vy: Math.sin(ang)*1.4,
+      r: 6, life: 1, hit: false, children: []
+    });
+  }
+}
+
+function updateChain(dt) {
+  var w=W(), h=H();
+  var toAdd = [];
+  chainParticles.forEach(function(p) {
+    if (p.hit) return;
+    p.x += p.vx * dt * 0.06;
+    p.y += p.vy * dt * 0.06;
+    p.life -= dt * 0.0005;
+    // hit a random U-235 target after travelling far enough
+    var dist = Math.sqrt((p.x-W()/2)*(p.x-W()/2) + (p.y-H()/2)*(p.y-H()/2));
+    if (dist > 80 && Math.random() < 0.006 && toAdd.length < 4) {
+      p.hit = true;
+      p.hitX = p.x; p.hitY = p.y; p.boom = 0;
+      // spawn 2 more neutrons
+      for (var k=0; k<2; k++) {
+        var na = Math.random()*Math.PI*2;
+        toAdd.push({x:p.x,y:p.y, vx:Math.cos(na)*1.6, vy:Math.sin(na)*1.6, r:5, life:1, hit:false});
+      }
+    }
+  });
+  chainParticles = chainParticles.concat(toAdd);
+  chainParticles = chainParticles.filter(function(p){ return p.life > 0 && chainParticles.length < 40; });
+}
+
+// ── Main render ───────────────────────────────────────────────
+function render(t) {
+  var w=W(), h=H(), cx=w/2, cy=h/2;
+  ctx.clearRect(0,0,w,h);
+  drawGrid();
+
+  if (stepIndex === 0) {
+    // U-235 at rest — pulsing
+    var pulse = 0.04 * Math.sin(t * Math.PI * 6);
+    drawNucleus(cx, cy, 38+pulse*20, COL.uranium, '²³⁵U', '92p · 143n');
+    // orbital electrons hinted
+    ctx.save();
+    ctx.strokeStyle='rgba(57,255,20,0.12)'; ctx.lineWidth=1;
+    for (var e=0; e<3; e++) {
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,(60+e*22),(28+e*10),(e*Math.PI/3),0,Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    drawLabel(cx, cy+60, 'Fissile Uranium-235 nucleus', COL.uranium, 12);
+    drawLabel(cx, cy+78, '235 nucleons  |  92 protons  |  143 neutrons', '#5a9e6a', 10);
+
+  } else if (stepIndex === 1) {
+    // Neutron approaching
+    var dist = lerp(w*0.44, 46, easeOut(t));
+    var nx = cx - dist;
+    drawNucleus(cx, cy, 38, COL.uranium, '²³⁵U', '92p · 143n');
+    drawArrow(nx-50, cy, nx-8, cy, COL.neutron, clamp(t*3,0,1));
+    drawNeutron(nx, cy, 9);
+    drawLabel(nx, cy+28, 'thermal neutron', COL.neutron, 11);
+    if (t > 0.7) {
+      var sw=(t-0.7)/0.3;
+      ctx.beginPath(); ctx.arc(cx,cy,sw*60,0,Math.PI*2);
+      ctx.strokeStyle='rgba(200,245,160,'+(0.5*(1-sw))+')';
+      ctx.lineWidth=2; ctx.stroke();
+    }
+
+  } else if (stepIndex === 2) {
+    // U-236 excited — wobbling
+    var wobble = t > 0.2 ? Math.sin(t * Math.PI * 14) * 6 * (1-Math.max(0,t-0.7)/0.3) : 0;
+    var glow   = 0.5 + 0.3*Math.sin(t*Math.PI*8);
+    drawGlow(cx,cy,80,COL.excited,glow*0.4);
+    drawNucleus(cx+wobble, cy, 40, COL.excited, '²³⁶U*', 'EXCITED · UNSTABLE');
+    // energy flash
+    if (t < 0.3) {
+      var fl = 1-(t/0.3);
+      drawGlow(cx,cy,100,COL.neutron,fl*0.6);
+    }
+    drawLabel(cx, cy+68, '~6.5 MeV excitation energy', COL.excited, 11);
+    drawLabel(cx, cy+84, 'nucleus deforming (liquid drop model)', '#5a9e6a', 10);
+
+  } else if (stepIndex === 3) {
+    // Splitting — dumbbell deformation then split
+    if (t < 0.5) {
+      // deform into dumbbell
+      var stretch = easeInOut(t/0.5);
+      var rx = 38 + stretch*28, ry = 38 - stretch*14;
+      ctx.save();
+      drawGlow(cx,cy,70,COL.excited,0.3);
+      ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+      var g = ctx.createRadialGradient(cx-rx*0.3,cy-ry*0.2,rx*0.05, cx,cy,rx);
+      g.addColorStop(0,'#ffffff44'); g.addColorStop(0.4,COL.excited); g.addColorStop(1,'#00000077');
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle=COL.excited+'aa'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle=COL.excited;
+      ctx.font='bold 13px Rajdhani,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('²³⁶U*', cx, cy);
+      drawLabel(cx, cy+58, 'nuclear deformation (dumbbell shape)', COL.excited, 11);
+    } else {
+      // split apart
+      var sp    = easeOut((t-0.5)/0.5);
+      var sep   = sp * 120;
+      var boomP = clamp((t-0.5)/0.15, 0, 1);
+      drawShockwave(cx, cy, boomP, COL.excited);
+      drawEnergyBurst(cx, cy, sp*0.7, '');
+      // Barium going left
+      drawNucleus(cx-sep, cy, 28, COL.barium, '¹⁴¹Ba', '56p · 85n');
+      // Krypton going right
+      drawNucleus(cx+sep, cy, 22, COL.krypton, '⁹²Kr', '36p · 56n');
+    }
+
+  } else if (stepIndex === 4) {
+    // Fragments separated, 3 neutrons flying out
+    var sp2 = Math.min(1, t*2);
+    drawNucleus(cx-110, cy, 28, COL.barium, '¹⁴¹Ba', '56p · 85n');
+    drawNucleus(cx+110, cy, 22, COL.krypton, '⁹²Kr', '36p · 56n');
+    drawEnergyBurst(cx, cy, t*0.9, '~200 MeV');
+    drawShockwave(cx, cy, clamp(t*1.5,0,1), COL.energy);
+    // 3 neutrons at 120° intervals
+    var nAngles = [-Math.PI/2, Math.PI/6, Math.PI*5/6];
+    nAngles.forEach(function(ang, i) {
+      var nd  = sp2 * (90 + i*25);
+      var nx2 = cx + Math.cos(ang)*nd;
+      var ny2 = cy + Math.sin(ang)*nd;
+      drawNeutron(nx2, ny2, 8, Math.min(1, t*3));
+      if (t > 0.5) drawArrow(cx+Math.cos(ang)*22,cy+Math.sin(ang)*22,nx2-Math.cos(ang)*12,ny2-Math.sin(ang)*12,COL.neutron,0.5);
+    });
+    drawLabel(cx, cy+85, '3 fast neutrons released — each can trigger new fission', COL.neutron, 11);
+
+  } else if (stepIndex === 5) {
+    // Chain reaction — multiple fissions
+    updateChain(16);
+    // draw original fragments fading
+    var fa = clamp(1-t,0.2,1);
+    drawNucleus(cx-110*fa-30*(1-fa), cy-20*(1-fa), 24*fa+10*(1-fa), COL.barium, '', '');
+    drawNucleus(cx+110*fa+30*(1-fa), cy+20*(1-fa), 18*fa+8*(1-fa), COL.krypton, '', '');
+    // chain neutrons
+    chainParticles.forEach(function(p) {
+      if (!p.hit) {
+        drawNeutron(p.x, p.y, p.r, Math.min(1,p.life*3));
+      } else {
+        p.boom = (p.boom||0) + 0.04;
+        drawShockwave(p.hitX, p.hitY, clamp(p.boom,0,1), COL.barium);
+        drawEnergyBurst(p.hitX, p.hitY, clamp(p.boom*0.8,0,0.5), '');
+      }
+    });
+    // small U-235 dots scattered
+    var positions = [
+      [cx-200,cy-80],[cx+180,cy-100],[cx-160,cy+90],[cx+200,cy+70],
+      [cx-80,cy-130],[cx+90,cy+120],[cx-230,cy+20],[cx+220,cy-30]
+    ];
+    positions.forEach(function(pos) {
+      var px=pos[0], py=pos[1];
+      if (px>20&&px<w-20&&py>20&&py<h-20) {
+        drawNucleus(px,py,14,COL.uranium,'','');
+      }
+    });
+    drawLabel(cx, h-22, 'CHAIN REACTION: each fission releases neutrons that trigger more fissions', COL.glow, 10);
+  }
+
+  // ── Instructor label ────────────────────────────────────────
+  ctx.save();
+  ctx.font         = 'bold 13px Courier Prime,monospace';
+  ctx.textAlign    = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle    = 'rgba(57,255,20,0.85)';
+  ctx.fillText('Dr. S Karna', W()-12, 10);
+  ctx.restore();
+}
+
+// ── Animation loop ────────────────────────────────────────────
+function tick(ts) {
+  if (animState !== 'running') { rafId = null; return; }
+  if (lastTs === null) lastTs = ts;
+  var dt = ts - lastTs;
+  lastTs = ts;
+
+  stepT = Math.min(1, stepT + dt * (slowMode ? SPEED*0.35 : SPEED));
+  render(stepT);
+
+  if (stepT >= 1) {
+    rafId = null;
+    setTimeout(function() {
+      if (stepIndex < STEPS.length-1) {
+        setStep(stepIndex+1);
+        if (stepIndex === 5) initChain();
+        if (animState === 'running') startLoop();
+      } else {
+        animState = 'done';
+        document.getElementById('playBtn').textContent = '⚛ INITIATE';
+      }
+    }, 1000);
+    return;
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function startLoop() {
+  if (rafId) cancelAnimationFrame(rafId);
+  lastTs = null;
+  rafId  = requestAnimationFrame(tick);
+}
+
+// ── Controls ──────────────────────────────────────────────────
+var playBtn = document.getElementById('playBtn');
+
+playBtn.onclick = function() {
+  if (animState === 'running') {
+    animState = 'paused';
+    playBtn.textContent = '⚛ INITIATE';
+  } else {
+    if (animState === 'done') setStep(0);
+    animState = 'running';
+    playBtn.textContent = '⏸ PAUSE';
+    startLoop();
+  }
+};
+
+document.getElementById('resetBtn').onclick = function() {
+  animState = 'idle';
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  chainParticles = [];
+  setStep(0);
+  render(0);
+  playBtn.textContent = '⚛ INITIATE';
+};
+
+document.getElementById('slowBtn').onclick = function() {
+  slowMode = !slowMode;
+  this.textContent = slowMode ? '▶▶ NORMAL' : '◐ SLOW';
+};
+
+// ── Initial render ────────────────────────────────────────────
+render(0);
+</script>
+</body>
+</html>
