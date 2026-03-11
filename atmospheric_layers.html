@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earth's Atmospheric Layers</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --thermo-color: #ff4d6d;
+    --meso-color: #7b2d8b;
+    --strato-color: #1a6b9a;
+    --tropo-color: #2d9e5f;
+    --ozone-color: #a8e063;
+    --space-color: #000814;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--space-color);
+    font-family: 'Exo 2', sans-serif;
+    color: #e0f0ff;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Star field */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 25% 5%, #cce 100%, transparent),
+      radial-gradient(1px 1px at 40% 25%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 55% 8%, #eef 100%, transparent),
+      radial-gradient(1px 1px at 70% 18%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 85% 3%, #ddf 100%, transparent),
+      radial-gradient(1px 1px at 92% 22%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 5% 35%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 20% 42%, #ccf 100%, transparent),
+      radial-gradient(1.5px 1.5px at 78% 35%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 65% 45%, #eef 100%, transparent),
+      radial-gradient(1px 1px at 48% 50%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 33% 60%, #ddf 100%, transparent),
+      radial-gradient(1px 1px at 90% 55%, #fff 100%, transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    text-align: center;
+    padding: 1.2rem 1rem 0.6rem;
+    position: relative;
+    z-index: 10;
+  }
+
+  .instructor-tag {
+    position: absolute;
+    top: 1rem;
+    right: 1.2rem;
+    text-align: right;
+    z-index: 20;
+  }
+
+  .instructor-tag span {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: #5a8aaa;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.15rem;
+  }
+
+  .instructor-tag strong {
+    display: block;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #88ccee;
+    letter-spacing: 0.08em;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.1rem, 3vw, 2rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    background: linear-gradient(135deg, #7fffff, #a8e6ff, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    margin-bottom: 0.4rem;
+  }
+
+  header p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: #6ab0cc;
+    letter-spacing: 0.15em;
+  }
+
+  .main-container {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    max-width: 900px;
+    margin: 0.8rem auto 1.2rem;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 5;
+    min-height: 520px;
+  }
+
+  /* ── LEFT: Atmosphere Column ── */
+  .atmo-column {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px 0 0 16px;
+    overflow: hidden;
+    border: 1px solid rgba(100,200,255,0.15);
+    border-right: none;
+    position: relative;
+  }
+
+  .layer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    transition: filter 0.3s ease;
+    overflow: hidden;
+  }
+
+  .layer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: rgba(255,255,255,0.06);
+  }
+  .layer:hover::before { opacity: 1; }
+  .layer:hover { filter: brightness(1.15); }
+
+  /* Layer heights — tallest = thermosphere */
+  .layer-space    { flex: 0.6; background: linear-gradient(180deg, #000814 0%, #020d20 100%); border-bottom: 1px dashed rgba(200,220,255,0.2); }
+  .layer-thermo   { flex: 2.8; background: linear-gradient(180deg, #130020 0%, #2b0042 60%, #3d0060 100%); }
+  .layer-meso     { flex: 1.6; background: linear-gradient(180deg, #1a003a 0%, #2e1060 60%, #3a1878 100%); }
+  .layer-strato   { flex: 2.0; background: linear-gradient(180deg, #082060 0%, #0c3080 60%, #1050a0 100%); }
+  .layer-ozone    { flex: 0.45; background: linear-gradient(180deg, #1a5010 0%, #2a7018 60%, #3a9020 100%); position: relative; }
+  .layer-tropo    { flex: 1.3; background: linear-gradient(180deg, #064020 0%, #0a5c2e 60%, #126e38 100%); border-radius: 0 0 0 16px; }
+
+  .layer-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .layer-alt {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    opacity: 0.7;
+    margin-bottom: 0.3rem;
+  }
+
+  .layer-temp {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  /* Color per layer */
+  .layer-space .layer-name    { color: #aaccff; }
+  .layer-thermo .layer-name   { color: #ff8aaa; }
+  .layer-thermo .layer-temp   { color: #ff6b8a; }
+  .layer-meso .layer-name     { color: #cc88ff; }
+  .layer-meso .layer-temp     { color: #bb77ee; }
+  .layer-strato .layer-name   { color: #77ccff; }
+  .layer-strato .layer-temp   { color: #55aaee; }
+  .layer-ozone .layer-name    { color: #aaee55; }
+  .layer-ozone .layer-temp    { color: #88cc33; }
+  .layer-tropo .layer-name    { color: #55ee99; }
+  .layer-tropo .layer-temp    { color: #33cc77; }
+
+  /* Altitude ticks on left edge */
+  .alt-label {
+    position: absolute;
+    left: 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(180,220,255,0.6);
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  /* Ozone band glow */
+  .layer-ozone::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(120,255,60,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Animated particles in thermosphere */
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: rgba(255,150,200,0.8);
+    animation: float linear infinite;
+  }
+
+  @keyframes float {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(-60px) translateX(20px); opacity: 0; }
+  }
+
+  /* ── CENTER: Temperature Graph ── */
+  .temp-graph-col {
+    flex: 1;
+    background: rgba(5, 15, 35, 0.85);
+    border: 1px solid rgba(100,180,255,0.15);
+    border-left: 1px solid rgba(100,180,255,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .graph-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: #5a9abf;
+    text-align: center;
+    padding: 0.8rem 0 0.4rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(100,180,255,0.1);
+  }
+
+  .graph-area {
+    padding: 0.5rem 1.5rem 1rem 3rem;
+    height: calc(100% - 40px);
+    position: relative;
+  }
+
+  svg.temp-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* ── RIGHT: Info Panel ── */
+  .info-panel {
+    width: 185px;
+    flex-shrink: 0;
+    background: rgba(5,12,30,0.92);
+    border: 1px solid rgba(100,180,255,0.15);
+    border-left: none;
+    border-radius: 0 16px 16px 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .info-panel-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: #4a8aaf;
+    text-align: center;
+    padding: 0.8rem 1rem 0.5rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(100,180,255,0.1);
+  }
+
+  .facts-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .fact-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid;
+    transition: background 0.2s;
+  }
+  .fact-card:hover { background: rgba(255,255,255,0.07); }
+
+  .fact-card.thermo { border-left-color: #ff4d6d; }
+  .fact-card.meso   { border-left-color: #a855f7; }
+  .fact-card.strato { border-left-color: #38bdf8; }
+  .fact-card.ozone  { border-left-color: #84cc16; }
+  .fact-card.tropo  { border-left-color: #34d399; }
+
+  .fact-layer {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+
+  .fact-card.thermo .fact-layer { color: #ff8aaa; }
+  .fact-card.meso   .fact-layer { color: #c084fc; }
+  .fact-card.strato .fact-layer { color: #7dd3fc; }
+  .fact-card.ozone  .fact-layer { color: #a3e635; }
+  .fact-card.tropo  .fact-layer { color: #6ee7b7; }
+
+  .fact-text {
+    font-size: 0.68rem;
+    color: #9bb8cc;
+    line-height: 1.45;
+  }
+
+  /* Bottom legend */
+  .legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+    border-top: 1px solid rgba(100,180,255,0.12);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: #88aabf;
+    letter-spacing: 0.05em;
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 820px) {
+    .main-container { flex-direction: column; min-height: unset; }
+    .atmo-column    { width: 100%; border-radius: 16px 16px 0 0; border-right: 1px solid rgba(100,200,255,0.15); border-bottom: none; flex-direction: row; min-height: 120px; }
+    .layer          { flex: 1; align-items: center; text-align: center; padding: 0.5rem 0.4rem; justify-content: flex-end; }
+    .layer-space    { flex: 0.4; }
+    .layer-alt, .layer-temp { font-size: 0.6rem; }
+    .layer-name     { font-size: 0.6rem; }
+    .layer-tropo    { border-radius: 0 0 0 16px; }
+    .temp-graph-col { min-height: 320px; }
+    .info-panel     { width: 100%; border-left: 1px solid rgba(100,180,255,0.15); border-top: none; border-radius: 0 0 16px 16px; }
+    .facts-list     { flex-direction: row; flex-wrap: wrap; }
+    .fact-card      { flex: 1 1 160px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="instructor-tag">
+    <span>Instructor</span>
+    <strong>Dr. S Karna</strong>
+  </div>
+  <h1>EARTH'S ATMOSPHERE</h1>
+  <p>VERTICAL STRUCTURE · THERMAL PROFILE · LAYER COMPOSITION</p>
+</header>
+
+<div class="main-container">
+
+  <!-- LEFT: Atmospheric stack -->
+  <div class="atmo-column">
+
+    <div class="layer layer-space">
+      <span class="layer-name" style="color:#aaccff;">⬛ OUTER SPACE</span>
+      <span class="layer-alt" style="color:#6688aa;">Above 700 km</span>
+    </div>
+
+    <div class="layer layer-thermo" id="lyr-thermo">
+      <!-- Animated particles -->
+      <div class="particle" style="left:15%;top:60%;animation-duration:3.2s;animation-delay:0s;"></div>
+      <div class="particle" style="left:40%;top:70%;animation-duration:2.8s;animation-delay:0.7s;background:rgba(200,120,255,0.9)"></div>
+      <div class="particle" style="left:65%;top:65%;animation-duration:3.6s;animation-delay:1.4s;"></div>
+      <div class="particle" style="left:80%;top:75%;animation-duration:2.5s;animation-delay:0.3s;background:rgba(255,200,100,0.8)"></div>
+      <span class="layer-name">🔴 THERMOSPHERE</span>
+      <span class="layer-alt">80 – 700 km</span>
+      <span class="layer-temp">−90°C → +2,500°C</span>
+    </div>
+
+    <div class="layer layer-meso" id="lyr-meso">
+      <span class="layer-name">🟣 MESOSPHERE</span>
+      <span class="layer-alt">50 – 80 km</span>
+      <span class="layer-temp">−2°C → −90°C</span>
+    </div>
+
+    <div class="layer layer-strato" id="lyr-strato">
+      <span class="layer-name">🔵 STRATOSPHERE</span>
+      <span class="layer-alt">12 – 50 km</span>
+      <span class="layer-temp">−56°C → −2°C</span>
+    </div>
+
+    <div class="layer layer-ozone" id="lyr-ozone">
+      <span class="layer-name">🟢 OZONE LAYER</span>
+      <span class="layer-alt">15 – 35 km</span>
+      <span class="layer-temp">Peak ~25 km</span>
+    </div>
+
+    <div class="layer layer-tropo" id="lyr-tropo">
+      <span class="layer-name">🟩 TROPOSPHERE</span>
+      <span class="layer-alt">0 – 12 km</span>
+      <span class="layer-temp">+15°C → −56°C</span>
+    </div>
+
+  </div><!-- /atmo-column -->
+
+  <!-- CENTER: Temperature Graph -->
+  <div class="temp-graph-col">
+    <div class="graph-title">Temperature Profile vs. Altitude</div>
+    <div class="graph-area">
+      <svg class="temp-svg" viewBox="0 0 320 560" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="tropoFill" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#34d399" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="stratoFill" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="mesoFill" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#a855f7" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="thermoFill" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#ff4d6d" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#ff4d6d" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(100,180,255,0.5)"/>
+          </marker>
+        </defs>
+
+        <!-- Y axis (altitude) -->
+        <!-- X axis (temperature) -->
+
+        <!-- Layer band backgrounds -->
+        <!-- Troposphere: 0–12 km → y 530 to 440 -->
+        <rect x="40" y="440" width="270" height="90"  fill="url(#tropoFill)" rx="2"/>
+        <!-- Ozone 15–35km band within strato -->
+        <rect x="40" y="332" width="270" height="88"  fill="#2a6010" opacity="0.22" rx="2"/>
+        <!-- Stratosphere: 12–50 km → y 440 to 280 -->
+        <rect x="40" y="280" width="270" height="160" fill="url(#stratoFill)" rx="2"/>
+        <!-- Mesosphere: 50–80 km → y 280 to 160 -->
+        <rect x="40" y="160" width="270" height="120" fill="url(#mesoFill)" rx="2"/>
+        <!-- Thermosphere: 80–700km → y 160 to 20 -->
+        <rect x="40" y="20"  width="270" height="140" fill="url(#thermoFill)" rx="2"/>
+
+        <!-- Grid lines (horizontal = altitude, vertical = temp) -->
+        <!-- Horizontal altitude lines -->
+        <g stroke="rgba(100,160,220,0.12)" stroke-width="1" stroke-dasharray="4,4">
+          <line x1="40" y1="530" x2="310" y2="530"/>
+          <line x1="40" y1="490" x2="310" y2="490"/>
+          <line x1="40" y1="440" x2="310" y2="440"/>
+          <line x1="40" y1="390" x2="310" y2="390"/>
+          <line x1="40" y1="332" x2="310" y2="332"/>
+          <line x1="40" y1="280" x2="310" y2="280"/>
+          <line x1="40" y1="220" x2="310" y2="220"/>
+          <line x1="40" y1="160" x2="310" y2="160"/>
+          <line x1="40" y1="100" x2="310" y2="100"/>
+          <line x1="40" y1="20"  x2="310" y2="20"/>
+        </g>
+        <!-- Vertical temp lines -->
+        <g stroke="rgba(100,160,220,0.10)" stroke-width="1" stroke-dasharray="3,5">
+          <line x1="80"  y1="15" x2="80"  y2="540"/>
+          <line x1="120" y1="15" x2="120" y2="540"/>
+          <line x1="160" y1="15" x2="160" y2="540"/>
+          <line x1="200" y1="15" x2="200" y2="540"/>
+          <line x1="240" y1="15" x2="240" y2="540"/>
+          <line x1="280" y1="15" x2="280" y2="540"/>
+        </g>
+
+        <!-- Axes -->
+        <line x1="40" y1="10" x2="40" y2="540" stroke="rgba(100,180,255,0.4)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="40" y1="530" x2="315" y2="530" stroke="rgba(100,180,255,0.4)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Y axis labels (altitude km) -->
+        <g fill="rgba(120,180,220,0.75)" font-family="'Share Tech Mono',monospace" font-size="8.5" text-anchor="end">
+          <text x="36" y="532">0</text>
+          <text x="36" y="492">5</text>
+          <text x="36" y="443">12</text>
+          <text x="36" y="395">20</text>
+          <text x="36" y="334">30</text>
+          <text x="36" y="282">50</text>
+          <text x="36" y="222">60</text>
+          <text x="36" y="162">80</text>
+          <text x="36" y="102">100</text>
+          <text x="36" y="22">700+</text>
+        </g>
+        <!-- Y axis unit label -->
+        <text transform="translate(10,300) rotate(-90)" fill="rgba(120,180,220,0.65)" font-family="'Share Tech Mono',monospace" font-size="8" text-anchor="middle">ALTITUDE (km)</text>
+
+        <!-- X axis labels (temperature °C) -->
+        <!-- Range: -100°C (x=40) to +2500°C (x=310) — log-compressed for readability -->
+        <!-- For display: map -100→x=40, -60→x=90, -20→x=140, +15→x=180, +200→x=220, +800→x=260, +2500→x=310 -->
+        <g fill="rgba(120,180,220,0.75)" font-family="'Share Tech Mono',monospace" font-size="7.5" text-anchor="middle">
+          <text x="60"  y="548">-100°C</text>
+          <text x="108" y="548">-60°C</text>
+          <text x="152" y="548">-20°C</text>
+          <text x="183" y="548">+15°C</text>
+          <text x="232" y="548">+500°C</text>
+          <text x="290" y="548">+2500°C</text>
+        </g>
+        <text x="175" y="558" fill="rgba(120,180,220,0.55)" font-family="'Share Tech Mono',monospace" font-size="7.5" text-anchor="middle">TEMPERATURE (°C) — compressed scale</text>
+
+        <!-- ═══ TEMPERATURE PROFILE CURVE ═══ -->
+        <!-- Key data points (x=temp-mapped, y=altitude-mapped):
+             Surface (+15°C)    → x≈183, y=530
+             Tropopause (-56°C) → x≈70,  y=440
+             Stratopause (-2°C) → x≈160, y=280
+             Mesopause (-90°C)  → x≈60,  y=160
+             Thermosphere top (+2500°C) → x≈308, y=22
+             Ozone peak warmth  → x≈158, y=332
+        -->
+        <path
+          d="M183,530 C170,510 130,490 105,470 C85,455 72,447 70,440
+             C68,432 78,415 95,395 C120,368 148,350 156,332
+             C162,314 160,300 160,280
+             C158,262 140,248 115,230 C95,215 72,195 62,160
+             C58,140 60,120 75,100 C100,75 145,60 190,50 C230,40 275,30 308,22"
+          fill="none"
+          stroke="url(#tempGrad)"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          filter="url(#glow)"
+        />
+        <!-- Gradient for the curve -->
+        <defs>
+          <linearGradient id="tempGrad" x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+            <stop offset="0%"   stop-color="#34d399"/>
+            <stop offset="28%"  stop-color="#38bdf8"/>
+            <stop offset="55%"  stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#ff4d6d"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Ozone band annotation -->
+        <line x1="40" y1="420" x2="310" y2="420" stroke="rgba(120,220,40,0.3)" stroke-width="1" stroke-dasharray="6,3"/>
+        <line x1="40" y1="332" x2="310" y2="332" stroke="rgba(120,220,40,0.3)" stroke-width="1" stroke-dasharray="6,3"/>
+        <rect x="41" y="332" width="4" height="88" fill="rgba(120,220,40,0.5)" rx="1"/>
+        <text x="50" y="380" fill="rgba(150,240,60,0.9)" font-family="'Share Tech Mono',monospace" font-size="7.5" transform="rotate(-90,50,380)">OZONE</text>
+
+        <!-- Key point dots + labels -->
+        <g filter="url(#glow)">
+          <!-- Surface -->
+          <circle cx="183" cy="530" r="4" fill="#34d399"/>
+          <text x="190" y="526" fill="#34d399" font-family="'Share Tech Mono',monospace" font-size="7.5">+15°C / 0 km</text>
+
+          <!-- Tropopause -->
+          <circle cx="70" cy="440" r="4" fill="#38bdf8"/>
+          <text x="77" y="437" fill="#38bdf8" font-family="'Share Tech Mono',monospace" font-size="7.5">−56°C / 12 km</text>
+
+          <!-- Stratopause -->
+          <circle cx="160" cy="280" r="4" fill="#7dd3fc"/>
+          <text x="167" y="277" fill="#7dd3fc" font-family="'Share Tech Mono',monospace" font-size="7.5">−2°C / 50 km</text>
+
+          <!-- Mesopause -->
+          <circle cx="62" cy="160" r="4" fill="#c084fc"/>
+          <text x="69" y="157" fill="#c084fc" font-family="'Share Tech Mono',monospace" font-size="7.5">−90°C / 80 km</text>
+
+          <!-- Thermosphere top -->
+          <circle cx="308" cy="22" r="4" fill="#ff6b8a"/>
+          <text x="175" y="33" fill="#ff8aaa" font-family="'Share Tech Mono',monospace" font-size="7.5">+2,500°C / 700+ km</text>
+        </g>
+
+        <!-- Layer boundary labels on right side -->
+        <g fill="rgba(200,220,255,0.45)" font-family="'Orbitron',monospace" font-size="6.5" text-anchor="end">
+          <text x="308" y="438">TROPOPAUSE</text>
+          <text x="308" y="278">STRATOPAUSE</text>
+          <text x="308" y="158">MESOPAUSE</text>
+        </g>
+        <!-- Dashed boundary lines -->
+        <g stroke="rgba(200,220,255,0.2)" stroke-width="0.8" stroke-dasharray="4,4">
+          <line x1="40" y1="440" x2="305" y2="440"/>
+          <line x1="40" y1="280" x2="305" y2="280"/>
+          <line x1="40" y1="160" x2="305" y2="160"/>
+        </g>
+
+      </svg>
+    </div>
+  </div><!-- /temp-graph-col -->
+
+  <!-- RIGHT: Fact cards -->
+  <div class="info-panel">
+    <div class="info-panel-header">Layer Key Facts</div>
+    <div class="facts-list">
+
+      <div class="fact-card thermo">
+        <div class="fact-layer">🔴 Thermosphere</div>
+        <div class="fact-text">Despite extreme temperatures, the gas is so thin that it feels cold. Home to the ISS (~400 km) and auroras. Absorbs X-rays and UV from the Sun.</div>
+      </div>
+
+      <div class="fact-card meso">
+        <div class="fact-layer">🟣 Mesosphere</div>
+        <div class="fact-text">The coldest layer (−90°C at mesopause). Most meteors burn up here. Noctilucent clouds form at its top edge near 80 km altitude.</div>
+      </div>
+
+      <div class="fact-card strato">
+        <div class="fact-layer">🔵 Stratosphere</div>
+        <div class="fact-text">Temperature increases with altitude due to UV absorption. Very stable — no weather here. Commercial aircraft cruise at its lower boundary (~10–12 km).</div>
+      </div>
+
+      <div class="fact-card ozone">
+        <div class="fact-layer">🟢 Ozone Layer</div>
+        <div class="fact-text">O₃ concentration peaks between 15–35 km. Absorbs 97–99% of harmful UV-B and UV-C radiation. CFCs caused a measurable hole over Antarctica.</div>
+      </div>
+
+      <div class="fact-card tropo">
+        <div class="fact-layer">🟩 Troposphere</div>
+        <div class="fact-text">Contains ~80% of atmospheric mass and nearly all water vapour. All weather occurs here. Temperature drops ~6.5°C per km of altitude gain (lapse rate).</div>
+      </div>
+
+    </div>
+
+    <div class="legend-bar">
+      <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Troposphere</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#84cc16"></div>Ozone</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>Stratosphere</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div>Mesosphere</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4d6d"></div>Thermosphere</div>
+    </div>
+  </div><!-- /info-panel -->
+
+</div><!-- /main-container -->
+
+</body>
+</html>

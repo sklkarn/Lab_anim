@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earth's Cross-Section</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --crust-color: #8B7355;
+    --asthen-color: #E8622A;
+    --mantle-color: #E8922A;
+    --lower-mantle: #E8B85A;
+    --outer-core: #A0A8B0;
+    --inner-core: #C8CDD3;
+    --deep-space: #0a0a1a;
+  }
+
+  body {
+    background: var(--deep-space);
+    font-family: 'Space Mono', monospace;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    letter-spacing: 0.06em;
+    text-align: center;
+    color: #fff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 40px rgba(232,146,42,0.4);
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+    letter-spacing: 0.3em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .diagram-wrap {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  /* SVG Earth */
+  .earth-svg-wrap {
+    flex: 0 0 auto;
+    position: relative;
+  }
+
+  svg#earth {
+    filter: drop-shadow(0 0 60px rgba(232,146,42,0.25));
+    width: min(680px, 96vw);
+    height: auto;
+  }
+
+  /* Legend / info panel */
+  .layers-panel {
+    flex: 1 1 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 420px;
+  }
+
+  .layer-card {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 0 16px;
+    align-items: start;
+    padding: 16px 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.2s, border-color 0.2s;
+    animation: fadeUp 0.6s both;
+  }
+
+  .layer-card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+  }
+
+  .layer-card:nth-child(1) { animation-delay: 0.05s; }
+  .layer-card:nth-child(2) { animation-delay: 0.12s; }
+  .layer-card:nth-child(3) { animation-delay: 0.19s; }
+  .layer-card:nth-child(4) { animation-delay: 0.26s; }
+  .layer-card:nth-child(5) { animation-delay: 0.33s; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .color-bar {
+    width: 14px;
+    border-radius: 4px;
+    height: 100%;
+    min-height: 60px;
+    grid-row: 1 / 3;
+  }
+
+  .layer-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .layer-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-top: 2px;
+    margin-bottom: 8px;
+  }
+
+  .layer-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .stat {
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    color: #ddd;
+  }
+
+  .stat span {
+    display: block;
+    font-size: 0.58rem;
+    color: #888;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .temp-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  footer {
+    margin-top: 56px;
+    font-size: 0.6rem;
+    color: #444;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div style="position:fixed; top:18px; right:24px; text-align:right; z-index:100;">
+  <div style="font-family:'Playfair Display',serif; font-size:0.95rem; color:#C8B88A; letter-spacing:0.05em;">Dr. S Karna</div>
+  <div style="font-size:0.58rem; color:#666; letter-spacing:0.2em; text-transform:uppercase; margin-top:2px;">Presenter</div>
+</div>
+
+<h1>Earth's Interior</h1>
+<p class="subtitle">Cross-Section · Depth · Temperature</p>
+
+<div class="diagram-wrap">
+
+  <!-- SVG diagram -->
+  <div class="earth-svg-wrap">
+    <svg id="earth" viewBox="-110 0 830 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Glow filter -->
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+
+        <!-- Mantle gradient -->
+        <radialGradient id="mantleGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E8B85A"/>
+          <stop offset="60%" stop-color="#E8922A"/>
+          <stop offset="100%" stop-color="#C0501A"/>
+        </radialGradient>
+
+        <!-- Outer core gradient -->
+        <radialGradient id="outerCoreGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#909BB0"/>
+          <stop offset="100%" stop-color="#6A7590"/>
+        </radialGradient>
+
+        <!-- Inner core gradient -->
+        <radialGradient id="innerCoreGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E0E8F0"/>
+          <stop offset="60%" stop-color="#B0BCC8"/>
+          <stop offset="100%" stop-color="#8A95A5"/>
+        </radialGradient>
+
+        <!-- Clip to circle -->
+        <clipPath id="earthClip">
+          <circle cx="240" cy="240" r="220"/>
+        </clipPath>
+      </defs>
+
+      <!-- Space background glow -->
+      <circle cx="240" cy="240" r="228" fill="none" stroke="rgba(232,146,42,0.15)" stroke-width="16"/>
+
+      <!-- === Full sphere layers (back half, drawn first) === -->
+      <!-- Mantle full sphere -->
+      <circle cx="240" cy="240" r="220" fill="url(#mantleGrad)"/>
+      <!-- Outer core full sphere -->
+      <circle cx="240" cy="240" r="148" fill="url(#outerCoreGrad)"/>
+      <!-- Inner core full sphere -->
+      <circle cx="240" cy="240" r="74" fill="url(#innerCoreGrad)" filter="url(#glow)"/>
+
+      <!-- === Cut-away wedge (right half removed) === -->
+      <!-- White fill to "cut" the right quarter -->
+      <path d="M240,240 L240,20 A220,220 0 0,1 460,240 Z" fill="#0a0a1a"/>
+      <!-- Redo the quarter with flat faces showing layers -->
+
+      <!-- Mantle wedge face -->
+      <path d="M240,240 L240,20 A220,220 0 0,1 460,240 Z" fill="url(#mantleGrad)" opacity="0.95"/>
+      <!-- Outer core wedge face -->
+      <path d="M240,240 L240,92 A148,148 0 0,1 388,240 Z" fill="url(#outerCoreGrad)"/>
+      <!-- Inner core wedge face -->
+      <path d="M240,240 L240,166 A74,74 0 0,1 314,240 Z" fill="url(#innerCoreGrad)"/>
+
+      <!-- === Crust ring (thin outer band) === -->
+      <!-- Back half -->
+      <path d="M240,20 A220,220 0 0,0 240,460" fill="none" stroke="#8B7355" stroke-width="12" opacity="0.9"/>
+      <!-- Front face (cut edge) vertical line crust band -->
+      <rect x="234" y="20" width="12" height="12" fill="#8B7355" rx="2"/>
+      <rect x="234" y="448" width="12" height="12" fill="#8B7355" rx="2"/>
+
+      <!-- Asthenosphere band inside crust (left arc) -->
+      <path d="M240,32 A208,208 0 0,0 240,448" fill="none" stroke="#E8622A" stroke-width="18" opacity="0.6"/>
+
+      <!-- Crust top flat edge (cut face) -->
+      <line x1="240" y1="20" x2="240" y2="32" stroke="#9B8365" stroke-width="2"/>
+
+      <!-- === Layer boundary circles (outlines) === -->
+      <!-- Mantle / outer core boundary -->
+      <circle cx="240" cy="240" r="148" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <!-- Outer / inner core boundary -->
+      <circle cx="240" cy="240" r="74" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <!-- Crust boundary -->
+      <circle cx="240" cy="240" r="220" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+      <!--
+        SVG geometry reference (center=240,240):
+          Crust outer edge  r=220  → left x=20,  top y=20,  bottom y=460
+          Mantle band       r=148–220
+          Outer core        r=74–148   (LIQUID)
+          Inner core        r=0–74     (SOLID)
+
+        LEFT-hemisphere label anchor points (y=240 horizontal midline):
+          Mantle midpoint   r=184 → x = 240-184 = 56
+          Outer core mid    r=111 → x = 240-111 = 129
+          Inner core mid    r=37  → x = 240-37  = 203
+
+        CUT-FACE (right quarter, x=240 vertical):
+          Mantle band       y=20  to y=92   (and y=388 to y=460 on bottom)
+          Outer core band   y=92  to y=166
+          Inner core wedge  y=166 to y=240 (centre)
+      -->
+
+      <!-- CRUST — leader from top surface point to label upper-left -->
+      <circle cx="240" cy="20" r="2.5" fill="#C8B88A"/>
+      <line x1="238" y1="22" x2="155" y2="62" stroke="#C8B88A" stroke-width="1"/>
+      <text x="90" y="58" fill="#C8B88A" font-size="11" font-family="Space Mono, monospace" font-weight="700">CRUST</text>
+      <text x="82" y="71" fill="#998877" font-size="9" font-family="Space Mono, monospace">0 – 35 km · Solid</text>
+
+      <!-- MANTLE — anchor at left midpoint (56,240), leader up -->
+      <circle cx="56" cy="200" r="2.5" fill="#E8A050"/>
+      <line x1="56" y1="198" x2="56" y2="148" stroke="#E8A050" stroke-width="1"/>
+      <text x="2" y="143" fill="#E8A050" font-size="11" font-family="Space Mono, monospace" font-weight="700">MANTLE</text>
+      <text x="0" y="156" fill="#998866" font-size="8.5" font-family="Space Mono, monospace">35–2900 km</text>
+      <text x="0" y="167" fill="#998866" font-size="8.5" font-family="Space Mono, monospace">Solid/Plastic</text>
+
+      <!-- OUTER CORE — anchor at left midpoint (129,240), inside grey ring, label below -->
+      <circle cx="129" cy="260" r="2.5" fill="#A8B8C8"/>
+      <line x1="129" y1="262" x2="80" y2="310" stroke="#A8B8C8" stroke-width="1"/>
+      <text x="2" y="308" fill="#A8B8C8" font-size="11" font-family="Space Mono, monospace" font-weight="700">OUTER CORE</text>
+      <text x="2" y="320" fill="#788898" font-size="8.5" font-family="Space Mono, monospace">2900–5100 km</text>
+      <text x="2" y="331" fill="#5599CC" font-size="8.5" font-family="Space Mono, monospace" font-weight="700">● LIQUID</text>
+
+      <!-- INNER CORE — anchor at centre of inner core (203,240), label below -->
+      <circle cx="203" cy="240" r="2.5" fill="#D8E0E8"/>
+      <line x1="203" y1="242" x2="175" y2="355" stroke="#D8E0E8" stroke-width="1"/>
+      <text x="100" y="358" fill="#D8E0E8" font-size="11" font-family="Space Mono, monospace" font-weight="700">INNER CORE</text>
+      <text x="100" y="370" fill="#9098A8" font-size="8.5" font-family="Space Mono, monospace">5100–6378 km</text>
+      <text x="100" y="381" fill="#DDAA55" font-size="8.5" font-family="Space Mono, monospace" font-weight="700">● SOLID</text>
+
+      <!-- === Depth tick marks on cut face (vertical line at x=240) === -->
+      <!-- Surface (0 km) -->
+      <line x1="232" y1="20" x2="240" y2="20" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <!-- 2900km boundary: mantle/outer-core at y=92 -->
+      <line x1="232" y1="92" x2="240" y2="92" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <text x="228" y="96" fill="rgba(255,255,255,0.7)" font-size="9" font-family="Space Mono, monospace" text-anchor="end">2900 km</text>
+      <!-- 5100km boundary: outer/inner-core at y=166 -->
+      <line x1="232" y1="166" x2="240" y2="166" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <text x="228" y="170" fill="rgba(255,255,255,0.7)" font-size="9" font-family="Space Mono, monospace" text-anchor="end">5100 km</text>
+      <!-- 6378km (centre) at y=460 -->
+      <line x1="232" y1="460" x2="240" y2="460" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+      <text x="228" y="464" fill="rgba(255,255,255,0.6)" font-size="9" font-family="Space Mono, monospace" text-anchor="end">6378 km</text>
+
+      <!-- LIQUID label inside outer core wedge on cut face
+           Outer core wedge: y=92 to y=166, center y=129
+           At y=129, distance from center = 240-129=111, outer core r=148
+           half-width = sqrt(148²-111²) ≈ 98px → wedge spans x=240 to x=338, midpoint x=289 -->
+      <text x="305" y="133" fill="#C8D8E8" font-size="12" font-family="Space Mono, monospace" font-weight="700" text-anchor="middle" opacity="0.95">LIQUID</text>
+
+      <!-- SOLID label inside inner core wedge on cut face
+           Inner core wedge: y=166 to y=240, center y=203
+           At y=203, distance from center = 240-203=37, inner core r=74
+           half-width = sqrt(74²-37²) ≈ 64px → wedge spans x=240 to x=304, midpoint x=272 -->
+      <text x="272" y="210" fill="#F0F4F8" font-size="12" font-family="Space Mono, monospace" font-weight="700" text-anchor="middle" opacity="0.95">SOLID</text>
+
+      <!-- depth tick marks only below -->
+
+      <!-- === LITHOSPHERE bracket — RIGHT side of diagram === -->
+      <!-- Lithosphere = crust + uppermost solid mantle, 0–100 km depth
+           On cut face (x=240): surface y=20, 100km depth ≈ y=20+(100/6378*220*2)=y=20+6.9≈y=27
+           Visually too thin — represent as the outermost visible band with bracket to right -->
+      <!-- Bracket lines pointing RIGHT from cut face -->
+      <line x1="240" y1="20"  x2="474" y2="20"  stroke="#B8D890" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="240" y1="27"  x2="474" y2="27"  stroke="#B8D890" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="474" y1="20"  x2="474" y2="27"  stroke="#B8D890" stroke-width="2"/>
+      <line x1="474" y1="20"  x2="474" y2="14"  stroke="#B8D890" stroke-width="1.5"/>
+      <line x1="474" y1="27"  x2="474" y2="33"  stroke="#B8D890" stroke-width="1.5"/>
+      <text x="477" y="16" fill="#B8D890" font-size="9" font-family="Space Mono, monospace" font-weight="700">LITHOSPHERE</text>
+      <text x="477" y="27" fill="#8AAA60" font-size="8" font-family="Space Mono, monospace">Crust + upper mantle · 0–100 km</text>
+
+      <!-- === ASTHENOSPHERE bracket — RIGHT side === -->
+      <!-- Asthenosphere ≈ 100–350 km depth
+           100 km  → y = 20 + (100/6378)*440 ≈ y=27 (same as litho base)
+           350 km  → y = 20 + (350/6378)*440 ≈ y=44 -->
+      <line x1="240" y1="27"  x2="474" y2="44"  stroke="#F09060" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="240" y1="44"  x2="474" y2="60"  stroke="#F09060" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="474" y1="44"  x2="474" y2="60"  stroke="#F09060" stroke-width="2"/>
+      <line x1="474" y1="44"  x2="474" y2="38"  stroke="#F09060" stroke-width="1.5"/>
+      <line x1="474" y1="60"  x2="474" y2="66"  stroke="#F09060" stroke-width="1.5"/>
+      <text x="477" y="46" fill="#F09060" font-size="9" font-family="Space Mono, monospace" font-weight="700">ASTHENOSPHERE</text>
+      <text x="477" y="57" fill="#C07040" font-size="8" font-family="Space Mono, monospace">Soft upper mantle · 100–350 km</text>
+
+      <!-- Center dot -->
+      <circle cx="240" cy="240" r="4" fill="#fff" opacity="0.6"/>
+
+      <!-- Atmosphere thin ring -->
+      <circle cx="240" cy="240" r="226" fill="none" stroke="rgba(100,180,255,0.3)" stroke-width="6"/>
+      <text x="290" y="18" fill="rgba(100,180,255,0.6)" font-size="9" font-family="Space Mono, monospace">Atmosphere</text>
+    </svg>
+  </div>
+
+  <!-- Layers info panel -->
+  <div class="layers-panel">
+
+    <div class="layer-card">
+      <div class="color-bar" style="background: linear-gradient(to bottom, #6B9E5E, #8B7355, #7A5C3C);"></div>
+      <div>
+        <div class="layer-name">Crust</div>
+        <div class="layer-sub">Lithosphere · Outermost Layer</div>
+        <div class="layer-stats">
+          <div class="stat"><span>Thickness</span>5–70 km (cont.)<br>5–10 km (ocean)</div>
+          <div class="stat"><span>Depth</span>0 – 100 km</div>
+          <div class="stat"><span>State</span>Solid Rock</div>
+        </div>
+        <div class="temp-badge" style="background:rgba(100,180,80,0.2); color:#90E070; border:1px solid rgba(100,200,60,0.3);">🌡 ~0°C – 900°C</div>
+      </div>
+    </div>
+
+    <div class="layer-card">
+      <div class="color-bar" style="background: linear-gradient(to bottom, #E8622A, #E8922A, #E8B85A);"></div>
+      <div>
+        <div class="layer-name">Mantle</div>
+        <div class="layer-sub">Upper &amp; Lower · Largest Layer</div>
+        <div class="layer-stats">
+          <div class="stat"><span>Thickness</span>~2,900 km</div>
+          <div class="stat"><span>Depth</span>100 – 2,900 km</div>
+          <div class="stat"><span>State</span>Solid / Plastic</div>
+        </div>
+        <div class="temp-badge" style="background:rgba(232,130,40,0.2); color:#F0A060; border:1px solid rgba(232,130,40,0.3);">🌡 900°C – 4,000°C</div>
+      </div>
+    </div>
+
+    <div class="layer-card">
+      <div class="color-bar" style="background: linear-gradient(to bottom, #6A7590, #909BB0, #A8B4C0);"></div>
+      <div>
+        <div class="layer-name">Outer Core</div>
+        <div class="layer-sub">Liquid Iron-Nickel · Generates Magnetic Field</div>
+        <div class="layer-stats">
+          <div class="stat"><span>Thickness</span>~2,200 km</div>
+          <div class="stat"><span>Depth</span>2,900 – 5,100 km</div>
+          <div class="stat"><span>State</span>Liquid Metal</div>
+        </div>
+        <div class="temp-badge" style="background:rgba(100,140,200,0.2); color:#90C0F0; border:1px solid rgba(100,140,200,0.3);">🌡 4,000°C – 5,000°C</div>
+      </div>
+    </div>
+
+    <div class="layer-card">
+      <div class="color-bar" style="background: linear-gradient(to bottom, #8A95A5, #B0BCC8, #E0E8F0);"></div>
+      <div>
+        <div class="layer-name">Inner Core</div>
+        <div class="layer-sub">Solid Iron-Nickel · Extreme Pressure</div>
+        <div class="layer-stats">
+          <div class="stat"><span>Radius</span>~1,278 km</div>
+          <div class="stat"><span>Depth</span>5,100 – 6,378 km</div>
+          <div class="stat"><span>State</span>Solid</div>
+        </div>
+        <div class="temp-badge" style="background:rgba(220,140,60,0.2); color:#F0C070; border:1px solid rgba(220,140,60,0.3);">🌡 ~5,000°C – 6,000°C</div>
+      </div>
+    </div>
+
+    <!-- Scale note -->
+    <div style="font-size:0.6rem; color:#555; text-align:right; margin-top:4px; letter-spacing:0.1em;">
+      TOTAL RADIUS: 6,378 km &nbsp;·&nbsp; NOT TO SCALE
+    </div>
+
+  </div>
+</div>
+
+<footer>Earth's Interior Structure &nbsp;·&nbsp; Geological Reference &nbsp;·&nbsp; Temperatures are approximate</footer>
+
+</body>
+</html>

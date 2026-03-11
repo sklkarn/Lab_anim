@@ -64,7 +64,7 @@
 
 #tab-basic:checked ~ .tab-labels label[for="tab-basic"],
 #tab-advanced:checked ~ .tab-labels label[for="tab-advanced"], 
-#tab-waves:checked ~ .tab-labels label[for="tab-waves"] {
+#tab-astronomy:checked ~ .tab-labels label[for="tab-astronomy"] {
   background: white;
   border-bottom: none;
   color: #2c3e50;
@@ -81,7 +81,7 @@
 
 #tab-basic:checked ~ #content-basic,
 #tab-advanced:checked ~ #content-advanced, 
-#tab-waves:checked ~ #content-waves {
+#tab-astronomy:checked ~ #content-astronomy {
   display: block;
 }
   </style>
@@ -95,44 +95,34 @@
   <!-- Hidden radio buttons control which tab is active -->
   <input type="radio" name="physics-tabs" id="tab-basic" checked>
   <input type="radio" name="physics-tabs" id="tab-advanced">
-  <input type="radio" name="physics-tabs" id="tab-waves">
+   <input type="radio" name="physics-tabs" id="tab-astronomy">
 
   <!-- Tab buttons/labels -->
   <div class="tab-labels">
-    <label for="tab-basic" class="tab-label">Basic & Mechanics</label>
-    <label for="tab-advanced" class="tab-label">Electromagnetism & Modern Physics</label>
-    <label for="tab-waves" class="tab-label">Waves & Thermodynamics</label>
-  </div>
+    <label for="tab-basic" class="tab-label">Basic</label>
+    <label for="tab-advanced" class="tab-label">Advanced</label>
+    <label for="tab-astronomy" class="tab-label">Astronomy</label>
+     </div>
 
   <!-- Tab contents -->
   <div class="tab-content" id="content-basic">
-    <h2>Basic Demos</h2>
+    <h2>Basic</h2>
     <ul>
       <li><a href="retrograde.html">Retrograde Motion</a></li>
-      <li><a href="spectra.html">Dispersion of Light Through a Prism</a></li>
+      <li><a href="spectra.html">Dispersion of Light</a></li>
       <li><a href="tide.html">Tides</a></li>
-       <li><a href="centrForce2.html">Centripetal Force</a></li>
       <li><a href="Hatom.html">Hydrogen Atom</a></li>
        <li><a href="periodic_table.html">Periodic Table</a></li>
-      <li><a href="eclipse.html">Eclipse</a></li>
-      <li><a href="rainbow.html">Rainbow Formation</a></li>
-      <li><a href="double_rainbow.html">Double Rainbow Formation</a></li>
+      <li><a href="rainbow.html">Rainbow </a></li>
+      <li><a href="double_rainbow.html">Double Rainbow </a></li>
       <li><a href="color-mixing.html">Color Mixing Schema</a></li>
       <li><a href="solenoid.html">Magnetic Field of a Solenoid</a></li>
-      <li><a href="solar_system.html">Solar System</a></li>
-       <li><a href="laws_of_reflection.html">Law's of Reflection of Light</a></li>
+       <li><a href="laws_of_reflection.html">Reflection of Light</a></li>
          <li><a href="cyclone_anticyc.html">Cyclone and Anticyclone</a></li>
-          <li><a href="angular_momentum.html">Angular Momentum</a></li>
-           <li><a href="archimedes.html">Archimedes' Principle</a></li>
-            <li><a href="collision.html">Collision Lab</a></li>
              <li><a href="double_rainbow.html">Double Rainbow Formation</a></li>
-              <li><a href="tsunami.html">Tsunami</a></li>
-               <li><a href="earthquake-globe.html">Earthquake</a></li>
                 <li><a href="derivatives_animation.html">Derivatives Animation</a></li>
-                 <li><a href="history_of_universe.html">History of the Universe</a></li>
-                  <li><a href="bigbang-timeline.html">Big Bang Timeline</a></li>
-                   <li><a href="bigbang2.html">Big Bang</a></li>
-                          <li><a href="milkyway_map.html">Milky Way</a></li>
+                <li><a href="gas-laws.html">Gas Laws</a></li>
+              <li><a href="water-phase.html">Water Phase Changes</a></li>
               </ul>
 
     <h2>Mechanics</h2>
@@ -142,16 +132,20 @@
       <li><a href="FreeFall.html">Free Fall Lab</a></li>
       <li><a href="ball-ramp.html">Ball on Ramp Lab</a></li>
       <li><a href="bubble.html">Speed of a Bubble Lab</a></li>
+      <li><a href="centrForce2.html">Centripetal Force</a></li>
       <li><a href="torque.html">Moment of a Force Lab</a></li>
       <li><a href="viscosity.html">Viscosity Lab</a></li>
       <li><a href="pendulum.html">Simple Pendulum Lab</a></li>
       <li><a href="projectile.html">Projectile Motion Lab</a></li>
       <li><a href="spring-mass.html">Spring Mass System</a></li>
+        <li><a href="collision.html">Collision Lab</a></li>
+       <li><a href="angular_momentum.html">Angular Momentum</a></li>
+        <li><a href="archimedes.html">Archimedes' Principle</a></li>
          </ul>
   </div>
 
   <div class="tab-content" id="content-advanced">
-    <h2>Electromagnetism</h2>
+    <h2>Advanced</h2>
     <ul>
        <li><a href="acdc.html">AC & DC Currents</a></li>
       <li><a href="magcharge.html">Moving Charge in a Magnetic Field</a></li>
@@ -165,9 +159,11 @@
       <li><a href="velocity_selector.html">Velocity Selector</a></li>
       <li><a href="mass_spectrograph.html">Mass Spectrograph</a></li>
       <li><a href="magTorq_circ.html">Magnetic Torque on a Circular Loop</a></li>
-        <li><a href="parallel_conductors.html">Parallel Conductors Carrying Current</a></li>
+        <li><a href="parallel_conductors.html">Parallel Current Carrying Conductors </a></li>
        <li><a href="transformer.html">Transformer</a></li>
-         <li><a href="diffraction.html">Single SlitDiffraction</a></li>
+         <li><a href="diffraction.html">Single Slit Diffraction</a></li>
+           <li><a href="gas-laws.html">Gas Laws</a></li>
+              <li><a href="water-phase.html">Water Phase Changes</a></li>
     </ul>
 
     <h2>Modern Physics</h2>
@@ -180,23 +176,34 @@
       <li><a href="relativistic_headlight.html">Relativistic Headlight</a></li>
       <li><a href="photoelectric_effect.html">Photoelectric Effect</a></li>
       <li><a href="compton_effect.html">Compton Effect</a></li>
-    </ul>
-  </div>
-
-
-   <div class="tab-content" id="content-waves">
-    <h2>Waves</h2>
-    <ul>
-        <li><a href="waves.html">Longitudinal Waves and Transverse Waves</a></li>
+       <li><a href="waves.html">Longitudinal Waves and Transverse Waves</a></li>
           <li><a href="electromagnetic_spectrum.html">Electromagnetic Spectrum</a></li>
       <li><a href="doubleslitInterf.html">Double Slit Experiment</a></li>
        <li><a href="doppler_effect.html">Doppler Effect Experiment</a></li>
     </ul>
+  </div>
 
-    <h2>Thermodynamics</h2>
+
+   <div class="tab-content" id="content-astronomy">
+    <h2>Astronomy</h2>
     <ul>
-               <li><a href="gas-laws.html">Gas Laws</a></li>
-              <li><a href="water-phase.html">Water Phase Changes</a></li>
+       <li><a href="eclipse.html">Eclipse</a></li>
+        <li><a href="solar_system.html">Solar System</a></li>
+         <li><a href="history_of_universe.html">History of the Universe</a></li>
+                  <li><a href="bigbang-timeline.html">Big Bang Timeline</a></li>
+                   <li><a href="bigbang2.html">Big Bang</a></li>
+                          <li><a href="milkyway_map.html">Milky Way</a></li>
+    </ul>
+
+    <h2>Earth Science</h2>
+    <ul>
+       <li><a href="globe.html">The Earth</a></li>
+        <li><a href="earth_cross_section.html">Layers of the Earth</a></li>
+       <li><a href="tsunami.html">Tsunami</a></li>
+               <li><a href="earthquake-globe.html">Earthquake</a></li>
+                 <li><a href="atmospheric_layers.html">Atmospheric Layers</a></li>
+                   <li><a href="earths_seasons.html">Seasons on Earth</a></li>
+                <li><a href="ocean-basin.html">Ocean Basins</a></li>
       </ul>
   </div>
 

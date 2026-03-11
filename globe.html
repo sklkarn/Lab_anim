@@ -1,0 +1,596 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotating Globe — Dr. S Karna</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@300;400;600;700&family=Rajdhani:wght@300;400;500&display=swap');
+
+  :root {
+    --ocean-light: #1a6090;
+    --ocean-dark:  #082040;
+    --land:        #2d8a45;
+    --land-lite:   #3da055;
+    --ice:         #c8dff0;
+    --gold:        #ffd080;
+    --cyan:        #64c8ff;
+    --night:       #000816;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: radial-gradient(ellipse at 40% 40%, #050d1f 0%, #000308 70%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Stars */
+  #stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+
+  /* Top-right corner label */
+  .top-right {
+    position: fixed;
+    top: 22px;
+    right: 28px;
+    text-align: right;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .instructor-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--cyan), #fff, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px rgba(100,200,255,0.5));
+  }
+  .instructor-role {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 4px;
+    color: rgba(100,200,255,0.55);
+    text-transform: uppercase;
+  }
+
+
+  /* Scene */
+  .scene {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    z-index: 1;
+  }
+
+  .sublabel {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 300;
+    color: rgba(100,200,255,0.45);
+    font-size: 11px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+  }
+
+  /* Tilt 23.5° */
+  .tilt {
+    transform: rotate(-23.5deg);
+    position: relative;
+    filter:
+      drop-shadow(0 0 60px rgba(255,180,50,0.25))
+      drop-shadow(0 0 30px rgba(30,100,255,0.3));
+  }
+  /* Axis line */
+  .tilt::before, .tilt::after {
+    content:'';
+    position:absolute;
+    left:50%; width:1.5px;
+    background: linear-gradient(to bottom, transparent, rgba(100,200,255,0.55), transparent);
+    transform:translateX(-50%);
+    z-index:10; pointer-events:none;
+  }
+  .tilt::before { top:-70px; height:70px; }
+  .tilt::after  { bottom:-70px; height:70px; }
+
+  .pole { position:absolute; left:50%; width:7px; height:7px; border-radius:50%;
+    transform:translateX(-50%); z-index:11;
+    background:rgba(150,220,255,0.9);
+    box-shadow:0 0 8px rgba(100,200,255,1); }
+  .pole-n { top:-74px; }
+  .pole-s { bottom:-74px; }
+
+  .globe-wrapper {
+    width:340px; height:340px;
+    border-radius:50%;
+    position:relative; overflow:hidden;
+    box-shadow:
+      0 0 100px rgba(255,180,50,0.28),
+      0 0 180px rgba(20,80,255,0.12);
+  }
+
+  /* Specular */
+  .globe-wrapper::before {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 30% 26%,
+      rgba(255,255,220,0.24) 0%,
+      rgba(255,255,200,0.09) 20%,
+      transparent 48%);
+    z-index:7; pointer-events:none;
+  }
+  /* Atmosphere rim */
+  .globe-wrapper::after {
+    content:''; position:absolute; inset:-12px; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%,
+      rgba(180,220,255,0.06) 40%,
+      rgba(80,160,255,0.2) 65%,
+      rgba(30,80,220,0.28) 78%,
+      rgba(10,30,150,0.1) 88%,
+      transparent 100%);
+    pointer-events:none; z-index:5;
+  }
+
+  .map-strip {
+    position:absolute; top:0; left:0;
+    width:200%; height:100%;
+    animation: spin 16s linear infinite;
+  }
+  @keyframes spin {
+    from { transform:translateX(0); }
+    to   { transform:translateX(-50%); }
+  }
+  #mapCanvas { display:block; height:340px; width:1020px; }
+
+  #termCanvas {
+    position:absolute; inset:0;
+    border-radius:50%; z-index:4; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<!-- Top-right: name -->
+<div class="top-right">
+  <div class="instructor-name">Dr. S Karna</div>
+  <div class="instructor-role">Instructor</div>
+</div>
+
+<div class="scene">
+  <div class="sublabel">Earth — 23.5° Axial Tilt</div>
+
+  <div class="tilt">
+    <div class="pole pole-n"></div>
+    <div class="pole pole-s"></div>
+
+    <div class="globe-wrapper" id="globeWrapper">
+      <div class="map-strip">
+        <canvas id="mapCanvas"></canvas>
+      </div>
+      <canvas id="termCanvas" width="340" height="340"></canvas>
+    </div>
+  </div>
+
+  <div class="sublabel">Rotating Globe</div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   STAR FIELD
+════════════════════════════════════════════════ */
+(function(){
+  const s = document.getElementById('stars');
+  s.width  = window.innerWidth;
+  s.height = window.innerHeight;
+  const sc = s.getContext('2d');
+  for(let i=0;i<280;i++){
+    const x=Math.random()*s.width, y=Math.random()*s.height;
+    const r=Math.random()*1.2+0.2;
+    const a=Math.random()*0.85+0.15;
+    sc.beginPath(); sc.arc(x,y,r,0,Math.PI*2);
+    sc.fillStyle=`rgba(255,255,255,${a})`; sc.fill();
+  }
+})();
+
+/* ════════════════════════════════════════════════
+   CONTINENT DATA
+   Points are [lon, lat] in degrees, converted to
+   equirectangular [x,y] on the map strip.
+════════════════════════════════════════════════ */
+const GH = 340, GW = 340;
+
+// Helper: lon (-180..180) → x (0..1),  lat (90..-90) → y (0..1)
+function ll(lon,lat){ return [(lon+180)/360, (90-lat)/180]; }
+
+const continents = [
+  {
+    name:'North America',
+    color:'#3a8c50',
+    // Rough outline going clockwise
+    pts:[
+      ll(-168,72),ll(-140,70),ll(-120,68),ll(-85,73),ll(-65,83),ll(-60,75),
+      ll(-50,70),ll(-55,47),ll(-67,44),ll(-70,42),ll(-76,34),ll(-80,25),
+      ll(-87,15),ll(-83,9),ll(-78,8),ll(-77,8),ll(-85,11),ll(-92,15),
+      ll(-90,21),ll(-95,22),ll(-97,26),ll(-97,19),ll(-104,19),ll(-109,23),
+      ll(-110,28),ll(-117,32),ll(-120,34),ll(-124,37),ll(-124,46),
+      ll(-130,54),ll(-137,58),ll(-140,59),ll(-145,60),ll(-152,57),
+      ll(-158,58),ll(-162,60),ll(-165,62),ll(-168,66),ll(-168,72)
+    ]
+  },
+  {
+    name:'Greenland',
+    color:'#5aaa6e',
+    pts:[
+      ll(-58,83),ll(-25,83),ll(-18,77),ll(-22,70),ll(-26,68),ll(-43,59),
+      ll(-48,61),ll(-54,68),ll(-58,76),ll(-58,83)
+    ]
+  },
+  {
+    name:'South America',
+    color:'#3a8c50',
+    pts:[
+      ll(-80,8),ll(-77,8),ll(-63,11),ll(-60,4),ll(-52,5),ll(-50,2),
+      ll(-48,-1),ll(-35,-5),ll(-35,-10),ll(-38,-15),ll(-40,-20),
+      ll(-44,-23),ll(-43,-23),ll(-48,-28),ll(-52,-33),ll(-58,-38),
+      ll(-62,-45),ll(-65,-55),ll(-68,-55),ll(-75,-52),ll(-72,-46),
+      ll(-70,-40),ll(-72,-30),ll(-70,-18),ll(-75,-10),ll(-80,-2),
+      ll(-80,8)
+    ]
+  },
+  {
+    name:'Europe',
+    color:'#4a9a60',
+    pts:[
+      ll(-10,36),ll(-8,38),ll(-9,44),ll(-2,44),ll(2,43),ll(3,44),
+      ll(8,44),ll(13,45),ll(17,41),ll(19,40),ll(20,38),ll(22,37),
+      ll(26,38),ll(28,41),ll(30,40),ll(32,46),ll(30,46),ll(26,45),
+      ll(24,48),ll(22,50),ll(18,50),ll(15,51),ll(14,54),ll(10,55),
+      ll(5,54),ll(5,58),ll(0,61),ll(5,62),ll(10,63),ll(15,66),
+      ll(18,69),ll(26,71),ll(28,70),ll(30,65),ll(28,60),ll(23,60),
+      ll(25,58),ll(27,57),ll(22,56),ll(18,57),ll(14,58),ll(10,58),
+      ll(8,58),ll(5,60),ll(4,54),ll(8,54),ll(10,50),ll(6,50),
+      ll(2,50),ll(2,47),ll(-5,48),ll(-5,44),ll(-8,44),ll(-10,36)
+    ]
+  },
+  {
+    name:'Africa',
+    color:'#6aaa3a',
+    pts:[
+      ll(-18,16),ll(-16,13),ll(-15,11),ll(-13,9),ll(-10,6),
+      ll(-8,5),ll(-3,5),ll(1,6),ll(4,7),ll(8,4),ll(9,2),
+      ll(11,2),ll(13,2),ll(16,4),ll(18,3),ll(20,5),ll(22,4),
+      ll(24,4),ll(27,2),ll(30,1),ll(34,-1),ll(36,-2),ll(40,-3),
+      ll(40,-8),ll(36,-15),ll(35,-20),ll(35,-25),ll(32,-30),
+      ll(30,-32),ll(26,-34),ll(20,-35),ll(18,-34),ll(16,-30),
+      ll(13,-25),ll(12,-18),ll(12,-15),ll(10,-5),ll(9,3),
+      ll(8,5),ll(2,5),ll(0,5),ll(-5,5),ll(-8,5),ll(-15,10),
+      ll(-18,14),ll(-18,16)
+    ]
+  },
+  {
+    name:'Asia',
+    color:'#4a9a60',
+    pts:[
+      ll(26,71),ll(40,72),ll(60,73),ll(80,74),ll(100,73),ll(120,72),
+      ll(140,72),ll(160,70),ll(170,66),ll(180,66),ll(180,50),
+      ll(165,50),ll(155,52),ll(145,45),ll(135,34),ll(125,32),
+      ll(120,25),ll(110,20),ll(105,12),ll(100,3),ll(103,-1),
+      ll(105,-5),ll(110,-8),ll(110,-10),ll(105,-8),ll(100,-5),
+      ll(104,1),ll(103,1),ll(100,2),ll(98,3),ll(96,5),
+      ll(80,10),ll(78,8),ll(72,22),ll(68,22),ll(62,22),
+      ll(58,22),ll(55,25),ll(50,28),ll(44,37),ll(38,37),
+      ll(36,38),ll(32,44),ll(30,40),ll(28,41),ll(26,45),
+      ll(30,46),ll(36,48),ll(40,50),ll(44,42),ll(48,38),
+      ll(52,36),ll(54,32),ll(58,28),ll(62,24),ll(66,26),
+      ll(68,28),ll(72,30),ll(78,30),ll(80,28),ll(88,28),
+      ll(92,28),ll(100,28),ll(100,22),ll(104,20),ll(110,22),
+      ll(116,30),ll(120,36),ll(124,40),ll(130,44),ll(134,48),
+      ll(138,52),ll(140,56),ll(135,60),ll(132,64),ll(140,68),
+      ll(145,65),ll(150,60),ll(155,58),ll(160,56),ll(160,50),
+      ll(150,46),ll(145,44),ll(140,38),ll(136,36),ll(134,32),
+      ll(130,32),ll(124,24),ll(120,22),ll(108,18),ll(104,10),
+      ll(100,8),ll(100,4),ll(104,1),ll(100,-5),ll(104,-8),
+      ll(118,-8),ll(115,-4),ll(108,-7),ll(105,-8),ll(104,-1),
+      ll(110,4),ll(116,8),ll(120,12),ll(120,18),ll(122,24),
+      ll(122,30),ll(118,32),ll(114,36),ll(112,38),ll(120,42),
+      ll(122,48),ll(130,50),ll(136,52),ll(140,54),ll(140,60),
+      ll(136,64),ll(130,68),ll(120,70),ll(100,72),ll(80,74),
+      ll(60,73),ll(40,72),ll(26,71)
+    ]
+  },
+  {
+    name:'Australia',
+    color:'#c8a030',
+    pts:[
+      ll(114,-22),ll(116,-20),ll(122,-18),ll(124,-14),ll(130,-12),
+      ll(132,-12),ll(136,-12),ll(138,-14),ll(140,-18),ll(142,-18),
+      ll(144,-18),ll(148,-20),ll(150,-22),ll(152,-24),ll(154,-26),
+      ll(152,-28),ll(154,-30),ll(152,-34),ll(150,-36),ll(148,-38),
+      ll(144,-38),ll(140,-36),ll(136,-36),ll(132,-34),ll(130,-32),
+      ll(126,-34),ll(122,-34),ll(118,-34),ll(116,-34),ll(114,-30),
+      ll(112,-26),ll(114,-22)
+    ]
+  },
+  {
+    name:'Antarctica',
+    color:'#d8eaf8',
+    pts:[
+      ll(-180,-70),ll(-140,-68),ll(-100,-66),ll(-60,-68),ll(-20,-70),
+      ll(20,-68),ll(60,-66),ll(100,-68),ll(140,-70),ll(180,-70),
+      ll(180,-90),ll(-180,-90),ll(-180,-70)
+    ]
+  },
+  {
+    name:'Arctic Ice',
+    color:'#d8eaf8',
+    pts:[
+      ll(-180,84),ll(-120,82),ll(-60,84),ll(0,86),ll(60,84),
+      ll(120,82),ll(180,84),ll(180,90),ll(-180,90),ll(-180,84)
+    ]
+  }
+];
+
+// Continent label positions [lon, lat]
+const contLabels = [
+  { name:'N. America', lon:-100, lat:45, color:'#fff' },
+  { name:'S. America', lon:-60,  lat:-15, color:'#fff' },
+  { name:'Europe',     lon:15,   lat:50,  color:'#fff' },
+  { name:'Africa',     lon:20,   lat:5,   color:'#fff' },
+  { name:'Asia',       lon:90,   lat:45,  color:'#fff' },
+  { name:'Australia',  lon:134,  lat:-26, color:'#fff' },
+];
+
+/* ════════════════════════════════════════════════
+   MAP CANVAS RENDERING
+════════════════════════════════════════════════ */
+const canvas = document.getElementById('mapCanvas');
+const ctx    = canvas.getContext('2d');
+canvas.height = GH;
+canvas.width  = GW * 3;
+
+function drawHalf(ox) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(ox, 0, GW, GH); ctx.clip();
+
+  // Ocean gradient
+  const og = ctx.createLinearGradient(ox, 0, ox+GW, GH);
+  og.addColorStop(0,   '#1a6090');
+  og.addColorStop(0.45,'#1565a0');
+  og.addColorStop(1,   '#082040');
+  ctx.fillStyle = og;
+  ctx.fillRect(ox, 0, GW, GH);
+
+  // Ocean shimmer lines
+  ctx.strokeStyle = 'rgba(100,180,255,0.07)';
+  ctx.lineWidth = 0.5;
+  for(let i=0.05; i<1; i+=0.08){
+    ctx.beginPath();
+    ctx.moveTo(ox, i*GH);
+    ctx.lineTo(ox+GW, (i+0.03)*GH);
+    ctx.stroke();
+  }
+
+  // Continents
+  for(const cont of continents){
+    ctx.beginPath();
+    const first = cont.pts[0];
+    ctx.moveTo(ox + first[0]*GW, first[1]*GH);
+    for(let i=1;i<cont.pts.length;i++){
+      ctx.lineTo(ox + cont.pts[i][0]*GW, cont.pts[i][1]*GH);
+    }
+    ctx.closePath();
+
+    // Fill with subtle gradient
+    const lg = ctx.createLinearGradient(ox, 0, ox+GW, GH);
+    lg.addColorStop(0, lighten(cont.color, 20));
+    lg.addColorStop(1, darken(cont.color, 20));
+    ctx.fillStyle = lg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,30,0,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(150,210,255,0.10)';
+  ctx.lineWidth = 0.5;
+  for(let lat=0.1; lat<1; lat+=0.1){
+    ctx.beginPath(); ctx.moveTo(ox, lat*GH); ctx.lineTo(ox+GW, lat*GH); ctx.stroke();
+  }
+  for(let lon=0.1; lon<1; lon+=0.1){
+    ctx.beginPath(); ctx.moveTo(ox+lon*GW, 0); ctx.lineTo(ox+lon*GW, GH); ctx.stroke();
+  }
+  // Equator
+  ctx.strokeStyle = 'rgba(100,210,255,0.30)';
+  ctx.lineWidth = 1.0;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(ox, GH*0.5); ctx.lineTo(ox+GW, GH*0.5); ctx.stroke();
+  // Tropics
+  ctx.strokeStyle = 'rgba(255,200,100,0.18)';
+  ctx.lineWidth = 0.7;
+  ctx.setLineDash([2,6]);
+  const tropicN = (90-23.5)/180;
+  const tropicS = (90+23.5)/180;
+  ctx.beginPath(); ctx.moveTo(ox, tropicN*GH); ctx.lineTo(ox+GW, tropicN*GH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, tropicS*GH); ctx.lineTo(ox+GW, tropicS*GH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Continent labels
+  ctx.font = 'bold 9px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  for(const lb of contLabels){
+    const [lx,ly] = ll(lb.lon, lb.lat);
+    const px = ox + lx*GW;
+    const py = ly*GH;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillText(lb.name, px+1, py+1);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(lb.name, px, py);
+  }
+
+  ctx.restore();
+}
+
+function lighten(hex, amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,((n>>16)&0xff)+amt);
+  const g=Math.min(255,((n>>8)&0xff)+amt);
+  const b=Math.min(255,(n&0xff)+amt);
+  return `rgb(${r},${g},${b})`;
+}
+function darken(hex, amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.max(0,((n>>16)&0xff)-amt);
+  const g=Math.max(0,((n>>8)&0xff)-amt);
+  const b=Math.max(0,(n&0xff)-amt);
+  return `rgb(${r},${g},${b})`;
+}
+
+drawHalf(0); drawHalf(GW); drawHalf(GW*2);
+
+/* ════════════════════════════════════════════════
+   TERMINATOR OVERLAY
+════════════════════════════════════════════════ */
+const tC = document.getElementById('termCanvas');
+const tX = tC.getContext('2d');
+const R  = 170;
+
+(function drawTerminator(){
+  tX.clearRect(0,0,340,340);
+  tX.save();
+  tX.beginPath(); tX.arc(R,R,R,0,Math.PI*2); tX.clip();
+
+  // Dayside warm glow (left)
+  const dg = tX.createRadialGradient(100,140,0, 100,140,300);
+  dg.addColorStop(0.00,'rgba(255,240,180,0.30)');
+  dg.addColorStop(0.25,'rgba(255,220,150,0.18)');
+  dg.addColorStop(0.55,'rgba(180,200,255,0.06)');
+  dg.addColorStop(1.00,'rgba(0,0,0,0)');
+  tX.fillStyle = dg; tX.fillRect(0,0,340,340);
+
+  // Nightside dark (right)
+  const ng = tX.createRadialGradient(240,170,20, 230,170,210);
+  ng.addColorStop(0.00,'rgba(0,0,12,0.88)');
+  ng.addColorStop(0.30,'rgba(0,0,16,0.80)');
+  ng.addColorStop(0.60,'rgba(0,0,20,0.45)');
+  ng.addColorStop(0.85,'rgba(0,0,10,0.10)');
+  ng.addColorStop(1.00,'rgba(0,0,0,0)');
+  tX.fillStyle = ng; tX.fillRect(0,0,340,340);
+
+  // Terminator glow
+  const tg = tX.createLinearGradient(155,0,195,0);
+  tg.addColorStop(0,  'rgba(255,160,60,0.00)');
+  tg.addColorStop(0.4,'rgba(255,150,50,0.20)');
+  tg.addColorStop(0.6,'rgba(255,130,30,0.14)');
+  tg.addColorStop(1,  'rgba(255,100,20,0.00)');
+  tX.fillStyle = tg; tX.fillRect(148,0,55,340);
+
+  // City lights
+  const lights = [
+    [235,108],[245,113],[228,120],[238,126],[250,120],
+    [242,130],[232,135],[255,130],[262,124],[268,132],
+    [222,145],[232,148],[244,152],[256,144],[234,158],
+    [244,162],[252,156],[224,170],[235,174],[225,185],
+    [228,118],[218,112],[260,140],[265,136]
+  ];
+  for(const [cx,cy] of lights){
+    const dist = Math.hypot(cx-230, cy-170);
+    const a = Math.min(0.65, dist/130) * 0.75;
+    tX.beginPath(); tX.arc(cx,cy,1.3,0,Math.PI*2);
+    tX.fillStyle=`rgba(255,230,140,${a})`; tX.fill();
+  }
+
+  tX.restore();
+})();
+
+/* ════════════════════════════════════════════════
+   DOWNLOAD
+════════════════════════════════════════════════ */
+function downloadGlobe(){
+  // Render composite to an offscreen canvas
+  const out = document.createElement('canvas');
+  out.width = 800; out.height = 600;
+  const oc = out.getContext('2d');
+
+  // Dark background
+  const bg = oc.createRadialGradient(300,250,0, 400,300,600);
+  bg.addColorStop(0,'#050d1f'); bg.addColorStop(1,'#000308');
+  oc.fillStyle = bg; oc.fillRect(0,0,800,600);
+
+  // Stars
+  for(let i=0;i<220;i++){
+    oc.beginPath();
+    oc.arc(Math.random()*800, Math.random()*600, Math.random()*1.1+0.2, 0, Math.PI*2);
+    oc.fillStyle=`rgba(255,255,255,${Math.random()*0.8+0.15})`; oc.fill();
+  }
+
+  // Title
+  oc.font = 'bold 16px Orbitron, monospace';
+  oc.textAlign = 'right';
+  oc.fillStyle = '#fff';
+  oc.fillText('Dr. S Karna', 780, 36);
+  oc.font = '11px Rajdhani, sans-serif';
+  oc.fillStyle = 'rgba(100,200,255,0.6)';
+  oc.letterSpacing = '4px';
+  oc.fillText('INSTRUCTOR', 780, 54);
+
+  oc.font = '10px Orbitron, monospace';
+  oc.textAlign = 'center';
+  oc.fillStyle = 'rgba(100,200,255,0.45)';
+  oc.fillText('EARTH — 23.5° AXIAL TILT', 400, 30);
+
+  // Globe (grab the wrapper element)
+  const wrapper = document.getElementById('globeWrapper');
+  // Use html2canvas polyfill-free approach: draw map + terminator canvases
+  const px = (800 - 340)/2, py = (600 - 340)/2;
+
+  // Clip to circle
+  oc.save();
+  oc.beginPath(); oc.arc(px+170, py+170, 170, 0, Math.PI*2); oc.clip();
+
+  // Get current scroll position of map strip
+  const strip = document.querySelector('.map-strip');
+  const style = window.getComputedStyle(strip);
+  const matrix = new DOMMatrix(style.transform);
+  const offsetX = matrix.m41; // translateX value
+
+  // Draw map
+  oc.drawImage(canvas, -offsetX, 0, GW*3, GH, px, py, 340, 340);
+  // Draw terminator
+  oc.drawImage(tC, 0,0,340,340, px,py,340,340);
+  oc.restore();
+
+  // Atmosphere rim
+  const rim = oc.createRadialGradient(px+110,py+110, 60, px+170,py+170, 185);
+  rim.addColorStop(0.6,'rgba(80,160,255,0.0)');
+  rim.addColorStop(0.78,'rgba(60,130,230,0.22)');
+  rim.addColorStop(0.9,'rgba(20,60,180,0.18)');
+  rim.addColorStop(1,'rgba(0,0,0,0)');
+  oc.beginPath(); oc.arc(px+170,py+170,190,0,Math.PI*2);
+  oc.fillStyle=rim; oc.fill();
+
+  // Specular
+  const spec = oc.createRadialGradient(px+105,py+95, 0, px+105,py+95, 100);
+  spec.addColorStop(0,'rgba(255,255,220,0.2)');
+  spec.addColorStop(1,'rgba(255,255,200,0)');
+  oc.save(); oc.beginPath(); oc.arc(px+170,py+170,170,0,Math.PI*2); oc.clip();
+  oc.fillStyle=spec; oc.fillRect(px,py,340,340); oc.restore();
+}
+</script>
+</body>
+</html>

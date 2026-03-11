@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ocean Basin</title>
+<style>
+  body {
+    margin: 0;
+    background: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="413" height="590"></canvas>
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // ── DIAGRAM AREA (full canvas) ──
+  const diagY = 0;
+  const diagH = H;
+
+  // Sky
+  const sky = ctx.createLinearGradient(0, diagY, 0, diagY + diagH * 0.28);
+  sky.addColorStop(0, '#87ceeb');
+  sky.addColorStop(1, '#4da6d8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, diagY, W, diagH * 0.28);
+
+  const surfaceY = diagY + diagH * 0.28;
+
+  // Floor profile — geologically correct:
+  // Left coast → shelf → slope → trench → abyssal plain → MID-OCEAN RIDGE (center) → abyssal plain → slope → right coast
+  const floor = [
+    [0,    diagY + diagH*0.36],  // left coast
+    [30,   diagY + diagH*0.38],  // shelf flat
+    [70,   diagY + diagH*0.39],  // shelf flat
+    [100,  diagY + diagH*0.43],  // shelf edge
+    [125,  diagY + diagH*0.58],  // slope
+    [145,  diagY + diagH*0.72],  // slope base
+    [158,  diagY + diagH*0.90],  // trench wall
+    [168,  diagY + diagH*0.97],  // trench bottom
+    [178,  diagY + diagH*0.90],  // trench wall right
+    [200,  diagY + diagH*0.80],  // abyssal plain start
+    [240,  diagY + diagH*0.81],  // abyssal plain
+    [280,  diagY + diagH*0.80],  // abyssal plain approaching ridge
+    [310,  diagY + diagH*0.72],  // ridge flank left
+    [340,  diagY + diagH*0.58],  // ridge shoulder
+    [360,  diagY + diagH*0.46],  // ridge peak — CENTER of canvas
+    [380,  diagY + diagH*0.58],  // ridge shoulder right
+    [408,  diagY + diagH*0.72],  // ridge flank right
+    [413,  diagY + diagH*0.80],  // abyssal plain right
+  ];
+
+  // Water fill
+  ctx.beginPath();
+  ctx.moveTo(0, surfaceY);
+  ctx.lineTo(W, surfaceY);
+  ctx.lineTo(floor[floor.length-1][0], floor[floor.length-1][1]);
+  for (let i = floor.length - 2; i >= 0; i--) ctx.lineTo(floor[i][0], floor[i][1]);
+  ctx.closePath();
+  const waterFill = ctx.createLinearGradient(0, surfaceY, 0, H);
+  waterFill.addColorStop(0,   '#1a8fd1');
+  waterFill.addColorStop(0.35,'#0a4a80');
+  waterFill.addColorStop(1,   '#00060f');
+  ctx.fillStyle = waterFill;
+  ctx.fill();
+
+  // Seafloor crust
+  ctx.beginPath();
+  ctx.moveTo(floor[0][0], floor[0][1]);
+  for (let i = 1; i < floor.length; i++) ctx.lineTo(floor[i][0], floor[i][1]);
+  ctx.lineTo(W, H); ctx.lineTo(0, H);
+  ctx.closePath();
+  const crust = ctx.createLinearGradient(0, diagY + diagH*0.55, 0, H);
+  crust.addColorStop(0, '#3a5040');
+  crust.addColorStop(1, '#0e1a12');
+  ctx.fillStyle = crust;
+  ctx.fill();
+
+  // Surface line
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(0, surfaceY); ctx.lineTo(W, surfaceY); ctx.stroke();
+
+  // ── TITLE at very top ──
+  ctx.fillStyle = 'rgba(0, 25, 55, 0.92)';
+  ctx.fillRect(0, 0, W, 38);
+  ctx.strokeStyle = 'rgba(100,210,255,0.45)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(0, 38); ctx.lineTo(W, 38); ctx.stroke();
+  ctx.font = 'bold 20px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e8f6ff';
+  ctx.fillText('OCEAN BASIN', W / 2, 26);
+  // small decorative lines
+  ctx.strokeStyle = 'rgba(100,210,255,0.3)';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(20, 20); ctx.lineTo(90, 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W-20, 20); ctx.lineTo(W-90, 20); ctx.stroke();
+
+  // ── AQUATIC PLANTS on continental shelf ──
+
+  // Helper: draw a seagrass blade
+  function seagrassBlade(bx, by, height, lean, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx + lean * 0.5, by - height * 0.5, bx + lean, by - height);
+    ctx.stroke();
+  }
+
+  // Helper: draw a kelp frond
+  function kelpFrond(bx, by, height, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.bezierCurveTo(bx - 6, by - height * 0.4, bx + 8, by - height * 0.7, bx - 3, by - height);
+    ctx.stroke();
+    // small leaf blades off the stalk
+    for (let i = 0.3; i <= 0.85; i += 0.28) {
+      const lx = bx + (Math.sin(i * 10) * 4);
+      const ly = by - height * i;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.quadraticCurveTo(lx + 8, ly - 4, lx + 14, ly - 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.quadraticCurveTo(lx - 8, ly - 4, lx - 14, ly - 2);
+      ctx.stroke();
+    }
+  }
+
+  // Seagrass beds on the flat shelf (x: 10–70, floor ~diagH*0.38)
+  const shelfY = diagY + diagH * 0.375;
+  const grassPositions = [12,20,28,36,44,52,60,68];
+  grassPositions.forEach((gx, i) => {
+    const h = 14 + (i % 3) * 5;
+    const lean = (i % 2 === 0 ? 4 : -4);
+    seagrassBlade(gx, shelfY, h, lean, '#2e8b57');
+    seagrassBlade(gx + 2, shelfY, h - 4, lean * 0.5, '#3cb371');
+  });
+
+  // Kelp forest on the shelf edge (~x:80–110)
+  const kelpBase1Y = diagY + diagH * 0.415;
+  kelpFrond(82,  kelpBase1Y, 30, '#1a7a40');
+  kelpFrond(94,  kelpBase1Y + 4, 24, '#228b4a');
+  kelpFrond(106, kelpBase1Y + 8, 28, '#1e7a3c');
+
+  // Small algae patches on upper slope (x:120–145)
+  const slopeY = diagY + diagH * 0.565;
+  [122, 130, 138].forEach((ax, i) => {
+    const h = 8 + (i % 2) * 4;
+    seagrassBlade(ax, slopeY + i * 8, h, 3, '#1a6b40');
+    seagrassBlade(ax + 3, slopeY + i * 8, h - 3, -2, '#156035');
+  });
+
+  // Ridge glow — center of canvas
+  const rx = 360, ry = diagY + diagH * 0.46;
+  const grd = ctx.createRadialGradient(rx, ry, 0, rx, ry, 28);
+  grd.addColorStop(0, 'rgba(255,110,30,0.6)');
+  grd.addColorStop(1, 'rgba(255,60,0,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(rx, ry, 28, 0, Math.PI*2); ctx.fill();
+
+  // Bioluminescent dots in abyssal plain
+  [[215, diagY+diagH*0.82],[250,diagY+diagH*0.81],[390,diagY+diagH*0.82],[430,diagY+diagH*0.80]].forEach(([dx,dy]) => {
+    ctx.fillStyle = 'rgba(0,230,255,0.75)';
+    ctx.beginPath(); ctx.arc(dx, dy, 1.8, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Feature labels
+  ctx.font = 'bold 9px monospace';
+  const labels = [
+    { x: 10,  y: diagY+diagH*0.34,  text: 'Continental Shelf', color: '#c0e8ff', align: 'left' },
+    { x: 102, y: diagY+diagH*0.54,  text: 'Slope',             color: '#80c8e8', align: 'left' },
+    { x: 168, y: diagY+diagH*0.995, text: 'Trench',            color: '#80f0ff', align: 'center' },
+    { x: 240, y: diagY+diagH*0.78,  text: 'Abyssal Plain',     color: '#50a0c0', align: 'center' },
+    { x: 360, y: diagY+diagH*0.42,  text: 'Mid-Ocean Ridge',   color: '#ffaa66', align: 'center' },
+  ];
+  labels.forEach(l => {
+    ctx.fillStyle = l.color;
+    ctx.textAlign = l.align;
+    ctx.fillText(l.text, l.x, l.y);
+  });
+
+  // Sea level label
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = 'bold 8px monospace';
+  ctx.fillText('Sea Level', W - 6, surfaceY - 4);
+
+  // ── Instructor name at bottom ──
+  ctx.fillStyle = 'rgba(0, 20, 50, 0.55)';
+  ctx.fillRect(0, H - 28, W, 28);
+  ctx.strokeStyle = 'rgba(100,210,255,0.3)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(0, H - 28); ctx.lineTo(W, H - 28); ctx.stroke();
+
+  ctx.font = 'italic 11px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(180,220,255,0.75)';
+  ctx.fillText('Instructor:', 12, H - 10);
+
+  ctx.font = 'bold 12px Georgia, serif';
+  ctx.fillStyle = '#a8d8f0';
+  ctx.fillText('Dr. S Karna', 80, H - 10);
+</script>
+</body>
+</html>

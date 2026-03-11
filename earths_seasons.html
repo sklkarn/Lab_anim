@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earth's Seasons</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cinzel:wght@400;600&display=swap');
+
+  :root {
+    --space: #00040e;
+    --gold: #f0c060;
+    --silver: #b8cce0;
+    --spring: #7ecf6b;
+    --summer: #f7c948;
+    --autumn: #e07030;
+    --winter: #88c0e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--space);
+    color: var(--silver);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  /* ── Instructor badge ── */
+  .instructor {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    text-align: right;
+    z-index: 100;
+  }
+  .instructor-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(0.6rem, 1vw, 0.75rem);
+    letter-spacing: 0.12em;
+    color: var(--silver);
+    opacity: 0.45;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .instructor-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.72rem, 1.2vw, 0.92rem);
+    letter-spacing: 0.18em;
+    color: var(--gold);
+    opacity: 0.82;
+    display: block;
+  }
+  .instructor-rule {
+    margin-top: 4px;
+    height: 1px;
+    background: linear-gradient(to left, rgba(240,192,96,0.5), transparent);
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.85rem, 2vw, 1.4rem);
+    letter-spacing: 0.28em;
+    color: var(--gold);
+    opacity: 0.9;
+    margin-bottom: 0.15em;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-style: italic;
+    font-size: clamp(0.65rem, 1.2vw, 0.85rem);
+    opacity: 0.45;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.5em;
+  }
+
+  canvas { display: block; }
+
+  /* ── Season Timeline ── */
+  .timeline-wrap {
+    width: 100%;
+    max-width: 760px;
+    padding: 0 16px;
+    margin-top: 6px;
+  }
+
+  .timeline-track {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.07);
+    overflow: visible;
+  }
+
+  .timeline-track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: linear-gradient(to right,
+      #88c0e8 0% 25%,
+      #7ecf6b 25% 50%,
+      #f7c948 50% 75%,
+      #e07030 75% 100%);
+    opacity: 0.35;
+  }
+
+  .timeline-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 3px;
+    transition: width 0.05s linear, background 0.8s ease;
+    background: var(--gold);
+    opacity: 0.85;
+  }
+
+  .timeline-needle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px 3px currentColor;
+    transition: left 0.05s linear, color 0.8s ease, background 0.8s ease;
+    z-index: 2;
+  }
+
+  .timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+
+  .tl-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 25%;
+    gap: 2px;
+  }
+
+  .tl-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+    margin-bottom: 2px;
+    transition: box-shadow 0.4s;
+  }
+  .tl-dot.active {
+    box-shadow: 0 0 8px 2px currentColor;
+    border-color: currentColor;
+  }
+
+  .tl-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.52rem, 1vw, 0.72rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    transition: opacity 0.4s, color 0.4s;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .tl-name.active { opacity: 1; }
+
+  .tl-dates {
+    font-style: italic;
+    font-size: clamp(0.48rem, 0.9vw, 0.65rem);
+    opacity: 0.35;
+    text-align: center;
+    line-height: 1.2;
+    transition: opacity 0.4s;
+  }
+  .tl-dates.active { opacity: 0.7; }
+
+  .bottom-row {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-top: 8px;
+  }
+
+  .season-label {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.82rem, 1.6vw, 1.1rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    transition: color 1s ease;
+    white-space: nowrap;
+  }
+
+  .info {
+    font-style: italic;
+    font-size: clamp(0.62rem, 1.1vw, 0.8rem);
+    opacity: 0.5;
+    letter-spacing: 0.06em;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.8em;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  button {
+    background: transparent;
+    border: 1px solid rgba(240,192,96,0.35);
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    padding: 0.38em 0.9em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  button:hover { background: rgba(240,192,96,0.1); border-color: var(--gold); }
+
+  .speed-label { font-size: 0.7rem; opacity: 0.45; letter-spacing: 0.1em; }
+  input[type=range] { accent-color: var(--gold); width: 72px; }
+</style>
+</head>
+<body>
+
+<!-- Instructor Badge -->
+<div class="instructor">
+  <span class="instructor-label">Instructor</span>
+  <span class="instructor-name">Dr. S Karna</span>
+  <div class="instructor-rule"></div>
+</div>
+
+<h1>EARTH'S SEASONS</h1>
+<p class="subtitle">axial tilt · orbital mechanics · solar illumination</p>
+
+<canvas id="c"></canvas>
+
+<!-- Timeline -->
+<div class="timeline-wrap">
+  <div class="timeline-track">
+    <div class="timeline-fill" id="tlFill"></div>
+    <div class="timeline-needle" id="tlNeedle"></div>
+  </div>
+  <div class="timeline-labels">
+    <div class="tl-item" id="tl0">
+      <div class="tl-dot" style="color:#88c0e8" id="dot0"></div>
+      <div class="tl-name" id="tlname0">Winter<br>Solstice</div>
+      <div class="tl-dates" id="tldates0">Dec 21–22<br>~8.7 hrs daylight</div>
+    </div>
+    <div class="tl-item" id="tl1">
+      <div class="tl-dot" style="color:#7ecf6b" id="dot1"></div>
+      <div class="tl-name" id="tlname1">Spring<br>Equinox</div>
+      <div class="tl-dates" id="tldates1">Mar 19–21<br>~12 hrs daylight</div>
+    </div>
+    <div class="tl-item" id="tl2">
+      <div class="tl-dot" style="color:#f7c948" id="dot2"></div>
+      <div class="tl-name" id="tlname2">Summer<br>Solstice</div>
+      <div class="tl-dates" id="tldates2">Jun 20–21<br>~15.3 hrs daylight</div>
+    </div>
+    <div class="tl-item" id="tl3">
+      <div class="tl-dot" style="color:#e07030" id="dot3"></div>
+      <div class="tl-name" id="tlname3">Autumn<br>Equinox</div>
+      <div class="tl-dates" id="tldates3">Sep 22–23<br>~12 hrs daylight</div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-row" style="max-width:760px;width:100%;padding:0 16px;">
+  <div class="season-label" id="seasonLabel">—</div>
+  <div class="info" id="infoText"></div>
+  <div class="controls">
+    <button id="pauseBtn">PAUSE</button>
+    <span class="speed-label">SPD</span>
+    <input type="range" id="speedRange" min="0.2" max="4" step="0.1" value="1">
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const maxH = vh - 190;
+  const size = Math.min(vw * 0.95, maxH / 0.5, 780);
+  canvas.width = Math.round(size);
+  canvas.height = Math.round(size * 0.5);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const W = () => canvas.width;
+const H = () => canvas.height;
+
+let angle = Math.PI;
+let paused = false;
+let speed = 1.0;
+const TILT = 23.4 * Math.PI / 180;
+const ORBIT_SPEED = 0.004;
+
+document.getElementById('pauseBtn').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? 'RESUME' : 'PAUSE';
+});
+document.getElementById('speedRange').addEventListener('input', function() {
+  speed = parseFloat(this.value);
+});
+
+const seasonData = [
+  { name: 'WINTER SOLSTICE', color: '#88c0e8',
+    info: 'N. Hemisphere tilted away from Sun. Shortest day (~8.7 hrs), longest night.' },
+  { name: 'SPRING EQUINOX',  color: '#7ecf6b',
+    info: 'Axis perpendicular to Sun. Equal day & night (~12 hrs) across the globe.' },
+  { name: 'SUMMER SOLSTICE', color: '#f7c948',
+    info: 'N. Hemisphere tilted toward Sun. Longest day (~15.3 hrs), shortest night.' },
+  { name: 'AUTUMN EQUINOX',  color: '#e07030',
+    info: 'Axis perpendicular to Sun. Equal day & night (~12 hrs) across the globe.' },
+];
+
+function getSeasonIndex(a) {
+  const norm = ((a % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+  if (norm < Math.PI*0.25 || norm >= Math.PI*1.75) return 2;
+  if (norm < Math.PI*0.75) return 3;
+  if (norm < Math.PI*1.25) return 0;
+  return 1;
+}
+
+function timelineProgress(a) {
+  const norm = ((a % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+  return (((norm - Math.PI) + Math.PI*2) % (Math.PI*2)) / (Math.PI*2);
+}
+
+const stars = Array.from({length: 200}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random()*1.5+0.3,
+  alpha: Math.random()*0.6+0.3,
+  twinkle: Math.random()*Math.PI*2
+}));
+let starT = 0;
+
+function drawStars() {
+  starT += 0.015;
+  stars.forEach(s => {
+    const a = s.alpha*(0.7+0.3*Math.sin(s.twinkle+starT));
+    ctx.beginPath();
+    ctx.arc(s.x*W(), s.y*H(), s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,220,255,${a})`;
+    ctx.fill();
+  });
+}
+
+function drawSun(cx, cy, r) {
+  [4.5,3.2,2.0,1.2].forEach((m,i) => {
+    const alpha = [0.05,0.09,0.17,0.30][i];
+    const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,r*m);
+    grad.addColorStop(0,`rgba(255,230,100,${alpha})`);
+    grad.addColorStop(1,'rgba(255,160,0,0)');
+    ctx.beginPath(); ctx.arc(cx,cy,r*m,0,Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+  });
+  const rayCount = 14;
+  for (let i=0;i<rayCount;i++) {
+    const ra = (i/rayCount)*Math.PI*2;
+    const inner=r*1.05, outer=r*(1.38+0.1*Math.sin(ra*3+starT));
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(ra)*inner, cy+Math.sin(ra)*inner);
+    ctx.lineTo(cx+Math.cos(ra)*outer, cy+Math.sin(ra)*outer);
+    ctx.strokeStyle='rgba(255,220,80,0.3)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  const sunGrad = ctx.createRadialGradient(cx-r*0.25,cy-r*0.2,r*0.1,cx,cy,r);
+  sunGrad.addColorStop(0,'#fff8e0'); sunGrad.addColorStop(0.35,'#ffe060');
+  sunGrad.addColorStop(0.75,'#ffaa10'); sunGrad.addColorStop(1,'#e06000');
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=sunGrad; ctx.fill();
+}
+
+function drawOrbit(cx,cy,rx,ry) {
+  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(180,200,240,0.12)'; ctx.lineWidth=1;
+  ctx.setLineDash([4,9]); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawEarth(ex,ey,r,orbitAngle) {
+  const terminatorTilt = Math.sin(orbitAngle)*TILT;
+  const si = getSeasonIndex(orbitAngle);
+  const glowColor = seasonData[si].color;
+
+  const glowGrad = ctx.createRadialGradient(ex,ey,r*0.8,ex,ey,r*2.4);
+  glowGrad.addColorStop(0,glowColor+'28'); glowGrad.addColorStop(1,'transparent');
+  ctx.beginPath(); ctx.arc(ex,ey,r*2.4,0,Math.PI*2);
+  ctx.fillStyle=glowGrad; ctx.fill();
+
+  ctx.save(); ctx.translate(ex,ey);
+
+  const dayGrad = ctx.createRadialGradient(-r*0.3,-r*0.3,r*0.1,0,0,r);
+  dayGrad.addColorStop(0,'#b8e8ff'); dayGrad.addColorStop(0.4,'#4090d0');
+  dayGrad.addColorStop(0.85,'#1a4a8a'); dayGrad.addColorStop(1,'#0a1e40');
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle=dayGrad; ctx.fill();
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='rgba(55,135,65,0.78)';
+  [[0.10,-0.16,0.27,0.37],[-0.36,-0.10,0.21,0.30],[0.24,0.10,0.19,0.24],
+   [-0.10,0.22,0.17,0.21],[-0.16,-0.36,0.31,0.19]].forEach(([lx,ly,lw,lh]) => {
+    ctx.beginPath(); ctx.ellipse(lx*r,ly*r,lw*r,lh*r,lx*0.8,0,Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+
+  ctx.save(); ctx.rotate(terminatorTilt);
+  const nightGrad = ctx.createLinearGradient(0,0,r,0);
+  nightGrad.addColorStop(0,'rgba(2,6,18,0.0)');
+  nightGrad.addColorStop(0.35,'rgba(2,6,18,0.55)');
+  nightGrad.addColorStop(1,'rgba(2,6,18,0.97)');
+  ctx.beginPath(); ctx.arc(0,0,r,-Math.PI/2,Math.PI/2);
+  ctx.closePath(); ctx.fillStyle=nightGrad; ctx.fill();
+  ctx.restore();
+
+  const axisAngle = -Math.PI/2+terminatorTilt;
+  const iceR = r*0.22;
+  ctx.save(); ctx.rotate(axisAngle);
+  ctx.beginPath(); ctx.ellipse(0,-r*0.82,iceR*0.9,iceR*0.36,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(220,240,255,0.85)'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,r*0.82,iceR*0.9,iceR*0.36,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(220,240,255,0.75)'; ctx.fill();
+  ctx.restore();
+
+  const atmGrad = ctx.createRadialGradient(0,0,r*0.88,0,0,r*1.10);
+  atmGrad.addColorStop(0,'rgba(100,180,255,0.0)');
+  atmGrad.addColorStop(0.6,'rgba(100,180,255,0.20)');
+  atmGrad.addColorStop(1,'rgba(60,140,255,0.0)');
+  ctx.beginPath(); ctx.arc(0,0,r*1.10,0,Math.PI*2);
+  ctx.fillStyle=atmGrad; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(120,180,255,0.38)'; ctx.lineWidth=1.3; ctx.stroke();
+
+  const axLen=r*1.6;
+  const ax=Math.cos(axisAngle), ay=Math.sin(axisAngle);
+  ctx.beginPath();
+  ctx.moveTo(-ax*axLen,-ay*axLen); ctx.lineTo(ax*axLen,ay*axLen);
+  ctx.strokeStyle='rgba(255,240,160,0.42)'; ctx.lineWidth=1;
+  ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+  [[-1],[1]].forEach(([s]) => {
+    ctx.beginPath(); ctx.arc(s*ax*r*0.97,s*ay*r*0.97,2.8,0,Math.PI*2);
+    ctx.fillStyle='#fff0a0'; ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function drawSolarRays(sx,sy,ex,ey,earthR) {
+  const dx=ex-sx,dy=ey-sy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const nx=dx/dist,ny=dy/dist;
+  const px=-ny,py=nx;
+  const spread=earthR*1.8;
+  for (let i=0;i<7;i++) {
+    const t=(i/6-0.5)*2;
+    const x0=sx+px*t*spread*0.35, y0=sy+py*t*spread*0.35;
+    const x1=ex+px*t*spread,      y1=ey+py*t*spread;
+    const grad=ctx.createLinearGradient(x0,y0,x1,y1);
+    grad.addColorStop(0,'rgba(255,220,80,0.25)');
+    grad.addColorStop(1,'rgba(255,220,80,0.0)');
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1);
+    ctx.strokeStyle=grad; ctx.lineWidth=1.8; ctx.stroke();
+  }
+}
+
+function drawSeasonMarkers(cx,cy,rx,ry) {
+  const markers = [
+    {a:0,           label:'SUMMER\nSOLSTICE', color:'#f7c948'},
+    {a:Math.PI/2,   label:'AUTUMN\nEQUINOX',  color:'#e07030'},
+    {a:Math.PI,     label:'WINTER\nSOLSTICE', color:'#88c0e8'},
+    {a:Math.PI*1.5, label:'SPRING\nEQUINOX',  color:'#7ecf6b'},
+  ];
+  markers.forEach(m => {
+    const mx=cx+Math.cos(m.a)*(rx*1.16);
+    const my=cy+Math.sin(m.a)*(ry*1.22);
+    ctx.save();
+    ctx.font=`${Math.max(7,W()*0.011)}px Cinzel, serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=m.color+'60';
+    const lines=m.label.split('\n'), lh=W()*0.015;
+    lines.forEach((line,i) => {
+      ctx.fillText(line, mx, my+(i-(lines.length-1)/2)*lh);
+    });
+    ctx.restore();
+  });
+}
+
+let lastSI = -1;
+const tlFill=document.getElementById('tlFill');
+const tlNeedle=document.getElementById('tlNeedle');
+const seasonLabel=document.getElementById('seasonLabel');
+const infoText=document.getElementById('infoText');
+
+function updateTimeline(a) {
+  const prog=timelineProgress(a);
+  tlFill.style.width=(prog*100)+'%';
+  tlNeedle.style.left=(prog*100)+'%';
+  const si=getSeasonIndex(a);
+  const sd=seasonData[si];
+  tlNeedle.style.color=sd.color;
+  tlNeedle.style.background=sd.color;
+  tlFill.style.background=sd.color;
+  for (let i=0;i<4;i++) {
+    const active=(i===si);
+    document.getElementById(`dot${i}`).classList.toggle('active',active);
+    document.getElementById(`tlname${i}`).classList.toggle('active',active);
+    document.getElementById(`tldates${i}`).classList.toggle('active',active);
+  }
+  if (si!==lastSI) {
+    lastSI=si;
+    seasonLabel.textContent=sd.name;
+    seasonLabel.style.color=sd.color;
+    infoText.textContent=sd.info;
+  }
+}
+
+function draw() {
+  const w=W(),h=H();
+  ctx.clearRect(0,0,w,h);
+  const bgGrad=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.7);
+  bgGrad.addColorStop(0,'#00091a'); bgGrad.addColorStop(1,'#00040e');
+  ctx.fillStyle=bgGrad; ctx.fillRect(0,0,w,h);
+
+  drawStars();
+
+  const sunR=Math.max(20,w*0.055);
+  const sx=w*0.5, sy=h*0.5;
+  const orbitRx=w*0.355, orbitRy=h*0.30;
+
+  drawOrbit(sx,sy,orbitRx,orbitRy);
+  drawSeasonMarkers(sx,sy,orbitRx,orbitRy);
+
+  const ex=sx+Math.cos(angle)*orbitRx;
+  const ey=sy+Math.sin(angle)*orbitRy;
+  const earthR=Math.max(16,w*0.048);
+
+  drawSolarRays(sx,sy,ex,ey,earthR);
+  drawSun(sx,sy,sunR);
+  drawEarth(ex,ey,earthR,angle);
+  updateTimeline(angle);
+
+  if (!paused) {
+    angle+=ORBIT_SPEED*speed;
+    if (angle>=Math.PI*2) angle-=Math.PI*2;
+  }
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
