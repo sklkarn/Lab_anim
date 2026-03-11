@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geological Time Scale</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hadean: #1a0a2e;
+    --archean: #2d1b00;
+    --proterozoic: #1a2800;
+    --paleozoic: #003320;
+    --mesozoic: #002233;
+    --cenozoic: #1a0033;
+    --gold: #c9a84c;
+    --amber: #e8b84b;
+    --cream: #f5ead0;
+    --stone: #8c7355;
+    --bg: #0a0706;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Crimson Pro', serif;
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 80px 20px 60px;
+    position: relative;
+    background: radial-gradient(ellipse at center top, #1e0e00 0%, var(--bg) 70%);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+
+  .header-kicker {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.2rem, 6vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: var(--cream);
+    line-height: 1.1;
+    margin-bottom: 16px;
+    text-shadow: 0 0 60px rgba(201,168,76,0.3);
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--stone);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+
+  .age-badge {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 6px 20px;
+    border: 1px solid rgba(201,168,76,0.3);
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 28px 20px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: #a89070;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAIN TIMELINE CONTAINER */
+  .timeline-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 20px;
+  }
+
+  /* EON SECTION */
+  .eon {
+    margin-bottom: 8px;
+    border-radius: 2px;
+    overflow: visible;
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  .eon:nth-child(1) { animation-delay: 0.1s; }
+  .eon:nth-child(2) { animation-delay: 0.2s; }
+  .eon:nth-child(3) { animation-delay: 0.3s; }
+  .eon:nth-child(4) { animation-delay: 0.4s; }
+  .eon:nth-child(5) { animation-delay: 0.5s; }
+  .eon:nth-child(6) { animation-delay: 0.6s; }
+
+  .eon-header {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 0;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .eon-header:hover .eon-label {
+    filter: brightness(1.2);
+  }
+
+  .eon-label {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    transition: filter 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .eon-label::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .eon-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    margin-bottom: 4px;
+  }
+
+  .eon-time {
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    color: #fff;
+  }
+
+  .eon-summary {
+    padding: 16px 22px;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    border-left: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .eon-desc {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #b8a080;
+    font-style: italic;
+  }
+
+  /* TOGGLE ARROW */
+  .toggle-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px; height: 24px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.5);
+    transition: all 0.3s ease;
+  }
+
+  .eon.open .toggle-btn {
+    transform: translateY(-50%) rotate(180deg);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* ERAS CONTAINER */
+  .eras-container {
+    display: none;
+    border-left: 3px solid rgba(201,168,76,0.15);
+    margin-left: 20px;
+  }
+
+  .eon.open .eras-container {
+    display: block;
+    animation: slideDown 0.4s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ERA */
+  .era {
+    margin: 4px 0;
+  }
+
+  .era-header {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .era-header:hover .era-label {
+    filter: brightness(1.15);
+  }
+
+  .era-label {
+    padding: 14px 18px;
+    transition: filter 0.2s;
+    position: relative;
+  }
+
+  .era-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .era-time {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .era-content {
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    border-left: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .era-desc {
+    font-size: 0.85rem;
+    color: #9a8060;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* PERIODS CONTAINER */
+  .periods-container {
+    display: none;
+    border-left: 2px solid rgba(201,168,76,0.1);
+    margin-left: 16px;
+  }
+
+  .era.open .periods-container {
+    display: block;
+    animation: slideDown 0.3s ease;
+  }
+
+  /* PERIOD */
+  .period {
+    margin: 3px 0;
+  }
+
+  .period-header {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .period-header:hover {
+    opacity: 0.9;
+  }
+
+  .period-label {
+    padding: 11px 15px;
+  }
+
+  .period-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: #e8d5b0;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+
+  .period-time {
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.45);
+  }
+
+  .period-content {
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .period-desc {
+    font-size: 0.82rem;
+    color: #8a7050;
+    font-style: italic;
+    line-height: 1.35;
+  }
+
+  /* EPOCHS */
+  .epochs-container {
+    display: none;
+    padding: 4px 0 4px 140px;
+    background: rgba(0,0,0,0.15);
+    border-left: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .period.open .epochs-container {
+    display: block;
+    animation: slideDown 0.3s ease;
+  }
+
+  .epoch-row {
+    display: flex;
+    gap: 12px;
+    padding: 7px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    align-items: flex-start;
+  }
+
+  .epoch-row:last-child { border-bottom: none; }
+
+  .epoch-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+    min-width: 110px;
+    padding-top: 1px;
+  }
+
+  .epoch-time {
+    font-size: 0.63rem;
+    color: rgba(255,255,255,0.35);
+    min-width: 85px;
+    padding-top: 2px;
+  }
+
+  .epoch-events {
+    font-size: 0.78rem;
+    color: #7a6848;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  /* EVENTS / EXTINCTION TAGS */
+  .event-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .tag {
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-size: 0.63rem;
+    letter-spacing: 0.05em;
+    font-family: 'Cinzel', serif;
+    font-style: normal;
+  }
+
+  .tag-life {
+    background: rgba(40,100,40,0.3);
+    border: 1px solid rgba(60,160,60,0.3);
+    color: #80c880;
+  }
+
+  .tag-extinction {
+    background: rgba(150,20,20,0.3);
+    border: 1px solid rgba(220,40,40,0.3);
+    color: #e86060;
+  }
+
+  .tag-geo {
+    background: rgba(80,60,20,0.4);
+    border: 1px solid rgba(160,120,40,0.3);
+    color: #c8a050;
+  }
+
+  .tag-climate {
+    background: rgba(20,60,100,0.4);
+    border: 1px solid rgba(40,120,200,0.3);
+    color: #60a8e0;
+  }
+
+  /* COLOR SCHEMES per eon */
+  .hadean .eon-label { background: linear-gradient(135deg, #3d0a0a, #1a0520); }
+  .archean .eon-label { background: linear-gradient(135deg, #3d1a00, #1a0a00); }
+  .proterozoic .eon-label { background: linear-gradient(135deg, #1a3300, #0a1a00); }
+  .paleozoic-eon .eon-label { background: linear-gradient(135deg, #00331a, #001a0d); }
+  .mesozoic-eon .eon-label { background: linear-gradient(135deg, #003366, #001a33); }
+  .cenozoic-eon .eon-label { background: linear-gradient(135deg, #330033, #1a001a); }
+
+  /* ERA colors */
+  .era-cambrian .era-label { background: linear-gradient(135deg, #1a3d1a, #0d1f0d); }
+  .era-ordovician .era-label { background: linear-gradient(135deg, #1a3d2a, #0d1f15); }
+  .era-silurian .era-label { background: linear-gradient(135deg, #1a3d30, #0d1f18); }
+  .era-devonian .era-label { background: linear-gradient(135deg, #3d2a00, #1f1500); }
+  .era-carboniferous .era-label { background: linear-gradient(135deg, #2a3d1a, #151f0d); }
+  .era-permian .era-label { background: linear-gradient(135deg, #3d1a1a, #1f0d0d); }
+  .era-triassic .era-label { background: linear-gradient(135deg, #003d3d, #001f1f); }
+  .era-jurassic .era-label { background: linear-gradient(135deg, #003d1a, #001f0d); }
+  .era-cretaceous .era-label { background: linear-gradient(135deg, #1a3d00, #0d1f00); }
+  .era-paleogene .era-label { background: linear-gradient(135deg, #3d003d, #1f001f); }
+  .era-neogene .era-label { background: linear-gradient(135deg, #3d1a3d, #1f0d1f); }
+  .era-quaternary .era-label { background: linear-gradient(135deg, #1a003d, #0d001f); }
+
+  /* PERIOD colors */
+  .period-label { background: rgba(255,255,255,0.02); }
+
+  /* SCALE BAR */
+  .scale-bar {
+    display: flex;
+    margin: 40px 0 60px;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  }
+
+  .scale-hadean { background: linear-gradient(to right, #3d0a0a, #2d0818); flex: 4; }
+  .scale-archean { background: linear-gradient(to right, #3d1a00, #2d1400); flex: 15; }
+  .scale-proterozoic { background: linear-gradient(to right, #1a3300, #0f2200); flex: 20; }
+  .scale-paleozoic { background: linear-gradient(to right, #003320, #002215); flex: 3; }
+  .scale-mesozoic { background: linear-gradient(to right, #003366, #002244); flex: 2; }
+  .scale-cenozoic { background: linear-gradient(to right, #330033, #220022); flex: 0.5; }
+
+  .scale-caption {
+    font-size: 0.7rem;
+    color: #5a4a35;
+    letter-spacing: 0.1em;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    margin-bottom: 50px;
+    text-transform: uppercase;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.4em;
+    color: var(--stone);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .section-title::before,
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(201,168,76,0.2));
+  }
+
+  .section-title::after {
+    background: linear-gradient(to left, transparent, rgba(201,168,76,0.2));
+  }
+
+  /* TOGGLE INDICATOR */
+  .era-toggle, .period-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.55rem;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.3s;
+  }
+
+  .era-header { position: relative; }
+  .period-header { position: relative; }
+
+  .era.open .era-toggle,
+  .period.open .period-toggle {
+    color: var(--gold);
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 60px 20px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.75rem;
+    color: #3a2a1a;
+    letter-spacing: 0.1em;
+    font-family: 'Cinzel', serif;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .eon-header { grid-template-columns: 130px 1fr; }
+    .era-header { grid-template-columns: 120px 1fr; }
+    .period-header { grid-template-columns: 110px 1fr; }
+    .epochs-container { padding-left: 100px; }
+    h1 { font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div style="position:fixed;top:18px;right:24px;z-index:999;font-family:'Cinzel',serif;font-size:0.75rem;letter-spacing:0.15em;color:#c9a84c;background:rgba(10,7,6,0.85);border:1px solid rgba(201,168,76,0.25);padding:7px 16px;border-radius:2px;backdrop-filter:blur(4px);">
+  Instructor: Dr. S Karna
+</div>
+
+<header>
+  <p class="header-kicker">Earth History · 4.6 Billion Years</p>
+  <h1>Geological<br>Time Scale</h1>
+  <p class="subtitle">From the formation of Earth to the present day</p>
+  <span class="age-badge">4,600 Ma — Present</span>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#80c880"></span> Life event</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#e86060"></span> Extinction event</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#c8a050"></span> Geological event</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#60a8e0"></span> Climate event</div>
+</div>
+
+<div class="timeline-wrapper">
+
+  <p class="section-title">Proportional time scale</p>
+
+  <div class="scale-bar">
+    <div class="scale-hadean" title="Hadean"></div>
+    <div class="scale-archean" title="Archean"></div>
+    <div class="scale-proterozoic" title="Proterozoic"></div>
+    <div class="scale-paleozoic" title="Paleozoic"></div>
+    <div class="scale-mesozoic" title="Mesozoic"></div>
+    <div class="scale-cenozoic" title="Cenozoic"></div>
+  </div>
+  <p class="scale-caption">Proportional representation — each segment represents relative duration</p>
+
+  <p class="section-title">Click any row to expand</p>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HADEAN EON -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon hadean" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Hadean</span>
+        <span class="eon-time">4,600 – 4,000 Ma</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">Formation of Earth, Moon, oceans, and earliest crust. Intense meteorite bombardment. No preserved rocks.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+      <div class="era">
+        <div class="era-header era-cambrian" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#3d1500,#200b00)">
+            <p class="era-name">Pre-Nectarian</p>
+            <p class="era-time">4,600 – 4,100 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content">
+            <p class="era-desc">Earth forms from solar nebula. Magma ocean solidifies. Earliest Moon-forming impact (~4,510 Ma).</p>
+          </div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,20,0,0.4)">
+                <p class="period-name">Formation</p>
+                <p class="period-time">4,600 – 4,510 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Accretion of Earth from protoplanetary disk. Differentiation into core, mantle, crust.</p>
+                <div class="event-tags"><span class="tag tag-geo">Earth accretes</span><span class="tag tag-geo">Core forms</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Giant Impact</span>
+                <span class="epoch-time">~4,510 Ma</span>
+                <span class="epoch-events">Theia collides with proto-Earth; debris forms the Moon. Earth tilts 23.5° on axis.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Magma Ocean</span>
+                <span class="epoch-time">4,510–4,400 Ma</span>
+                <span class="epoch-events">Global magma ocean cools over millions of years. Heavy bombardment by planetesimals.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,20,0,0.4)">
+                <p class="period-name">Late Heavy Bombardment</p>
+                <p class="period-time">4,100 – 3,800 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Intense asteroid bombardment. Possible delivery of water by carbonaceous chondrites. Earliest zircons (~4,404 Ma).</p>
+                <div class="event-tags"><span class="tag tag-geo">Heavy impacts</span><span class="tag tag-climate">Oceans form</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Jack Hills Zircons</span>
+                <span class="epoch-time">4,404 Ma</span>
+                <span class="epoch-events">Oldest known minerals on Earth. Evidence for liquid water and proto-continental crust.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">First Oceans</span>
+                <span class="epoch-time">~4,300 Ma</span>
+                <span class="epoch-events">Liquid water stabilizes on surface. Outgassing and cometary delivery. Anoxic atmosphere of N₂, CO₂, H₂O.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ARCHEAN EON -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon archean" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Archean</span>
+        <span class="eon-time">4,000 – 2,500 Ma</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">First stable cratons. Earliest life (stromatolites). Anoxic oceans. No ozone layer.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#3d2000,#1f1000)">
+            <p class="era-name">Eoarchean</p>
+            <p class="era-time">4,000 – 3,600 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Formation of first stable continental crust (Acasta Gneiss, ~4,031 Ma). Isua greenstone belt (Greenland) — earliest metasedimentary rocks.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(50,25,0,0.4)">
+                <p class="period-name">First Crust</p>
+                <p class="period-time">4,000 – 3,700 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Acasta Gneiss forms (~4,031 Ma, NWT Canada). Isua Greenstone Belt — oldest known supracrustal rocks.</p>
+                <div class="event-tags"><span class="tag tag-geo">Acasta Gneiss</span><span class="tag tag-life">Possible biosignatures</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Acasta Gneiss</span>
+                <span class="epoch-time">4,031 Ma</span>
+                <span class="epoch-events">Oldest known intact rock on Earth. Tonalite-trondhjemite-granodiorite (TTG) composition.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Isua Belt</span>
+                <span class="epoch-time">3,770 Ma</span>
+                <span class="epoch-events">Possible oldest chemical biosignatures (carbon isotope ratios). Controversial microfossil claims.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#2a2000,#150f00)">
+            <p class="era-name">Paleoarchean</p>
+            <p class="era-time">3,600 – 3,200 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Earliest definitive microfossils. Stromatolites appear. Pilbara Craton (Australia) forms.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(40,30,0,0.4)">
+                <p class="period-name">Earliest Life</p>
+                <p class="period-time">3,500 – 3,200 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Apex Chert microfossils (~3,465 Ma). Stromatolites in Pilbara, Australia. First anoxygenic photosynthesis.</p>
+                <div class="event-tags"><span class="tag tag-life">First microfossils</span><span class="tag tag-life">Stromatolites</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Apex Chert</span>
+                <span class="epoch-time">3,465 Ma</span>
+                <span class="epoch-events">Filamentous microfossils. Possibly earliest prokaryotic life, though debated among scientists.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Dresser Stromatolites</span>
+                <span class="epoch-time">3,480 Ma</span>
+                <span class="epoch-events">Among oldest undisputed stromatolites. Layered mats built by microbial communities in shallow seas.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#1a2a00,#0d1500)">
+            <p class="era-name">Neoarchean</p>
+            <p class="era-time">2,800 – 2,500 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Peak continental crust formation. First supercontinent Vaalbara. Oxygenic photosynthesis begins. Banded iron formations.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,35,0,0.4)">
+                <p class="period-name">Oxygenic Photosynthesis</p>
+                <p class="period-time">2,700 – 2,500 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Cyanobacteria evolve. Begin releasing O₂ into ocean. Banded iron formations record early oxygen. Supercontinent Kenorland forms.</p>
+                <div class="event-tags"><span class="tag tag-life">Cyanobacteria</span><span class="tag tag-geo">Banded iron formations</span><span class="tag tag-climate">O₂ rises</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">BIFs Peak</span>
+                <span class="epoch-time">2,700–2,500 Ma</span>
+                <span class="epoch-events">Banded iron formations (BIFs) deposited globally. Iron-rich ocean precipitates as O₂ oxidizes dissolved Fe²⁺.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Kenorland</span>
+                <span class="epoch-time">~2,700 Ma</span>
+                <span class="epoch-events">First proposed supercontinent assembles. Tectonic recycling accelerates. Greenstone belts form.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PROTEROZOIC EON -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon proterozoic" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Proterozoic</span>
+        <span class="eon-time">2,500 – 541 Ma</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">Great Oxidation Event. Snowball Earth glaciations. Eukaryotes and multicellular life emerge. Rodinia & Pangaea precursors.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#1a3d00,#0d1f00)">
+            <p class="era-name">Paleoproterozoic</p>
+            <p class="era-time">2,500 – 1,600 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Great Oxidation Event (~2,400 Ma) transforms atmosphere. Huronian glaciation. First eukaryotes (~2,100 Ma). Columbia supercontinent.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,50,0,0.4)">
+                <p class="period-name">Siderian / GOE</p>
+                <p class="period-time">2,500 – 2,050 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Great Oxidation Event: atmospheric O₂ rises from ~0% to ~1–2%. Huronian Glaciation. Methane greenhouse collapse. "Oxygen catastrophe" for anaerobes.</p>
+                <div class="event-tags"><span class="tag tag-climate">Great Oxidation Event</span><span class="tag tag-extinction">Anaerobe die-off</span><span class="tag tag-climate">Huronian Glaciation</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">GOE Onset</span>
+                <span class="epoch-time">~2,400 Ma</span>
+                <span class="epoch-events">Atmospheric oxygen rises sharply. Methane destroyed, triggering global cooling. Redbeds appear in rock record.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Huronian Ice Age</span>
+                <span class="epoch-time">2,400–2,100 Ma</span>
+                <span class="epoch-events">Possibly earliest near-global glaciation. Three distinct glacial episodes recorded in Canadian Shield.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,50,0,0.4)">
+                <p class="period-name">Rhyacian – Statherian</p>
+                <p class="period-time">2,050 – 1,600 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">First eukaryotes (Grypania spiralis ~2,100 Ma). Columbia/Nuna supercontinent assembles. Endosymbiosis hypothesis origins.</p>
+                <div class="event-tags"><span class="tag tag-life">First eukaryotes</span><span class="tag tag-geo">Columbia supercontinent</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Grypania</span>
+                <span class="epoch-time">~2,100 Ma</span>
+                <span class="epoch-events">Coiled eukaryotic alga — first evidence of nucleus-bearing cells. Marks dawn of complexity.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Columbia Assembly</span>
+                <span class="epoch-time">~1,800 Ma</span>
+                <span class="epoch-events">Supercontinent Columbia (Nuna) fully assembled. Interior continental environment dominates.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#1a3320,#0d1a10)">
+            <p class="era-name">Mesoproterozoic</p>
+            <p class="era-time">1,600 – 1,000 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">"The Boring Billion" — relative biological and climatic stability. Sexual reproduction evolves. Rodinia assembles.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,45,15,0.4)">
+                <p class="period-name">Calymmian – Ectasian</p>
+                <p class="period-time">1,600 – 1,200 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Columbia breaks apart. Platform covers spread. Sexual reproduction first documented (~1,200 Ma red algae). Multicellular algae diversify.</p>
+                <div class="event-tags"><span class="tag tag-life">Sexual reproduction</span><span class="tag tag-geo">Columbia rifts</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Bangiomorpha</span>
+                <span class="epoch-time">~1,200 Ma</span>
+                <span class="epoch-events">Oldest known sexually reproducing organism — a multicellular red alga with preserved cell differentiation.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,45,15,0.4)">
+                <p class="period-name">Stenian / Rodinia</p>
+                <p class="period-time">1,200 – 1,000 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Grenvillian orogeny. Rodinia supercontinent assembles (~1,100 Ma). Greenschist metamorphism widespread.</p>
+                <div class="event-tags"><span class="tag tag-geo">Rodinia forms</span><span class="tag tag-geo">Grenvillian orogeny</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Rodinia Assembly</span>
+                <span class="epoch-time">~1,100–1,000 Ma</span>
+                <span class="epoch-events">All major cratons merge into Rodinia. Located near equator. Grenville mountain belt rivaling modern Himalayas.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="era">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label" style="background:linear-gradient(135deg,#003d3a,#001f1d)">
+            <p class="era-name">Neoproterozoic</p>
+            <p class="era-time">1,000 – 541 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Snowball Earth events. Ediacaran biota — first animals. Rodinia breaks up. Cambrian explosion precursors.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,50,48,0.4)">
+                <p class="period-name">Cryogenian</p>
+                <p class="period-time">720 – 635 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Sturtian (~720 Ma) and Marinoan (~635 Ma) glaciations — ice sheets reach equator (Snowball Earth). Rodinia rifts apart.</p>
+                <div class="event-tags"><span class="tag tag-climate">Snowball Earth ×2</span><span class="tag tag-geo">Rodinia breaks up</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Sturtian Glaciation</span>
+                <span class="epoch-time">717–660 Ma</span>
+                <span class="epoch-events">First Snowball Earth event. Global average temperature ~−50°C. Equatorial ice sheets kilometres thick.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Marinoan Glaciation</span>
+                <span class="epoch-time">650–635 Ma</span>
+                <span class="epoch-events">Second global glaciation. Ends abruptly with extreme greenhouse CO₂ buildup. Cap carbonates deposited worldwide.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,50,48,0.4)">
+                <p class="period-name">Ediacaran</p>
+                <p class="period-time">635 – 541 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Ediacaran biota — first macroscopic multicellular animals (Dickinsonia, Charnia). Nervous system precursors. Avalon Explosion.</p>
+                <div class="event-tags"><span class="tag tag-life">First animals</span><span class="tag tag-life">Ediacaran biota</span><span class="tag tag-extinction">Ediacaran mass extinction</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Avalon Explosion</span>
+                <span class="epoch-time">~575 Ma</span>
+                <span class="epoch-events">Sudden appearance of frond-like Ediacaran organisms. Rangeomorpha dominate. Soft-bodied, no skeletons.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Dickinsonia</span>
+                <span class="epoch-time">~558 Ma</span>
+                <span class="epoch-events">Oval quilted organism up to 1.4 m. Confirmed animal by cholesterol biomarkers. Moves and feeds on microbial mats.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Ediacaran Extinction</span>
+                <span class="epoch-time">~541 Ma</span>
+                <span class="epoch-events">All Ediacaran organisms disappear. Replaced by Cambrian fauna. Possibly outcompeted by motile, predatory animals.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PALEOZOIC ERA -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon paleozoic-eon" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Paleozoic</span>
+        <span class="eon-time">541 – 252 Ma</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">Cambrian Explosion to Great Dying. Fish, amphibians, reptiles, insects. Gondwana & Pangaea. Five major mass extinctions.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+
+      <div class="era era-cambrian">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Cambrian</p>
+            <p class="era-time">541 – 485 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Cambrian Explosion (~539 Ma): most animal phyla appear. Trilobites dominate. Burgess Shale fauna. Simple ecosystems diversify rapidly.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,60,30,0.35)">
+                <p class="period-name">Terreneuvian</p>
+                <p class="period-time">541 – 521 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Explosion of skeletal fauna. Small shelly fossils. Earliest trilobites (~521 Ma). Cambrian substrate revolution.</p>
+                <div class="event-tags"><span class="tag tag-life">Cambrian Explosion</span><span class="tag tag-life">First trilobites</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Fortunian</span>
+                <span class="epoch-time">541–529 Ma</span>
+                <span class="epoch-events">Small shelly fossils (SSFs) appear. Cloudina and Namacalathus — first skeletal organisms. Trace fossils indicate burrowing.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Age 2</span>
+                <span class="epoch-time">529–521 Ma</span>
+                <span class="epoch-events">Archaeocyatha reefs. Earliest trilobites (Fallotaspis). Chengjiang Biota — remarkable soft-tissue preservation.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,60,30,0.35)">
+                <p class="period-name">Furongian</p>
+                <p class="period-time">497 – 485 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Late Cambrian extinction events (SPICE event). Archaeocyatha decline. Echinoderms and brachiopods diversify.</p>
+                <div class="event-tags"><span class="tag tag-extinction">SPICE extinction</span><span class="tag tag-life">Echinoderms diversify</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">SPICE Event</span>
+                <span class="epoch-time">~499 Ma</span>
+                <span class="epoch-events">Steptoean Positive Carbon Isotope Excursion — oceanic anoxia causes major trilobite turnover. ~40% genera lost.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-ordovician">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Ordovician</p>
+            <p class="era-time">485 – 444 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">GOBE: Great Ordovician Biodiversification. Marine invertebrates dominate. First land plants (mosses). Ends with 1st mass extinction.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,60,40,0.35)">
+                <p class="period-name">Great Biodiversification</p>
+                <p class="period-time">485 – 460 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Marine diversity triples. Graptolites, crinoids, brachiopods flourish. Jawless fish (ostracoderms). First terrestrial organisms (liverworts ~470 Ma).</p>
+                <div class="event-tags"><span class="tag tag-life">GOBE</span><span class="tag tag-life">First land plants</span><span class="tag tag-life">First fish</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Floian Stage</span>
+                <span class="epoch-time">477–470 Ma</span>
+                <span class="epoch-events">Peak Ordovician diversity. Graptolite zones used for global correlation. Nautiloid cephalopods become apex predators.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">First Land Plants</span>
+                <span class="epoch-time">~470 Ma</span>
+                <span class="epoch-events">Cryptospore pollen indicates first non-vascular land plants (liverwort-like). Colonization of terrestrial environments begins.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,60,40,0.35)">
+                <p class="period-name">End-Ordovician Extinction</p>
+                <p class="period-time">445 – 444 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">2nd largest extinction. ~85% marine species lost in 2 pulses. Gondwana glaciation drops sea levels. Graptolites decimated.</p>
+                <div class="event-tags"><span class="tag tag-extinction">Mass extinction #1</span><span class="tag tag-climate">Gondwana glaciation</span><span class="tag tag-geo">Sea level drop</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Pulse 1 (Hirnantian)</span>
+                <span class="epoch-time">445.2 Ma</span>
+                <span class="epoch-events">Glaciation causes sea regression. Cold-water brachiopod fauna (Hirnantia) briefly dominates before collapse.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Pulse 2 (Rhuddanian)</span>
+                <span class="epoch-time">443.8 Ma</span>
+                <span class="epoch-events">Ice melts rapidly, anoxic waters flood shelves. ~57% of genera extinct. Graptolites reduced to a few lineages.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-silurian">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Silurian</p>
+            <p class="era-time">444 – 419 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Recovery and diversification. Jawed fish appear. First vascular land plants. Coral reefs re-establish. Stable warm climate.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,55,45,0.35)">
+                <p class="period-name">Llandovery – Wenlock</p>
+                <p class="period-time">444 – 427 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Marine recovery. First jawed fish (acanthodians). Eurypterids (sea scorpions) up to 2.5 m. Ozone layer thickens, enabling land colonization.</p>
+                <div class="event-tags"><span class="tag tag-life">Jawed fish evolve</span><span class="tag tag-life">Vascular plants</span><span class="tag tag-life">Land arthropods</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Cooksonia</span>
+                <span class="epoch-time">~430 Ma</span>
+                <span class="epoch-events">Earliest vascular plant — simple dichotomous stems with terminal sporangia. No leaves or roots yet.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">First Land Arthropods</span>
+                <span class="epoch-time">~428 Ma</span>
+                <span class="epoch-events">Pneumodesmus (millipede) — oldest known air-breathing land animal. Begins arthropod terrestrial radiation.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-devonian">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Devonian</p>
+            <p class="era-time">419 – 359 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">"Age of Fishes." First forests, seeds, amphibians. Lobe-finned fish crawl ashore. Late Devonian extinction kills ~75% species.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,40,0,0.35)">
+                <p class="period-name">Early Devonian</p>
+                <p class="period-time">419 – 393 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Diversification of fish. Placoderms and sharks evolve. First insects (~385 Ma). Rhyniophytes give way to true forests.</p>
+                <div class="event-tags"><span class="tag tag-life">Age of Fishes</span><span class="tag tag-life">First insects</span><span class="tag tag-life">First forests</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Dunkleosteus</span>
+                <span class="epoch-time">~380 Ma</span>
+                <span class="epoch-events">Giant armored placoderm fish — 6 m long with self-sharpening bone blades. Apex predator of Devonian seas.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Archaeopteris Forests</span>
+                <span class="epoch-time">~385 Ma</span>
+                <span class="epoch-events">First true forests with deep roots. Dramatically increase weathering, drawing down CO₂ and causing ocean anoxia.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,40,0,0.35)">
+                <p class="period-name">Tiktaalik & Tetrapods</p>
+                <p class="period-time">375 – 360 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Tiktaalik roseae (~375 Ma) — transitional fish-tetrapod. Acanthostega, Ichthyostega walk on land. First amniote eggs.</p>
+                <div class="event-tags"><span class="tag tag-life">First tetrapods</span><span class="tag tag-life">Conquest of land</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Tiktaalik</span>
+                <span class="epoch-time">375 Ma</span>
+                <span class="epoch-events">"Fishapod" with wrist bones, neck, and ribs. Could prop itself on fins. Transitional between fish and tetrapods.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Kelvingrove Tetrapods</span>
+                <span class="epoch-time">~365 Ma</span>
+                <span class="epoch-events">Acanthostega and Ichthyostega — first fully-limbed vertebrates. 8 digits on each limb. Semi-aquatic lifestyle.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,40,0,0.35)">
+                <p class="period-name">Late Devonian Extinction</p>
+                <p class="period-time">375 – 359 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Kellwasser and Hangenberg events kill ~75% species. Reefs collapse globally. Placoderms and many fish families go extinct.</p>
+                <div class="event-tags"><span class="tag tag-extinction">Mass extinction #2</span><span class="tag tag-climate">Ocean anoxia</span><span class="tag tag-extinction">Reef collapse</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Kellwasser Event</span>
+                <span class="epoch-time">372 Ma</span>
+                <span class="epoch-events">Two pulses of oceanic anoxia. Global cooling possibly triggered by forest expansion removing CO₂. Reef ecosystems obliterated.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Hangenberg Event</span>
+                <span class="epoch-time">359 Ma</span>
+                <span class="epoch-events">Final pulse. Glaciation causes sea-level fall. Placoderms entirely extinct. Marks Devonian–Carboniferous boundary.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-carboniferous">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Carboniferous</p>
+            <p class="era-time">359 – 299 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Coal swamp forests. High oxygen (35%). Giant insects. First reptiles (amniotes). Gondwana ice age. Pangaea begins forming.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(40,60,0,0.35)">
+                <p class="period-name">Mississippian</p>
+                <p class="period-time">359 – 323 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Extensive shallow seas over North America. Crinoid seas. Giant amphibians. O₂ levels rise to ~30%. Crinoid limestone deposits.</p>
+                <div class="event-tags"><span class="tag tag-life">Giant amphibians</span><span class="tag tag-climate">O₂ rises to 30%</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Crinoid Seas</span>
+                <span class="epoch-time">345–323 Ma</span>
+                <span class="epoch-events">Echinoderm paradise — crinoid meadows cover shallow seas. Their remains form thick limestone beds exploited today.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(40,60,0,0.35)">
+                <p class="period-name">Pennsylvanian</p>
+                <p class="period-time">323 – 299 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Coal swamp forests (Lepidodendron, Sigillaria). Giant Meganeura dragonflies (75 cm). First reptiles (~315 Ma). Rainforest collapse ~307 Ma.</p>
+                <div class="event-tags"><span class="tag tag-life">First reptiles</span><span class="tag tag-life">Giant insects</span><span class="tag tag-geo">Coal forests</span><span class="tag tag-extinction">Rainforest collapse</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Hylonomus</span>
+                <span class="epoch-time">~315 Ma</span>
+                <span class="epoch-events">Oldest known reptile. Small lizard-like amniote. Lays eggs on land — key evolutionary step freeing vertebrates from water.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Carboniferous Rainforest Collapse</span>
+                <span class="epoch-time">~307 Ma</span>
+                <span class="epoch-events">Climate shift fragments continuous forests into isolated patches. Drives speciation among amphibians and reptiles.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Meganeura</span>
+                <span class="epoch-time">300 Ma</span>
+                <span class="epoch-events">Griffinfly with 70 cm wingspan — largest flying insect ever. Enabled by hyperoxic atmosphere (~35% O₂).</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-permian">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Permian</p>
+            <p class="era-time">299 – 252 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Pangaea fully assembled. Therapsids (mammal ancestors) dominate. Ends with THE GREAT DYING — worst extinction in Earth history (~96% species).</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(60,0,0,0.4)">
+                <p class="period-name">Early–Middle Permian</p>
+                <p class="period-time">299 – 260 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Synapsids diversify. Dimetrodon (pelycosaur). Therapsids (Gorgonopsians) become apex predators. Conifers spread across dry Pangaea interior.</p>
+                <div class="event-tags"><span class="tag tag-life">Therapsids dominant</span><span class="tag tag-geo">Pangaea complete</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Dimetrodon</span>
+                <span class="epoch-time">~295 Ma</span>
+                <span class="epoch-events">Iconic sail-backed synapsid — closer relative of mammals than reptiles. Apex predator of Early Permian.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Gorgonopsians</span>
+                <span class="epoch-time">~270 Ma</span>
+                <span class="epoch-events">Saber-toothed therapsids up to 3 m. Fast, active hunters. Dominated terrestrial ecosystems until the Great Dying.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(100,0,0,0.5)">
+                <p class="period-name">THE GREAT DYING</p>
+                <p class="period-time">~252 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">End-Permian extinction: ~96% marine species, ~70% terrestrial vertebrates gone. Siberian Traps eruption releases CO₂/SO₂. Ocean acidification. Took 5–10 million years to recover.</p>
+                <div class="event-tags"><span class="tag tag-extinction">WORST EXTINCTION EVER</span><span class="tag tag-geo">Siberian Traps</span><span class="tag tag-climate">Ocean acidification</span><span class="tag tag-climate">+10°C warming</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Siberian Traps</span>
+                <span class="epoch-time">252.2 Ma</span>
+                <span class="epoch-events">Largest known continental flood basalt eruption (~3M km²). Releases CO₂, SO₂, HCl. Triggers lethal warming and acid rain.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Marine Collapse</span>
+                <span class="epoch-time">252.1 Ma</span>
+                <span class="epoch-events">Trilobites completely extinct. Rugose and tabulate corals gone. ~96% species lost. Took 50,000 years for full collapse.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Lystrosaurus Monopoly</span>
+                <span class="epoch-time">251 Ma</span>
+                <span class="epoch-events">Pig-sized therapsid Lystrosaurus comprises ~95% of land vertebrates post-extinction — extreme ecological simplification.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MESOZOIC ERA -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon mesozoic-eon" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Mesozoic</span>
+        <span class="eon-time">252 – 66 Ma</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">Age of Dinosaurs. Mammals & birds evolve. Flowering plants appear. Pangaea rifts into modern continents. K-Pg asteroid impact.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+
+      <div class="era era-triassic">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Triassic</p>
+            <p class="era-time">252 – 201 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Recovery from Great Dying. First dinosaurs (~230 Ma). First mammals (~225 Ma). Pangaea begins rifting. Ends with end-Triassic extinction.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,50,50,0.4)">
+                <p class="period-name">Early–Middle Triassic</p>
+                <p class="period-time">252 – 237 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Slow recovery. Archosaurs diverge into dinosaur and crocodilian lineages. First pterosaurs (~230 Ma). Eosaurians radiate.</p>
+                <div class="event-tags"><span class="tag tag-life">Archosaur radiation</span><span class="tag tag-life">First pterosaurs</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">First Dinosaurs</span>
+                <span class="epoch-time">~231 Ma</span>
+                <span class="epoch-events">Eoraptor and Herrerasaurus (Argentina) — earliest dinosaurs. Small, bipedal carnivores.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">First Mammals</span>
+                <span class="epoch-time">~225 Ma</span>
+                <span class="epoch-events">Adelobasileus and Morganucodon — earliest mammaliaforms. Small, nocturnal insectivores with differentiated teeth.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,50,50,0.4)">
+                <p class="period-name">End-Triassic Extinction</p>
+                <p class="period-time">~201 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">CAMP volcanism (Central Atlantic Magmatic Province). ~76% species lost. Eliminates crurotarsans, allows dinosaur dominance.</p>
+                <div class="event-tags"><span class="tag tag-extinction">Mass extinction #4</span><span class="tag tag-geo">CAMP volcanism</span><span class="tag tag-life">Dinosaurs diversify</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">CAMP Eruptions</span>
+                <span class="epoch-time">201.6 Ma</span>
+                <span class="epoch-events">Central Atlantic opens. Massive LIP eruptions trigger CO₂ spike and ocean acidification. Marks Triassic-Jurassic boundary.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-jurassic">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Jurassic</p>
+            <p class="era-time">201 – 145 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Dinosaurs dominate all terrestrial niches. First bird (Archaeopteryx ~150 Ma). Sauropods reach enormous sizes. Pangaea continues rifting.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(0,50,25,0.4)">
+                <p class="period-name">Sauropod Giants</p>
+                <p class="period-time">175 – 145 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Brachiosaurus, Diplodocus, Stegosaurus. Morrison Formation fauna. First bird Archaeopteryx (~150 Ma). Mammals diversify into tree-climbers.</p>
+                <div class="event-tags"><span class="tag tag-life">First birds</span><span class="tag tag-life">Sauropod peak</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Archaeopteryx</span>
+                <span class="epoch-time">~150 Ma</span>
+                <span class="epoch-events">Transitional feathered dinosaur-bird. Had claws, teeth, and long bony tail — but also feathered wings and could fly.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Diplodocus</span>
+                <span class="epoch-time">~155 Ma</span>
+                <span class="epoch-events">27 m long sauropod. Whip-like tail could crack supersonic. Browsed cycads and conifers in semi-arid floodplains.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-cretaceous">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Cretaceous</p>
+            <p class="era-time">145 – 66 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Angiosperms (flowering plants) radiate. T. rex and Triceratops. High sea levels. Ends with K-Pg asteroid impact killing non-avian dinosaurs.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(25,50,0,0.4)">
+                <p class="period-name">Early Cretaceous</p>
+                <p class="period-time">145 – 100 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">First flowering plants (~130 Ma). Spinosaurus swims. Feathered dinosaurs diversify (Microraptor, Yi). Southern continents separate.</p>
+                <div class="event-tags"><span class="tag tag-life">Flowering plants</span><span class="tag tag-life">Feathered dinosaurs</span><span class="tag tag-geo">Gondwana splits</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">First Angiosperms</span>
+                <span class="epoch-time">~130 Ma</span>
+                <span class="epoch-events">Flowering plants first appear. Drive coevolution with insects (bees, butterflies). Transform global vegetation by Late Cretaceous.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Microraptor</span>
+                <span class="epoch-time">~125 Ma</span>
+                <span class="epoch-events">Four-winged feathered dinosaur from Liaoning. Evidence for iridescent plumage. Glided between trees.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(25,50,0,0.4)">
+                <p class="period-name">Late Cretaceous Giants</p>
+                <p class="period-time">100 – 66 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">T. rex, Triceratops, Hadrosaurs. Seas cover 1/3 of continents. Mosasaurs dominate oceans. Deccan Traps volcanism begins.</p>
+                <div class="event-tags"><span class="tag tag-life">T. rex evolves</span><span class="tag tag-geo">Deccan Traps</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Tyrannosaurus rex</span>
+                <span class="epoch-time">68–66 Ma</span>
+                <span class="epoch-events">Apex predator — 12 m, 8 tonnes, 60 cm teeth. Forward-facing eyes for binocular vision. Possibly feathered as juveniles.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(80,0,0,0.5)">
+                <p class="period-name">K-Pg Extinction</p>
+                <p class="period-time">66 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Chicxulub asteroid (10 km). ~76% species extinct. All non-avian dinosaurs gone. Triggers mammal radiation. Deccan Traps compound effects.</p>
+                <div class="event-tags"><span class="tag tag-extinction">Mass extinction #5</span><span class="tag tag-geo">Chicxulub impact</span><span class="tag tag-life">Mammals radiate</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Chicxulub Impact</span>
+                <span class="epoch-time">66.043 Ma</span>
+                <span class="epoch-events">Asteroid strikes Yucatán at 20 km/s. Releases energy = 10 billion Hiroshima bombs. Global firestorm, impact winter, acid rain.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Impact Winter</span>
+                <span class="epoch-time">66.0–65.5 Ma</span>
+                <span class="epoch-events">Soot and sulfate aerosols block sunlight for years. Global temperatures drop ~10–15°C. Photosynthesis collapses.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Mammal Explosion</span>
+                <span class="epoch-time">65–55 Ma</span>
+                <span class="epoch-events">With dinosaurs gone, mammals rapidly diversify into all ecological niches. Within 10 Ma, most modern mammal orders appear.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- CENOZOIC ERA -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="eon cenozoic-eon" onclick="toggleEon(this)">
+    <div class="eon-header">
+      <div class="eon-label">
+        <span class="eon-name">Cenozoic</span>
+        <span class="eon-time">66 Ma – Present</span>
+        <span class="toggle-btn">▼</span>
+      </div>
+      <div class="eon-summary">
+        <p class="eon-desc">Age of Mammals. Grasses & grasslands. Antarctic ice sheet. Primates, hominins, Homo sapiens. Ice Ages. Holocene — our current epoch.</p>
+      </div>
+    </div>
+    <div class="eras-container">
+
+      <div class="era era-paleogene">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Paleogene</p>
+            <p class="era-time">66 – 23 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Mammal diversification. PETM warming event (~56 Ma). India–Asia collision builds Himalayas. Whales return to sea. Eocene–Oligocene cooling.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(50,0,50,0.4)">
+                <p class="period-name">Paleocene</p>
+                <p class="period-time">66 – 56 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Rapid mammal diversification. First primates (~65 Ma). First large mammals. Climate warms. Condylarths give rise to ungulates.</p>
+                <div class="event-tags"><span class="tag tag-life">First primates</span><span class="tag tag-life">Mammal explosion</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Purgatorius</span>
+                <span class="epoch-time">~66 Ma</span>
+                <span class="epoch-events">Oldest known primate relative. Small, tree-dwelling insectivore. Survived K-Pg in tree canopy or underground.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">PETM</span>
+                <span class="epoch-time">56 Ma</span>
+                <span class="epoch-events">Paleocene-Eocene Thermal Maximum: +5–8°C over 20,000 years. Massive carbon release. Driven by volcanism (North Atlantic Igneous Province).</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(50,0,50,0.4)">
+                <p class="period-name">Eocene</p>
+                <p class="period-time">56 – 34 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Warmest Cenozoic climate. Protocetids (whale ancestors) enter sea (~50 Ma). Horses (Eohippus) evolve. Perissodactyls and artiodactyls diversify. Antarctica cools.</p>
+                <div class="event-tags"><span class="tag tag-life">Whales evolve</span><span class="tag tag-life">Horses evolve</span><span class="tag tag-geo">India-Asia collision</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Ambulocetus</span>
+                <span class="epoch-time">~49 Ma</span>
+                <span class="epoch-events">Semi-aquatic whale ancestor — could walk on land and swim. Transition between land-dwelling Pakicetus and fully aquatic whales.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Eocene–Oligocene Extinction</span>
+                <span class="epoch-time">~34 Ma</span>
+                <span class="epoch-events">Drake Passage opens, circumpolar current established, Antarctica glaciates. Significant marine turnover (Grande Coupure in Europe).</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(50,0,50,0.4)">
+                <p class="period-name">Oligocene</p>
+                <p class="period-time">34 – 23 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Global cooling. Grasslands begin expanding. Entelodonts (hell pigs), rhinoceroses, primitive cats. Antarctic permanent ice cap forms.</p>
+                <div class="event-tags"><span class="tag tag-climate">Antarctic ice sheet</span><span class="tag tag-life">Grasslands spread</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Antarctic Glaciation</span>
+                <span class="epoch-time">~34 Ma</span>
+                <span class="epoch-events">East Antarctic Ice Sheet forms permanently. Seals and penguins colonize Antarctic shores. Global sea level drops 60–70 m.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-neogene">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Neogene</p>
+            <p class="era-time">23 – 2.6 Ma</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Grasslands and savannas dominate. Grazing mammals diversify. Apes and hominins evolve in Africa. Isthmus of Panama closes.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(55,10,55,0.4)">
+                <p class="period-name">Miocene</p>
+                <p class="period-time">23 – 5.3 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Grassland expansion. Horse, elephant, bovid radiation. First hominoids (~20 Ma). Proconsul. Megalodon (largest shark) active. Kelp forests evolve.</p>
+                <div class="event-tags"><span class="tag tag-life">First apes</span><span class="tag tag-life">Megalodon</span><span class="tag tag-geo">Grasslands dominate</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Proconsul</span>
+                <span class="epoch-time">~21 Ma</span>
+                <span class="epoch-events">Early ape ancestor in East Africa. No tail, larger brain than monkeys. Ancestral to great apes and humans.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Messinian Salinity Crisis</span>
+                <span class="epoch-time">5.96–5.33 Ma</span>
+                <span class="epoch-events">Mediterranean Sea isolated and nearly completely evaporates. Up to 3 km thick salt deposits. Reconnects via Zanclean Flood.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(55,10,55,0.4)">
+                <p class="period-name">Pliocene</p>
+                <p class="period-time">5.3 – 2.6 Ma</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Australopithecus in Africa (~3.9 Ma). Panama Isthmus closes (3.0 Ma). Climate cools. First stone tools (~3.3 Ma)? Northern hemisphere glaciation begins.</p>
+                <div class="event-tags"><span class="tag tag-life">Australopithecus</span><span class="tag tag-geo">Panama Isthmus closes</span><span class="tag tag-life">First stone tools</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Lucy (Au. afarensis)</span>
+                <span class="epoch-time">3.2 Ma</span>
+                <span class="epoch-events">Famous Australopithecus skeleton. Upright bipedal walking confirmed. Small brain (~420 cc). Lived on forest edges and grasslands.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Great American Interchange</span>
+                <span class="epoch-time">~3 Ma</span>
+                <span class="epoch-events">Panama land bridge connects Americas. Horses and mastodons move south; ground sloths and armadillos move north.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="era era-quaternary">
+        <div class="era-header" onclick="toggleEra(event, this)">
+          <div class="era-label">
+            <p class="era-name">Quaternary</p>
+            <p class="era-time">2.6 Ma – Present</p>
+            <span class="era-toggle">▼</span>
+          </div>
+          <div class="era-content"><p class="era-desc">Ice Ages cycle every 100,000 years. Homo sapiens evolve (~300 Ka). Megafauna extinctions. Agriculture. Industrial age. Anthropocene.</p></div>
+        </div>
+        <div class="periods-container">
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,0,60,0.4)">
+                <p class="period-name">Pleistocene</p>
+                <p class="period-time">2.6 Ma – 11,700 years ago</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">50+ glacial cycles. Woolly mammoths, sabertooth cats. Homo sapiens (~300 Ka), migration out of Africa (~70 Ka), megafauna extinctions.</p>
+                <div class="event-tags"><span class="tag tag-life">Homo sapiens</span><span class="tag tag-extinction">Megafauna extinction</span><span class="tag tag-climate">Ice Ages</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Homo erectus</span>
+                <span class="epoch-time">~1.9 Ma</span>
+                <span class="epoch-events">First hominin to leave Africa. Used fire and Acheulean tools. Reached Java and China. Brain ~900 cc.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Homo sapiens</span>
+                <span class="epoch-time">~300 Ka</span>
+                <span class="epoch-events">Earliest modern humans in Jebel Irhoud, Morocco. Anatomically modern skull shape. Brain ~1,400 cc.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Out of Africa</span>
+                <span class="epoch-time">~70 Ka</span>
+                <span class="epoch-events">Homo sapiens leave Africa during glacial period (low sea levels). Interbreed with Neanderthals and Denisovans. Spread globally by ~15 Ka.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Pleistocene Megafauna Ext.</span>
+                <span class="epoch-time">50–10 Ka</span>
+                <span class="epoch-events">Mammoths, mastodons, giant sloths, cave lions go extinct. Climate change + human hunting are leading explanations.</span>
+              </div>
+            </div>
+          </div>
+          <div class="period">
+            <div class="period-header" onclick="togglePeriod(event, this)">
+              <div class="period-label" style="background:rgba(20,0,60,0.4)">
+                <p class="period-name">Holocene</p>
+                <p class="period-time">11,700 ya – Present</p>
+                <span class="period-toggle">▼</span>
+              </div>
+              <div class="period-content">
+                <p class="period-desc">Post-ice-age warm period. Agriculture (~10,000 BC). Civilizations. Industrial Revolution. Human-dominated biosphere. 6th mass extinction underway.</p>
+                <div class="event-tags"><span class="tag tag-life">Agriculture</span><span class="tag tag-geo">Civilizations</span><span class="tag tag-extinction">6th mass extinction</span><span class="tag tag-climate">Anthropocene</span></div>
+              </div>
+            </div>
+            <div class="epochs-container">
+              <div class="epoch-row">
+                <span class="epoch-name">Neolithic Revolution</span>
+                <span class="epoch-time">~10,000 BCE</span>
+                <span class="epoch-events">Independent emergence of agriculture in Fertile Crescent, China, Americas. Sedentary civilizations, population growth, deforestation begin.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Holocene Extinction</span>
+                <span class="epoch-time">10,000 BCE – now</span>
+                <span class="epoch-events">Current extinction rate 100–1,000× background rate. ~1M species threatened. Habitat loss, climate change, overexploitation.</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-name">Anthropocene</span>
+                <span class="epoch-time">~1950 CE</span>
+                <span class="epoch-events">Proposed epoch: humans as dominant geological force. CO₂ at 420+ ppm (highest in 3+ million years). Plastics, nuclear fallout as geological markers.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>GEOLOGICAL TIME SCALE · DATA BASED ON INTERNATIONAL COMMISSION ON STRATIGRAPHY 2024</p>
+  <p style="margin-top:8px;color:#2a1a0a;">Ma = Millions of years ago · Ka = Thousands of years ago</p>
+</footer>
+
+<script>
+  function toggleEon(eonEl) {
+    eonEl.classList.toggle('open');
+  }
+
+  function toggleEra(e, eraHeader) {
+    e.stopPropagation();
+    const era = eraHeader.closest('.era');
+    era.classList.toggle('open');
+  }
+
+  function togglePeriod(e, periodHeader) {
+    e.stopPropagation();
+    const period = periodHeader.closest('.period');
+    period.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

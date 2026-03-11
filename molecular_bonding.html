@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Molecular Bonding</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #030810;
+    --text: #d8eeff;
+    --h-col: #ff9de2;
+    --o-col: #ff4e4e;
+    --c-col: #a0e0a0;
+    --n-col: #6ab0ff;
+    --bond-col: #ffe566;
+    --accent: #88ffdd;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bg-wash {
+    position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 15% 20%, rgba(100,176,255,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 80%, rgba(255,78,78,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(136,255,221,0.03) 0%, transparent 60%);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .title {
+    font-family: 'Syncopate', sans-serif;
+    font-weight: 700;
+    font-size: clamp(14px, 2.5vw, 24px);
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    text-shadow: 0 0 24px rgba(136,255,221,0.5), 0 0 60px rgba(136,255,221,0.2);
+  }
+
+  .subtitle {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: rgba(216,238,255,0.3);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Molecule selector */
+  .mol-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .mol-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    padding: 5px 14px;
+    border: 1px solid rgba(216,238,255,0.15);
+    background: transparent;
+    color: rgba(216,238,255,0.4);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .mol-btn:hover { background: rgba(216,238,255,0.05); color: rgba(216,238,255,0.8); }
+  .mol-btn.active {
+    background: rgba(136,255,221,0.08);
+    border-color: rgba(136,255,221,0.5);
+    color: var(--accent);
+    box-shadow: 0 0 14px rgba(136,255,221,0.15);
+  }
+
+  canvas {
+    border: 1px solid rgba(216,238,255,0.07);
+    border-radius: 3px;
+    box-shadow: 0 0 60px rgba(136,255,221,0.06);
+    display: block;
+    position: relative; z-index: 5;
+  }
+
+  .info-bar {
+    display: flex;
+    gap: 28px;
+    margin-top: 10px;
+    position: relative; z-index: 10;
+    align-items: center;
+  }
+
+  .info-tag {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(216,238,255,0.35);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .info-tag span {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(216,238,255,0.7);
+  }
+
+  .controls {
+    display: flex; gap: 8px;
+    margin-top: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .ctrl-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid rgba(216,238,255,0.2);
+    padding: 5px 16px;
+    cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .ctrl-btn:hover { background: rgba(216,238,255,0.06); border-color: rgba(216,238,255,0.55); }
+  .ctrl-btn.paused { color: #ffe566; border-color: rgba(255,229,102,0.4); box-shadow: 0 0 10px rgba(255,229,102,0.12); }
+</style>
+</head>
+<body>
+<div class="bg-wash"></div>
+
+<div class="header">
+  <div class="title">Molecular Bonding</div>
+  <div class="subtitle">Covalent orbital overlap · electron density · bond geometry</div>
+</div>
+
+<div class="mol-selector">
+  <button class="mol-btn active" onclick="setMol('H2O')">H₂O</button>
+  <button class="mol-btn" onclick="setMol('CO2')">CO₂</button>
+  <button class="mol-btn" onclick="setMol('CH4')">CH₄</button>
+  <button class="mol-btn" onclick="setMol('N2')">N₂</button>
+  <button class="mol-btn" onclick="setMol('O2')">O₂</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<div class="info-bar" id="infoBar">
+  <div class="info-tag">Molecule: <span id="iName">Water</span></div>
+  <div class="info-tag">Geometry: <span id="iGeom">Bent (104.5°)</span></div>
+  <div class="info-tag">Bond type: <span id="iBond">Polar covalent</span></div>
+  <div class="info-tag">Bonds: <span id="iBondN">2 × single</span></div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = Math.min(window.innerWidth - 40, 800);
+const H = Math.min(window.innerHeight - 210, 420);
+canvas.width = W; canvas.height = H;
+
+let paused = false, t = 0;
+let curMol = 'H2O';
+
+// Atom color map
+const ATOM_COLORS = {
+  H:  { core: '#ff9de2', mid: '#e060b0', dark: '#5a1040', label: '#ffe0f5' },
+  O:  { core: '#ffaaaa', mid: '#ff4e4e', dark: '#6a0000', label: '#ffe0e0' },
+  C:  { core: '#d0ffb0', mid: '#70cc60', dark: '#1a4010', label: '#e8ffe0' },
+  N:  { core: '#b0d0ff', mid: '#5090ff', dark: '#081840', label: '#e0eeff' },
+};
+
+// Atom radii
+const ATOM_R = { H: 16, O: 24, C: 22, N: 22 };
+
+// Molecule definitions (3D positions, bonds)
+const MOLECULES = {
+  H2O: {
+    name: 'Water', geom: 'Bent (104.5°)', bond: 'Polar covalent', bondN: '2 × single (σ)',
+    atoms: [
+      { el: 'O', x: 0,   y: 0,   z: 0   },
+      { el: 'H', x: -72, y: 60,  z: 10  },
+      { el: 'H', x:  72, y: 60,  z: -10 },
+    ],
+    bonds: [[0,1,1],[0,2,1]],
+    lonePairs: [[0, -30, -44], [0, 30, -44]], // [atomIdx, dx, dy] for lone pair display
+    dipole: { dx: 0, dy: -1 }, // direction of dipole
+  },
+  CO2: {
+    name: 'Carbon Dioxide', geom: 'Linear (180°)', bond: 'Polar covalent', bondN: '2 × double (σ+π)',
+    atoms: [
+      { el: 'C', x: 0,    y: 0, z: 0 },
+      { el: 'O', x: -100, y: 0, z: 0 },
+      { el: 'O', x:  100, y: 0, z: 0 },
+    ],
+    bonds: [[0,1,2],[0,2,2]],
+    lonePairs: [],
+    dipole: null,
+  },
+  CH4: {
+    name: 'Methane', geom: 'Tetrahedral (109.5°)', bond: 'Nonpolar covalent', bondN: '4 × single (σ)',
+    atoms: [
+      { el: 'C', x: 0,   y: 0,   z: 0   },
+      { el: 'H', x: -80, y: -60, z:  50 },
+      { el: 'H', x:  80, y: -60, z:  50 },
+      { el: 'H', x: -80, y:  60, z: -50 },
+      { el: 'H', x:  80, y:  60, z: -50 },
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1],[0,4,1]],
+    lonePairs: [],
+    dipole: null,
+  },
+  N2: {
+    name: 'Nitrogen', geom: 'Linear (180°)', bond: 'Nonpolar covalent', bondN: '1 × triple (σ+2π)',
+    atoms: [
+      { el: 'N', x: -60, y: 0, z: 0 },
+      { el: 'N', x:  60, y: 0, z: 0 },
+    ],
+    bonds: [[0,1,3]],
+    lonePairs: [[0,-30,0],[1,30,0]],
+    dipole: null,
+  },
+  O2: {
+    name: 'Oxygen', geom: 'Linear (180°)', bond: 'Nonpolar covalent', bondN: '1 × double (σ+π)',
+    atoms: [
+      { el: 'O', x: -65, y: 0, z: 0 },
+      { el: 'O', x:  65, y: 0, z: 0 },
+    ],
+    bonds: [[0,1,2]],
+    lonePairs: [[0,-28,-24],[0,-28,24],[1,28,-24],[1,28,24]],
+    dipole: null,
+  },
+};
+
+// Electron cloud particles per bond (animated)
+const bondParticles = {};
+
+function initParticles(molKey) {
+  bondParticles[molKey] = [];
+  const mol = MOLECULES[molKey];
+  mol.bonds.forEach((b, bi) => {
+    const order = b[2];
+    const count = order * 8;
+    for (let i = 0; i < count; i++) {
+      bondParticles[molKey].push({
+        bi, // bond index
+        t: Math.random(),
+        speed: 0.006 + Math.random() * 0.005,
+        dir: Math.random() > 0.5 ? 1 : -1,
+        offset: (Math.random() - 0.5) * (order > 1 ? 14 : 0),
+        glowT: Math.random() * Math.PI * 2,
+        size: 2.5 + Math.random() * 2,
+      });
+    }
+  });
+}
+
+Object.keys(MOLECULES).forEach(k => initParticles(k));
+
+// 3D rotation state per molecule
+const rotState = {};
+Object.keys(MOLECULES).forEach(k => {
+  rotState[k] = { angleY: Math.random() * Math.PI * 2, angleX: 0.18 + Math.random() * 0.1 };
+});
+
+function rotY(p, a) { return [p[0]*Math.cos(a)+p[2]*Math.sin(a), p[1], -p[0]*Math.sin(a)+p[2]*Math.cos(a)]; }
+function rotX(p, a) { return [p[0], p[1]*Math.cos(a)-p[2]*Math.sin(a), p[1]*Math.sin(a)+p[2]*Math.cos(a)]; }
+function proj(p, fov, cx, cy) { const z=p[2]+fov; const s=fov/z; return [p[0]*s+cx, p[1]*s+cy, s]; }
+
+function lerp(a, b, t) { return a + (b-a)*t; }
+
+function drawAtom(px, py, r, el, scale, depthA) {
+  const col = ATOM_COLORS[el];
+  const ar = r * scale;
+
+  // Outer aura
+  const aura = ctx.createRadialGradient(px, py, 0, px, py, ar*2.8);
+  aura.addColorStop(0, col.mid.replace(')', ',0.15)').replace('rgb(','rgba('));
+  aura.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(px, py, ar*2.8, 0, Math.PI*2);
+  ctx.globalAlpha = depthA * 0.6;
+  ctx.fillStyle = aura; ctx.fill();
+
+  // Body
+  const bg = ctx.createRadialGradient(px - ar*0.3, py - ar*0.3, ar*0.05, px, py, ar);
+  bg.addColorStop(0, col.core);
+  bg.addColorStop(0.45, col.mid);
+  bg.addColorStop(1, col.dark);
+  ctx.globalAlpha = depthA;
+  ctx.beginPath(); ctx.arc(px, py, ar, 0, Math.PI*2);
+  ctx.fillStyle = bg; ctx.fill();
+
+  // Specular
+  const spec = ctx.createRadialGradient(px - ar*0.35, py - ar*0.38, 0, px - ar*0.25, py - ar*0.28, ar*0.55);
+  spec.addColorStop(0, 'rgba(255,255,255,0.55)');
+  spec.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(px, py, ar, 0, Math.PI*2);
+  ctx.fillStyle = spec; ctx.fill();
+
+  // Rim
+  ctx.beginPath(); ctx.arc(px, py, ar, 0, Math.PI*2);
+  ctx.strokeStyle = `rgba(255,255,255,${depthA * 0.2})`;
+  ctx.lineWidth = 0.8; ctx.stroke();
+
+  // Label
+  ctx.font = `bold ${Math.round(ar * 0.75)}px 'DM Mono', monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = `rgba(255,255,255,${depthA * 0.95})`;
+  ctx.fillText(el, px, py);
+  ctx.globalAlpha = 1;
+}
+
+function drawBondLine(x1,y1, x2,y2, order, sc, depthA) {
+  const offsets = order === 1 ? [0] : order === 2 ? [-7,7] : [-11,0,11];
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  const nx = -dy/len, ny = dx/len;
+
+  offsets.forEach(off => {
+    const ox = nx*off*sc, oy = ny*off*sc;
+    const grad = ctx.createLinearGradient(x1+ox,y1+oy, x2+ox,y2+oy);
+    grad.addColorStop(0, `rgba(255,229,102,${depthA*0.3})`);
+    grad.addColorStop(0.5, `rgba(255,229,102,${depthA*0.7})`);
+    grad.addColorStop(1, `rgba(255,229,102,${depthA*0.3})`);
+    ctx.beginPath();
+    ctx.moveTo(x1+ox, y1+oy);
+    ctx.lineTo(x2+ox, y2+oy);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = Math.max(1.5, sc * 4);
+    ctx.globalAlpha = depthA;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+}
+
+function drawOrbitalCloud(x1,y1, x2,y2, order, sc, depthA) {
+  // π-orbital lobes for double/triple bonds
+  if (order < 2) return;
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  const nx = -dy/len, ny = dx/len;
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  const piCount = order - 1;
+
+  for (let pi = 0; pi < piCount; pi++) {
+    const side = pi === 0 ? 1 : -1;
+    const lobeW = len * 0.38;
+    const lobeH = 28 * sc;
+
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.globalAlpha = depthA * 0.18;
+
+    // Upper lobe
+    const gU = ctx.createRadialGradient(0, -lobeH*0.4*side, 0, 0, -lobeH*0.5*side, lobeH*0.8);
+    gU.addColorStop(0, 'rgba(136,255,221,0.8)');
+    gU.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.ellipse(0, -lobeH*0.5*side, lobeW, lobeH*0.5, 0, 0, Math.PI*2);
+    ctx.fillStyle = gU; ctx.fill();
+
+    // Lower lobe
+    const gL = ctx.createRadialGradient(0, lobeH*0.4*side, 0, 0, lobeH*0.5*side, lobeH*0.8);
+    gL.addColorStop(0, 'rgba(136,255,221,0.8)');
+    gL.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.ellipse(0, lobeH*0.5*side, lobeW, lobeH*0.5, 0, 0, Math.PI*2);
+    ctx.fillStyle = gL; ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+function drawLonePairs(mol, tAtoms, pAtoms) {
+  if (!mol.lonePairs) return;
+  mol.lonePairs.forEach(lp => {
+    const ai = lp[0];
+    const pa = pAtoms[ai];
+    const sc = pa[2];
+    const el = mol.atoms[ai].el;
+    const col = ATOM_COLORS[el];
+
+    // Offset in screen space
+    const lpx = pa[0] + lp[1] * sc;
+    const lpy = pa[1] + lp[2] * sc;
+
+    // Two dots
+    for (let d = -1; d <= 1; d += 2) {
+      const ex = lpx + d * 6 * sc;
+      const ey = lpy;
+      const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, 5*sc);
+      eg.addColorStop(0, 'rgba(255,255,180,0.9)');
+      eg.addColorStop(0.5, 'rgba(255,220,50,0.5)');
+      eg.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(ex, ey, 5*sc, 0, Math.PI*2);
+      ctx.fillStyle = eg; ctx.fill();
+    }
+  });
+}
+
+function drawDipole(mol, cx, cy, sc) {
+  if (!mol.dipole) return;
+  const len = 60 * sc;
+  const ex = cx + mol.dipole.dx * len;
+  const ey = cy + mol.dipole.dy * len;
+  ctx.save();
+  ctx.globalAlpha = 0.5 + 0.2 * Math.sin(t * 0.04);
+  // Arrow shaft
+  ctx.beginPath();
+  ctx.moveTo(cx - mol.dipole.dx * len * 0.3, cy - mol.dipole.dy * len * 0.3);
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = '#ff9de2';
+  ctx.lineWidth = 1.5 * sc;
+  ctx.setLineDash([4,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Arrow head
+  const angle = Math.atan2(mol.dipole.dy, mol.dipole.dx);
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - 12*sc*Math.cos(angle-0.4), ey - 12*sc*Math.sin(angle-0.4));
+  ctx.lineTo(ex - 12*sc*Math.cos(angle+0.4), ey - 12*sc*Math.sin(angle+0.4));
+  ctx.closePath();
+  ctx.fillStyle = '#ff9de2';
+  ctx.fill();
+  // δ labels
+  ctx.font = `${Math.round(11*sc)}px 'DM Mono',monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff9de2';
+  ctx.fillText('δ−', ex, ey - 18*sc);
+  ctx.fillStyle = '#88ffdd';
+  ctx.fillText('δ+', cx, cy + 24*sc);
+  ctx.restore();
+}
+
+function drawMolecule(molKey) {
+  const mol = MOLECULES[molKey];
+  const rs = rotState[molKey];
+  if (!paused) {
+    rs.angleY += 0.005;
+    rs.angleX = 0.18 + Math.sin(t * 0.0004) * 0.07;
+  }
+
+  const cx = W / 2, cy = H / 2 + 5;
+  const FOV = 500;
+
+  const tAtoms = mol.atoms.map(a => {
+    let q = rotX([a.x, a.y, a.z], rs.angleX);
+    q = rotY(q, rs.angleY);
+    return q;
+  });
+
+  const pAtoms = tAtoms.map(p => proj(p, FOV, cx, cy));
+
+  // Sort bonds back-to-front
+  const sortedBonds = mol.bonds.map((b, bi) => ({
+    b, bi,
+    zAvg: (tAtoms[b[0]][2] + tAtoms[b[1]][2]) / 2
+  })).sort((a, b) => a.zAvg - b.zAvg);
+
+  const maxZ = Math.max(...tAtoms.map(p => p[2]));
+  const minZ = Math.min(...tAtoms.map(p => p[2]));
+  const zRange = Math.max(maxZ - minZ, 1);
+
+  function depthAlpha(z) { return 0.4 + 0.6 * ((z - minZ) / zRange); }
+
+  // Draw π orbital clouds behind
+  sortedBonds.forEach(({ b, bi }) => {
+    const pa = pAtoms[b[0]], pb = pAtoms[b[1]];
+    const sc = (pa[2] + pb[2]) / 2;
+    const dA = depthAlpha((tAtoms[b[0]][2] + tAtoms[b[1]][2]) / 2);
+    drawOrbitalCloud(pa[0], pa[1], pb[0], pb[1], b[2], sc, dA);
+  });
+
+  // Draw bond lines
+  sortedBonds.forEach(({ b, bi }) => {
+    const pa = pAtoms[b[0]], pb = pAtoms[b[1]];
+    const sc = (pa[2] + pb[2]) / 2;
+    const dA = depthAlpha((tAtoms[b[0]][2] + tAtoms[b[1]][2]) / 2);
+    drawBondLine(pa[0], pa[1], pb[0], pb[1], b[2], sc, dA);
+  });
+
+  // Draw electron particles on bonds
+  const particles = bondParticles[molKey] || [];
+  particles.forEach(ep => {
+    if (!paused) {
+      ep.t += ep.speed * ep.dir;
+      if (ep.t > 1) { ep.t = 1; ep.dir = -1; }
+      if (ep.t < 0) { ep.t = 0; ep.dir = 1; }
+      ep.glowT += 0.05;
+    }
+
+    const b = mol.bonds[ep.bi];
+    const pa = pAtoms[b[0]], pb = pAtoms[b[1]];
+    const order = b[2];
+
+    const dx = pb[0]-pa[0], dy = pb[1]-pa[1];
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const nx = len > 0 ? -dy/len : 0, ny = len > 0 ? dx/len : 1;
+    const sc = lerp(pa[2], pb[2], ep.t);
+    const off = ep.offset * sc;
+
+    const ex = lerp(pa[0], pb[0], ep.t) + nx*off;
+    const ey = lerp(pa[1], pb[1], ep.t) + ny*off;
+    const dA = depthAlpha(lerp(tAtoms[b[0]][2], tAtoms[b[1]][2], ep.t));
+
+    const pulse = 0.7 + 0.3 * Math.sin(ep.glowT);
+    const er = ep.size * sc * pulse;
+
+    const glowG = ctx.createRadialGradient(ex, ey, 0, ex, ey, er*4);
+    glowG.addColorStop(0, `rgba(255,229,102,${dA*0.35*pulse})`);
+    glowG.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(ex, ey, er*4, 0, Math.PI*2);
+    ctx.fillStyle = glowG; ctx.fill();
+
+    const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, er);
+    eg.addColorStop(0, `rgba(255,255,200,${dA})`);
+    eg.addColorStop(0.5, `rgba(255,220,60,${dA})`);
+    eg.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI*2);
+    ctx.fillStyle = eg; ctx.fill();
+  });
+
+  // Lone pairs
+  drawLonePairs(mol, tAtoms, pAtoms);
+
+  // Dipole arrow (H2O only)
+  drawDipole(mol, cx, cy, 0.9);
+
+  // Draw atoms (back to front)
+  const sortedAtomIdx = [...Array(tAtoms.length).keys()].sort((a,b) => tAtoms[a][2]-tAtoms[b][2]);
+  sortedAtomIdx.forEach(i => {
+    const pa = pAtoms[i];
+    const el = mol.atoms[i].el;
+    const r = ATOM_R[el] || 18;
+    const dA = depthAlpha(tAtoms[i][2]);
+    drawAtom(pa[0], pa[1], r, el, pa[2], dA);
+  });
+
+  // Bond order label
+  ctx.font = `10px 'DM Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(216,238,255,0.35)';
+  ctx.fillText(mol.bondN, W/2, H - 14);
+}
+
+function setMol(key) {
+  curMol = key;
+  document.querySelectorAll('.mol-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const mol = MOLECULES[key];
+  document.getElementById('iName').textContent = mol.name;
+  document.getElementById('iGeom').textContent = mol.geom;
+  document.getElementById('iBond').textContent = mol.bond;
+  document.getElementById('iBondN').textContent = mol.bondN;
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('pauseBtn');
+  btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+  btn.classList.toggle('paused', paused);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#030810'; ctx.fillRect(0, 0, W, H);
+
+  const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.55);
+  bg.addColorStop(0, 'rgba(10,20,40,0.5)');
+  bg.addColorStop(1, 'transparent');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  drawMolecule(curMol);
+
+  // Scanlines
+  for (let sy = 0; sy < H; sy += 5) {
+    ctx.fillStyle = 'rgba(0,0,0,0.035)';
+    ctx.fillRect(0, sy, W, 2);
+  }
+
+  // Watermark
+  ctx.save();
+  ctx.font = 'bold 12px "DM Mono", monospace';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(136,255,221,0.55)';
+  ctx.shadowColor = 'rgba(136,255,221,0.4)'; ctx.shadowBlur = 8;
+  ctx.fillText('Dr. S Karna', W - 12, 12);
+  ctx.restore();
+
+  if (!paused) t++;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

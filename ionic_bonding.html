@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ionic Bonding — NaCl</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --na-color: #ff6b35;
+    --cl-color: #4ecdc4;
+    --bg: #07020f;
+    --text: #e8e0ff;
+    --elec: #ffe066;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .bg-aura {
+    position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 25% 40%, rgba(255,107,53,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 60%, rgba(78,205,196,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(20,5,40,0.8) 0%, transparent 80%);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .title {
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 800;
+    font-size: clamp(18px, 3vw, 30px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, var(--na-color), #ffaa80, var(--cl-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 16px rgba(255,107,53,0.4));
+  }
+
+  .subtitle {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: rgba(232,224,255,0.35);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* Tab switcher */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 10px;
+    position: relative; z-index: 10;
+    border: 1px solid rgba(232,224,255,0.12);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    color: rgba(232,224,255,0.4);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .tab.active {
+    background: rgba(232,224,255,0.08);
+    color: var(--text);
+  }
+
+  .tab:hover:not(.active) {
+    background: rgba(232,224,255,0.04);
+    color: rgba(232,224,255,0.7);
+  }
+
+  canvas {
+    border: 1px solid rgba(232,224,255,0.08);
+    border-radius: 3px;
+    box-shadow: 0 0 50px rgba(78,205,196,0.07), 0 0 100px rgba(255,107,53,0.05);
+    display: block;
+    position: relative; z-index: 5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-top: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(232,224,255,0.45);
+    text-transform: uppercase;
+  }
+
+  .l-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .l-na { background: radial-gradient(circle at 35% 35%, #ffccaa, #ff6b35, #7a2800); box-shadow: 0 0 8px rgba(255,107,53,0.8); }
+  .l-cl { background: radial-gradient(circle at 35% 35%, #afffff, #4ecdc4, #004a46); box-shadow: 0 0 8px rgba(78,205,196,0.8); }
+  .l-e  { background: radial-gradient(circle at 35% 35%, #fffacc, #ffe066, #a07000); box-shadow: 0 0 6px rgba(255,224,102,0.8); }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    position: relative; z-index: 10;
+  }
+
+  .ctrl-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid rgba(232,224,255,0.25);
+    padding: 6px 18px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(232,224,255,0.07);
+    border-color: rgba(232,224,255,0.6);
+    box-shadow: 0 0 14px rgba(232,224,255,0.15);
+  }
+
+  .ctrl-btn.paused {
+    color: var(--elec);
+    border-color: rgba(255,224,102,0.45);
+    box-shadow: 0 0 12px rgba(255,224,102,0.15);
+  }
+</style>
+</head>
+<body>
+<div class="bg-aura"></div>
+
+<div class="header">
+  <div class="title">Ionic Bonding</div>
+  <div class="subtitle">Sodium Chloride (NaCl) — electrostatic attraction</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-transfer" onclick="setMode('transfer')">Electron Transfer</button>
+  <button class="tab" id="tab-lattice" onclick="setMode('lattice')">Crystal Lattice</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<div class="legend">
+  <div class="legend-item"><div class="l-dot l-na"></div> Na / Na⁺</div>
+  <div class="legend-item"><div class="l-dot l-cl"></div> Cl / Cl⁻</div>
+  <div class="legend-item"><div class="l-dot l-e"></div> Electron transfer</div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = Math.min(window.innerWidth - 40, 780);
+const H = Math.min(window.innerHeight - 210, 420);
+canvas.width = W;
+canvas.height = H;
+
+let mode = 'transfer';
+let paused = false;
+let t = 0;
+
+// ─── MODE: Electron Transfer ───────────────────────────────────────────────
+// Shows Na losing its valence electron to Cl, forming Na⁺ and Cl⁻
+// with animated electron orbit and transfer arc
+
+const TRANSFER_CYCLE = 420; // frames per full animation cycle
+
+// Electron shell rings for Na (2,8,1) and Cl (2,8,7)
+const naShells = [
+  { r: 32, count: 2, color: 'rgba(255,160,80,0.5)' },
+  { r: 56, count: 8, color: 'rgba(255,130,60,0.35)' },
+  { r: 76, count: 1, color: 'rgba(255,200,120,0.9)', valence: true },
+];
+const clShells = [
+  { r: 32, count: 2, color: 'rgba(80,220,210,0.5)' },
+  { r: 56, count: 8, color: 'rgba(60,200,190,0.35)' },
+  { r: 76, count: 7, color: 'rgba(120,240,230,0.7)', valence: true },
+];
+
+function drawAtomShells(cx, cy, shells, label, charge, alpha=1) {
+  // Draw orbit rings
+  shells.forEach(sh => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, sh.r, 0, Math.PI*2);
+    ctx.strokeStyle = sh.color.replace(')', `,${alpha})`).replace('rgba(','rgba(').replace(/,[\d.]+\)$/, `,${alpha*parseFloat(sh.color.match(/[\d.]+\)$/)[0])})`);
+    ctx.strokeStyle = sh.color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([3, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  });
+
+  // Draw electrons on shells
+  shells.forEach((sh, si) => {
+    for (let i = 0; i < sh.count; i++) {
+      const angle = (i / sh.count) * Math.PI * 2 + t * (0.012 / (si+1)) * (si%2===0?1:-1);
+      const ex = cx + Math.cos(angle) * sh.r;
+      const ey = cy + Math.sin(angle) * sh.r;
+      const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, 4);
+      eg.addColorStop(0, sh.valence ? '#fffacc' : '#fff');
+      eg.addColorStop(0.5, sh.valence ? '#ffe066' : (label==='Na'?'#ff9050':'#50ddd5'));
+      eg.addColorStop(1, 'transparent');
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 4, 0, Math.PI*2);
+      ctx.fillStyle = eg;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  // Nucleus
+  const nR = 22;
+  const ng = ctx.createRadialGradient(cx-7, cy-7, 1, cx, cy, nR);
+  if (label === 'Na' || label === 'Na⁺') {
+    ng.addColorStop(0, '#ffd0a0');
+    ng.addColorStop(0.4, '#ff6b35');
+    ng.addColorStop(1, 'rgba(80,20,0,0.6)');
+  } else {
+    ng.addColorStop(0, '#afffff');
+    ng.addColorStop(0.4, '#4ecdc4');
+    ng.addColorStop(1, 'rgba(0,50,50,0.6)');
+  }
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(cx, cy, nR, 0, Math.PI*2);
+  ctx.fillStyle = ng;
+  ctx.fill();
+  // Rim
+  ctx.beginPath();
+  ctx.arc(cx, cy, nR, 0, Math.PI*2);
+  ctx.strokeStyle = label === 'Na' || label==='Na⁺' ? 'rgba(255,180,100,0.5)' : 'rgba(100,240,230,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Label
+  ctx.globalAlpha = alpha;
+  ctx.font = `bold 13px 'IBM Plex Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(label, cx, cy);
+  ctx.globalAlpha = 1;
+
+  // Charge badge
+  if (charge) {
+    ctx.globalAlpha = alpha;
+    ctx.font = `bold 11px 'IBM Plex Mono', monospace`;
+    ctx.fillStyle = charge === '+' ? '#ffaa60' : '#60eee0';
+    ctx.fillText(charge, cx + nR + 6, cy - nR + 2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Shrunken Na+ shell (no valence)
+const naIonShells = [
+  { r: 26, count: 2, color: 'rgba(255,160,80,0.4)' },
+  { r: 46, count: 8, color: 'rgba(255,130,60,0.3)' },
+];
+const clIonShells = [
+  { r: 32, count: 2, color: 'rgba(80,220,210,0.5)' },
+  { r: 56, count: 8, color: 'rgba(60,200,190,0.35)' },
+  { r: 76, count: 8, color: 'rgba(120,240,230,0.7)', valence: true },
+];
+
+function drawTransferScene() {
+  const phase = (t % TRANSFER_CYCLE) / TRANSFER_CYCLE; // 0..1
+  // 0.0-0.25: neutral atoms approach
+  // 0.25-0.5: electron transfers
+  // 0.5-0.75: ions shown with charge labels
+  // 0.75-1.0: electrostatic attraction shown, ions drawn together
+
+  const naX0 = W * 0.22, clX0 = W * 0.78;
+  const naXf = W * 0.35, clXf = W * 0.65;
+  const cy = H / 2 + 10;
+
+  let naX, clX, showTransfer = false, transferProgress = 0, showIons = false, showAttract = false;
+
+  if (phase < 0.25) {
+    const p = phase / 0.25;
+    naX = naX0 + (naXf - naX0) * easeInOut(p);
+    clX = clX0 + (clXf - clX0) * easeInOut(p);
+  } else if (phase < 0.5) {
+    naX = naXf; clX = clXf;
+    showTransfer = true;
+    transferProgress = (phase - 0.25) / 0.25;
+  } else if (phase < 0.75) {
+    naX = naXf; clX = clXf;
+    showIons = true;
+  } else {
+    const p = (phase - 0.75) / 0.25;
+    naX = naXf + (W*0.42 - naXf) * easeInOut(p);
+    clX = clXf + (W*0.58 - clXf) * easeInOut(p);
+    showIons = true;
+    showAttract = true;
+  }
+
+  // Draw attraction arrows/field lines
+  if (showAttract) {
+    const p = (phase - 0.75) / 0.25;
+    const midX = (naX + clX) / 2;
+    // Electric field arc lines between ions
+    for (let i = 0; i < 5; i++) {
+      const offset = (i - 2) * 18;
+      const ctrl1x = naX + (clX-naX)*0.25, ctrl1y = cy + offset*1.2;
+      const ctrl2x = naX + (clX-naX)*0.75, ctrl2y = cy + offset*1.2;
+      ctx.beginPath();
+      ctx.moveTo(naX + 24, cy);
+      ctx.bezierCurveTo(ctrl1x, ctrl1y, ctrl2x, ctrl2y, clX - 24, cy);
+      ctx.strokeStyle = `rgba(255,200,100,${0.08 * p})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // "+" and "-" label between ions
+    ctx.font = `bold 12px 'IBM Plex Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(255,200,150,${p * 0.8})`;
+    ctx.fillText('electrostatic attraction', (naX+clX)/2, cy + 95);
+    ctx.font = `16px 'Exo 2', sans-serif`;
+    ctx.fillStyle = `rgba(255,220,180,${p * 0.9})`;
+    ctx.fillText('← →', (naX+clX)/2, cy + 75);
+  }
+
+  // Electron transfer arc
+  if (showTransfer) {
+    const p = transferProgress;
+    // Arc from Na valence shell to Cl
+    const startAngle = -Math.PI * 0.3;
+    const startX = naX + Math.cos(startAngle) * 76;
+    const startY = cy + Math.sin(startAngle) * 76;
+    const endX = clX + Math.cos(Math.PI - 0.3) * 76;
+    const endY = cy + Math.sin(Math.PI - 0.3) * 76;
+
+    // Draw dashed transfer path
+    ctx.beginPath();
+    ctx.setLineDash([4, 5]);
+    ctx.moveTo(startX, startY);
+    ctx.bezierCurveTo(
+      naX + (clX-naX)*0.3, cy - 110,
+      naX + (clX-naX)*0.7, cy - 110,
+      endX, endY
+    );
+    ctx.strokeStyle = 'rgba(255,224,102,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Animated electron on arc
+    const ep = easeInOut(p);
+    const bx = (t2) => {
+      const mt = 1-t2;
+      return mt*mt*mt*startX + 3*mt*mt*t2*(naX+(clX-naX)*0.3) + 3*mt*t2*t2*(naX+(clX-naX)*0.7) + t2*t2*t2*endX;
+    };
+    const by = (t2) => {
+      const mt = 1-t2;
+      return mt*mt*mt*startY + 3*mt*mt*t2*(cy-110) + 3*mt*t2*t2*(cy-110) + t2*t2*t2*endY;
+    };
+    const ex2 = bx(ep), ey2 = by(ep);
+    const eg2 = ctx.createRadialGradient(ex2, ey2, 0, ex2, ey2, 8);
+    eg2.addColorStop(0, '#fff');
+    eg2.addColorStop(0.4, '#ffe066');
+    eg2.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(ex2, ey2, 8, 0, Math.PI*2);
+    ctx.fillStyle = eg2;
+    ctx.fill();
+    // Glow
+    const glow2 = ctx.createRadialGradient(ex2, ey2, 0, ex2, ey2, 22);
+    glow2.addColorStop(0, 'rgba(255,224,102,0.4)');
+    glow2.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(ex2, ey2, 22, 0, Math.PI*2);
+    ctx.fillStyle = glow2;
+    ctx.fill();
+
+    ctx.font = `10px 'IBM Plex Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,224,102,0.8)';
+    ctx.fillText('e⁻', ex2, ey2 - 16);
+  }
+
+  // Draw Na atom / ion
+  if (!showIons && !showTransfer) {
+    drawAtomShells(naX, cy, naShells, 'Na', null);
+  } else if (showTransfer) {
+    const p = transferProgress;
+    drawAtomShells(naX, cy, naShells, 'Na', null, Math.max(0, 1 - p*1.5));
+    drawAtomShells(naX, cy, naIonShells, 'Na⁺', '+', Math.min(1, p*1.5 - 0.2));
+  } else {
+    drawAtomShells(naX, cy, naIonShells, 'Na⁺', '+');
+  }
+
+  // Draw Cl atom / ion
+  if (!showIons && !showTransfer) {
+    drawAtomShells(clX, cy, clShells, 'Cl', null);
+  } else if (showTransfer) {
+    const p = transferProgress;
+    drawAtomShells(clX, cy, clShells, 'Cl', null, Math.max(0, 1 - p*1.5));
+    drawAtomShells(clX, cy, clIonShells, 'Cl⁻', '-', Math.min(1, p*1.5 - 0.2));
+  } else {
+    drawAtomShells(clX, cy, clIonShells, 'Cl⁻', '-');
+  }
+
+  // Phase label
+  let phaseLabel = '';
+  if (phase < 0.25) phaseLabel = 'Neutral atoms approaching...';
+  else if (phase < 0.5) phaseLabel = 'Na transfers valence electron → Cl';
+  else if (phase < 0.75) phaseLabel = 'Na⁺ and Cl⁻ ions formed';
+  else phaseLabel = 'Electrostatic attraction holds ions together';
+  ctx.font = `11px 'IBM Plex Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(232,224,255,0.5)';
+  ctx.fillText(phaseLabel, W/2, H - 16);
+}
+
+// ─── MODE: Crystal Lattice ─────────────────────────────────────────────────
+// 3D NaCl cubic lattice, rotating
+
+const LCOLS = 5, LROWS = 5, LDEPTH = 4;
+const LS = 72; // spacing
+let latticeAngleY = 0.3, latticeAngleX = 0.22;
+
+function rotY(p, a) { return [p[0]*Math.cos(a)+p[2]*Math.sin(a), p[1], -p[0]*Math.sin(a)+p[2]*Math.cos(a)]; }
+function rotX(p, a) { return [p[0], p[1]*Math.cos(a)-p[2]*Math.sin(a), p[1]*Math.sin(a)+p[2]*Math.cos(a)]; }
+function proj(p, fov, cx, cy) { const z=p[2]+fov; const s=fov/z; return [p[0]*s+cx, p[1]*s+cy, s]; }
+
+const latticeAtoms = [];
+for (let ix=0; ix<LCOLS; ix++)
+for (let iy=0; iy<LROWS; iy++)
+for (let iz=0; iz<LDEPTH; iz++) {
+  const isNa = (ix+iy+iz)%2===0;
+  latticeAtoms.push({
+    pos: [(ix-(LCOLS-1)/2)*LS, (iy-(LROWS-1)/2)*LS, (iz-(LDEPTH-1)/2)*LS],
+    isNa,
+  });
+}
+
+const latticeBonds = [];
+for (let i=0; i<latticeAtoms.length; i++) {
+  for (let j=i+1; j<latticeAtoms.length; j++) {
+    const dx=latticeAtoms[i].pos[0]-latticeAtoms[j].pos[0];
+    const dy=latticeAtoms[i].pos[1]-latticeAtoms[j].pos[1];
+    const dz=latticeAtoms[i].pos[2]-latticeAtoms[j].pos[2];
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if (Math.abs(d-LS)<2) latticeBonds.push([i,j]);
+  }
+}
+
+function drawLatticeScene() {
+  if (!paused) {
+    latticeAngleY += 0.004;
+    latticeAngleX = 0.22 + Math.sin(t*0.0005)*0.05;
+  }
+
+  const tAtoms = latticeAtoms.map(a => {
+    let q = rotX(a.pos, latticeAngleX);
+    q = rotY(q, latticeAngleY);
+    return q;
+  });
+  const pAtoms = tAtoms.map(p => proj(p, 500, W/2, H/2+10));
+
+  // Sort bonds back to front
+  const sortedBonds = latticeBonds.map(b => ({
+    b,
+    zAvg: (tAtoms[b[0]][2]+tAtoms[b[1]][2])/2
+  })).sort((a,b)=>a.zAvg-b.zAvg);
+
+  // Draw bonds
+  sortedBonds.forEach(({b}) => {
+    const pa=pAtoms[b[0]], pb=pAtoms[b[1]];
+    const za=(tAtoms[b[0]][2]+tAtoms[b[1]][2])/2;
+    const depth = 0.3 + 0.7*((za + LDEPTH*LS*0.8)/(LDEPTH*LS*1.6));
+    const grad = ctx.createLinearGradient(pa[0],pa[1],pb[0],pb[1]);
+    grad.addColorStop(0, `rgba(200,180,255,${depth*0.25})`);
+    grad.addColorStop(0.5, `rgba(200,180,255,${depth*0.5})`);
+    grad.addColorStop(1, `rgba(200,180,255,${depth*0.25})`);
+    ctx.beginPath();
+    ctx.moveTo(pa[0],pa[1]);
+    ctx.lineTo(pb[0],pb[1]);
+    ctx.strokeStyle=grad;
+    ctx.lineWidth=Math.max(0.6,(pa[2]+pb[2])/2*2);
+    ctx.stroke();
+  });
+
+  // Sort atoms back to front
+  const sortedIdx = [...Array(tAtoms.length).keys()].sort((a,b)=>tAtoms[a][2]-tAtoms[b][2]);
+
+  sortedIdx.forEach(i => {
+    const p=pAtoms[i], tz=tAtoms[i][2];
+    const depth=0.3+0.7*((tz+LDEPTH*LS*0.8)/(LDEPTH*LS*1.6));
+    const sc=p[2];
+    const r=Math.max(6, sc*14);
+    const isNa=latticeAtoms[i].isNa;
+
+    // Glow
+    const glowG=ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],r*2.5);
+    glowG.addColorStop(0, isNa?`rgba(255,107,53,${depth*0.2})`:`rgba(78,205,196,${depth*0.2})`);
+    glowG.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(p[0],p[1],r*2.5,0,Math.PI*2);
+    ctx.fillStyle=glowG; ctx.fill();
+
+    // Body
+    const ag=ctx.createRadialGradient(p[0]-r*0.3,p[1]-r*0.3,r*0.05,p[0],p[1],r);
+    if (isNa) {
+      ag.addColorStop(0,`rgba(255,210,170,${depth})`);
+      ag.addColorStop(0.4,`rgba(255,107,53,${depth})`);
+      ag.addColorStop(1,`rgba(80,20,0,${depth*0.5})`);
+    } else {
+      ag.addColorStop(0,`rgba(180,255,250,${depth})`);
+      ag.addColorStop(0.4,`rgba(78,205,196,${depth})`);
+      ag.addColorStop(1,`rgba(0,50,48,${depth*0.5})`);
+    }
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2);
+    ctx.fillStyle=ag; ctx.fill();
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2);
+    ctx.strokeStyle=isNa?`rgba(255,180,100,${depth*0.5})`:`rgba(100,240,230,${depth*0.5})`;
+    ctx.lineWidth=0.8; ctx.stroke();
+
+    // Label
+    if (r>7) {
+      ctx.font=`bold ${Math.round(r*0.65)}px 'IBM Plex Mono',monospace`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=`rgba(255,255,255,${depth*0.9})`;
+      ctx.fillText(isNa?'Na⁺':'Cl⁻',p[0],p[1]);
+    }
+  });
+
+  // Label
+  ctx.font=`10px 'IBM Plex Mono',monospace`;
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(232,224,255,0.4)';
+  ctx.fillText('NaCl face-centred cubic crystal lattice — alternating Na⁺ and Cl⁻ ions', W/2, H-14);
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function easeInOut(x) { return x<0.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2; }
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('tab-transfer').classList.toggle('active', m==='transfer');
+  document.getElementById('tab-lattice').classList.toggle('active', m==='lattice');
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('pauseBtn');
+  btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+  btn.classList.toggle('paused', paused);
+}
+
+// ─── Main loop ─────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // BG
+  ctx.fillStyle = '#07020f';
+  ctx.fillRect(0, 0, W, H);
+  const bgR = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.6);
+  bgR.addColorStop(0,'rgba(20,5,40,0.4)');
+  bgR.addColorStop(1,'transparent');
+  ctx.fillStyle=bgR; ctx.fillRect(0,0,W,H);
+
+  if (mode === 'transfer') drawTransferScene();
+  else drawLatticeScene();
+
+  // Scanlines
+  for (let sy=0; sy<H; sy+=5) {
+    ctx.fillStyle='rgba(0,0,0,0.04)';
+    ctx.fillRect(0,sy,W,2);
+  }
+
+  // Watermark
+  ctx.save();
+  ctx.font='bold 12px "IBM Plex Mono",monospace';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillStyle='rgba(232,224,255,0.55)';
+  ctx.shadowColor='rgba(200,180,255,0.4)'; ctx.shadowBlur=8;
+  ctx.fillText('Dr. S Karna', W-12, 12);
+  ctx.restore();
+
+  if (!paused) t++;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

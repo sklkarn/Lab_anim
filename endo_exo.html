@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chemical Reactions</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #12121a;
+    --border: #2a2a3a;
+    --exo-primary: #ff4d00;
+    --exo-secondary: #ffaa00;
+    --exo-glow: rgba(255, 77, 0, 0.4);
+    --endo-primary: #00c8ff;
+    --endo-secondary: #a0e8ff;
+    --endo-glow: rgba(0, 200, 255, 0.4);
+    --text: #e8e8f0;
+    --muted: #6a6a8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 20% 50%, rgba(255,77,0,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 50%, rgba(0,200,255,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--exo-secondary) 0%, #ffffff 50%, var(--endo-primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    max-width: 960px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 650px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--panel);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .card-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .exo .dot { background: var(--exo-primary); box-shadow: 0 0 10px var(--exo-primary); }
+  .endo .dot { background: var(--endo-primary); box-shadow: 0 0 10px var(--endo-primary); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .exo .card-title { color: var(--exo-secondary); }
+  .endo .card-title { color: var(--endo-secondary); }
+
+  .badge {
+    margin-left: auto;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .exo .badge { background: rgba(255,77,0,0.15); color: var(--exo-primary); border: 1px solid rgba(255,77,0,0.3); }
+  .endo .badge { background: rgba(0,200,255,0.15); color: var(--endo-primary); border: 1px solid rgba(0,200,255,0.3); }
+
+  /* Animation Stage */
+  .stage {
+    width: 100%;
+    height: 240px;
+    position: relative;
+    overflow: hidden;
+    background: #0d0d14;
+  }
+
+  /* === EXOTHERMIC STAGE === */
+  .exo .stage {
+    background: radial-gradient(ellipse 80% 60% at 50% 70%, rgba(255,77,0,0.08) 0%, #0d0d14 70%);
+  }
+
+  .flask {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 90px;
+  }
+
+  .flask svg { width: 100%; height: 100%; }
+
+  /* Exothermic liquid */
+  .exo-liquid {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 38px;
+    background: linear-gradient(180deg, rgba(255,140,0,0.9), rgba(255,60,0,1));
+    border-radius: 0 0 24px 24px;
+    animation: liquidBoil 0.4s ease-in-out infinite alternate;
+  }
+
+  @keyframes liquidBoil {
+    0% { height: 38px; border-radius: 4px 4px 24px 24px; }
+    100% { height: 42px; border-radius: 10px 10px 24px 24px; }
+  }
+
+  /* Flames */
+  .flame-group {
+    position: absolute;
+    bottom: 62px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+  }
+
+  .flame {
+    width: 14px;
+    border-radius: 50% 50% 30% 30%;
+    transform-origin: bottom center;
+    animation: flicker 0.3s ease-in-out infinite alternate;
+  }
+
+  .flame:nth-child(1) { height: 45px; background: linear-gradient(180deg, rgba(255,255,100,0) 0%, #ffcc00 40%, #ff6600 100%); animation-delay: 0s; }
+  .flame:nth-child(2) { height: 65px; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #ffffff88 20%, #ff9900 60%, #ff3300 100%); animation-delay: 0.07s; margin-top: -20px; }
+  .flame:nth-child(3) { height: 50px; background: linear-gradient(180deg, rgba(255,255,100,0) 0%, #ffcc00 40%, #ff6600 100%); animation-delay: 0.13s; }
+
+  @keyframes flicker {
+    0% { transform: scaleX(1) scaleY(1) rotate(-3deg); }
+    100% { transform: scaleX(0.85) scaleY(1.1) rotate(3deg); }
+  }
+
+  /* Sparks */
+  .spark {
+    position: absolute;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: #ffdd00;
+    animation: sparkFly linear infinite;
+  }
+
+  @keyframes sparkFly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+
+  .spark:nth-child(1) { bottom: 90px; left: calc(50% - 10px); --tx: -25px; --ty: -60px; animation-duration: 0.9s; animation-delay: 0s; }
+  .spark:nth-child(2) { bottom: 95px; left: calc(50% + 5px); --tx: 30px; --ty: -80px; animation-duration: 1.1s; animation-delay: 0.2s; }
+  .spark:nth-child(3) { bottom: 85px; left: calc(50% - 2px); --tx: -10px; --ty: -90px; animation-duration: 0.8s; animation-delay: 0.45s; }
+  .spark:nth-child(4) { bottom: 100px; left: calc(50% + 12px); --tx: 20px; --ty: -65px; animation-duration: 1.0s; animation-delay: 0.65s; }
+  .spark:nth-child(5) { bottom: 88px; left: calc(50% - 18px); --tx: -35px; --ty: -50px; animation-duration: 0.75s; animation-delay: 0.85s; }
+
+  /* Heat waves */
+  .heat-wave {
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 120, 0, 0.3);
+    transform: translateX(-50%);
+    animation: heatExpand 1.5s ease-out infinite;
+  }
+
+  .heat-wave:nth-child(1) { width: 30px; height: 20px; bottom: 100px; animation-delay: 0s; }
+  .heat-wave:nth-child(2) { width: 30px; height: 20px; bottom: 100px; animation-delay: 0.5s; }
+  .heat-wave:nth-child(3) { width: 30px; height: 20px; bottom: 100px; animation-delay: 1.0s; }
+
+  @keyframes heatExpand {
+    0% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+    100% { transform: translateX(-50%) scale(5); opacity: 0; }
+  }
+
+  /* === ENDOTHERMIC STAGE === */
+  .endo .stage {
+    background: radial-gradient(ellipse 80% 60% at 50% 70%, rgba(0,200,255,0.06) 0%, #0d0d14 70%);
+  }
+
+  .endo-liquid {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 38px;
+    background: linear-gradient(180deg, rgba(160,232,255,0.85), rgba(0,160,220,1));
+    border-radius: 0 0 24px 24px;
+    animation: liquidCool 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes liquidCool {
+    0% { opacity: 0.9; }
+    100% { opacity: 0.7; }
+  }
+
+  /* Ice crystals */
+  .crystal-group {
+    position: absolute;
+    bottom: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 40px;
+  }
+
+  .crystal {
+    position: absolute;
+    background: linear-gradient(135deg, rgba(180,240,255,0.9), rgba(100,200,255,0.5));
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    animation: crystallize 2s ease-in-out infinite alternate;
+  }
+
+  .crystal:nth-child(1) { width: 12px; height: 16px; left: 24px; bottom: 0; animation-delay: 0s; }
+  .crystal:nth-child(2) { width: 9px; height: 12px; left: 10px; bottom: 0; animation-delay: 0.3s; transform-origin: bottom; }
+  .crystal:nth-child(3) { width: 10px; height: 14px; left: 38px; bottom: 0; animation-delay: 0.6s; }
+  .crystal:nth-child(4) { width: 7px; height: 10px; left: 50px; bottom: 0; animation-delay: 0.9s; }
+  .crystal:nth-child(5) { width: 8px; height: 11px; left: 3px; bottom: 0; animation-delay: 0.45s; }
+
+  @keyframes crystallize {
+    0% { transform: scaleY(0.6); opacity: 0.4; }
+    100% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* Frost rings */
+  .frost-ring {
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 200, 255, 0.25);
+    transform: translateX(-50%);
+    bottom: 50px;
+    animation: frostExpand 2.5s ease-out infinite;
+  }
+
+  .frost-ring:nth-child(1) { width: 20px; height: 14px; animation-delay: 0s; }
+  .frost-ring:nth-child(2) { width: 20px; height: 14px; animation-delay: 0.8s; }
+  .frost-ring:nth-child(3) { width: 20px; height: 14px; animation-delay: 1.6s; }
+
+  @keyframes frostExpand {
+    0% { transform: translateX(-50%) scale(1); opacity: 0.8; border-color: rgba(0,200,255,0.5); }
+    100% { transform: translateX(-50%) scale(6); opacity: 0; border-color: rgba(0,200,255,0); }
+  }
+
+  /* Snowflake particles */
+  .snowflake {
+    position: absolute;
+    color: rgba(180, 240, 255, 0.7);
+    font-size: 10px;
+    animation: snowFall linear infinite;
+    user-select: none;
+  }
+
+  @keyframes snowFall {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0.8; }
+    100% { transform: translate(var(--tx), 60px) rotate(180deg); opacity: 0; }
+  }
+
+  .snowflake:nth-child(1) { top: 20px; left: 30%; --tx: 10px; animation-duration: 3s; animation-delay: 0s; }
+  .snowflake:nth-child(2) { top: 10px; left: 55%; --tx: -8px; animation-duration: 3.5s; animation-delay: 0.7s; }
+  .snowflake:nth-child(3) { top: 30px; left: 70%; --tx: 5px; animation-duration: 2.8s; animation-delay: 1.2s; }
+  .snowflake:nth-child(4) { top: 5px; left: 20%; --tx: -12px; animation-duration: 4s; animation-delay: 1.8s; }
+  .snowflake:nth-child(5) { top: 15px; left: 80%; --tx: 15px; animation-duration: 3.2s; animation-delay: 0.4s; }
+
+  /* Temp indicator */
+  .temp-bar {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 100px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .temp-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  .exo .temp-fill {
+    background: linear-gradient(180deg, #ffcc00, #ff3300);
+    animation: tempRise 1.5s ease-in-out infinite alternate;
+  }
+
+  .endo .temp-fill {
+    background: linear-gradient(180deg, #00c8ff, #0050aa);
+    animation: tempDrop 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes tempRise {
+    0% { height: 55%; }
+    100% { height: 90%; }
+  }
+
+  @keyframes tempDrop {
+    0% { height: 45%; }
+    100% { height: 15%; }
+  }
+
+  .temp-label {
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    writing-mode: vertical-rl;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Info panel */
+  .info {
+    padding: 18px 24px 20px;
+  }
+
+  .equation {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    border: 1px solid;
+  }
+
+  .exo .equation {
+    background: rgba(255,77,0,0.08);
+    border-color: rgba(255,77,0,0.2);
+    color: var(--exo-secondary);
+  }
+
+  .endo .equation {
+    background: rgba(0,200,255,0.08);
+    border-color: rgba(0,200,255,0.2);
+    color: var(--endo-secondary);
+  }
+
+  .facts {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fact {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.68rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .fact-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 0.7rem;
+  }
+
+  .exo .fact-icon { color: var(--exo-primary); }
+  .endo .fact-icon { color: var(--endo-primary); }
+
+  /* Energy diagram */
+  .energy-section {
+    max-width: 960px;
+    width: 100%;
+    margin-top: 30px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .energy-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .diagram-wrap {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .diagram-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .exo-label { color: var(--exo-secondary); }
+  .endo-label { color: var(--endo-secondary); }
+
+  svg.energy-chart {
+    display: block;
+    overflow: visible;
+  }
+
+  .divider-line {
+    width: 1px;
+    height: 80px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div style="position:fixed;top:18px;right:24px;z-index:100;text-align:right;">
+  <div style="font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:#6a6a8a;">Instructor</div>
+  <div style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:#e8e8f0;letter-spacing:0.04em;">Dr. S Karna</div>
+</div>
+
+<div class="header">
+  <h1>Chemical Reaction Types</h1>
+  <p>Energy Transfer in Chemical Systems</p>
+</div>
+
+<div class="grid">
+
+  <!-- EXOTHERMIC CARD -->
+  <div class="card exo">
+    <div class="card-header">
+      <div class="dot"></div>
+      <span class="card-title">Exothermic</span>
+      <span class="badge">ΔH &lt; 0</span>
+    </div>
+
+    <div class="stage">
+      <!-- Heat waves behind -->
+      <div class="heat-wave"></div>
+      <div class="heat-wave"></div>
+      <div class="heat-wave"></div>
+
+      <!-- Sparks -->
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+
+      <!-- Flask -->
+      <div class="flask">
+        <svg viewBox="0 0 70 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Flask body outline -->
+          <path d="M25 10 L25 40 L5 75 Q3 82 10 86 L60 86 Q67 82 65 75 L45 40 L45 10 Z"
+            fill="rgba(255,100,30,0.12)" stroke="rgba(255,120,50,0.6)" stroke-width="1.5"/>
+          <!-- Neck -->
+          <rect x="24" y="6" width="22" height="6" rx="2"
+            fill="rgba(255,120,50,0.2)" stroke="rgba(255,120,50,0.5)" stroke-width="1"/>
+          <!-- Shine -->
+          <path d="M28 42 L20 70" stroke="rgba(255,200,150,0.25)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="exo-liquid"></div>
+
+      <!-- Flames -->
+      <div class="flame-group">
+        <div class="flame"></div>
+        <div class="flame"></div>
+        <div class="flame"></div>
+      </div>
+
+      <!-- Temp bar -->
+      <div class="temp-label">Temp</div>
+      <div class="temp-bar">
+        <div class="temp-fill"></div>
+      </div>
+    </div>
+
+    <div class="info">
+      <div class="equation">Reactants → Products + Energy (heat)</div>
+      <div class="facts">
+        <div class="fact"><span class="fact-icon">▲</span><span>Releases energy to surroundings as heat or light</span></div>
+        <div class="fact"><span class="fact-icon">▲</span><span>Products have lower energy than reactants</span></div>
+        <div class="fact"><span class="fact-icon">▲</span><span>Examples: combustion, rusting, explosions</span></div>
+        <div class="fact"><span class="fact-icon">▲</span><span>Surroundings feel warmer; ΔH is negative</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENDOTHERMIC CARD -->
+  <div class="card endo">
+    <div class="card-header">
+      <div class="dot"></div>
+      <span class="card-title">Endothermic</span>
+      <span class="badge">ΔH &gt; 0</span>
+    </div>
+
+    <div class="stage">
+      <!-- Snowflakes -->
+      <div class="snowflake">❄</div>
+      <div class="snowflake">❄</div>
+      <div class="snowflake">❄</div>
+      <div class="snowflake">❄</div>
+      <div class="snowflake">❄</div>
+
+      <!-- Frost rings -->
+      <div class="frost-ring"></div>
+      <div class="frost-ring"></div>
+      <div class="frost-ring"></div>
+
+      <!-- Flask -->
+      <div class="flask">
+        <svg viewBox="0 0 70 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M25 10 L25 40 L5 75 Q3 82 10 86 L60 86 Q67 82 65 75 L45 40 L45 10 Z"
+            fill="rgba(0,160,220,0.1)" stroke="rgba(0,200,255,0.5)" stroke-width="1.5"/>
+          <rect x="24" y="6" width="22" height="6" rx="2"
+            fill="rgba(0,200,255,0.15)" stroke="rgba(0,200,255,0.4)" stroke-width="1"/>
+          <path d="M28 42 L20 70" stroke="rgba(160,240,255,0.2)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="endo-liquid"></div>
+
+      <!-- Ice crystals -->
+      <div class="crystal-group">
+        <div class="crystal"></div>
+        <div class="crystal"></div>
+        <div class="crystal"></div>
+        <div class="crystal"></div>
+        <div class="crystal"></div>
+      </div>
+
+      <!-- Temp bar -->
+      <div class="temp-label">Temp</div>
+      <div class="temp-bar">
+        <div class="temp-fill"></div>
+      </div>
+    </div>
+
+    <div class="info">
+      <div class="equation">Reactants + Energy (heat) → Products</div>
+      <div class="facts">
+        <div class="fact"><span class="fact-icon">▼</span><span>Absorbs energy from the surroundings as heat</span></div>
+        <div class="fact"><span class="fact-icon">▼</span><span>Products have higher energy than reactants</span></div>
+        <div class="fact"><span class="fact-icon">▼</span><span>Examples: photosynthesis, dissolving ammonium nitrate</span></div>
+        <div class="fact"><span class="fact-icon">▼</span><span>Surroundings feel cooler; ΔH is positive</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Energy Diagram -->
+<div class="energy-section">
+  <div class="energy-title">Energy Profile Diagrams</div>
+  <div class="diagram-wrap">
+
+    <!-- Exothermic energy chart -->
+    <div>
+      <div class="diagram-label exo-label">Exothermic Reaction</div>
+      <svg class="energy-chart" width="200" height="110" viewBox="0 0 200 110">
+        <!-- Grid lines -->
+        <line x1="30" y1="10" x2="30" y2="95" stroke="#2a2a3a" stroke-width="1"/>
+        <line x1="30" y1="95" x2="195" y2="95" stroke="#2a2a3a" stroke-width="1"/>
+        <!-- Y label -->
+        <text x="6" y="55" fill="#6a6a8a" font-size="8" font-family="Space Mono" transform="rotate(-90,14,55)">Energy</text>
+        <!-- X label -->
+        <text x="90" y="108" fill="#6a6a8a" font-size="8" font-family="Space Mono">Reaction Progress</text>
+
+        <!-- Reactants level -->
+        <line x1="30" y1="35" x2="65" y2="35" stroke="rgba(255,170,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="32" y="30" fill="rgba(255,170,0,0.7)" font-size="7" font-family="Space Mono">Reactants</text>
+
+        <!-- Products level -->
+        <line x1="145" y1="75" x2="192" y2="75" stroke="rgba(255,170,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="145" y="70" fill="rgba(255,170,0,0.7)" font-size="7" font-family="Space Mono">Products</text>
+
+        <!-- Activation energy label -->
+        <line x1="98" y1="13" x2="98" y2="35" stroke="rgba(255,77,0,0.4)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="100" y="12" fill="rgba(255,77,0,0.6)" font-size="7" font-family="Space Mono">Ea</text>
+
+        <!-- Delta H arrow -->
+        <line x1="168" y1="36" x2="168" y2="74" stroke="rgba(255,120,0,0.6)" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+        <text x="172" y="58" fill="rgba(255,120,0,0.8)" font-size="7" font-family="Space Mono">ΔH&lt;0</text>
+
+        <!-- Curve path -->
+        <path d="M35 35 Q65 35 98 12 Q130 35 145 75 L192 75"
+          fill="none" stroke="url(#exoGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <defs>
+          <linearGradient id="exoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ffaa00"/>
+            <stop offset="50%" stop-color="#ff6600"/>
+            <stop offset="100%" stop-color="#ff3300"/>
+          </linearGradient>
+          <marker id="arrowOrange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="rgba(255,120,0,0.7)"/>
+          </marker>
+        </defs>
+
+        <!-- Animated dot on curve -->
+        <circle r="4" fill="#ff9900" opacity="0.9">
+          <animateMotion dur="3s" repeatCount="indefinite" keyTimes="0;1" calcMode="spline" keySplines="0.4 0 0.6 1">
+            <mpath href="#exoCurvePath"/>
+          </animateMotion>
+        </circle>
+        <path id="exoCurvePath" d="M35 35 Q65 35 98 12 Q130 35 145 75 L192 75" fill="none"/>
+      </svg>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <!-- Endothermic energy chart -->
+    <div>
+      <div class="diagram-label endo-label">Endothermic Reaction</div>
+      <svg class="energy-chart" width="200" height="110" viewBox="0 0 200 110">
+        <line x1="30" y1="10" x2="30" y2="95" stroke="#2a2a3a" stroke-width="1"/>
+        <line x1="30" y1="95" x2="195" y2="95" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="6" y="55" fill="#6a6a8a" font-size="8" font-family="Space Mono" transform="rotate(-90,14,55)">Energy</text>
+        <text x="90" y="108" fill="#6a6a8a" font-size="8" font-family="Space Mono">Reaction Progress</text>
+
+        <!-- Reactants level -->
+        <line x1="30" y1="72" x2="65" y2="72" stroke="rgba(0,200,255,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="32" y="67" fill="rgba(0,200,255,0.7)" font-size="7" font-family="Space Mono">Reactants</text>
+
+        <!-- Products level -->
+        <line x1="145" y1="35" x2="192" y2="35" stroke="rgba(0,200,255,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="145" y="30" fill="rgba(0,200,255,0.7)" font-size="7" font-family="Space Mono">Products</text>
+
+        <!-- Activation energy label -->
+        <line x1="98" y1="13" x2="98" y2="72" stroke="rgba(0,150,255,0.4)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="100" y="12" fill="rgba(0,150,255,0.6)" font-size="7" font-family="Space Mono">Ea</text>
+
+        <!-- Delta H arrow -->
+        <line x1="168" y1="36" x2="168" y2="71" stroke="rgba(0,200,255,0.6)" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+        <text x="172" y="56" fill="rgba(0,200,255,0.8)" font-size="7" font-family="Space Mono">ΔH&gt;0</text>
+
+        <!-- Curve path -->
+        <path d="M35 72 Q65 72 98 12 Q130 35 145 35 L192 35"
+          fill="none" stroke="url(#endoGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <defs>
+          <linearGradient id="endoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#0080ff"/>
+            <stop offset="50%" stop-color="#00aaff"/>
+            <stop offset="100%" stop-color="#00c8ff"/>
+          </linearGradient>
+          <marker id="arrowBlue" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="rgba(0,200,255,0.7)"/>
+          </marker>
+        </defs>
+
+        <!-- Animated dot on curve -->
+        <circle r="4" fill="#00c8ff" opacity="0.9">
+          <animateMotion dur="3s" repeatCount="indefinite" keyTimes="0;1" calcMode="spline" keySplines="0.4 0 0.6 1">
+            <mpath href="#endoCurvePath"/>
+          </animateMotion>
+        </circle>
+        <path id="endoCurvePath" d="M35 72 Q65 72 98 12 Q130 35 145 35 L192 35" fill="none"/>
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

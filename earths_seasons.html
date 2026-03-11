@@ -304,10 +304,12 @@ const W = () => canvas.width;
 const H = () => canvas.height;
 
 let angle = Math.PI;
+let earthSpin = 0;          // Earth self-rotation
 let paused = false;
 let speed = 1.0;
 const TILT = 23.4 * Math.PI / 180;
 const ORBIT_SPEED = 0.004;
+const SPIN_SPEED  = 0.04;   // ~10x orbit speed for visible rotation
 
 document.getElementById('pauseBtn').addEventListener('click', function() {
   paused = !paused;
@@ -391,61 +393,102 @@ function drawOrbit(cx,cy,rx,ry) {
   ctx.setLineDash([4,9]); ctx.stroke(); ctx.setLineDash([]);
 }
 
-function drawEarth(ex,ey,r,orbitAngle) {
-  const terminatorTilt = Math.sin(orbitAngle)*TILT;
+function drawEarth(ex, ey, r, orbitAngle, spin, sx, sy) {
+  // Direction from Earth toward Sun (in canvas space)
+  const toSunAngle = Math.atan2(sy - ey, sx - ex); // angle pointing at sun
+
+  // Axial tilt: axis always points same direction in space (toward north star = up)
+  // terminatorTilt is how much the axis tilts relative to the sun direction
+  const terminatorTilt = Math.sin(orbitAngle) * TILT;
+
   const si = getSeasonIndex(orbitAngle);
   const glowColor = seasonData[si].color;
 
+  // Season glow
   const glowGrad = ctx.createRadialGradient(ex,ey,r*0.8,ex,ey,r*2.4);
-  glowGrad.addColorStop(0,glowColor+'28'); glowGrad.addColorStop(1,'transparent');
+  glowGrad.addColorStop(0, glowColor+'28');
+  glowGrad.addColorStop(1, 'transparent');
   ctx.beginPath(); ctx.arc(ex,ey,r*2.4,0,Math.PI*2);
-  ctx.fillStyle=glowGrad; ctx.fill();
-
-  ctx.save(); ctx.translate(ex,ey);
-
-  const dayGrad = ctx.createRadialGradient(-r*0.3,-r*0.3,r*0.1,0,0,r);
-  dayGrad.addColorStop(0,'#b8e8ff'); dayGrad.addColorStop(0.4,'#4090d0');
-  dayGrad.addColorStop(0.85,'#1a4a8a'); dayGrad.addColorStop(1,'#0a1e40');
-  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
-  ctx.fillStyle=dayGrad; ctx.fill();
+  ctx.fillStyle = glowGrad; ctx.fill();
 
   ctx.save();
+  ctx.translate(ex, ey);
+
+  // ── Base ocean sphere ──
+  const dayGrad = ctx.createRadialGradient(-r*0.25,-r*0.25,r*0.05, 0,0,r);
+  dayGrad.addColorStop(0, '#c8eeff');
+  dayGrad.addColorStop(0.4, '#3d8fd4');
+  dayGrad.addColorStop(0.85,'#1a4a8a');
+  dayGrad.addColorStop(1,  '#0a1e40');
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle = dayGrad; ctx.fill();
+
+  // ── Spinning continents (clipped to Earth circle) ──
+  ctx.save();
   ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
-  ctx.fillStyle='rgba(55,135,65,0.78)';
-  [[0.10,-0.16,0.27,0.37],[-0.36,-0.10,0.21,0.30],[0.24,0.10,0.19,0.24],
-   [-0.10,0.22,0.17,0.21],[-0.16,-0.36,0.31,0.19]].forEach(([lx,ly,lw,lh]) => {
-    ctx.beginPath(); ctx.ellipse(lx*r,ly*r,lw*r,lh*r,lx*0.8,0,Math.PI*2); ctx.fill();
+  ctx.rotate(spin); // self-rotation
+  ctx.fillStyle = 'rgba(55,135,65,0.80)';
+  // Stylized continent shapes
+  const lands = [
+    [0.10,-0.16, 0.27,0.37, 0.08],
+    [-0.36,-0.10, 0.21,0.30, -0.2],
+    [0.24, 0.10, 0.19,0.24,  0.3],
+    [-0.10, 0.22, 0.17,0.21, 0.1],
+    [-0.16,-0.36, 0.31,0.19, -0.4],
+    [0.38, -0.28, 0.13,0.16,  0.5],
+  ];
+  lands.forEach(([lx,ly,lw,lh,rot]) => {
+    ctx.save();
+    ctx.rotate(rot);
+    ctx.beginPath();
+    ctx.ellipse(lx*r, ly*r, lw*r, lh*r, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
   });
+  // Ice-cap tints at poles (spin with Earth)
+  ctx.fillStyle = 'rgba(220,240,255,0.45)';
+  ctx.beginPath(); ctx.ellipse(0,-r*0.78, r*0.38,r*0.18, 0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, r*0.78, r*0.38,r*0.18, 0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  ctx.save(); ctx.rotate(terminatorTilt);
-  const nightGrad = ctx.createLinearGradient(0,0,r,0);
-  nightGrad.addColorStop(0,'rgba(2,6,18,0.0)');
-  nightGrad.addColorStop(0.35,'rgba(2,6,18,0.55)');
-  nightGrad.addColorStop(1,'rgba(2,6,18,0.97)');
-  ctx.beginPath(); ctx.arc(0,0,r,-Math.PI/2,Math.PI/2);
-  ctx.closePath(); ctx.fillStyle=nightGrad; ctx.fill();
+  // ── Night shadow — always covers the hemisphere AWAY from the Sun ──
+  // We rotate so the flat edge of the half-circle faces the Sun
+  ctx.save();
+  ctx.rotate(toSunAngle + Math.PI + terminatorTilt); // opposite of sun = dark side
+  const nightGrad = ctx.createLinearGradient(-r, 0, r*0.4, 0);
+  nightGrad.addColorStop(0,   'rgba(2,6,18,0.97)');
+  nightGrad.addColorStop(0.55,'rgba(2,6,18,0.60)');
+  nightGrad.addColorStop(1,   'rgba(2,6,18,0.0)');
+  ctx.beginPath();
+  ctx.arc(0,0,r, -Math.PI/2, Math.PI/2); // right half in rotated space = dark side
+  ctx.closePath();
+  ctx.fillStyle = nightGrad;
+  ctx.fill();
   ctx.restore();
 
-  const axisAngle = -Math.PI/2+terminatorTilt;
+  // ── Polar ice caps on axis (fixed, not spinning — they sit on the axis) ──
+  const axisAngle = -Math.PI/2 + terminatorTilt;
   const iceR = r*0.22;
   ctx.save(); ctx.rotate(axisAngle);
   ctx.beginPath(); ctx.ellipse(0,-r*0.82,iceR*0.9,iceR*0.36,0,0,Math.PI*2);
-  ctx.fillStyle='rgba(220,240,255,0.85)'; ctx.fill();
-  ctx.beginPath(); ctx.ellipse(0,r*0.82,iceR*0.9,iceR*0.36,0,0,Math.PI*2);
-  ctx.fillStyle='rgba(220,240,255,0.75)'; ctx.fill();
+  ctx.fillStyle='rgba(220,240,255,0.88)'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, r*0.82,iceR*0.9,iceR*0.36,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(220,240,255,0.78)'; ctx.fill();
   ctx.restore();
 
+  // ── Atmosphere limb ──
   const atmGrad = ctx.createRadialGradient(0,0,r*0.88,0,0,r*1.10);
-  atmGrad.addColorStop(0,'rgba(100,180,255,0.0)');
-  atmGrad.addColorStop(0.6,'rgba(100,180,255,0.20)');
-  atmGrad.addColorStop(1,'rgba(60,140,255,0.0)');
+  atmGrad.addColorStop(0,   'rgba(100,180,255,0.0)');
+  atmGrad.addColorStop(0.6, 'rgba(100,180,255,0.22)');
+  atmGrad.addColorStop(1,   'rgba(60,140,255,0.0)');
   ctx.beginPath(); ctx.arc(0,0,r*1.10,0,Math.PI*2);
   ctx.fillStyle=atmGrad; ctx.fill();
 
+  // ── Outline ──
   ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
-  ctx.strokeStyle='rgba(120,180,255,0.38)'; ctx.lineWidth=1.3; ctx.stroke();
+  ctx.strokeStyle='rgba(120,180,255,0.35)'; ctx.lineWidth=1.3; ctx.stroke();
 
+  // ── Axial tilt dashed line ──
   const axLen=r*1.6;
   const ax=Math.cos(axisAngle), ay=Math.sin(axisAngle);
   ctx.beginPath();
@@ -551,12 +594,14 @@ function draw() {
 
   drawSolarRays(sx,sy,ex,ey,earthR);
   drawSun(sx,sy,sunR);
-  drawEarth(ex,ey,earthR,angle);
+  drawEarth(ex,ey,earthR,angle,earthSpin,sx,sy);
   updateTimeline(angle);
 
   if (!paused) {
-    angle+=ORBIT_SPEED*speed;
-    if (angle>=Math.PI*2) angle-=Math.PI*2;
+    angle     += ORBIT_SPEED * speed;
+    earthSpin += SPIN_SPEED  * speed;
+    if (angle     >= Math.PI*2) angle     -= Math.PI*2;
+    if (earthSpin >= Math.PI*2) earthSpin -= Math.PI*2;
   }
   requestAnimationFrame(draw);
 }
