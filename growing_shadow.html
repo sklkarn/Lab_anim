@@ -51,7 +51,6 @@
     text-align: center;
   }
 
-  /* ── CANVAS SCENE ── */
   .scene-wrap {
     width: 100%;
     max-width: 860px;
@@ -65,12 +64,7 @@
     box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,0,0,0.4);
   }
 
-  /* Stars */
-  .stars {
-    position: absolute;
-    inset: 0 0 40% 0;
-    pointer-events: none;
-  }
+  .stars { position: absolute; inset: 0 0 40% 0; pointer-events: none; }
 
   .star {
     position: absolute;
@@ -84,7 +78,6 @@
     50%      { opacity: 0.2; }
   }
 
-  /* Ground line */
   .ground-line {
     position: absolute;
     bottom: 88px;
@@ -93,7 +86,6 @@
     background: rgba(255,179,71,0.06);
   }
 
-  /* Horizon glow – distant light source warmth */
   .horizon-glow {
     position: absolute;
     bottom: 85px;
@@ -103,7 +95,6 @@
     pointer-events: none;
   }
 
-  /* Pavement texture lines */
   .pavement-lines {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -122,7 +113,6 @@
   .pavement-lines::before { bottom: 60px; }
   .pavement-lines::after  { bottom: 30px; }
 
-  /* ── LAMP POST ── */
   .lamp-post {
     position: absolute;
     bottom: 88px;
@@ -133,10 +123,7 @@
     align-items: center;
   }
 
-  .lamp-head {
-    position: relative;
-    margin-bottom: 0;
-  }
+  .lamp-head { position: relative; margin-bottom: 0; }
 
   .lamp-body {
     width: 10px;
@@ -178,28 +165,6 @@
     margin-top: -1px;
   }
 
-  /* Cone of light */
-  .light-cone {
-    position: absolute;
-    pointer-events: none;
-  }
-
-  /* ── MAN (SVG silhouette) ── */
-  .man-wrap {
-    position: absolute;
-    bottom: 88px;
-    pointer-events: none;
-  }
-
-  /* ── SHADOW ── */
-  .shadow-el {
-    position: absolute;
-    bottom: 88px;
-    pointer-events: none;
-    transform-origin: left bottom;
-  }
-
-  /* ── CONTROLS ── */
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -273,24 +238,15 @@
     text-transform: uppercase;
   }
 
-  .btn-play {
-    border-color: var(--amber);
-    color: var(--amber);
-  }
+  .btn-play { border-color: var(--amber); color: var(--amber); }
   .btn-play:hover, .btn-play.active {
     background: rgba(255,179,71,0.12);
     box-shadow: 0 0 16px rgba(255,179,71,0.25);
   }
 
-  .btn-reset {
-    border-color: #5a5070;
-    color: #8a80a0;
-  }
-  .btn-reset:hover {
-    background: rgba(90,80,112,0.15);
-  }
+  .btn-reset { border-color: #5a5070; color: #8a80a0; }
+  .btn-reset:hover { background: rgba(90,80,112,0.15); }
 
-  /* ── MATH PANEL ── */
   .math-panel {
     width: 100%;
     max-width: 860px;
@@ -304,11 +260,7 @@
     margin-bottom: 16px;
   }
 
-  .math-row {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
+  .math-row { display: flex; flex-direction: column; gap: 3px; }
 
   .math-label {
     font-size: 0.58rem;
@@ -317,11 +269,7 @@
     text-transform: uppercase;
   }
 
-  .math-val {
-    font-size: 0.95rem;
-    color: var(--text);
-  }
-
+  .math-val { font-size: 0.95rem; color: var(--text); }
   .math-val span { color: var(--amber); }
 
   .formula-strip {
@@ -340,7 +288,6 @@
 
   .formula-strip em { color: var(--amber); font-style: normal; }
 
-  /* instructor tag */
   .instructor-tag {
     position: absolute;
     top: 10px; right: 14px;
@@ -359,22 +306,17 @@
 <h1>The Growing Shadow</h1>
 <div class="subtitle">Uniform velocity · lamp post · shadow length on ground</div>
 
-<!-- SCENE -->
 <div class="scene-wrap" id="scene">
 
-  <!-- Stars -->
   <div class="stars" id="stars"></div>
 
-  <!-- Instructor -->
   <div class="instructor-tag">
     Instructor<br>
     <strong>Dr. S Karna</strong>
   </div>
 
-  <!-- Light cone canvas -->
   <canvas id="lightCanvas" style="position:absolute;inset:0;pointer-events:none;"></canvas>
 
-  <!-- Lamp post (fixed at left side) -->
   <div class="lamp-post" id="lampPost">
     <div class="lamp-head">
       <div class="lamp-shade"></div>
@@ -385,34 +327,15 @@
     <div class="lamp-base"></div>
   </div>
 
-  <!-- Shadow (SVG stretched polygon on ground) -->
-  <svg id="shadowSvg" style="position:absolute;bottom:88px;left:0;width:100%;height:0;overflow:visible;pointer-events:none;">
-    <defs>
-      <linearGradient id="shadowGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="rgba(0,0,0,0.0)"/>
-        <stop offset="35%" stop-color="rgba(0,0,0,0.55)"/>
-        <stop offset="100%" stop-color="rgba(0,0,0,0.0)"/>
-      </linearGradient>
-    </defs>
-    <ellipse id="shadowEllipse" rx="0" ry="5" fill="url(#shadowGrad)" transform="translate(0,0) rotate(-5)"/>
-  </svg>
-
-  <!-- Man SVG -->
+  <!-- Man SVG — red silhouette -->
   <svg id="manSvg" style="position:absolute;bottom:88px;pointer-events:none;" width="28" height="70" viewBox="0 0 28 70">
-    <!-- silhouette of walking man -->
-    <g fill="#1a1c2a" stroke="none">
-      <!-- head -->
-      <circle cx="14" cy="8" r="7" fill="#2a2c3e"/>
-      <!-- torso -->
-      <rect x="9" y="15" width="10" height="22" rx="3" fill="#2a2c3e"/>
-      <!-- left arm -->
-      <line x1="9" y1="18" x2="2" y2="32" stroke="#2a2c3e" stroke-width="4" stroke-linecap="round" id="armL"/>
-      <!-- right arm -->
-      <line x1="19" y1="18" x2="26" y2="30" stroke="#2a2c3e" stroke-width="4" stroke-linecap="round" id="armR"/>
-      <!-- left leg -->
-      <line x1="11" y1="37" x2="7" y2="58" stroke="#2a2c3e" stroke-width="5" stroke-linecap="round" id="legL"/>
-      <!-- right leg -->
-      <line x1="17" y1="37" x2="21" y2="58" stroke="#2a2c3e" stroke-width="5" stroke-linecap="round" id="legR"/>
+    <g fill="#cc2222" stroke="none">
+      <circle cx="14" cy="8" r="7" fill="#cc2222"/>
+      <rect x="9" y="15" width="10" height="22" rx="3" fill="#cc2222"/>
+      <line x1="9" y1="18" x2="2" y2="32" stroke="#cc2222" stroke-width="4" stroke-linecap="round" id="armL"/>
+      <line x1="19" y1="18" x2="26" y2="30" stroke="#cc2222" stroke-width="4" stroke-linecap="round" id="armR"/>
+      <line x1="11" y1="37" x2="7" y2="58" stroke="#cc2222" stroke-width="5" stroke-linecap="round" id="legL"/>
+      <line x1="17" y1="37" x2="21" y2="58" stroke="#cc2222" stroke-width="5" stroke-linecap="round" id="legR"/>
     </g>
   </svg>
 
@@ -421,7 +344,6 @@
   <div class="pavement-lines"></div>
 </div>
 
-<!-- Controls -->
 <div class="controls">
   <div class="ctrl-card">
     <div class="ctrl-label">Man's Velocity (v)</div>
@@ -445,7 +367,6 @@
   <button class="btn btn-reset" onclick="resetSim()">↺ Reset</button>
 </div>
 
-<!-- Math panel -->
 <div class="math-panel">
   <div class="math-row">
     <div class="math-label">Distance of Man (x)</div>
@@ -472,90 +393,59 @@
 </div>
 
 <script>
-  // ── Physics params ──
-  let v = 1.5;    // m/s
-  let H = 5;      // lamp height (m)
-  let h = 1.8;    // man height (m)
-  let x = 0;      // man distance from lamp (m)
-  const SCALE = 28; // pixels per metre in scene
-
-  // ── Scene layout ──
-  const LAMP_POST_PX = 100; // lamp post x in scene
+  let v = 1.5, H = 5, h = 1.8, x = 0;
+  const SCALE = 28;
+  const LAMP_POST_PX = 100;
   const GROUND_Y_FROM_BOTTOM = 88;
-  let scene, manSvg, shadowEllipse, lightCanvas, lampPole, bulb;
   let running = false, rafId = null, lastTs = null;
 
-  // ── Sliders / setters ──
   function setVel(val)   { v = parseFloat(val); document.getElementById('velVal').textContent = v.toFixed(1) + ' m/s'; }
   function setLampH(val) { H = parseFloat(val); document.getElementById('lampHVal').textContent = H.toFixed(1) + ' m'; updateLampVisual(); render(); }
   function setManH(val)  { h = parseFloat(val); document.getElementById('manHVal').textContent = h.toFixed(1) + ' m'; render(); }
 
-  // ── Populate stars ──
   function makeStars() {
     const c = document.getElementById('stars');
     for (let i = 0; i < 55; i++) {
       const s = document.createElement('div');
       s.className = 'star';
       const sz = Math.random() * 1.8 + 0.5;
-      s.style.cssText = `
-        width:${sz}px; height:${sz}px;
-        left:${Math.random()*100}%;
-        top:${Math.random()*100}%;
-        animation-delay:${Math.random()*4}s;
-        animation-duration:${2+Math.random()*3}s;
-      `;
+      s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*3}s;`;
       c.appendChild(s);
     }
   }
 
   function updateLampVisual() {
     const pole = document.getElementById('lampPole');
-    // H m → pixels (clamp between 60 and 160)
-    const pxH = Math.round(H * SCALE * 0.55);
-    pole.style.height = pxH + 'px';
+    pole.style.height = Math.round(H * SCALE * 0.55) + 'px';
   }
 
-  // ── Main render (physics → visual) ──
   function render() {
     const sceneEl = document.getElementById('scene');
-    const sceneW = sceneEl.clientWidth;
+    const sceneW  = sceneEl.clientWidth;
 
-    // Physics: shadow length by similar triangles
-    // H / (x + s) = h / s  →  s = h*x / (H - h)
-    const s = (H > h) ? (h * x) / (H - h) : 0;
-    const tipDist = x + s; // distance of shadow tip from lamp
+    const s       = (H > h) ? (h * x) / (H - h) : 0;
+    const tipDist = x + s;
 
-    // Pixel positions (all relative to scene left)
-    const lampPx = LAMP_POST_PX;
-    const manPx  = lampPx + x * SCALE;
-    const shadowStartPx = manPx;        // shadow starts at man's feet
+    const lampPx        = LAMP_POST_PX;
+    const manPx         = lampPx + x * SCALE;
+    const shadowStartPx = manPx;
     const shadowEndPx   = lampPx + tipDist * SCALE;
 
-    // Move man SVG
-    const manEl = document.getElementById('manSvg');
+    // Move man
+    const manEl  = document.getElementById('manSvg');
     const manHpx = Math.round(h * SCALE * 0.55);
     manEl.style.left = (manPx - 14) + 'px';
     manEl.setAttribute('height', manHpx);
 
-    // Walking animation (leg/arm swing based on x)
+    // Walking limb swing
     const swing = Math.sin(x * 6) * 12;
-    document.getElementById('legL').setAttribute('x2', 7 + swing * 0.5);
+    document.getElementById('legL').setAttribute('x2', 7  + swing * 0.5);
     document.getElementById('legR').setAttribute('x2', 21 - swing * 0.5);
-    document.getElementById('armL').setAttribute('x2', 2 - swing * 0.4);
+    document.getElementById('armL').setAttribute('x2', 2  - swing * 0.4);
     document.getElementById('armR').setAttribute('x2', 26 + swing * 0.4);
 
-    // Shadow ellipse
-    const shadowMidPx = (shadowStartPx + shadowEndPx) / 2;
-    const shadowRx = Math.max(0, (shadowEndPx - shadowStartPx) / 2);
-    const se = document.getElementById('shadowEllipse');
-    se.setAttribute('rx', shadowRx);
-    se.setAttribute('ry', 5 + shadowRx * 0.04);
-    se.setAttribute('transform', `translate(${shadowMidPx}, 0)`);
+    drawLightCone(lampPx, manPx, manHpx, shadowStartPx, shadowEndPx, sceneEl);
 
-    // Light cone on canvas
-    drawLightCone(lampPx, manPx, manHpx, shadowEndPx, sceneEl);
-
-    // HUD values (convert px back to metres)
     const dsdt = (H > h) ? (v * h) / (H - h) : 0;
     document.getElementById('mX').innerHTML    = `<span>${x.toFixed(2)}</span> m`;
     document.getElementById('mS').innerHTML    = `<span>${s.toFixed(2)}</span> m`;
@@ -563,26 +453,24 @@
     document.getElementById('mRate').innerHTML = `<span>${dsdt.toFixed(3)}</span> m/s`;
   }
 
-  function drawLightCone(lampPx, manPx, manHpx, shadowEndPx, sceneEl) {
-    const canvas = document.getElementById('lightCanvas');
+  function drawLightCone(lampPx, manPx, manHpx, shadowStartPx, shadowEndPx, sceneEl) {
+    const canvas  = document.getElementById('lightCanvas');
     canvas.width  = sceneEl.clientWidth;
     canvas.height = sceneEl.clientHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const ctx     = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const groundY = canvas.height - GROUND_Y_FROM_BOTTOM;
-    // lamp bulb position
-    const pole = document.getElementById('lampPole');
-    const poleH = parseInt(pole.style.height || '100');
-    const bulbY = canvas.height - GROUND_Y_FROM_BOTTOM - poleH - 30;
-    const bulbX = lampPx;
+    const pole    = document.getElementById('lampPole');
+    const poleH   = parseInt(pole.style.height || '100');
+    const bulbY   = canvas.height - GROUND_Y_FROM_BOTTOM - poleH - 30;
+    const bulbX   = lampPx;
 
-    // Full cone from lamp to ground (wide glow)
+    // ── Light cone ──
     const grd = ctx.createRadialGradient(bulbX, bulbY, 0, bulbX + (shadowEndPx - lampPx)*0.5, groundY, Math.abs(shadowEndPx - lampPx) + 60);
     grd.addColorStop(0,   'rgba(255,200,80,0.22)');
     grd.addColorStop(0.5, 'rgba(255,180,60,0.07)');
     grd.addColorStop(1,   'rgba(255,160,40,0.00)');
-
     ctx.beginPath();
     ctx.moveTo(bulbX, bulbY);
     ctx.lineTo(shadowEndPx + 10, groundY);
@@ -591,7 +479,36 @@
     ctx.fillStyle = grd;
     ctx.fill();
 
-    // Ray from lamp tip to shadow tip
+    // ── Shadow on ground — drawn as a solid tapered trapezoid on the canvas ──
+    const shadowLen = shadowEndPx - shadowStartPx;
+    if (shadowLen > 1) {
+      const halfWBase = 10;                        // width at man's feet
+      const halfWTip  = 2;                         // narrows to a point at tip
+      ctx.beginPath();
+      ctx.moveTo(shadowStartPx - halfWBase, groundY);   // left at feet
+      ctx.lineTo(shadowStartPx + halfWBase, groundY);   // right at feet
+      ctx.lineTo(shadowEndPx   + halfWTip,  groundY);   // right at tip
+      ctx.lineTo(shadowEndPx   - halfWTip,  groundY);   // left at tip
+      ctx.closePath();
+
+      // Dark charcoal gradient from feet → tip
+      const sGrd = ctx.createLinearGradient(shadowStartPx, 0, shadowEndPx, 0);
+      sGrd.addColorStop(0,    'rgba(20, 10, 10, 0.92)');
+      sGrd.addColorStop(0.55, 'rgba(30, 15, 15, 0.80)');
+      sGrd.addColorStop(1,    'rgba(40, 10, 10, 0.0)');
+      ctx.fillStyle = sGrd;
+      ctx.fill();
+
+      // Thin bright outline along the top edge so it pops on the dark pavement
+      ctx.beginPath();
+      ctx.moveTo(shadowStartPx - halfWBase, groundY - 1);
+      ctx.lineTo(shadowEndPx,               groundY - 1);
+      ctx.strokeStyle = 'rgba(200, 80, 80, 0.55)';
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    }
+
+    // ── Ray: lamp → shadow tip ──
     ctx.beginPath();
     ctx.moveTo(bulbX, bulbY);
     ctx.lineTo(shadowEndPx, groundY);
@@ -599,7 +516,7 @@
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Ray from lamp to man's head
+    // ── Dashed ray: lamp → man's head ──
     ctx.beginPath();
     ctx.moveTo(bulbX, bulbY);
     ctx.lineTo(manPx, groundY - manHpx);
@@ -609,7 +526,7 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Lamp halo
+    // ── Lamp halo ──
     const halo = ctx.createRadialGradient(bulbX, bulbY, 0, bulbX, bulbY, 60);
     halo.addColorStop(0,   'rgba(255,220,100,0.35)');
     halo.addColorStop(0.4, 'rgba(255,180,60,0.1)');
@@ -619,7 +536,7 @@
     ctx.fillStyle = halo;
     ctx.fill();
 
-    // Lit ground patch
+    // ── Lit ground patch ──
     const groundGrd = ctx.createLinearGradient(lampPx, 0, shadowEndPx + 30, 0);
     groundGrd.addColorStop(0,   'rgba(255,180,60,0.08)');
     groundGrd.addColorStop(0.6, 'rgba(255,160,40,0.04)');
@@ -630,19 +547,14 @@
     ctx.fill();
   }
 
-  // ── Animate ──
   function tick(ts) {
     if (!lastTs) lastTs = ts;
     const dt = Math.min((ts - lastTs) / 1000, 0.05);
     lastTs = ts;
-
     x += v * dt;
-
-    // Stop if man walks off scene
     const sceneW = document.getElementById('scene').clientWidth;
-    const maxX = (sceneW - LAMP_POST_PX - 30) / SCALE;
+    const maxX   = (sceneW - LAMP_POST_PX - 30) / SCALE;
     if (x > maxX) { x = maxX; stopSim(); return; }
-
     render();
     rafId = requestAnimationFrame(tick);
   }
@@ -657,7 +569,7 @@
   function togglePlay() {
     if (!running) {
       running = true;
-      lastTs = null;
+      lastTs  = null;
       document.getElementById('playBtn').textContent = '⏸ Pause';
       document.getElementById('playBtn').classList.add('active');
       rafId = requestAnimationFrame(tick);
@@ -674,7 +586,6 @@
     render();
   }
 
-  // ── Init ──
   window.addEventListener('load', () => {
     makeStars();
     updateLampVisual();
