@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vector Algebra</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --grid: #1a1a2e;
+    --vec-a: #00f5d4;
+    --vec-b: #f72585;
+    --vec-r: #ffe45e;
+    --vec-cross: #7b2fff;
+    --text: #e8e8f0;
+    --panel: #12121c;
+    --border: #2a2a40;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 24px 40px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  header .left {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  header .sub {
+    font-size: 0.7rem;
+    color: #555570;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    padding: 20px 40px 40px;
+    min-height: calc(100vh - 80px);
+  }
+
+  /* ── Canvas ── */
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .author {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--vec-a);
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+
+  .author span {
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: #555570;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    text-align: right;
+    margin-top: 1px;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 14px; left: 14px;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: #333355;
+    text-transform: uppercase;
+  }
+
+  /* ── Controls ── */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #555570;
+    margin-bottom: 14px;
+  }
+
+  /* Mode Tabs */
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .tab {
+    background: none;
+    border: 1px solid var(--border);
+    color: #555570;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 7px 4px;
+    cursor: pointer;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .tab.active {
+    border-color: var(--vec-a);
+    color: var(--vec-a);
+    background: rgba(0,245,212,0.06);
+  }
+
+  .tab:hover:not(.active) {
+    border-color: #3a3a55;
+    color: #8888aa;
+  }
+
+  /* Sliders */
+  .vec-group { margin-bottom: 12px; }
+
+  .vec-group:last-child { margin-bottom: 0; }
+
+  .vec-label {
+    font-size: 0.65rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 12px 1fr 36px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .axis-lbl {
+    font-size: 0.55rem;
+    color: #555570;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+  }
+
+  input[type=range].a::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--vec-a);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--vec-a);
+  }
+
+  input[type=range].b::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--vec-b);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--vec-b);
+  }
+
+  .val {
+    font-size: 0.6rem;
+    text-align: right;
+    color: #8888aa;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Info */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .info-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 10px 8px;
+  }
+
+  .info-item.full { grid-column: 1/-1; }
+
+  .info-key {
+    font-size: 0.55rem;
+    color: #444460;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .info-val {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .info-val.yellow { color: var(--vec-r); }
+  .info-val.cyan { color: var(--vec-a); }
+  .info-val.pink { color: var(--vec-b); }
+  .info-val.purple { color: var(--vec-cross); }
+
+  /* Formula */
+  .formula {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px;
+    font-size: 0.65rem;
+    line-height: 1.7;
+    color: #8888aa;
+  }
+
+  .formula span.cyan { color: var(--vec-a); }
+  .formula span.pink { color: var(--vec-b); }
+  .formula span.yellow { color: var(--vec-r); }
+  .formula span.purple { color: var(--vec-cross); }
+
+  /* Animate toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    color: #555570;
+  }
+
+  .toggle {
+    width: 36px; height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    outline: none;
+  }
+
+  .toggle.on { background: rgba(0,245,212,0.3); border: 1px solid var(--vec-a); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #555570;
+    top: 3px; left: 3px;
+    transition: all 0.2s;
+  }
+
+  .toggle.on::after {
+    left: 19px;
+    background: var(--vec-a);
+    box-shadow: 0 0 6px var(--vec-a);
+  }
+
+  .anim-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pause-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: #555570;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 5px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .pause-btn.visible { display: block; }
+
+  .pause-btn:hover {
+    border-color: var(--vec-r);
+    color: var(--vec-r);
+  }
+
+  .pause-btn.paused {
+    border-color: var(--vec-a);
+    color: var(--vec-a);
+    background: rgba(0,245,212,0.06);
+  }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; padding: 12px 16px 32px; }
+    .canvas-wrap { min-height: 340px; }
+    header { padding: 18px 16px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="left">
+    <h1>Vector Algebra</h1>
+    <span class="sub">Interactive 2D / 3D</span>
+  </div>
+  <div class="author">Dr. S Karna<span>Instructor</span></div>
+</header>
+
+<div class="layout">
+  <div class="canvas-wrap">
+    <span class="canvas-label">Coordinate Plane</span>
+    <canvas id="cv"></canvas>
+  </div>
+
+  <div class="panel">
+
+    <!-- Mode -->
+    <div class="card">
+      <div class="card-title">Operation</div>
+      <div class="tabs">
+        <button class="tab active" data-mode="add">Add</button>
+        <button class="tab" data-mode="sub">Subtract</button>
+        <button class="tab" data-mode="dot">Dot ·</button>
+        <button class="tab" data-mode="cross">Cross ×</button>
+        <button class="tab" data-mode="scale">Scale</button>
+        <button class="tab" data-mode="proj">Project</button>
+      </div>
+    </div>
+
+    <!-- Vector A -->
+    <div class="card">
+      <div class="card-title">Vectors</div>
+      <div class="vec-group">
+        <div class="vec-label">
+          <span class="dot" style="background:var(--vec-a)"></span>
+          <span style="color:var(--vec-a)">Vector A</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">x</span>
+          <input type="range" class="a" id="ax" min="-5" max="5" step="0.1" value="3">
+          <span class="val" id="axv">3.0</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">y</span>
+          <input type="range" class="a" id="ay" min="-5" max="5" step="0.1" value="2">
+          <span class="val" id="ayv">2.0</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">z</span>
+          <input type="range" class="a" id="az" min="-5" max="5" step="0.1" value="1">
+          <span class="val" id="azv">1.0</span>
+        </div>
+      </div>
+      <div class="vec-group">
+        <div class="vec-label">
+          <span class="dot" style="background:var(--vec-b)"></span>
+          <span style="color:var(--vec-b)">Vector B</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">x</span>
+          <input type="range" class="b" id="bx" min="-5" max="5" step="0.1" value="-1">
+          <span class="val" id="bxv">-1.0</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">y</span>
+          <input type="range" class="b" id="by" min="-5" max="5" step="0.1" value="3">
+          <span class="val" id="byv">3.0</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">z</span>
+          <input type="range" class="b" id="bz" min="-5" max="5" step="0.1" value="-2">
+          <span class="val" id="bzv">-2.0</span>
+        </div>
+      </div>
+      <div class="vec-group" id="scaleGroup" style="display:none">
+        <div class="vec-label">
+          <span class="dot" style="background:#ffe45e"></span>
+          <span style="color:#ffe45e">Scalar λ</span>
+        </div>
+        <div class="slider-row">
+          <span class="axis-lbl">λ</span>
+          <input type="range" class="a" id="scalar" min="-3" max="3" step="0.1" value="2">
+          <span class="val" id="scalarV">2.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+      <div class="card-title">Results</div>
+      <div class="info-grid" id="infoGrid">
+        <div class="info-item">
+          <div class="info-key">|A|</div>
+          <div class="info-val cyan" id="magA">—</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">|B|</div>
+          <div class="info-val pink" id="magB">—</div>
+        </div>
+        <div class="info-item full">
+          <div class="info-key" id="resLabel">A + B</div>
+          <div class="info-val yellow" id="resVal">—</div>
+        </div>
+        <div class="info-item full" id="extraItem">
+          <div class="info-key" id="extraLabel">Angle θ</div>
+          <div class="info-val purple" id="extraVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formula -->
+    <div class="card">
+      <div class="card-title">Formula</div>
+      <div class="formula" id="formula">
+        <span class="yellow">R</span> = <span class="cyan">A</span> + <span class="pink">B</span>
+      </div>
+    </div>
+
+    <!-- Auto-animate -->
+    <div class="card">
+      <div class="toggle-row">
+        <span>Auto-Animate</span>
+        <div class="anim-controls">
+          <button class="pause-btn" id="pauseBtn">⏸ Pause</button>
+          <button class="toggle" id="animBtn"></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────
+const state = {
+  ax: 3, ay: 2, az: 1,
+  bx: -1, by: 3, bz: -2,
+  scalar: 2,
+  mode: 'add',
+  animating: false,
+  t: 0
+};
+
+// ─── DOM ──────────────────────────────────────────────────────────────
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ─── Resize ───────────────────────────────────────────────────────────
+function resize() {
+  const wrap = cv.parentElement;
+  cv.width = wrap.clientWidth;
+  cv.height = wrap.clientHeight;
+}
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+
+// ─── Sliders ──────────────────────────────────────────────────────────
+['ax','ay','az','bx','by','bz','scalar'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    state[id] = parseFloat(el.value);
+    document.getElementById(id + 'v') && (document.getElementById(id + 'v').textContent = parseFloat(el.value).toFixed(1));
+    if (id === 'scalar') document.getElementById('scalarV').textContent = parseFloat(el.value).toFixed(1);
+    draw();
+  });
+});
+
+// ─── Tabs ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    state.mode = t.dataset.mode;
+    document.getElementById('scaleGroup').style.display = state.mode === 'scale' ? '' : 'none';
+    draw();
+  });
+});
+
+// ─── Animate toggle ────────────────────────────────────────────────────
+const animBtn = document.getElementById('animBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+
+state.paused = false;
+
+animBtn.addEventListener('click', () => {
+  state.animating = !state.animating;
+  state.paused = false;
+  animBtn.classList.toggle('on', state.animating);
+  pauseBtn.classList.toggle('visible', state.animating);
+  pauseBtn.classList.remove('paused');
+  pauseBtn.textContent = '⏸ Pause';
+  if (state.animating) loop();
+});
+
+pauseBtn.addEventListener('click', () => {
+  state.paused = !state.paused;
+  pauseBtn.classList.toggle('paused', state.paused);
+  pauseBtn.textContent = state.paused ? '▶ Resume' : '⏸ Pause';
+  if (!state.paused && state.animating) loop();
+});
+
+function loop() {
+  if (!state.animating || state.paused) return;
+  state.t += 0.015;
+  const ax = parseFloat((3 * Math.cos(state.t)).toFixed(2));
+  const ay = parseFloat((2 * Math.sin(state.t * 1.3)).toFixed(2));
+  const bx = parseFloat((2 * Math.cos(state.t * 0.7 + 1.5)).toFixed(2));
+  const by = parseFloat((3 * Math.sin(state.t * 0.9)).toFixed(2));
+  state.ax = ax; state.ay = ay;
+  state.bx = bx; state.by = by;
+  syncSlider('ax', ax); syncSlider('ay', ay);
+  syncSlider('bx', bx); syncSlider('by', by);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function syncSlider(id, val) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.value = val;
+    const lbl = document.getElementById(id + 'v');
+    if (lbl) lbl.textContent = val.toFixed(1);
+  }
+}
+
+// ─── Math helpers ──────────────────────────────────────────────────────
+const mag = (x,y,z=0) => Math.sqrt(x*x + y*y + z*z);
+const dot = (ax,ay,az,bx,by,bz) => ax*bx + ay*by + az*bz;
+const cross = (ax,ay,az,bx,by,bz) => [
+  ay*bz - az*by,
+  az*bx - ax*bz,
+  ax*by - ay*bx
+];
+const fmt = n => (n >= 0 ? '' : '') + n.toFixed(2);
+const fmtV = (x,y,z) => `(${fmt(x)}, ${fmt(y)}, ${fmt(z)})`;
+
+// ─── Draw helpers ──────────────────────────────────────────────────────
+function drawArrow(ctx, ox, oy, tx, ty, color, lbl, alpha=1, dashed=false) {
+  const dx = tx - ox, dy = ty - oy;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 1) return;
+  const ux = dx/len, uy = dy/len;
+  const hw = 9, hl = 14;
+  const bx = tx - ux*hl, by = ty - uy*hl;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = color;
+
+  if (dashed) ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // arrowhead
+  const px = -uy, py = ux;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(bx + px*hw*0.5, by + py*hw*0.5);
+  ctx.lineTo(bx - px*hw*0.5, by - py*hw*0.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // label
+  if (lbl) {
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 13px "Space Mono", monospace';
+    ctx.fillStyle = color;
+    const mx = (ox + tx) * 0.5 - uy * 18;
+    const my = (oy + ty) * 0.5 + ux * 18;
+    ctx.fillText(lbl, mx, my);
+  }
+  ctx.restore();
+}
+
+function drawGrid(cx, cy, scale) {
+  const w = cv.width, h = cv.height;
+  ctx.save();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1;
+  // grid lines
+  for (let i = Math.floor(-cx/scale); i * scale < w - cx; i++) {
+    const x = cx + i * scale;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let j = Math.floor(-cy/scale); j * scale < h - cy; j++) {
+    const y = cy + j * scale;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  // axes
+  ctx.strokeStyle = '#2a2a42';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+  // tick labels
+  ctx.fillStyle = '#333355';
+  ctx.font = '10px "Space Mono"';
+  ctx.textAlign = 'center';
+  for (let i = -6; i <= 6; i++) {
+    if (i === 0) continue;
+    ctx.fillText(i, cx + i*scale, cy + 14);
+    ctx.textAlign = 'right';
+    ctx.fillText(-i, cx - 14, cy + i*scale + 4);
+    ctx.textAlign = 'center';
+  }
+  // axis labels
+  ctx.fillStyle = '#3a3a5a';
+  ctx.font = 'italic 12px "Space Mono"';
+  ctx.fillText('x', w - 16, cy - 8);
+  ctx.textAlign = 'left';
+  ctx.fillText('y', cx + 8, 16);
+  ctx.restore();
+}
+
+function drawAngleArc(ctx, ox, oy, ax, ay, bx, by, color) {
+  const a1 = Math.atan2(-ay, ax);
+  const a2 = Math.atan2(-by, bx);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.6;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();
+  const r = 28;
+  ctx.arc(ox, oy, r, Math.min(a1,a2), Math.max(a1,a2));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ─── Main draw ──────────────────────────────────────────────────────────
+function draw() {
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const scale = Math.min(w, h) / 12;
+  const cx = w * 0.5, cy = h * 0.5;
+
+  // background gradient
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w,h)*0.6);
+  grad.addColorStop(0, '#0e0e1a');
+  grad.addColorStop(1, '#0a0a0f');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  drawGrid(cx, cy, scale);
+
+  const { ax, ay, az, bx, by, bz, scalar, mode } = state;
+
+  // World coords -> canvas
+  const wx = (v) => cx + v * scale;
+  const wy = (v) => cy - v * scale;
+
+  const CAx = wx(ax), CAy = wy(ay);
+  const CBx = wx(bx), CBy = wy(by);
+
+  // ── Draw based on mode ──
+  switch (mode) {
+
+    case 'add': {
+      // parallelogram ghost
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#ffe45e';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(CAx, CAy);
+      ctx.lineTo(wx(ax+bx), wy(ay+by));
+      ctx.lineTo(CBx, CBy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A');
+      drawArrow(ctx, cx, cy, CBx, CBy, '#f72585', 'B');
+      // B starting from tip of A
+      drawArrow(ctx, CAx, CAy, wx(ax+bx), wy(ay+by), '#f72585', '', 0.45, true);
+      drawArrow(ctx, cx, cy, wx(ax+bx), wy(ay+by), '#ffe45e', 'R=A+B');
+      updateInfo('A+B', `${fmtV(ax+bx, ay+by, az+bz)}`, '|R|', mag(ax+bx,ay+by,az+bz).toFixed(3), 'yellow');
+      setFormula(`<span class="yellow">R</span> = <span class="cyan">A</span> + <span class="pink">B</span> = ${fmtV(ax+bx,ay+by,az+bz)}`);
+      break;
+    }
+
+    case 'sub': {
+      const rx = ax - bx, ry = ay - by, rz = az - bz;
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A');
+      drawArrow(ctx, cx, cy, CBx, CBy, '#f72585', 'B');
+      // -B from tip of A
+      drawArrow(ctx, CBx, CBy, wx(rx), wy(ry), '#f72585', '', 0.45, true);
+      drawArrow(ctx, cx, cy, wx(rx), wy(ry), '#ffe45e', 'R=A−B');
+      updateInfo('A−B', `${fmtV(rx,ry,rz)}`, '|R|', mag(rx,ry,rz).toFixed(3), 'yellow');
+      setFormula(`<span class="yellow">R</span> = <span class="cyan">A</span> − <span class="pink">B</span> = ${fmtV(rx,ry,rz)}`);
+      break;
+    }
+
+    case 'dot': {
+      const d = dot(ax,ay,az,bx,by,bz);
+      const mA = mag(ax,ay,az), mB = mag(bx,by,bz);
+      const theta = mA > 0 && mB > 0 ? Math.acos(Math.max(-1,Math.min(1,d/(mA*mB)))) : 0;
+      drawAngleArc(ctx, cx, cy, ax, ay, bx, by, '#7b2fff');
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A');
+      drawArrow(ctx, cx, cy, CBx, CBy, '#f72585', 'B');
+      // projection line
+      if (mB > 0) {
+        const proj = d / (mB * mB);
+        drawArrow(ctx, cx, cy, wx(bx*proj), wy(by*proj), '#7b2fff', 'A·B̂', 0.8, true);
+      }
+      updateInfo('A · B', fmt(d), 'θ', (theta * 180 / Math.PI).toFixed(1) + '°', 'purple');
+      setFormula(`<span class="cyan">A</span>·<span class="pink">B</span> = |A||B|cosθ<br>= ${mA.toFixed(2)} × ${mB.toFixed(2)} × cos(${(theta*180/Math.PI).toFixed(1)}°)<br>= <span class="purple">${fmt(d)}</span>`);
+      break;
+    }
+
+    case 'cross': {
+      const [rx,ry,rz] = cross(ax,ay,az,bx,by,bz);
+      const mC = mag(rx,ry,rz);
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A');
+      drawArrow(ctx, cx, cy, CBx, CBy, '#f72585', 'B');
+      // parallelogram
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = '#7b2fff';
+      ctx.beginPath();
+      ctx.moveTo(cx,cy); ctx.lineTo(CAx,CAy);
+      ctx.lineTo(wx(ax+bx),wy(ay+by)); ctx.lineTo(CBx,CBy);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      // z component as vertical arrow
+      const zScale = mC * 0.25;
+      if (zScale > 0.2) {
+        drawArrow(ctx, cx, cy, cx, cy - zScale*scale, '#7b2fff', `|A×B|=${mC.toFixed(2)}`);
+      }
+      updateInfo('A×B', fmtV(rx,ry,rz), '|A×B|', mC.toFixed(3), 'purple');
+      setFormula(`<span class="purple">A×B</span> = (${fmt(ry-rz>0?1:-1)}yz…)<br>= ${fmtV(rx,ry,rz)}<br>|A×B| = <span class="purple">${mC.toFixed(3)}</span>`);
+      break;
+    }
+
+    case 'scale': {
+      const λ = scalar;
+      const rx = λ*ax, ry = λ*ay, rz = λ*az;
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A', 0.5);
+      drawArrow(ctx, cx, cy, wx(rx), wy(ry), '#ffe45e', `λA`);
+      updateInfo(`λ·A`, fmtV(rx,ry,rz), '|λA|', mag(rx,ry,rz).toFixed(3), 'yellow');
+      setFormula(`<span class="yellow">λA</span> = ${fmt(λ)} × <span class="cyan">A</span><br>= ${fmtV(rx,ry,rz)}`);
+      break;
+    }
+
+    case 'proj': {
+      const mB2 = bx*bx + by*by + bz*bz;
+      const d = dot(ax,ay,az,bx,by,bz);
+      const t = mB2 > 0 ? d/mB2 : 0;
+      const px = t*bx, py = t*by;
+
+      drawArrow(ctx, cx, cy, CAx, CAy, '#00f5d4', 'A');
+      drawArrow(ctx, cx, cy, CBx, CBy, '#f72585', 'B');
+      drawArrow(ctx, cx, cy, wx(px), wy(py), '#ffe45e', 'proj', 1);
+      // perpendicular
+      ctx.save();
+      ctx.strokeStyle = '#555577';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(CAx, CAy); ctx.lineTo(wx(px), wy(py)); ctx.stroke();
+      ctx.restore();
+      const scalar_comp = mB2 > 0 ? d/Math.sqrt(mB2) : 0;
+      updateInfo(`proj_B A`, fmtV(px,py,t*bz), 'comp', scalar_comp.toFixed(3), 'yellow');
+      setFormula(`proj_<span class="pink">B</span><span class="cyan">A</span> = (A·B/|B|²)B<br>= ${fmtV(px,py,t*bz)}`);
+      break;
+    }
+  }
+
+  // magnitudes always shown
+  document.getElementById('magA').textContent = mag(ax,ay,az).toFixed(3);
+  document.getElementById('magB').textContent = mag(bx,by,bz).toFixed(3);
+}
+
+function updateInfo(rlbl, rval, elbl, eval_, evalClass) {
+  document.getElementById('resLabel').textContent = rlbl;
+  document.getElementById('resVal').textContent = rval;
+  document.getElementById('extraLabel').textContent = elbl;
+  document.getElementById('extraVal').textContent = eval_;
+  document.getElementById('extraVal').className = 'info-val ' + (evalClass || 'yellow');
+}
+
+function setFormula(html) {
+  document.getElementById('formula').innerHTML = html;
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────
+draw();
+</script>
+</body>
+</html>
