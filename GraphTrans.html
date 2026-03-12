@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Transformations — Dr. S Karna</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #2a2a3e;
+    --accent: #6ee7f7;
+    --accent2: #f76eb2;
+    --accent3: #a5f77e;
+    --accent4: #ffd97a;
+    --text: #e8e8f0;
+    --muted: #6060a0;
+    --error: #ff6b6b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 3rem;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 75% 15%, rgba(110,231,247,0.07) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 15% 85%, rgba(247,110,178,0.05) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255,217,122,0.03) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; width: 100%; max-width: 1130px; }
+
+  /* ── Header ── */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .badge-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .badge-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--accent4);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(255,217,122,0.3);
+  }
+
+  .header-center { text-align: center; }
+
+  .header-center h1 {
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+  }
+
+  .header-center p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    border: 1px solid;
+    text-transform: uppercase;
+  }
+  .tag-cyan  { color: var(--accent);  border-color: rgba(110,231,247,0.3); background: rgba(110,231,247,0.06); }
+  .tag-pink  { color: var(--accent2); border-color: rgba(247,110,178,0.3); background: rgba(247,110,178,0.06); }
+  .tag-gold  { color: var(--accent4); border-color: rgba(255,217,122,0.3); background: rgba(255,217,122,0.06); }
+
+  @media (max-width: 640px) {
+    header { grid-template-columns: 1fr; text-align: center; }
+    .header-badge { align-items: center; }
+    .header-right { align-items: center; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 295px 1fr;
+    gap: 1.4rem;
+    align-items: start;
+  }
+  @media (max-width: 750px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.4rem;
+  }
+
+  .panel-title {
+    font-size: 0.66rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 0.62rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 1.1rem 0 0.55rem;
+  }
+
+  /* Custom fn */
+  .custom-fn-wrap { position: relative; margin-bottom: 0.4rem; }
+  .custom-fn-prefix {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-family: 'Space Mono', monospace; font-size: 0.78rem;
+    color: var(--accent3); pointer-events: none;
+  }
+  .custom-fn-input {
+    width: 100%; background: rgba(165,247,126,0.05);
+    border: 1px solid rgba(165,247,126,0.22);
+    border-radius: 9px; color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 0.8rem;
+    padding: 0.58rem 0.6rem 0.58rem 68px;
+    outline: none; transition: all 0.18s;
+  }
+  .custom-fn-input:focus { border-color: var(--accent3); background: rgba(165,247,126,0.09); box-shadow: 0 0 0 3px rgba(165,247,126,0.07); }
+  .custom-fn-input.error { border-color: var(--error); background: rgba(255,107,107,0.06); }
+
+  .custom-fn-btn {
+    width: 100%; margin-top: 0.45rem; padding: 0.52rem;
+    background: rgba(165,247,126,0.09);
+    border: 1px solid rgba(165,247,126,0.28);
+    border-radius: 8px; color: var(--accent3);
+    font-family: 'Space Mono', monospace; font-size: 0.76rem;
+    cursor: pointer; letter-spacing: 0.05em; transition: all 0.18s;
+  }
+  .custom-fn-btn:hover { background: rgba(165,247,126,0.16); border-color: var(--accent3); }
+
+  .error-msg {
+    font-family: 'Space Mono', monospace; font-size: 0.66rem;
+    color: var(--error); margin-top: 0.3rem; min-height: 0.9rem; padding-left: 2px;
+  }
+
+  .hints {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.65rem 0.75rem; margin-top: 0.45rem;
+  }
+  .hints-title { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+  .hint-item { font-family: 'Space Mono', monospace; font-size: 0.66rem; color: rgba(220,220,240,0.5); line-height: 1.75; }
+  .hint-item span { color: var(--accent3); }
+
+  /* Toggle row for inverse */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,217,122,0.05);
+    border: 1px solid rgba(255,217,122,0.18);
+    border-radius: 9px; padding: 0.6rem 0.8rem;
+    margin-top: 0.3rem; cursor: pointer; transition: all 0.18s;
+  }
+  .toggle-row:hover { background: rgba(255,217,122,0.1); border-color: rgba(255,217,122,0.35); }
+  .toggle-label {
+    font-family: 'Space Mono', monospace; font-size: 0.76rem;
+    color: var(--accent4);
+  }
+  .toggle-label small { display: block; font-size: 0.6rem; color: var(--muted); margin-top: 0.1rem; }
+
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--border); border-radius: 20px;
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute;
+    width: 14px; height: 14px;
+    background: var(--muted); border-radius: 50%;
+    top: 3px; left: 3px; transition: all 0.2s;
+  }
+  .toggle-switch.on { background: rgba(255,217,122,0.3); }
+  .toggle-switch.on::after { left: 19px; background: var(--accent4); box-shadow: 0 0 6px rgba(255,217,122,0.5); }
+
+  /* Presets */
+  .fn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.42rem; }
+  .fn-btn {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.76rem;
+    padding: 0.48rem 0.4rem; border-radius: 8px; cursor: pointer;
+    transition: all 0.18s; text-align: center;
+  }
+  .fn-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(110,231,247,0.07); }
+  .fn-btn.active { border-color: var(--accent); background: rgba(110,231,247,0.12); color: var(--accent); }
+
+  /* Sliders */
+  .slider-row { display: flex; flex-direction: column; gap: 0.26rem; margin-bottom: 0.75rem; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; }
+  .slider-name { font-family: 'Space Mono', monospace; font-size: 0.74rem; color: var(--text); }
+  .slider-val { font-family: 'Space Mono', monospace; font-size: 0.71rem; color: var(--accent2); min-width: 40px; text-align: right; }
+  .slider-desc { font-size: 0.61rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--accent2);
+    cursor: pointer; box-shadow: 0 0 8px rgba(247,110,178,0.45);
+  }
+
+  .reset-btn {
+    width: 100%; margin-top: 0.75rem; padding: 0.52rem;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted);
+    font-family: 'Space Mono', monospace; font-size: 0.71rem;
+    cursor: pointer; letter-spacing: 0.05em; transition: all 0.18s;
+  }
+  .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Canvas */
+  .canvas-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.2rem;
+  }
+  canvas { display: block; width: 100%; border-radius: 8px; background: #0d0d14; }
+
+  .equation-bar {
+    margin-top: 0.9rem; padding: 0.75rem 1rem;
+    background: rgba(110,231,247,0.04);
+    border: 1px solid rgba(110,231,247,0.13);
+    border-radius: 10px;
+    font-family: 'Space Mono', monospace; font-size: 0.8rem;
+    display: flex; flex-direction: column; gap: 0.28rem;
+  }
+  .eq-row { display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; }
+  .eq-label { color: var(--muted); font-size: 0.66rem; min-width: 75px; }
+  .eq-base { color: var(--accent3); }
+  .eq-transform { color: var(--accent2); font-weight: 700; }
+  .eq-inverse { color: var(--accent4); font-style: italic; }
+
+  .legend {
+    display: flex; gap: 1rem; margin-top: 0.65rem; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-family: 'Space Mono', monospace; font-size: 0.66rem; color: var(--muted);
+  }
+  .legend-dot { width: 22px; height: 2px; border-radius: 2px; }
+
+  .inverse-note {
+    margin-top: 0.6rem; padding: 0.55rem 0.8rem;
+    background: rgba(255,217,122,0.05);
+    border: 1px solid rgba(255,217,122,0.15);
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace; font-size: 0.66rem;
+    color: rgba(255,217,122,0.6); line-height: 1.6;
+  }
+  .inverse-note b { color: var(--accent4); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-badge">
+      <span class="badge-label">Claude by</span>
+      <span class="badge-name">Dr. S Karna</span>
+    </div>
+
+    <div class="header-center">
+      <h1>Graph Transformations</h1>
+      <p>// shifts · reflections · stretches · inverse</p>
+    </div>
+
+    <div class="header-right">
+      <span class="tag tag-cyan">f(x) transforms</span>
+      <span class="tag tag-pink">g(x) = a·f(b(x−h))+k</span>
+      <span class="tag tag-gold">f⁻¹(x) inverse</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ── Controls ── -->
+    <div class="panel">
+      <div class="panel-title">⌁ Function Setup</div>
+
+      <!-- Custom function -->
+      <div class="section-label">Custom Function</div>
+      <div class="custom-fn-wrap">
+        <span class="custom-fn-prefix">f(x) =</span>
+        <input type="text" class="custom-fn-input" id="customFn"
+               placeholder="x^3 - 2*x" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+      <button class="custom-fn-btn" id="plotCustomBtn">▶ Plot Custom Function</button>
+
+      <div class="hints">
+        <div class="hints-title">SYNTAX GUIDE</div>
+        <div class="hint-item"><span>x^2</span>  <span>sqrt(x)</span>  <span>abs(x)</span></div>
+        <div class="hint-item"><span>sin(x)</span>  <span>cos(x)</span>  <span>tan(x)</span></div>
+        <div class="hint-item"><span>log(x)</span>  <span>exp(x)</span>  <span>PI</span>  <span>E</span></div>
+        <div class="hint-item">e.g. <span>sin(x)*exp(-x/4)</span></div>
+      </div>
+
+      <!-- Inverse toggle -->
+      <div class="section-label">Inverse Function</div>
+      <div class="toggle-row" id="inverseToggle">
+        <div class="toggle-label">
+          Show f⁻¹(x)
+          <small>reflect over y = x</small>
+        </div>
+        <div class="toggle-switch" id="toggleSwitch"></div>
+      </div>
+
+      <!-- Presets -->
+      <div class="section-label">Preset Functions</div>
+      <div class="fn-grid">
+        <button class="fn-btn active" data-fn="linear">x</button>
+        <button class="fn-btn" data-fn="quadratic">x²</button>
+        <button class="fn-btn" data-fn="cubic">x³</button>
+        <button class="fn-btn" data-fn="sqrt">√x</button>
+        <button class="fn-btn" data-fn="abs">|x|</button>
+        <button class="fn-btn" data-fn="sin">sin(x)</button>
+        <button class="fn-btn" data-fn="reciprocal">1/x</button>
+        <button class="fn-btn" data-fn="exp">eˣ</button>
+      </div>
+
+      <!-- Transformation sliders -->
+      <div class="section-label">Transformations  g(x)</div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-name">Horizontal Shift (h)</span>
+          <span class="slider-val" id="hVal">0</span>
+        </div>
+        <div class="slider-desc">f(x − h) → right / left</div>
+        <input type="range" id="hShift" min="-5" max="5" step="0.5" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-name">Vertical Shift (k)</span>
+          <span class="slider-val" id="kVal">0</span>
+        </div>
+        <div class="slider-desc">f(x) + k → up / down</div>
+        <input type="range" id="vShift" min="-5" max="5" step="0.5" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-name">Vertical Scale (a)</span>
+          <span class="slider-val" id="aVal">1</span>
+        </div>
+        <div class="slider-desc">a·f(x) → stretch / reflect</div>
+        <input type="range" id="vScale" min="-3" max="3" step="0.25" value="1">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-name">Horizontal Scale (b)</span>
+          <span class="slider-val" id="bVal">1</span>
+        </div>
+        <div class="slider-desc">f(b·x) → compress / reflect</div>
+        <input type="range" id="hScale" min="-3" max="3" step="0.25" value="1">
+      </div>
+
+      <button class="reset-btn" id="resetBtn">↺ Reset Transformations</button>
+    </div>
+
+    <!-- ── Graph ── -->
+    <div>
+      <div class="canvas-wrap">
+        <canvas id="graph" width="700" height="500"></canvas>
+
+        <div class="equation-bar">
+          <div class="eq-row">
+            <span class="eq-label">BASE</span>
+            <span class="eq-base" id="eqBase">f(x) = x</span>
+          </div>
+          <div class="eq-row">
+            <span class="eq-label">TRANSFORM</span>
+            <span class="eq-transform" id="eqTransform">g(x) = 1·f(1·(x − 0)) + 0</span>
+          </div>
+          <div class="eq-row" id="eqInverseRow" style="display:none">
+            <span class="eq-label">INVERSE</span>
+            <span class="eq-inverse" id="eqInverse">f⁻¹(x) — numerical approximation</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="border-top:2px dashed rgba(110,231,247,0.5);"></div>
+            Base f(x)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#f76eb2;"></div>
+            Transformed g(x)
+          </div>
+          <div class="legend-item" id="legendInverse" style="display:none">
+            <div class="legend-dot" style="background:#ffd97a;border-top:2px dotted #ffd97a;"></div>
+            Inverse f⁻¹(x)
+          </div>
+          <div class="legend-item" id="legendMirror" style="display:none">
+            <div class="legend-dot" style="border-top:1px dashed rgba(255,255,255,0.15);"></div>
+            y = x  (mirror line)
+          </div>
+        </div>
+
+        <div class="inverse-note" id="inverseNote" style="display:none">
+          <b>About the inverse:</b> Plotted by numerically reflecting points — swapping (x, y) to (y, x).
+          For non-injective functions like x² or sin(x), only a partial inverse is shown.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Parser ────────────────────────────────────────────────────────────────────
+function parseExpression(expr) {
+  let e = expr.trim()
+    .replace(/\^/g, '**')
+    .replace(/(\d)(x)/g, '$1*$2')
+    .replace(/\bPI\b/g,    'Math.PI')
+    .replace(/\bE\b/g,     'Math.E')
+    .replace(/\bsin\b/g,   'Math.sin')
+    .replace(/\bcos\b/g,   'Math.cos')
+    .replace(/\btan\b/g,   'Math.tan')
+    .replace(/\basin\b/g,  'Math.asin')
+    .replace(/\bacos\b/g,  'Math.acos')
+    .replace(/\batan\b/g,  'Math.atan')
+    .replace(/\bsqrt\b/g,  'Math.sqrt')
+    .replace(/\babs\b/g,   'Math.abs')
+    .replace(/\bexp\b/g,   'Math.exp')
+    .replace(/\bln\b/g,    'Math.log')
+    .replace(/\blog\b/g,   'Math.log')
+    .replace(/\bfloor\b/g, 'Math.floor')
+    .replace(/\bceil\b/g,  'Math.ceil')
+    .replace(/\bround\b/g, 'Math.round')
+    .replace(/\bsign\b/g,  'Math.sign');
+  try {
+    const fn = new Function('x', `"use strict"; try { return (${e}); } catch(e) { return NaN; }`);
+    fn(1); // test
+    return { fn, label: `f(x) = ${expr}` };
+  } catch { return null; }
+}
+
+// ── Presets ───────────────────────────────────────────────────────────────────
+const presets = {
+  linear:     { fn: x => x,                                          label: 'f(x) = x' },
+  quadratic:  { fn: x => x * x,                                      label: 'f(x) = x²' },
+  cubic:      { fn: x => x * x * x,                                  label: 'f(x) = x³' },
+  sqrt:       { fn: x => Math.sqrt(Math.abs(x)) * Math.sign(x),      label: 'f(x) = √x' },
+  abs:        { fn: x => Math.abs(x),                                 label: 'f(x) = |x|' },
+  sin:        { fn: x => Math.sin(x),                                 label: 'f(x) = sin(x)' },
+  reciprocal: { fn: x => x !== 0 ? 1 / x : NaN,                      label: 'f(x) = 1/x' },
+  exp:        { fn: x => Math.exp(x),                                 label: 'f(x) = eˣ' },
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  baseFn:     presets.linear.fn,
+  baseLabel:  presets.linear.label,
+  h: 0, k: 0, a: 1, b: 1,
+  showInverse: false,
+};
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('graph');
+const ctx    = canvas.getContext('2d');
+
+function toScreen(x, y, cx, cy, scale) {
+  return [cx + x * scale, cy - y * scale];
+}
+
+function draw() {
+  const dpr = devicePixelRatio || 1;
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2, scale = 42;
+
+  // BG
+  ctx.fillStyle = '#0d0d14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(100,100,160,0.13)';
+  ctx.lineWidth = 1;
+  for (let gx = cx % scale; gx < W; gx += scale) { ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for (let gy = cy % scale; gy < H; gy += scale) { ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  // Mirror line y=x (dashed white) if inverse shown
+  if (state.showInverse) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    const ext = Math.max(W, H);
+    ctx.moveTo(cx - ext, cy + ext);
+    ctx.lineTo(cx + ext, cy - ext);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(110,231,247,0.38)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+
+  // Arrowheads
+  ctx.fillStyle = 'rgba(110,231,247,0.38)';
+  ctx.beginPath(); ctx.moveTo(W-2,cy); ctx.lineTo(W-11,cy-5); ctx.lineTo(W-11,cy+5); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx,2); ctx.lineTo(cx-5,11); ctx.lineTo(cx+5,11); ctx.fill();
+
+  // Tick labels
+  ctx.font = '10px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(110,231,247,0.28)';
+  ctx.textAlign = 'center';
+  for (let i = -10; i <= 10; i++) {
+    if (i === 0) continue;
+    const px = cx + i * scale, py = cy - i * scale;
+    if (px > 6 && px < W - 10) ctx.fillText(i, px, cy + 14);
+    if (py > 10 && py < H - 6) { ctx.textAlign = 'right'; ctx.fillText(i, cx - 4, py + 3); ctx.textAlign = 'center'; }
+  }
+  ctx.fillStyle = 'rgba(110,231,247,0.45)';
+  ctx.font = '12px Syne, sans-serif';
+  ctx.fillText('x', W - 10, cy - 8);
+  ctx.fillText('y', cx + 12, 13);
+
+  const { baseFn, h, k, a, b } = state;
+  const transformedFn = x => a * baseFn(b * (x - h)) + k;
+
+  // ── Plot helper ──
+  function plotCurve(evalFn, color, dashed, lw, dotted) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    if (dotted)      ctx.setLineDash([2, 5]);
+    else if (dashed) ctx.setLineDash([6, 5]);
+    else             ctx.setLineDash([]);
+
+    let started = false, prevPy = null;
+    ctx.beginPath();
+    for (let px = 0; px <= W; px += 1) {
+      const x = (px - cx) / scale;
+      let y; try { y = evalFn(x); } catch { y = NaN; }
+      if (!isFinite(y) || isNaN(y) || Math.abs(y) > 65) {
+        if (started) { ctx.stroke(); ctx.beginPath(); started = false; prevPy = null; }
+        continue;
+      }
+      const py = cy - y * scale;
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else if (prevPy !== null && Math.abs(py - prevPy) > H * 0.65) {
+        ctx.stroke(); ctx.beginPath(); ctx.moveTo(px, py);
+      } else { ctx.lineTo(px, py); }
+      prevPy = py;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Inverse: sample transformed curve, swap x↔y, re-plot ──
+  function plotInverse() {
+    // Collect (x, y) points of g(x)
+    const pts = [];
+    for (let px = 0; px <= W; px += 2) {
+      const x = (px - cx) / scale;
+      let y; try { y = transformedFn(x); } catch { y = NaN; }
+      if (isFinite(y) && !isNaN(y) && Math.abs(y) <= 30 && Math.abs(x) <= 30) {
+        pts.push([x, y]);
+      }
+    }
+
+    if (pts.length < 2) return;
+
+    // Sort by y (will become new x for inverse)
+    const sorted = [...pts].sort((a, b) => a[1] - b[1]);
+
+    ctx.strokeStyle = '#ffd97a';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+
+    let started = false, prevScreenY = null;
+    for (const [origX, origY] of sorted) {
+      // Inverse point: (origY, origX) — swap
+      const sx = cx + origY * scale;
+      const sy = cy - origX * scale;
+      if (sx < -10 || sx > W + 10 || sy < -10 || sy > H + 10) { started = false; prevScreenY = null; continue; }
+      if (!started) { ctx.moveTo(sx, sy); started = true; }
+      else if (prevScreenY !== null && Math.abs(sy - prevScreenY) > H * 0.5) {
+        ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx, sy);
+      } else { ctx.lineTo(sx, sy); }
+      prevScreenY = sy;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Draw curves
+  plotCurve(baseFn,        'rgba(110,231,247,0.42)', true,  2,    false);
+  plotCurve(transformedFn, '#f76eb2',                false, 2.5,  false);
+  if (state.showInverse) plotInverse();
+
+  ctx.restore();
+}
+
+function updateEquation() {
+  const { baseLabel, h, k, a, b, showInverse } = state;
+  document.getElementById('eqBase').textContent = baseLabel;
+  const hSign = h >= 0 ? `− ${h}` : `+ ${Math.abs(h)}`;
+  const kSign = k >= 0 ? `+ ${k}` : `− ${Math.abs(k)}`;
+  document.getElementById('eqTransform').textContent = `g(x) = ${a}·f(${b}·(x ${hSign})) ${kSign}`;
+
+  const invRow    = document.getElementById('eqInverseRow');
+  const legInv    = document.getElementById('legendInverse');
+  const legMirror = document.getElementById('legendMirror');
+  const invNote   = document.getElementById('inverseNote');
+  const show = showInverse;
+  invRow.style.display    = show ? 'flex' : 'none';
+  legInv.style.display    = show ? 'flex' : 'none';
+  legMirror.style.display = show ? 'flex' : 'none';
+  invNote.style.display   = show ? 'block' : 'none';
+}
+
+function updateAll() { draw(); updateEquation(); }
+
+// ── Inverse toggle ────────────────────────────────────────────────────────────
+document.getElementById('inverseToggle').addEventListener('click', () => {
+  state.showInverse = !state.showInverse;
+  document.getElementById('toggleSwitch').classList.toggle('on', state.showInverse);
+  updateAll();
+});
+
+// ── Custom function ───────────────────────────────────────────────────────────
+const customInput = document.getElementById('customFn');
+const errorMsg    = document.getElementById('errorMsg');
+
+function setError(msg) {
+  errorMsg.textContent = msg;
+  customInput.classList.toggle('error', !!msg);
+}
+
+document.getElementById('plotCustomBtn').addEventListener('click', () => {
+  const raw = customInput.value.trim();
+  if (!raw) { setError('Please enter a function.'); return; }
+  const parsed = parseExpression(raw);
+  if (!parsed) { setError('Syntax error — check the guide.'); return; }
+  setError('');
+  state.baseFn   = parsed.fn;
+  state.baseLabel = `f(x) = ${raw}`;
+  document.querySelectorAll('.fn-btn').forEach(b => b.classList.remove('active'));
+  updateAll();
+});
+
+customInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('plotCustomBtn').click();
+  setError('');
+});
+
+// ── Preset buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.fn-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fn-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = presets[btn.dataset.fn];
+    state.baseFn   = p.fn;
+    state.baseLabel = p.label;
+    customInput.value = ''; setError('');
+    updateAll();
+  });
+});
+
+// ── Sliders ───────────────────────────────────────────────────────────────────
+[
+  { id: 'hShift', key: 'h', valId: 'hVal' },
+  { id: 'vShift', key: 'k', valId: 'kVal' },
+  { id: 'vScale', key: 'a', valId: 'aVal' },
+  { id: 'hScale', key: 'b', valId: 'bVal' },
+].forEach(({ id, key, valId }) => {
+  document.getElementById(id).addEventListener('input', function () {
+    state[key] = parseFloat(this.value);
+    document.getElementById(valId).textContent = this.value;
+    updateAll();
+  });
+});
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state.h = 0; state.k = 0; state.a = 1; state.b = 1;
+  ['hShift','vShift'].forEach(id => document.getElementById(id).value = 0);
+  ['vScale','hScale'].forEach(id => document.getElementById(id).value = 1);
+  document.getElementById('hVal').textContent = '0';
+  document.getElementById('kVal').textContent = '0';
+  document.getElementById('aVal').textContent = '1';
+  document.getElementById('bVal').textContent = '1';
+  updateAll();
+});
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+function resizeCanvas() {
+  const dpr  = devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width * dpr;
+  canvas.height = 460 * dpr;
+  canvas.style.height = '460px';
+  updateAll();
+}
+window.addEventListener('resize', () => setTimeout(resizeCanvas, 80));
+resizeCanvas();
+</script>
+</body>
+</html>

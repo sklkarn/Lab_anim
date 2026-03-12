@@ -64,7 +64,8 @@
 
 #tab-basic:checked ~ .tab-labels label[for="tab-basic"],
 #tab-advanced:checked ~ .tab-labels label[for="tab-advanced"], 
-#tab-astronomy:checked ~ .tab-labels label[for="tab-astronomy"] {
+#tab-astronomy:checked ~ .tab-labels label[for="tab-astronomy"],
+#tab-math:checked ~ .tab-labels label[for="tab-math"]{
   background: white;
   border-bottom: none;
   color: #2c3e50;
@@ -81,7 +82,8 @@
 
 #tab-basic:checked ~ #content-basic,
 #tab-advanced:checked ~ #content-advanced, 
-#tab-astronomy:checked ~ #content-astronomy {
+#tab-astronomy:checked ~ #content-astronomy, 
+#tab-math:checked ~ #content-math {
   display: block;
 }
   </style>
@@ -96,12 +98,14 @@
   <input type="radio" name="physics-tabs" id="tab-basic" checked>
   <input type="radio" name="physics-tabs" id="tab-advanced">
    <input type="radio" name="physics-tabs" id="tab-astronomy">
+    <input type="radio" name="physics-tabs" id="tab-math">
 
   <!-- Tab buttons/labels -->
   <div class="tab-labels">
     <label for="tab-basic" class="tab-label">Basic</label>
     <label for="tab-advanced" class="tab-label">Advanced</label>
     <label for="tab-astronomy" class="tab-label">Astronomy</label>
+    <label for="tab-math" class="tab-label">Math</label>
      </div>
 
   <!-- Tab contents -->
@@ -120,7 +124,6 @@
        <li><a href="laws_of_reflection.html">Reflection of Light</a></li>
        <li><a href="cyclone_anticyc.html">Cyclone and Anticyclone</a></li>
       <li><a href="double_rainbow.html">Double Rainbow Formation</a></li>
-      <li><a href="derivatives_animation.html">Derivatives Animation</a></li>
        <li><a href="gas-laws.html">Gas Laws</a></li>
       <li><a href="water-phase.html">Water Phase Changes</a></li>
       <li><a href="endo_exo.html">Endothermic and Exothermic Reactions</a></li>
@@ -128,7 +131,6 @@
 
     <h2>Mechanics</h2>
     <ul>
-      <li><a href="shadow-animation.html">A Growing Shadow</a></li>
       <li><a href="car-animation.html">Car Animation</a></li>
       <li><a href="FreeFall.html">Free Fall Lab</a></li>
       <li><a href="ball-ramp.html">Ball on Ramp Lab</a></li>
@@ -215,9 +217,21 @@
          <li><a href="earths_seasons.html">Seasons on Earth</a></li>
         <li><a href="ocean-basin.html">Ocean Basins</a></li>
          <li><a href="geological-timescale.html">Geological Timescale</a></li>
+          <li><a href="litmus.html">Litmus Test</a></li>
+           <li><a href="temp_simulator.html">Temperature Simulator</a></li>
       </ul>
   </div>
 
+   <div class="tab-content" id="content-math">
+    <h2>Math</h2>
+    <ul>
+       <li><a href="GraphTrans.html">Graph Transformations</a></li>
+        <li><a href="derivatives_animation.html">Derivatives Animation</a></li>
+        <li><a href="shadow-animation.html">A Growing Shadow</a></li>
+        <li><a href="derivative.html">Derivative Calculator</a></li>
+        <li><a href="lcd-calculator.html">LCD Calculator</a></li>
+    </ul>
+</div> 
 
 </div>
 

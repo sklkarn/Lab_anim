@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperature Simulator — Dr. S Karna</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0e1a;
+  --panel:#0f1628;
+  --border:rgba(255,255,255,0.08);
+  --text:#e8eaf0;
+  --muted:rgba(232,234,240,0.45);
+  --ice-col:#00d4ff;
+  --coffee-col:#c8783a;
+  --boil-col:#ff4422;
+  --accent:#7eb8ff;
+}
+body{
+  background:var(--bg);
+  min-height:100vh;
+  font-family:'Share Tech Mono',monospace;
+  color:var(--text);
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 16px 40px;
+  position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(0,212,255,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 80%, rgba(255,68,34,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(126,184,255,0.04) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── HEADER ── */
+.header{position:relative;z-index:1;text-align:center;margin-bottom:28px;}
+.header h1{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:600;
+  letter-spacing:0.04em;
+  background:linear-gradient(135deg,#e8eaf0 30%,#7eb8ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+}
+.header .subtitle{
+  font-size:0.65rem;letter-spacing:0.22em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:10px;
+}
+.instructor-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:5px 16px;border-radius:30px;
+  background:rgba(126,184,255,0.07);
+  border:1px solid rgba(126,184,255,0.2);
+  font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--muted);
+}
+.instructor-badge .iname{
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:700;
+  font-size:0.9rem;letter-spacing:0.06em;
+  background:linear-gradient(90deg,#7eb8ff,#c8783a);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+
+/* ── MODE SELECTOR ── */
+.mode-bar{
+  position:relative;z-index:1;
+  display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;justify-content:center;
+}
+.mode-btn{
+  padding:9px 20px;border-radius:8px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,0.04);color:var(--muted);
+  font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+  letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
+  transition:all 0.25s;position:relative;overflow:hidden;
+}
+.mode-btn::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity 0.25s;border-radius:6px;
+}
+.mode-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.mode-btn.active-ice{
+  color:#00d4ff;border-color:#00d4ff;
+  background:rgba(0,212,255,0.1);
+  box-shadow:0 0 20px rgba(0,212,255,0.2),inset 0 0 20px rgba(0,212,255,0.05);
+}
+.mode-btn.active-coffee{
+  color:#c8783a;border-color:#c8783a;
+  background:rgba(200,120,58,0.1);
+  box-shadow:0 0 20px rgba(200,120,58,0.25),inset 0 0 20px rgba(200,120,58,0.05);
+}
+.mode-btn.active-boil{
+  color:#ff4422;border-color:#ff4422;
+  background:rgba(255,68,34,0.1);
+  box-shadow:0 0 20px rgba(255,68,34,0.2),inset 0 0 20px rgba(255,68,34,0.05);
+}
+
+/* ── MAIN GRID ── */
+.main{
+  position:relative;z-index:1;
+  display:flex;gap:28px;align-items:flex-start;justify-content:center;flex-wrap:wrap;
+  width:100%;max-width:900px;
+}
+
+/* ── VISUAL PANEL ── */
+.visual-panel{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  min-width:180px;
+}
+
+/* Container scene */
+.container-scene{
+  position:relative;width:150px;height:180px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+}
+
+/* Glass/Cup/Beaker shared */
+.vessel{
+  position:relative;width:110px;height:140px;
+  border:3px solid rgba(255,255,255,0.25);
+  border-top:none;border-radius:0 0 18px 18px;
+  overflow:hidden;background:rgba(255,255,255,0.04);
+  box-shadow:inset -8px 0 16px rgba(0,0,0,0.2),6px 10px 24px rgba(0,0,0,0.5);
+}
+.vessel::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,rgba(255,255,255,0.12) 0%,transparent 50%);
+  pointer-events:none;z-index:2;border-radius:0 0 16px 16px;
+}
+.vessel-rim{
+  width:116px;height:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.3),rgba(255,255,255,0.1));
+  border-radius:4px 4px 0 0;
+  box-shadow:0 -2px 8px rgba(255,255,255,0.1);
+  flex-shrink:0;
+}
+
+/* Liquid fill */
+.liquid-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  transition:height 0.15s linear, background 0.5s;
+  z-index:1;
+}
+/* Ice mode liquid */
+.mode-ice .liquid-fill{
+  background:linear-gradient(180deg,rgba(180,240,255,0.7) 0%,rgba(100,200,255,0.9) 100%);
+  box-shadow:0 0 20px rgba(0,212,255,0.3);
+}
+/* Coffee mode liquid */
+.mode-coffee .liquid-fill{
+  background:linear-gradient(180deg,#6b3520 0%,#3d1f0d 100%);
+  box-shadow:0 0 20px rgba(200,120,58,0.3);
+}
+/* Boil mode liquid */
+.mode-boil .liquid-fill{
+  background:linear-gradient(180deg,rgba(255,150,100,0.8) 0%,rgba(200,60,20,0.9) 100%);
+  box-shadow:0 0 20px rgba(255,68,34,0.4);
+}
+
+/* Surface animation */
+.surface{
+  position:absolute;top:0;left:0;right:0;height:8px;z-index:2;
+}
+.mode-ice .surface{
+  background:rgba(200,245,255,0.6);
+  animation:waveSlow 4s ease-in-out infinite;
+}
+.mode-coffee .surface{
+  background:linear-gradient(90deg,#8b4a2a,#a0572f,#7a3d1e);
+  animation:waveMed 3s ease-in-out infinite;
+}
+.mode-boil .surface{
+  background:rgba(255,180,100,0.8);
+  animation:waveFast 1s ease-in-out infinite;
+}
+.surface.paused,.liquid-fill.paused{animation-play-state:paused;}
+@keyframes waveSlow{0%,100%{transform:scaleY(1) translateX(0);}50%{transform:scaleY(1.4) translateX(-3px);}}
+@keyframes waveMed {0%,100%{transform:scaleY(1) translateX(0);}50%{transform:scaleY(1.3) translateX(-4px);}}
+@keyframes waveFast{0%,100%{transform:scaleY(1) translateX(0);}50%{transform:scaleY(2.0) translateX(-6px);}}
+
+/* Ice cubes */
+.ice-cubes{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.ice-cube{
+  position:absolute;border-radius:4px;
+  background:rgba(200,245,255,0.55);
+  border:1.5px solid rgba(255,255,255,0.6);
+  box-shadow:inset 2px 2px 6px rgba(255,255,255,0.4),0 2px 8px rgba(0,150,220,0.3);
+  animation:iceBob ease-in-out infinite;
+}
+.ice-cube:nth-child(1){width:28px;height:24px;bottom:60%;left:12%;animation-duration:3s;}
+.ice-cube:nth-child(2){width:22px;height:20px;bottom:55%;left:45%;animation-duration:3.7s;animation-delay:0.8s;}
+.ice-cube:nth-child(3){width:18px;height:16px;bottom:62%;left:68%;animation-duration:2.8s;animation-delay:1.5s;}
+.ice-cube.paused{animation-play-state:paused;}
+@keyframes iceBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+
+/* Bubbles (boil) */
+.bubbles{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
+.bubble{
+  position:absolute;border-radius:50%;
+  background:rgba(255,220,180,0.5);
+  border:1px solid rgba(255,255,255,0.4);
+  animation:bubbleRise linear infinite;
+}
+.bubble:nth-child(1){width:8px;height:8px;left:20%;animation-duration:1.2s;}
+.bubble:nth-child(2){width:5px;height:5px;left:45%;animation-duration:0.9s;animation-delay:0.3s;}
+.bubble:nth-child(3){width:10px;height:10px;left:65%;animation-duration:1.5s;animation-delay:0.6s;}
+.bubble:nth-child(4){width:6px;height:6px;left:35%;animation-duration:1.0s;animation-delay:0.9s;}
+.bubble:nth-child(5){width:7px;height:7px;left:75%;animation-duration:1.3s;animation-delay:0.2s;}
+.bubble.paused{animation-play-state:paused;}
+@keyframes bubbleRise{
+  0%{transform:translateY(0) scale(0.5);opacity:0;}
+  20%{opacity:0.9;}
+  100%{transform:translateY(-130px) scale(1.2);opacity:0;}
+}
+
+/* Steam */
+.steam-wrap{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:90px;height:60px;pointer-events:none;}
+.steam{
+  position:absolute;bottom:0;width:5px;height:28px;border-radius:50% 50% 0 0;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,0.5),transparent);
+  filter:blur(2.5px);animation:steamUp 2.5s ease-in-out infinite;
+}
+.steam.paused{animation-play-state:paused;}
+.steam:nth-child(1){left:18px;}
+.steam:nth-child(2){left:38px;animation-delay:0.6s;animation-duration:3s;}
+.steam:nth-child(3){left:58px;animation-delay:1.2s;animation-duration:2s;}
+.mode-ice .steam{opacity:0;}
+.mode-coffee .steam{opacity:1;}
+.mode-boil .steam{opacity:1;filter:blur(3px);width:7px;}
+@keyframes steamUp{
+  0%{transform:translateY(0) scaleX(1);opacity:0;}
+  20%{opacity:0.8;}
+  60%{transform:translateY(-36px) scaleX(2);opacity:0.4;}
+  100%{transform:translateY(-60px) scaleX(3);opacity:0;}
+}
+
+/* Frost overlay for ice */
+.frost{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,rgba(180,240,255,0.08) 0%,transparent 60%);
+  opacity:0;transition:opacity 0.5s;border-radius:0 0 16px 16px;
+}
+.mode-ice .frost{opacity:1;}
+
+/* Phase badge */
+.phase-badge{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 16px;border-radius:30px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text);transition:border-color 0.4s,box-shadow 0.4s;
+}
+.pdot{width:8px;height:8px;border-radius:50%;animation:pdotBlink 1s ease-in-out infinite;transition:background 0.4s;}
+.pdot.paused{animation-play-state:paused;}
+@keyframes pdotBlink{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.3;transform:scale(0.6);}}
+
+/* Controls */
+.controls{display:flex;gap:8px;}
+.cbtn{
+  padding:8px 18px;border-radius:6px;border:none;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:0.72rem;font-weight:700;
+  letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;
+}
+.cbtn:active{transform:scale(0.96);}
+.cbtn-start{background:linear-gradient(135deg,#3a8fff,#1a5fcc);color:#fff;box-shadow:0 4px 14px rgba(58,143,255,0.35);}
+.cbtn-start:hover{box-shadow:0 6px 20px rgba(58,143,255,0.55);}
+.cbtn-pause{background:rgba(255,255,255,0.07);color:var(--text);border:1px solid rgba(255,255,255,0.18);}
+.cbtn-pause:hover{background:rgba(255,255,255,0.12);}
+
+/* ── THERMOMETERS ── */
+.thermo-panel{display:flex;flex-direction:column;gap:16px;}
+.gauges-row{display:flex;gap:20px;align-items:flex-end;}
+
+.gauge{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.g-scale{font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);}
+.g-unit{font-size:1rem;font-weight:700;letter-spacing:-0.01em;}
+.gauge.gf .g-unit{color:#ff6644;}
+.gauge.gc .g-unit{color:#f0a500;}
+.gauge.gk .g-unit{color:#4a90d9;}
+
+.thermo{position:relative;width:66px;height:220px;display:flex;flex-direction:column;align-items:center;}
+.tube{
+  position:relative;width:15px;height:185px;
+  background:rgba(255,255,255,0.05);
+  border:1.5px solid rgba(255,255,255,0.15);
+  border-radius:8px 8px 0 0;overflow:visible;flex-shrink:0;
+}
+.tube-inner{position:absolute;inset:0;overflow:hidden;border-radius:8px 8px 0 0;}
+.mercury{position:absolute;bottom:0;left:0;right:0;transition:height 0.1s linear;}
+.gauge.gf .mercury{background:linear-gradient(180deg,#ff6644,#cc3311);box-shadow:0 0 8px #ff4422;}
+.gauge.gc .mercury{background:linear-gradient(180deg,#f0a500,#c07800);box-shadow:0 0 8px #f0a500;}
+.gauge.gk .mercury{background:linear-gradient(180deg,#4a90d9,#1a5fa0);box-shadow:0 0 8px #4a90d9;}
+
+.ticks-layer{position:absolute;inset:0;pointer-events:none;overflow:visible;}
+.tick{position:absolute;right:-9px;height:1px;background:rgba(255,255,255,0.3);}
+.tick.major{width:11px;background:rgba(255,255,255,0.55);}
+.tick.minor{width:6px;}
+.tick-val{position:absolute;right:-38px;transform:translateY(-50%);font-size:0.39rem;color:rgba(255,255,255,0.4);white-space:nowrap;}
+
+/* Reference lines */
+.ref-line{
+  position:absolute;left:-5px;right:-5px;height:2px;pointer-events:none;z-index:10;
+}
+.ref-line.rfreeze{background:#00d4ff;box-shadow:0 0 6px #00d4ff;}
+.ref-line.rboil  {background:#ff2d2d;box-shadow:0 0 6px #ff2d2d;}
+.ref-lbl{
+  position:absolute;left:calc(100% + 8px);transform:translateY(-50%);
+  font-size:0.4rem;white-space:nowrap;font-weight:700;letter-spacing:0.05em;
+  padding:1px 4px;border-radius:3px;
+}
+.ref-lbl.rfreeze{color:#00d4ff;}
+.ref-lbl.rboil  {color:#ff2d2d;}
+
+.bulb{width:21px;height:21px;border-radius:50%;margin-top:-1px;flex-shrink:0;}
+.gauge.gf .bulb{background:radial-gradient(circle at 35% 35%,#ff9060,#e84a1a);box-shadow:0 0 10px #e84a1a;}
+.gauge.gc .bulb{background:radial-gradient(circle at 35% 35%,#ffd060,#f0a500);box-shadow:0 0 10px #f0a500;}
+.gauge.gk .bulb{background:radial-gradient(circle at 35% 35%,#80b8ff,#4a90d9);box-shadow:0 0 10px #4a90d9;}
+
+.reading{
+  font-size:0.8rem;font-weight:700;padding:4px 8px;border-radius:4px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);
+  min-width:74px;text-align:center;transition:color 0.3s;
+}
+.gauge.gf .reading{color:#ff6644;}
+.gauge.gc .reading{color:#f0a500;}
+.gauge.gk .reading{color:#4a90d9;}
+
+/* ── INFO CARD ── */
+.info-card{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.info-title{font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.info-row{display:flex;align-items:center;gap:8px;font-size:0.62rem;color:rgba(232,234,240,0.7);}
+.idot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.info-sep{height:1px;background:rgba(255,255,255,0.07);margin:2px 0;}
+
+/* Divider */
+.vdiv{width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.1),transparent);align-self:stretch;margin:0 4px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Temperature Simulator</h1>
+  <div class="subtitle">Thermal States of Matter · Interactive Lab</div>
+  <div class="instructor-badge">
+    <span class="label">Instructor</span>
+    <span class="iname">Dr. S Karna</span>
+  </div>
+</div>
+
+<!-- MODE SELECTOR -->
+<div class="mode-bar">
+  <button class="mode-btn" id="btn-ice"    onclick="setMode('ice')">❄️ &nbsp;Ice Water</button>
+  <button class="mode-btn" id="btn-coffee" onclick="setMode('coffee')">☕ &nbsp;Hot Coffee</button>
+  <button class="mode-btn" id="btn-boil"   onclick="setMode('boil')">♨️ &nbsp;Boiling Water</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: Visual -->
+  <div class="visual-panel">
+    <div class="container-scene" id="scene">
+      <div class="steam-wrap">
+        <div class="steam" id="st1"></div>
+        <div class="steam" id="st2"></div>
+        <div class="steam" id="st3"></div>
+      </div>
+      <div class="vessel-rim"></div>
+      <div class="vessel" id="vessel">
+        <div class="liquid-fill" id="liquid-fill">
+          <div class="surface" id="surface"></div>
+        </div>
+        <!-- Ice cubes (shown in ice mode) -->
+        <div class="ice-cubes" id="ice-cubes" style="display:none;">
+          <div class="ice-cube" id="ic1"></div>
+          <div class="ice-cube" id="ic2"></div>
+          <div class="ice-cube" id="ic3"></div>
+        </div>
+        <!-- Bubbles (shown in boil mode) -->
+        <div class="bubbles" id="bubbles" style="display:none;">
+          <div class="bubble" id="b1"></div>
+          <div class="bubble" id="b2"></div>
+          <div class="bubble" id="b3"></div>
+          <div class="bubble" id="b4"></div>
+          <div class="bubble" id="b5"></div>
+        </div>
+        <div class="frost"></div>
+      </div>
+    </div>
+
+    <div class="phase-badge" id="phase-badge">
+      <div class="pdot" id="pdot" style="background:#00d4ff"></div>
+      <span id="phase-text">Ice Water</span>
+    </div>
+
+    <div class="controls">
+      <button class="cbtn cbtn-start" id="cbtn-start" onclick="startAnim()">▶ Start</button>
+      <button class="cbtn cbtn-pause" id="cbtn-pause" onclick="pauseAnim()">⏸ Pause</button>
+    </div>
+
+    <!-- Info card -->
+    <div class="info-card" id="info-card">
+      <div class="info-title">Reference Points — Water</div>
+      <div class="info-row"><div class="idot" style="background:#00d4ff"></div>Freezing: 0°C / 32°F / 273K</div>
+      <div class="info-row"><div class="idot" style="background:#ff2d2d"></div>Boiling: 100°C / 212°F / 373K</div>
+      <div class="info-sep"></div>
+      <div class="info-title" id="mode-info-title">Ice Water Range</div>
+      <div class="info-row" id="mode-info-row"><div class="idot" style="background:#00d4ff"></div><span id="mode-info-text">−5°C to 4°C (near freezing)</span></div>
+    </div>
+  </div>
+
+  <div class="vdiv"></div>
+
+  <!-- RIGHT: Thermometers -->
+  <div class="thermo-panel">
+    <div class="gauges-row">
+
+      <div class="gauge gf">
+        <div class="g-scale">Fahrenheit</div>
+        <div class="g-unit">°F</div>
+        <div class="thermo">
+          <div class="tube" id="tube-f">
+            <div class="tube-inner"><div class="mercury" id="merc-f"></div></div>
+            <div class="ticks-layer" id="ticks-f"></div>
+          </div>
+          <div class="bulb"></div>
+        </div>
+        <div class="reading" id="read-f">—°F</div>
+      </div>
+
+      <div class="gauge gc">
+        <div class="g-scale">Celsius</div>
+        <div class="g-unit">°C</div>
+        <div class="thermo">
+          <div class="tube" id="tube-c">
+            <div class="tube-inner"><div class="mercury" id="merc-c"></div></div>
+            <div class="ticks-layer" id="ticks-c"></div>
+          </div>
+          <div class="bulb"></div>
+        </div>
+        <div class="reading" id="read-c">—°C</div>
+      </div>
+
+      <div class="gauge gk">
+        <div class="g-scale">Kelvin</div>
+        <div class="g-unit">K</div>
+        <div class="thermo">
+          <div class="tube" id="tube-k">
+            <div class="tube-inner"><div class="mercury" id="merc-k"></div></div>
+            <div class="ticks-layer" id="ticks-k"></div>
+          </div>
+          <div class="bulb"></div>
+        </div>
+        <div class="reading" id="read-k">— K</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SCALES ──
+const TUBE_H = 183;
+const scales = {
+  f:{ min:-30, max:250 },
+  c:{ min:-20, max:120 },
+  k:{ min:250, max:395 }
+};
+const refs = {
+  f:{ freeze:32,   boil:212  },
+  c:{ freeze:0,    boil:100  },
+  k:{ freeze:273.15, boil:373.15 }
+};
+
+// ── MODE CONFIG ──
+// Each mode: tempRange [minC, maxC], cycle ms, phase label, color
+const modes = {
+  ice:    { min:-5,  max:4,   cycle:8000,  label:'Ice Water ❄️',      color:'#00d4ff', info:'−5°C to 4°C (near freezing)' },
+  coffee: { min:35,  max:85,  cycle:12000, label:'Hot Coffee ☕',       color:'#c8783a', info:'35°C to 85°C (brewing cycle)' },
+  boil:   { min:95,  max:100, cycle:5000,  label:'Boiling Water ♨️',   color:'#ff4422', info:'95°C to 100°C (at sea level)' }
+};
+
+let currentMode = 'ice';
+let running = false, rafId = null, startTime = null, pausedAt = 0;
+
+function cToF(c){ return c*9/5+32; }
+function cToK(c){ return c+273.15; }
+function fillH(v,min,max){ return Math.max(0,Math.min(1,(v-min)/(max-min)))*TUBE_H; }
+
+function getTempC(elapsed){
+  const m = modes[currentMode];
+  const t = (elapsed % m.cycle) / m.cycle;
+  const eased = (1 - Math.cos(t * Math.PI * 2)) / 2;
+  return m.min + eased * (m.max - m.min);
+}
+
+// ── BUILD TICKS ──
+function buildTicks(id, min, max, unit){
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  const range = max - min;
+  const step  = range <= 50 ? 5 : range <= 130 ? 10 : range <= 260 ? 20 : 40;
+  for(let v = Math.ceil(min/step)*step; v <= max; v += step){
+    const y = TUBE_H - ((v-min)/range)*TUBE_H;
+    const t = document.createElement('div');
+    t.className='tick major'; t.style.top=y+'px'; el.appendChild(t);
+    const lb = document.createElement('div');
+    lb.className='tick-val'; lb.style.top=y+'px'; lb.textContent=Math.round(v);
+    el.appendChild(lb);
+    const mv = v - step/2;
+    if(mv>=min && mv<=max){
+      const my = TUBE_H-((mv-min)/range)*TUBE_H;
+      const mt = document.createElement('div');
+      mt.className='tick minor'; mt.style.top=my+'px'; el.appendChild(mt);
+    }
+  }
+}
+
+function buildAllTicks(){
+  buildTicks('ticks-f', scales.f.min, scales.f.max, '°F');
+  buildTicks('ticks-c', scales.c.min, scales.c.max, '°C');
+  buildTicks('ticks-k', scales.k.min, scales.k.max, ' K');
+  addRefLines('tube-f','f');
+  addRefLines('tube-c','c');
+  addRefLines('tube-k','k');
+}
+
+// ── REFERENCE LINES ──
+function addRefLines(tubeId, scale){
+  const tube = document.getElementById(tubeId);
+  // remove old ref lines
+  tube.querySelectorAll('.ref-line,.ref-lbl').forEach(e=>e.remove());
+  const {min,max} = scales[scale];
+  const range = max-min;
+  const unit = scale==='k' ? ' K' : (scale==='f' ? '°F' : '°C');
+  ['freeze','boil'].forEach(type=>{
+    const val = refs[scale][type];
+    const pct = (val-min)/range;
+    if(pct<0||pct>1) return;
+    const y = TUBE_H - pct*TUBE_H;
+    const line = document.createElement('div');
+    line.className=`ref-line r${type}`; line.style.top=y+'px';
+    tube.appendChild(line);
+    const lbl = document.createElement('div');
+    lbl.className=`ref-lbl r${type}`; lbl.style.top=y+'px';
+    const vStr = Number.isInteger(val)?val:val.toFixed(1);
+    lbl.textContent=(type==='freeze'?'❄ ':' 🔥')+vStr+unit;
+    tube.appendChild(lbl);
+  });
+}
+
+buildAllTicks();
+
+// ── SET MODE ──
+function setMode(mode){
+  currentMode = mode;
+  // Update button styles
+  ['ice','coffee','boil'].forEach(m=>{
+    const btn = document.getElementById('btn-'+m);
+    btn.className = 'mode-btn' + (m===mode ? ' active-'+m : '');
+  });
+
+  // Update scene class
+  const scene = document.getElementById('scene');
+  scene.className = 'container-scene mode-'+mode;
+
+  // Toggle ice cubes / bubbles
+  document.getElementById('ice-cubes').style.display  = mode==='ice'  ? 'block' : 'none';
+  document.getElementById('bubbles').style.display    = mode==='boil' ? 'block' : 'none';
+
+  // Update phase badge
+  const m = modes[mode];
+  document.getElementById('pdot').style.background = m.color;
+  document.getElementById('phase-text').textContent = m.label;
+  document.getElementById('phase-badge').style.borderColor = m.color+'55';
+  document.getElementById('phase-badge').style.boxShadow = `0 0 12px ${m.color}22`;
+
+  // Update info card
+  document.getElementById('mode-info-text').textContent = m.info;
+  document.getElementById('mode-info-row').querySelector('.idot').style.background = m.color;
+  const titles = { ice:'Ice Water Range', coffee:'Coffee Range', boil:'Boiling Range' };
+  document.getElementById('mode-info-title').textContent = titles[mode];
+
+  // Reset animation time so temp restarts for new mode
+  pausedAt = 0; startTime = null;
+
+  // Restart if running
+  if(!running){ startAnim(); }
+}
+
+// ── CSS PAUSE TOGGLE ──
+function setCSSPause(paused){
+  const cls = paused?'add':'remove';
+  ['st1','st2','st3','surface','ic1','ic2','ic3','b1','b2','b3','b4','b5','pdot','liquid-fill'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList[cls]('paused');
+  });
+}
+
+// ── ANIMATION LOOP ──
+function step(ts){
+  if(!running) return;
+  if(!startTime) startTime = ts - pausedAt;
+  const elapsed = ts - startTime;
+  const c = getTempC(elapsed);
+  const f = cToF(c), k = cToK(c);
+
+  // Mercury
+  document.getElementById('merc-f').style.height = fillH(f, scales.f.min, scales.f.max)+'px';
+  document.getElementById('merc-c').style.height = fillH(c, scales.c.min, scales.c.max)+'px';
+  document.getElementById('merc-k').style.height = fillH(k, scales.k.min, scales.k.max)+'px';
+
+  // Readings
+  document.getElementById('read-f').textContent = f.toFixed(1)+'°F';
+  document.getElementById('read-c').textContent = c.toFixed(1)+'°C';
+  document.getElementById('read-k').textContent = k.toFixed(1)+' K';
+
+  // Liquid fill height (60–85%)
+  const pct = (c - modes[currentMode].min) / (modes[currentMode].max - modes[currentMode].min);
+  const liqH = 60 + pct * 25;
+  document.getElementById('liquid-fill').style.height = liqH+'%';
+
+  rafId = requestAnimationFrame(step);
+}
+
+function startAnim(){
+  if(running) return;
+  running=true; startTime=null;
+  setCSSPause(false);
+  document.getElementById('cbtn-start').style.opacity='0.45';
+  document.getElementById('cbtn-pause').style.opacity='1';
+  rafId=requestAnimationFrame(step);
+}
+
+function pauseAnim(){
+  if(!running) return;
+  running=false;
+  if(rafId) cancelAnimationFrame(rafId);
+  pausedAt = startTime ? performance.now()-startTime : 0;
+  startTime=null;
+  setCSSPause(true);
+  document.getElementById('cbtn-start').style.opacity='1';
+  document.getElementById('cbtn-pause').style.opacity='0.45';
+}
+
+// Boot into ice mode
+setMode('ice');
+</script>
+</body>
+</html>
