@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atwood's Machine — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #09090e;
+    font-family: 'Segoe UI', sans-serif;
+    color: #c0bec8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 40px;
+  }
+  header {
+    width: 100%;
+    background: #0e0e18;
+    border-bottom: 1px solid #1c1c32;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .brand { font-size: 11px; font-weight: 500; letter-spacing: 0.13em; color: #55557a; text-transform: uppercase; margin-bottom: 2px; }
+  .name  { font-size: 19px; font-weight: 700; color: #e6e4f0; }
+  .name span { color: #60d4ff; }
+  .header-badge { font-size: 11px; background: #111128; border: 1px solid #22224a; color: #60608a; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.05em; }
+
+  .main-title { font-size: 16px; font-weight: 600; color: #8888b0; margin-bottom: 3px; letter-spacing: 0.02em; }
+  .sub { font-size: 12px; color: #333348; margin-bottom: 14px; }
+
+  .sim-wrap {
+    display: flex;
+    gap: 0;
+    border: 1px solid #1c1c32;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0e0e18;
+  }
+  #machineCanvas { display: block; background: #0e0e18; }
+  .divider { width: 1px; background: #1c1c32; }
+  #graphCanvas  { display: block; background: #080810; }
+
+  .panel { width: 860px; background: #0e0e18; border: 1px solid #1c1c32; border-radius: 14px; padding: 18px 22px; margin-top: 14px; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .ctrl-row { display: flex; align-items: center; gap: 8px; }
+  .ctrl-row label { font-size: 12px; color: #55557a; min-width: 120px; }
+  .ctrl-row input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; background: #1c1c32; border-radius: 2px; outline: none; }
+  .ctrl-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #60d4ff; cursor: pointer; border: 2px solid #0e0e18; }
+  .ctrl-row span { font-size: 12px; font-weight: 600; min-width: 55px; text-align: right; color: #e6e4f0; }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  button { flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; border: 1px solid #22224a; background: #111128; color: #8888aa; transition: background 0.15s; }
+  button:hover { background: #18183a; }
+  button#startBtn { border-color: #60d4ff; color: #60d4ff; }
+  button#startBtn:hover { background: #061018; }
+  button#resetBtn { border-color: #e07850; color: #e07850; }
+  button#resetBtn:hover { background: #1a0a06; }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 16px; }
+  .metric { background: #09090e; border: 1px solid #161628; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #33334a; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 15px; font-weight: 700; color: #e6e4f0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #55557a; }
+  .leg-line { width: 20px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+  .eq { background: #09090e; border: 1px solid #161628; border-radius: 8px; padding: 12px 16px; margin-top: 14px; font-size: 12px; color: #33334a; line-height: 2.1; }
+  .eq span { font-weight: 700; color: #7070a0; }
+  footer { margin-top: 20px; font-size: 11px; color: #1a1a2a; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">Atwood's Machine · Interactive</div>
+</header>
+
+<p class="main-title">Atwood's Machine</p>
+<p class="sub">Two masses connected over a frictionless pulley — observe tension, acceleration, and velocity vs time</p>
+
+<div class="sim-wrap">
+  <canvas id="machineCanvas" width="440" height="500"></canvas>
+  <div class="divider"></div>
+  <canvas id="graphCanvas"   width="420" height="500"></canvas>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row">
+      <label>Mass m₁ (kg)</label>
+      <input type="range" id="m1" min="0.5" max="10" step="0.1" value="3.0">
+      <span id="m1V">3.0 kg</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mass m₂ (kg)</label>
+      <input type="range" id="m2" min="0.5" max="10" step="0.1" value="5.0">
+      <span id="m2V">5.0 kg</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Pulley radius (m)</label>
+      <input type="range" id="pr" min="0.02" max="0.20" step="0.01" value="0.06">
+      <span id="prV">0.06 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Pulley mass (kg)</label>
+      <input type="range" id="pm" min="0" max="5" step="0.1" value="0.5">
+      <span id="pmV">0.50 kg</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Rope friction μ</label>
+      <input type="range" id="mu" min="0" max="0.3" step="0.01" value="0">
+      <span id="muV">0.00</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Speed ×</label>
+      <input type="range" id="spd" min="0.1" max="3.0" step="0.1" value="1.0">
+      <span id="spdV">1.0×</span>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button id="startBtn" onclick="toggleRun()">▶ Start</button>
+    <button id="resetBtn" onclick="resetSim()">↺ Reset</button>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Acceleration a</div><div class="val" id="mA">—</div></div>
+    <div class="metric"><div class="lbl">Tension T</div><div class="val" id="mT">—</div></div>
+    <div class="metric"><div class="lbl">Velocity v</div><div class="val" id="mV">—</div></div>
+    <div class="metric"><div class="lbl">Time</div><div class="val" id="mTime">—</div></div>
+    <div class="metric"><div class="lbl">Net Force</div><div class="val" id="mFnet">—</div></div>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-line" style="background:#f5f040;"></div> Tension T (both sides)</div>
+    <div class="leg"><div class="leg-line" style="background:#e07850;"></div> Weight m₁g (left)</div>
+    <div class="leg"><div class="leg-line" style="background:#50c8e0;"></div> Weight m₂g (right)</div>
+    <div class="leg"><div class="leg-line" style="background:#60d4ff;"></div> Velocity v (graph)</div>
+    <div class="leg"><div class="leg-line" style="background:#f080a0;"></div> Acceleration a (graph)</div>
+  </div>
+  <div class="eq">
+    <span>a = (m₂ − m₁)g / (m₁ + m₂ + I/r²)</span> &nbsp;·&nbsp;
+    <span>T = m₁(g + a) = m₂(g − a)</span> &nbsp;·&nbsp;
+    <span>I = ½Mr² (solid pulley)</span> &nbsp;·&nbsp;
+    <span>v = at</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const mc  = document.getElementById('machineCanvas');
+const gc  = document.getElementById('graphCanvas');
+const mctx = mc.getContext('2d');
+const gctx = gc.getContext('2d');
+const MW = mc.width, MH = mc.height;
+const GW = gc.width, GH = gc.height;
+const G = 9.81;
+
+// Simulation state
+let running  = false;
+let lastTs   = null;
+let simTime  = 0;
+let velocity = 0;
+
+// Displacement of m1 from start (positive = m1 goes up, m2 goes down)
+// m2 > m1 means m2 falls, displacement = displacement of m2 going down
+let disp = 0;  // positive = m2 side goes down
+
+// Graph history
+const HIST = 300;
+let vHistory = [], aHistory = [], tHistory = [];
+
+// Layout constants
+const PX = MW / 2;         // pulley centre x
+const PY = 90;             // pulley centre y
+const ROPE_X_L = PX - 52; // left rope x
+const ROPE_X_R = PX + 52; // right rope x
+const FLOOR_Y  = MH - 30;
+const MAX_DISP = (FLOOR_Y - PY - 160) * 0.85;  // max displacement before hitting floor
+
+function getP() {
+  return {
+    m1: +document.getElementById('m1').value,
+    m2: +document.getElementById('m2').value,
+    r:  +document.getElementById('pr').value,
+    M:  +document.getElementById('pm').value,
+    mu: +document.getElementById('mu').value,
+    spd:+document.getElementById('spd').value,
+  };
+}
+
+function physics(p) {
+  const { m1, m2, r, M, mu } = p;
+  // Moment of inertia of solid disk pulley: I = ½Mr²
+  const I = 0.5 * M * r * r;
+  // Effective mass including pulley inertia
+  const effMass = m1 + m2 + I / (r * r);
+  // Net force
+  const Fnet = (m2 - m1) * G;
+  // Friction correction (simplified: friction reduces net force)
+  const Ffric = mu * (m1 + m2) * G * 0.5;
+  const FnetCorr = Math.abs(Fnet) > Ffric ? Fnet - Math.sign(Fnet) * Ffric : 0;
+  const a = FnetCorr / effMass;
+  // Tension (average of both sides for display)
+  const T = m1 * (G + a);   // for the lighter mass side: T = m1(g + a)
+  return { a, T, Fnet: FnetCorr };
+}
+
+function toggleRun() {
+  running = !running;
+  document.getElementById('startBtn').textContent = running ? '⏸ Pause' : '▶ Start';
+  if (running) { lastTs = null; requestAnimationFrame(loop); }
+}
+
+function resetSim() {
+  running  = false;
+  lastTs   = null;
+  simTime  = 0;
+  velocity = 0;
+  disp     = 0;
+  vHistory = []; aHistory = []; tHistory = [];
+  document.getElementById('startBtn').textContent = '▶ Start';
+  drawMachine(getP(), physics(getP()));
+  drawGraph(getP(), physics(getP()));
+}
+
+function arrowV(ctx, x1, y1, x2, y2, col, size) {
+  size = size || 10;
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save();
+  ctx.shadowColor = col; ctx.shadowBlur = 8;
+  ctx.strokeStyle = col; ctx.lineWidth = 2.8;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size*Math.cos(ang-0.38), y2 - size*Math.sin(ang-0.38));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size*Math.cos(ang+0.38), y2 - size*Math.sin(ang+0.38));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMachine(p, ph) {
+  const { m1, m2, r } = p;
+  const { a, T } = ph;
+  const PXPX = Math.max(20, r * 500);  // pulley radius in pixels
+
+  mctx.clearRect(0, 0, MW, MH);
+
+  // dot grid
+  mctx.fillStyle = 'rgba(255,255,255,0.018)';
+  for (let x = 14; x < MW; x += 28)
+    for (let y = 14; y < MH; y += 28) {
+      mctx.beginPath(); mctx.arc(x, y, 1, 0, Math.PI*2); mctx.fill();
+    }
+
+  // ── Ceiling / support beam
+  mctx.fillStyle = '#1a1a2e';
+  mctx.fillRect(0, 0, MW, 32);
+  mctx.strokeStyle = '#2a2a48'; mctx.lineWidth = 1;
+  mctx.strokeRect(0, 0, MW, 32);
+  // hatching
+  for (let x = 0; x < MW; x += 16) {
+    mctx.beginPath(); mctx.moveTo(x, 0); mctx.lineTo(x - 12, 32);
+    mctx.strokeStyle = '#14143a'; mctx.lineWidth = 1; mctx.stroke();
+  }
+  // support rod
+  mctx.save();
+  mctx.strokeStyle = '#3a3a5a'; mctx.lineWidth = 5;
+  mctx.beginPath(); mctx.moveTo(PX, 32); mctx.lineTo(PX, PY - PXPX); mctx.stroke();
+  mctx.restore();
+
+  // ── Pulley (circle)
+  mctx.save();
+  // outer ring
+  mctx.beginPath(); mctx.arc(PX, PY, PXPX, 0, Math.PI*2);
+  mctx.fillStyle = '#1a1a38'; mctx.fill();
+  mctx.strokeStyle = '#5050a0'; mctx.lineWidth = 3; mctx.stroke();
+  // inner hub
+  mctx.beginPath(); mctx.arc(PX, PY, PXPX * 0.28, 0, Math.PI*2);
+  mctx.fillStyle = '#2a2a4a'; mctx.fill();
+  mctx.strokeStyle = '#7070c0'; mctx.lineWidth = 2; mctx.stroke();
+  // spokes
+  for (let i = 0; i < 4; i++) {
+    const ang = (Math.PI / 4) + i * (Math.PI / 2) + (velocity * simTime / (r || 0.06)) % (Math.PI*2);
+    mctx.beginPath();
+    mctx.moveTo(PX + PXPX*0.28*Math.cos(ang), PY + PXPX*0.28*Math.sin(ang));
+    mctx.lineTo(PX + PXPX*0.85*Math.cos(ang), PY + PXPX*0.85*Math.sin(ang));
+    mctx.strokeStyle = '#3a3a60'; mctx.lineWidth = 2; mctx.stroke();
+  }
+  mctx.restore();
+  // Pulley label
+  mctx.font = '11px sans-serif'; mctx.fillStyle = '#44448a'; mctx.textAlign = 'center';
+  mctx.fillText('M, r', PX, PY + PXPX + 14);
+  mctx.textAlign = 'start';
+
+  // ── Rope
+  // Left rope: from pulley bottom-left tangent down to m1
+  // Right rope: from pulley bottom-right tangent down to m2
+  const lrx = PX - PXPX * 0.82;
+  const rrx = PX + PXPX * 0.82;
+  const ropeTop = PY + PXPX * 0.6;
+
+  // displacement: m2 heavier → m2 goes down, m1 goes up
+  // if a>0: m2 side goes down = disp increases
+  const m1Y_base = MH / 2 - 10;    // neutral position of m1 top
+  const m2Y_base = MH / 2 - 10;    // neutral position of m2 top
+  // m2 goes down by disp, m1 goes up by disp (rope constraint)
+  const dispPx = disp * 280;  // scale disp (metres) to pixels
+  const m1Top  = m1Y_base - dispPx;  // m1 goes up when m2 goes down
+  const m2Top  = m2Y_base + dispPx;  // m2 goes down
+
+  // mass height in pixels: proportional to mass
+  const m1H = 18 + m1 * 6;
+  const m2H = 18 + m2 * 6;
+  const mW  = 48;
+
+  // left rope
+  mctx.save();
+  mctx.strokeStyle = '#888890'; mctx.lineWidth = 2.5;
+  mctx.beginPath(); mctx.moveTo(lrx, ropeTop); mctx.lineTo(lrx, m1Top); mctx.stroke();
+  mctx.restore();
+
+  // right rope
+  mctx.save();
+  mctx.strokeStyle = '#888890'; mctx.lineWidth = 2.5;
+  mctx.beginPath(); mctx.moveTo(rrx, ropeTop); mctx.lineTo(rrx, m2Top); mctx.stroke();
+  mctx.restore();
+
+  // ── Mass m1 (left, lighter — goes up when m2 falls)
+  const m1cx = lrx;
+  const m1cy = m1Top + m1H / 2;
+  mctx.save();
+  mctx.shadowColor = '#e07850'; mctx.shadowBlur = 12;
+  mctx.fillStyle = '#1e1408';
+  mctx.strokeStyle = '#e07850'; mctx.lineWidth = 2.5;
+  mctx.beginPath();
+  mctx.roundRect(m1cx - mW/2, m1Top, mW, m1H, 6);
+  mctx.fill(); mctx.stroke();
+  mctx.restore();
+  mctx.font = `bold ${Math.min(14, 10 + m1)}px sans-serif`;
+  mctx.fillStyle = '#e07850'; mctx.textAlign = 'center';
+  mctx.fillText(`m₁`, m1cx, m1cy - 3);
+  mctx.font = '11px sans-serif'; mctx.fillStyle = '#886644';
+  mctx.fillText(`${m1.toFixed(1)} kg`, m1cx, m1cy + 11);
+  mctx.textAlign = 'start';
+
+  // ── Mass m2 (right, heavier — goes down)
+  const m2cx = rrx;
+  const m2cy = m2Top + m2H / 2;
+  mctx.save();
+  mctx.shadowColor = '#50c8e0'; mctx.shadowBlur = 12;
+  mctx.fillStyle = '#081418';
+  mctx.strokeStyle = '#50c8e0'; mctx.lineWidth = 2.5;
+  mctx.beginPath();
+  mctx.roundRect(m2cx - mW/2, m2Top, mW, m2H, 6);
+  mctx.fill(); mctx.stroke();
+  mctx.restore();
+  mctx.font = `bold ${Math.min(14, 10 + m2)}px sans-serif`;
+  mctx.fillStyle = '#50c8e0'; mctx.textAlign = 'center';
+  mctx.fillText(`m₂`, m2cx, m2cy - 3);
+  mctx.font = '11px sans-serif'; mctx.fillStyle = '#449098';
+  mctx.fillText(`${m2.toFixed(1)} kg`, m2cx, m2cy + 11);
+  mctx.textAlign = 'start';
+
+  // ── FORCE VECTORS
+  const vecScale = 3.5;
+
+  // Tension T — upward on both masses
+  const tLen = Math.min(T * vecScale * 0.12, 80);
+  // T on m1 (upward from top of m1)
+  arrowV(mctx, m1cx, m1Top, m1cx, m1Top - tLen, '#f5f040', 10);
+  mctx.font = 'bold 12px sans-serif'; mctx.fillStyle = '#f5f040'; mctx.textAlign = 'center';
+  mctx.fillText('T', m1cx, m1Top - tLen - 6);
+
+  // T on m2 (upward from top of m2)
+  arrowV(mctx, m2cx, m2Top, m2cx, m2Top - tLen, '#f5f040', 10);
+  mctx.fillText('T', m2cx, m2Top - tLen - 6);
+  mctx.textAlign = 'start';
+
+  // Weight m1g (downward)
+  const w1Len = Math.min(m1 * G * vecScale * 0.10, 80);
+  arrowV(mctx, m1cx, m1Top + m1H, m1cx, m1Top + m1H + w1Len, '#e07850', 10);
+  mctx.font = 'bold 12px sans-serif'; mctx.fillStyle = '#e07850'; mctx.textAlign = 'center';
+  mctx.fillText('m₁g', m1cx, m1Top + m1H + w1Len + 14);
+
+  // Weight m2g (downward)
+  const w2Len = Math.min(m2 * G * vecScale * 0.10, 80);
+  arrowV(mctx, m2cx, m2Top + m2H, m2cx, m2Top + m2H + w2Len, '#50c8e0', 10);
+  mctx.font = 'bold 12px sans-serif'; mctx.fillStyle = '#50c8e0'; mctx.textAlign = 'center';
+  mctx.fillText('m₂g', m2cx, m2Top + m2H + w2Len + 14);
+  mctx.textAlign = 'start';
+
+  // Acceleration arrows — show direction of motion
+  if (Math.abs(a) > 0.001) {
+    const aDir = a > 0 ? -1 : 1;  // a>0: m2 down, m1 up
+    const aLen = Math.min(Math.abs(a) * 8, 55);
+    // m1 acceleration (up if a>0)
+    arrowV(mctx, m1cx + 30, m1cy, m1cx + 30, m1cy + aDir * aLen, '#88ff88', 9);
+    mctx.font = 'bold 11px sans-serif'; mctx.fillStyle = '#88ff88'; mctx.textAlign = 'left';
+    mctx.fillText('a', m1cx + 33, m1cy + aDir * aLen / 2 + 4);
+
+    // m2 acceleration (down if a>0)
+    arrowV(mctx, m2cx - 30, m2cy, m2cx - 30, m2cy - aDir * aLen, '#88ff88', 9);
+    mctx.fillText('a', m2cx - 28, m2cy - aDir * aLen / 2 + 4);
+  }
+
+  // ── Floor line
+  mctx.save();
+  mctx.strokeStyle = '#1c1c30'; mctx.lineWidth = 2;
+  mctx.setLineDash([6, 6]);
+  mctx.beginPath(); mctx.moveTo(20, FLOOR_Y); mctx.lineTo(MW - 20, FLOOR_Y); mctx.stroke();
+  mctx.setLineDash([]); mctx.restore();
+  mctx.font = '10px sans-serif'; mctx.fillStyle = '#252540'; mctx.textAlign = 'center';
+  mctx.fillText('floor', MW / 2, FLOOR_Y + 13);
+  mctx.textAlign = 'start';
+
+  // ── Labels for rope tension
+  if (running || simTime > 0) {
+    mctx.font = '11px sans-serif'; mctx.fillStyle = '#44448a'; mctx.textAlign = 'center';
+    mctx.fillText(`v = ${velocity.toFixed(2)} m/s`, MW/2, PY + PXPX + 32);
+    mctx.textAlign = 'start';
+  }
+}
+
+function drawGraph(p, ph) {
+  const { a } = ph;
+  gctx.clearRect(0, 0, GW, GH);
+  gctx.fillStyle = '#080810';
+  gctx.fillRect(0, 0, GW, GH);
+
+  const gx0 = 48, gx1 = GW - 16;
+  const gy0 = 30, gy1 = GH - 44;
+  const gW2  = gx1 - gx0, gH2 = gy1 - gy0;
+  const midY = (gy0 + gy1) / 2;
+
+  // grid
+  gctx.save(); gctx.setLineDash([3, 5]);
+  gctx.strokeStyle = 'rgba(255,255,255,0.06)'; gctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const gy = gy0 + (gH2 / 4) * i;
+    gctx.beginPath(); gctx.moveTo(gx0, gy); gctx.lineTo(gx1, gy); gctx.stroke();
+  }
+  for (let i = 0; i <= 4; i++) {
+    const gx = gx0 + (gW2 / 4) * i;
+    gctx.beginPath(); gctx.moveTo(gx, gy0); gctx.lineTo(gx, gy1); gctx.stroke();
+  }
+  gctx.setLineDash([]); gctx.restore();
+
+  // axes
+  gctx.save();
+  gctx.strokeStyle = 'rgba(255,255,255,0.3)'; gctx.lineWidth = 1.5;
+  gctx.beginPath(); gctx.moveTo(gx0, gy0); gctx.lineTo(gx0, gy1); gctx.stroke();
+  gctx.beginPath(); gctx.moveTo(gx0, midY); gctx.lineTo(gx1, midY); gctx.stroke();
+  gctx.restore();
+
+  // y labels
+  gctx.font = '10px sans-serif'; gctx.fillStyle = '#3a3a5a'; gctx.textAlign = 'right';
+  gctx.fillText('+', gx0 - 4, gy0 + 10);
+  gctx.fillText('0', gx0 - 4, midY + 4);
+  gctx.fillText('−', gx0 - 4, gy1 - 2);
+
+  // Title
+  gctx.font = 'bold 12px sans-serif'; gctx.fillStyle = '#44448a'; gctx.textAlign = 'center';
+  gctx.fillText('Velocity & Acceleration vs Time', GW/2, 18);
+  gctx.textAlign = 'start';
+
+  const maxV = Math.max(...vHistory.map(Math.abs), 0.01);
+  const maxA = Math.max(Math.abs(a), 0.01);
+  const normV = (v) => midY - (v / (maxV * 1.1)) * (gH2 / 2) * 0.88;
+  const normA = (acc) => midY - (acc / (maxA * 1.1)) * (gH2 / 2) * 0.88;
+
+  // Velocity curve (cyan-blue)
+  if (vHistory.length > 1) {
+    gctx.save();
+    gctx.shadowColor = '#60d4ff'; gctx.shadowBlur = 8;
+    gctx.strokeStyle = '#60d4ff'; gctx.lineWidth = 2.5;
+    gctx.beginPath();
+    for (let i = 0; i < vHistory.length; i++) {
+      const gx = gx0 + (i / (HIST - 1)) * gW2;
+      const gy = normV(vHistory[i]);
+      i === 0 ? gctx.moveTo(gx, gy) : gctx.lineTo(gx, gy);
+    }
+    gctx.stroke(); gctx.restore();
+    // Live dot
+    const lastGx = gx0 + ((vHistory.length-1) / (HIST-1)) * gW2;
+    gctx.save();
+    gctx.shadowColor = '#ffffff'; gctx.shadowBlur = 14;
+    gctx.beginPath(); gctx.arc(lastGx, normV(vHistory[vHistory.length-1]), 4.5, 0, Math.PI*2);
+    gctx.fillStyle = '#60d4ff'; gctx.fill(); gctx.restore();
+    // Label
+    gctx.font = '11px sans-serif'; gctx.fillStyle = '#60d4ff';
+    gctx.fillText('v (m/s)', gx0 + 4, gy0 + 14);
+  }
+
+  // Acceleration curve (pink — constant horizontal line)
+  if (aHistory.length > 1) {
+    gctx.save();
+    gctx.shadowColor = '#f080a0'; gctx.shadowBlur = 6;
+    gctx.strokeStyle = '#f080a0'; gctx.lineWidth = 2;
+    gctx.setLineDash([6, 4]);
+    gctx.beginPath();
+    for (let i = 0; i < aHistory.length; i++) {
+      const gx = gx0 + (i / (HIST - 1)) * gW2;
+      const gy = normA(aHistory[i]);
+      i === 0 ? gctx.moveTo(gx, gy) : gctx.lineTo(gx, gy);
+    }
+    gctx.stroke(); gctx.setLineDash([]); gctx.restore();
+    gctx.font = '11px sans-serif'; gctx.fillStyle = '#f080a0';
+    gctx.fillText('a (m/s²)', gx0 + 4, gy0 + 26);
+  }
+
+  // x-axis time label
+  gctx.font = '10px sans-serif'; gctx.fillStyle = '#2a2a44'; gctx.textAlign = 'center';
+  gctx.fillText(`t = ${simTime.toFixed(2)} s`, GW/2, gy1 + 14);
+  gctx.fillText('time →', gx1 - 10, midY - 6);
+  gctx.textAlign = 'start';
+
+  // Metrics readout on graph
+  gctx.font = 'bold 12px sans-serif'; gctx.fillStyle = '#60d4ff';
+  gctx.fillText(`v = ${velocity.toFixed(3)} m/s`, gx0 + 4, gy1 + 30);
+  gctx.fillStyle = '#f080a0';
+  gctx.fillText(`a = ${a.toFixed(3)} m/s²`, gx0 + 120, gy1 + 30);
+}
+
+function loop(ts) {
+  if (!running) return;
+  if (!lastTs) lastTs = ts;
+  const rawDt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  const p  = getP();
+  const dt = rawDt * p.spd;
+  const ph = physics(p);
+
+  // Update velocity and displacement
+  velocity += ph.a * dt;
+  // Clamp velocity if at floor
+  const dispPx = disp * 280;
+  if (dispPx >= MAX_DISP && ph.a > 0) {
+    velocity = 0;
+    running  = false;
+    document.getElementById('startBtn').textContent = '▶ Start';
+  } else {
+    disp += velocity * dt;
+    if (disp < -MAX_DISP / 280) {
+      disp = -MAX_DISP / 280;
+      velocity = 0;
+    }
+    simTime += dt;
+  }
+
+  // Record history
+  vHistory.push(velocity);
+  aHistory.push(ph.a);
+  if (vHistory.length > HIST) { vHistory.shift(); aHistory.shift(); }
+
+  drawMachine(p, ph);
+  drawGraph(p, ph);
+
+  // Update metric cards
+  document.getElementById('mA').textContent    = ph.a.toFixed(3) + ' m/s²';
+  document.getElementById('mT').textContent    = ph.T.toFixed(2) + ' N';
+  document.getElementById('mV').textContent    = velocity.toFixed(3) + ' m/s';
+  document.getElementById('mTime').textContent = simTime.toFixed(2) + ' s';
+  document.getElementById('mFnet').textContent = ph.Fnet.toFixed(2) + ' N';
+
+  if (running) requestAnimationFrame(loop);
+}
+
+// Slider listeners
+['m1','m2','pr','pm','mu','spd'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    const suffixes = { m1:' kg', m2:' kg', pr:' m', pm:' kg', mu:'', spd:'×' };
+    const decimals = { m1:1, m2:1, pr:2, pm:2, mu:2, spd:1 };
+    document.getElementById(id+'V').textContent = (+this.value).toFixed(decimals[id]) + suffixes[id];
+    if (!running) { drawMachine(getP(), physics(getP())); drawGraph(getP(), physics(getP())); }
+  });
+});
+
+// Initial draw
+resetSim();
+</script>
+</body>
+</html>

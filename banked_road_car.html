@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banking of Curved Road — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0f;
+    font-family: 'Segoe UI', sans-serif;
+    color: #c2c0b6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 36px;
+  }
+  header {
+    width: 100%;
+    background: #11111a;
+    border-bottom: 1px solid #22223a;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .brand { font-size: 11px; font-weight: 500; letter-spacing: 0.13em; color: #6e6e8a; text-transform: uppercase; margin-bottom: 2px; }
+  .name  { font-size: 19px; font-weight: 700; color: #e8e6de; }
+  .name span { color: #6af0ff; }
+  .header-badge {
+    font-size: 11px; background: #161625; border: 1px solid #2a2a45;
+    color: #7a7a9a; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.06em;
+  }
+  .main-title { font-size: 16px; font-weight: 600; color: #9a9ab8; margin-bottom: 4px; letter-spacing: 0.02em; }
+  .sub { font-size: 12px; color: #44445a; margin-bottom: 16px; }
+
+  .canvas-wrap { position: relative; }
+  canvas { display: block; background: #11111a; border: 1px solid #22223a; border-radius: 14px; }
+
+  .panel {
+    width: 720px; background: #11111a; border: 1px solid #22223a;
+    border-radius: 14px; padding: 18px 22px; margin-top: 14px;
+  }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl-row label { font-size: 12px; color: #6e6e8a; min-width: 130px; }
+  .ctrl-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 4px;
+    background: #252540; border-radius: 2px; outline: none;
+  }
+  .ctrl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 15px; height: 15px;
+    border-radius: 50%; background: #6af0ff; cursor: pointer; border: 2px solid #11111a;
+  }
+  .ctrl-row span { font-size: 12px; font-weight: 600; min-width: 65px; text-align: right; color: #e8e6de; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500;
+    border-radius: 8px; cursor: pointer; border: 1px solid #2a2a3e;
+    background: #181828; color: #9a9ab0; transition: background 0.15s;
+  }
+  button:hover { background: #22223a; }
+  button#pauseBtn { border-color: #e07850; color: #e07850; }
+  button#pauseBtn:hover { background: #1e1208; }
+  button#resetBtn { border-color: #6af0ff; color: #6af0ff; }
+  button#resetBtn:hover { background: #061218; }
+
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 16px; }
+  .metric { background: #0a0a0f; border: 1px solid #1e1e32; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #55556a; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 15px; font-weight: 700; color: #e8e6de; }
+  .metric.warn .val { color: #e04848; }
+  .metric.ok   .val { color: #2db88a; }
+
+  .status-bar {
+    margin-top: 12px; padding: 9px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; text-align: center;
+    transition: all 0.4s;
+  }
+  .status-safe   { background: #081814; border: 1px solid #0a5a3a; color: #2db88a; }
+  .status-skid   { background: #1e0808; border: 1px solid #6a1a1a; color: #e04848; }
+  .status-ideal  { background: #080e1a; border: 1px solid #0a3a6a; color: #6af0ff; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6e6e8a; }
+  .leg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .leg-line { width: 18px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+
+  .eq {
+    background: #0a0a0f; border: 1px solid #1e1e32; border-radius: 8px;
+    padding: 12px 16px; margin-top: 14px; font-size: 12px; color: #55556a; line-height: 2.1;
+  }
+  .eq span { font-weight: 700; color: #9a9ab8; }
+  footer { margin-top: 20px; font-size: 11px; color: #2a2a3a; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">Banking of Curved Road · Interactive</div>
+</header>
+
+<p class="main-title">Car on a Banked Curved Road</p>
+<p class="sub">Cross-section view — observe normal force N, weight mg, friction f, and centripetal force as speed changes</p>
+
+<div class="canvas-wrap">
+  <canvas id="cv" width="720" height="430"></canvas>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row">
+      <label>Bank angle θ (°)</label>
+      <input type="range" id="theta" min="5" max="45" step="1" value="20">
+      <span id="thetaV">20°</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Car speed v (m/s)</label>
+      <input type="range" id="speed" min="1" max="40" step="0.5" value="12">
+      <span id="speedV">12.0 m/s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Turn radius R (m)</label>
+      <input type="range" id="radius" min="20" max="200" step="5" value="60">
+      <span id="radiusV">60 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Friction coeff μ</label>
+      <input type="range" id="mu" min="0.0" max="0.8" step="0.05" value="0.4">
+      <span id="muV">0.40</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button id="pauseBtn" onclick="togglePause()">Pause</button>
+    <button id="resetBtn" onclick="resetSim()">Reset</button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Bank angle θ</div><div class="val" id="mTheta">—</div></div>
+    <div class="metric"><div class="lbl">Normal force N</div><div class="val" id="mN">—</div></div>
+    <div class="metric"><div class="lbl">Friction f</div><div class="val" id="mF">—</div></div>
+    <div class="metric"><div class="lbl">Ideal speed</div><div class="val" id="mIdeal">—</div></div>
+    <div class="metric"><div class="lbl">Centripetal a</div><div class="val" id="mAc">—</div></div>
+  </div>
+
+  <div id="statusBar" class="status-bar status-safe">Calculating...</div>
+
+  <div class="legend">
+    <div class="leg"><div class="leg-line" style="background:#ffe000;box-shadow:0 0 6px #ffe000;"></div> Normal force N</div>
+    <div class="leg"><div class="leg-line" style="background:#d4a017;"></div> Weight mg</div>
+    <div class="leg"><div class="leg-line" style="background:#6af0ff;"></div> Centripetal Fc (inward)</div>
+    <div class="leg"><div class="leg-line" style="background:#ff00cc;box-shadow:0 0 6px #ff00cc;"></div> Friction f</div>
+    <div class="leg"><div class="leg-line" style="background:#2db88a;"></div> Velocity v</div>
+  </div>
+
+  <div class="eq">
+    <span>N cosθ = mg + f sinθ</span> &nbsp;·&nbsp;
+    <span>N sinθ + f cosθ = mv²/R</span> &nbsp;·&nbsp;
+    <span>v_ideal = √(Rg tanθ)</span> &nbsp;·&nbsp;
+    <span>f_max = μN</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const G   = 9.81;
+const m   = 1200;   // car mass kg (fixed, doesn't change vectors direction)
+const W   = cv.width, H = cv.height;
+
+let paused   = false;
+let animPhi  = 0;    // car bob position on arc (animation)
+let lastTs   = null;
+
+function getP() {
+  return {
+    theta:  +document.getElementById('theta').value * Math.PI / 180,
+    v:      +document.getElementById('speed').value,
+    R:      +document.getElementById('radius').value,
+    mu:     +document.getElementById('mu').value,
+  };
+}
+
+function compute(p) {
+  const { theta, v, R, mu } = p;
+  // Ideal speed (no friction needed)
+  const vIdeal = Math.sqrt(R * G * Math.tan(theta));
+  // Normal force and friction from equations of motion
+  // N cosθ - f sinθ = mg   (vertical)
+  // N sinθ + f cosθ = mv²/R (horizontal centripetal)
+  // f positive = up the slope (car going too fast), negative = down slope
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+  const Fc   = m * v * v / R;
+  // Solve: N = (mg cosθ + Fc sinθ), f = Fc cosθ - mg sinθ
+  const N = m * G * cosT + Fc * sinT;
+  const f = Fc * cosT - m * G * sinT;
+  const fMax = mu * N;
+  return { vIdeal, N, f, fMax, Fc };
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+  if (!paused) { lastTs = null; requestAnimationFrame(loop); }
+}
+
+function resetSim() {
+  animPhi = 0;
+}
+
+function arrowHead(x2, y2, fromX, fromY, color, size) {
+  size = size || 11;
+  const ang = Math.atan2(y2 - fromY, x2 - fromX);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang - 0.38), y2 - size * Math.sin(ang - 0.38));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang + 0.38), y2 - size * Math.sin(ang + 0.38));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawScene(p, c) {
+  const { theta, v, R, mu } = p;
+  const { vIdeal, N, f, fMax } = c;
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Background dot grid
+  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  for (let x = 20; x < W; x += 32)
+    for (let y = 20; y < H; y += 32) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+    }
+
+  // ═══════════════════════════════════════════════
+  // LEFT PANEL — cross-section view of banked road
+  // ═══════════════════════════════════════════════
+  const CX = 280, CY = 270;     // centre of road cross-section
+  const ROADW = 180;             // half-road width in pixels
+  const roadPx = ROADW;
+
+  // Road surface endpoints (banked at theta from horizontal)
+  // Inner edge (low side) — right in screen = outer of curve
+  // road tilts: left = inner (low), right = outer (high)
+  const rx1 = CX - roadPx * cosT;
+  const ry1 = CY + roadPx * sinT;   // inner (lower left)
+  const rx2 = CX + roadPx * cosT;
+  const ry2 = CY - roadPx * sinT;   // outer (upper right)
+
+  // Road fill
+  ctx.save();
+  ctx.beginPath();
+  // road surface
+  ctx.moveTo(rx1, ry1);
+  ctx.lineTo(rx2, ry2);
+  // extend below for road depth
+  const depthX =  sinT * 18;
+  const depthY =  cosT * 18;
+  ctx.lineTo(rx2 + depthX, ry2 + depthY);
+  ctx.lineTo(rx1 + depthX, ry1 + depthY);
+  ctx.closePath();
+  ctx.fillStyle = '#1e2030';
+  ctx.fill();
+  ctx.strokeStyle = '#3a3a55'; ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  // Road surface line (bright)
+  ctx.save();
+  ctx.strokeStyle = '#3a3a6a'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(rx1, ry1); ctx.lineTo(rx2, ry2); ctx.stroke();
+  ctx.restore();
+
+  // Centre line on road (dashed white)
+  const midX = (rx1 + rx2) / 2, midY = (ry1 + ry2) / 2;
+  ctx.save();
+  ctx.setLineDash([10, 8]);
+  ctx.strokeStyle = 'rgba(255,255,200,0.25)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(rx1 + (rx2-rx1)*0.1, ry1 + (ry2-ry1)*0.1);
+  ctx.lineTo(rx1 + (rx2-rx1)*0.9, ry1 + (ry2-ry1)*0.9);
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+
+  // Road edge markings
+  ctx.save();
+  ctx.strokeStyle = '#f5f5aa'; ctx.lineWidth = 2;
+  // outer edge
+  ctx.beginPath(); ctx.moveTo(rx2 - cosT*5, ry2 + sinT*5); ctx.lineTo(rx2 + sinT*14, ry2 + cosT*14); ctx.stroke();
+  // inner edge
+  ctx.beginPath(); ctx.moveTo(rx1 + cosT*5, ry1 - sinT*5); ctx.lineTo(rx1 + sinT*14, ry1 + cosT*14); ctx.stroke();
+  ctx.restore();
+
+  // Horizontal ground reference line (dashed)
+  ctx.save();
+  ctx.setLineDash([5, 6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(CX - roadPx - 20, CY); ctx.lineTo(CX + roadPx + 20, CY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Theta arc at road edge
+  const arcR = 36;
+  ctx.save();
+  ctx.strokeStyle = '#a07fff'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(rx1 + sinT*18, ry1 + cosT*18, arcR, Math.PI/2, Math.PI/2 + theta, false);
+  ctx.stroke();
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#a07fff';
+  ctx.fillText('θ', rx1 + sinT*18 + arcR*0.55, ry1 + cosT*18 + arcR*0.85);
+  ctx.restore();
+
+  // Labels: INNER / OUTER
+  ctx.font = '10px sans-serif'; ctx.fillStyle = '#33335a'; ctx.textAlign = 'center';
+  ctx.fillText('INNER', rx1 - 2, ry1 + 30);
+  ctx.fillText('OUTER', rx2 + 2, ry2 - 14);
+  ctx.textAlign = 'start';
+
+  // ── CAR position on road — animated sliding back and forth
+  const carT  = 0.55 + 0.1 * Math.sin(animPhi);  // 0=inner 1=outer, oscillate around 0.55
+  const carX  = rx1 + (rx2 - rx1) * carT;
+  const carY  = ry1 + (ry2 - ry1) * carT;
+
+  // ── Draw car body (simple 2D cross-section rectangle, tilted with road)
+  const carW = 52, carH = 22;
+  ctx.save();
+  ctx.translate(carX, carY);
+  ctx.rotate(-theta);   // road tilts, car sits on it
+  // car body
+  ctx.fillStyle = '#1a1a3a';
+  ctx.strokeStyle = '#4a6aff'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(-carW/2, -carH, carW, carH, 4);
+  ctx.fill(); ctx.stroke();
+  // car roof
+  ctx.fillStyle = '#252550';
+  ctx.beginPath();
+  ctx.roundRect(-carW/2 + 8, -carH - 14, carW - 16, 14, 4);
+  ctx.fill(); ctx.stroke();
+  // wheels
+  ctx.fillStyle = '#333';
+  ctx.strokeStyle = '#6a8fff'; ctx.lineWidth = 1.5;
+  [-carW/2 + 8, carW/2 - 8].forEach(wx => {
+    ctx.beginPath(); ctx.arc(wx, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  });
+  // headlight
+  ctx.fillStyle = '#ffffaa';
+  ctx.beginPath(); ctx.arc(carW/2 - 4, -carH + 5, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // ── FORCE VECTORS from car centre
+  const vecOriX = carX;
+  const vecOriY = carY - 11;   // slightly above car base (centre of mass height)
+  const SCALE   = 0.025;       // N to pixels
+
+  // Normal force N — perpendicular to road surface (rotated by theta from vertical)
+  const nLen = Math.min(N * SCALE, 120);
+  const nAng = -Math.PI / 2 + theta;   // from vertical, tilted inward
+  // In cross-section: N points perpendicular to road = (-sinT left, -cosT up) in world
+  const nDx  = -sinT * nLen;
+  const nDy  = -cosT * nLen;
+  ctx.save();
+  ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 5;
+  ctx.strokeStyle = '#f5f5f0'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(vecOriX, vecOriY); ctx.lineTo(vecOriX + nDx, vecOriY + nDy); ctx.stroke();
+  ctx.restore();
+  arrowHead(vecOriX + nDx, vecOriY + nDy, vecOriX, vecOriY, '#f5f5f0');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#f5f5f0';
+  ctx.fillText('N', vecOriX + nDx - 18, vecOriY + nDy - 5);
+
+  // Weight mg — straight down
+  const wLen = Math.min(m * G * SCALE * 0.6, 80);
+  ctx.save();
+  ctx.shadowColor = '#d4a017'; ctx.shadowBlur = 5;
+  ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(vecOriX, vecOriY); ctx.lineTo(vecOriX, vecOriY + wLen); ctx.stroke();
+  ctx.restore();
+  arrowHead(vecOriX, vecOriY + wLen, vecOriX, vecOriY, '#d4a017');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#d4a017';
+  ctx.fillText('mg', vecOriX + 5, vecOriY + wLen - 3);
+
+  // Centripetal force Fc — horizontal, toward centre of curve (LEFT = inner = left in cross-section)
+  const fcLen = Math.min(c.Fc * SCALE * 0.55, 100);
+  ctx.save();
+  ctx.shadowColor = '#6af0ff'; ctx.shadowBlur = 7;
+  ctx.strokeStyle = '#6af0ff'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(vecOriX, vecOriY); ctx.lineTo(vecOriX - fcLen, vecOriY); ctx.stroke();
+  ctx.restore();
+  arrowHead(vecOriX - fcLen, vecOriY, vecOriX, vecOriY, '#6af0ff');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#6af0ff';
+  ctx.fillText('Fc', vecOriX - fcLen - 24, vecOriY - 5);
+
+  // Friction f — along road surface
+  // Physics: road tilts left=inner(low), right=outer(high)
+  // v > v_ideal (f>0): car tends to slide outward → friction acts DOWN slope = inward (left) = (-cosT, +sinT)
+  // v < v_ideal (f<0): car tends to slide inward  → friction acts UP slope = outward (right) = (+cosT, -sinT)
+  const fLen = Math.min(Math.abs(f) * SCALE * 0.6, 80);
+  if (fLen > 4) {
+    // down-slope (inward) direction in screen: (-cosT, +sinT)
+    // up-slope (outward) direction in screen:  (+cosT, -sinT)
+    // f>0 → act inward (down slope) → multiply by -1 relative to slope-up direction
+    const fSign = f >= 0 ? -1 : 1;   // f>0=too fast→inward(−), f<0=too slow→outward(+)
+    const fdx = fSign * cosT * fLen;
+    const fdy = -fSign * sinT * fLen;
+    ctx.save();
+    ctx.shadowColor = '#e04848'; ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#e04848'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(vecOriX, vecOriY); ctx.lineTo(vecOriX + fdx, vecOriY + fdy); ctx.stroke();
+    ctx.restore();
+    arrowHead(vecOriX + fdx, vecOriY + fdy, vecOriX, vecOriY, '#e04848');
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#e04848';
+    ctx.fillText(f >= 0 ? 'f (inward↓)' : 'f (outward↑)', vecOriX + fdx + 5, vecOriY + fdy - 4);
+  }
+
+  // ═══════════════════════════════════════════════
+  // RIGHT PANEL — top-down arc view of curved road
+  // ═══════════════════════════════════════════════
+  const ARC_CX  = 580, ARC_CY = 210;
+  const ARC_R   = 110;
+  const ROAD_W2 = 22;
+
+  // Road arc (outer and inner)
+  ctx.save();
+  ctx.strokeStyle = '#2a2a44'; ctx.lineWidth = ROAD_W2 * 2;
+  ctx.beginPath();
+  ctx.arc(ARC_CX, ARC_CY, ARC_R, Math.PI * 0.4, Math.PI * 1.6);
+  ctx.stroke();
+  // Road surface line
+  ctx.strokeStyle = '#3a3a60'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(ARC_CX, ARC_CY, ARC_R, Math.PI * 0.4, Math.PI * 1.6); ctx.stroke();
+  ctx.restore();
+
+  // Centre dashed line of road arc
+  ctx.save();
+  ctx.setLineDash([8, 7]);
+  ctx.strokeStyle = 'rgba(255,255,200,0.2)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(ARC_CX, ARC_CY, ARC_R, Math.PI * 0.4, Math.PI * 1.6); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Car on arc
+  const carArcAng = Math.PI * 0.4 + (animPhi * 0.22) % (Math.PI * 1.2);
+  const arcCarX   = ARC_CX + ARC_R * Math.cos(carArcAng);
+  const arcCarY   = ARC_CY + ARC_R * Math.sin(carArcAng);
+  const carDirAng = carArcAng + Math.PI / 2;
+
+  ctx.save();
+  ctx.translate(arcCarX, arcCarY);
+  ctx.rotate(carDirAng);
+  // top-down car silhouette
+  ctx.fillStyle = '#1a1a3a'; ctx.strokeStyle = '#4a6aff'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(-8, -14, 16, 28, 3); ctx.fill(); ctx.stroke();
+  // windshield
+  ctx.fillStyle = '#252565';
+  ctx.beginPath(); ctx.roundRect(-6, -12, 12, 8, 2); ctx.fill();
+  // velocity arrow (tangential on arc)
+  ctx.restore();
+
+  // velocity arrow — bright green, tangential
+  const vLen2   = 34;
+  const vArcX2  = arcCarX + vLen2 * Math.cos(carDirAng);
+  const vArcY2  = arcCarY + vLen2 * Math.sin(carDirAng);
+  ctx.save();
+  ctx.shadowColor = '#2db88a'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#2db88a'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(arcCarX, arcCarY); ctx.lineTo(vArcX2, vArcY2); ctx.stroke();
+  ctx.restore();
+  arrowHead(vArcX2, vArcY2, arcCarX, arcCarY, '#2db88a', 9);
+  ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#2db88a';
+  ctx.fillText('v', vArcX2 + 5, vArcY2 - 4);
+
+  // centripetal arrow — cyan, toward centre
+  const fcAng2  = Math.atan2(ARC_CY - arcCarY, ARC_CX - arcCarX);
+  const fcLen2  = 32;
+  const fcX2    = arcCarX + fcLen2 * Math.cos(fcAng2);
+  const fcY2    = arcCarY + fcLen2 * Math.sin(fcAng2);
+  ctx.save();
+  ctx.shadowColor = '#6af0ff'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#6af0ff'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(arcCarX, arcCarY); ctx.lineTo(fcX2, fcY2); ctx.stroke();
+  ctx.restore();
+  arrowHead(fcX2, fcY2, arcCarX, arcCarY, '#6af0ff', 9);
+  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#6af0ff';
+  ctx.fillText('Fc', fcX2 - 20, fcY2 - 5);
+
+
+
+  // R radius dashed line
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(160,127,255,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ARC_CX, ARC_CY); ctx.lineTo(arcCarX, arcCarY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  // R label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('R', (ARC_CX + arcCarX)/2 + 4, (ARC_CY + arcCarY)/2 - 4);
+
+  // Centre dot
+  ctx.beginPath(); ctx.arc(ARC_CX, ARC_CY, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#4a4a6a'; ctx.fill();
+
+  // Panel label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#33335a'; ctx.textAlign = 'center';
+  ctx.fillText('Top view', ARC_CX, ARC_CY + ARC_R + 28);
+  ctx.textAlign = 'start';
+
+  // Cross-section label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#33335a'; ctx.textAlign = 'center';
+  ctx.fillText('Cross-section view', CX, H - 14);
+  ctx.textAlign = 'start';
+
+  // Divider
+  ctx.save();
+  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(440, 20); ctx.lineTo(440, H - 20); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ── Update metrics
+  const isSkid  = Math.abs(f) > c.fMax;
+  const isIdeal = Math.abs(v - c.vIdeal) < 0.8;
+  const statusEl = document.getElementById('statusBar');
+
+  document.getElementById('mTheta').textContent  = (p.theta * 180 / Math.PI).toFixed(0) + '°';
+  document.getElementById('mN').textContent      = N.toFixed(0) + ' N';
+  document.getElementById('mF').textContent      = f.toFixed(0) + ' N';
+  document.getElementById('mIdeal').textContent  = c.vIdeal.toFixed(1) + ' m/s';
+  document.getElementById('mAc').textContent     = (v*v/p.R).toFixed(2) + ' m/s²';
+
+  if (isSkid) {
+    statusEl.className   = 'status-bar status-skid';
+    statusEl.textContent = `⚠ SKIDDING — friction needed (${f.toFixed(0)} N) exceeds max (${c.fMax.toFixed(0)} N). Reduce speed or increase bank angle.`;
+  } else if (isIdeal) {
+    statusEl.className   = 'status-bar status-ideal';
+    statusEl.textContent = `✓ IDEAL SPEED — no friction needed. Banking provides all the centripetal force. v = ${v.toFixed(1)} m/s`;
+  } else if (f > 0) {
+    statusEl.className   = 'status-bar status-safe';
+    statusEl.textContent = `Safe — going faster than ideal. Friction acts DOWN slope (inward). f = ${f.toFixed(0)} N (max ${c.fMax.toFixed(0)} N)`;
+  } else {
+    statusEl.className   = 'status-bar status-safe';
+    statusEl.textContent = `Safe — going slower than ideal. Friction acts UP slope (outward). f = ${Math.abs(f).toFixed(0)} N`;
+  }
+}
+
+function loop(ts) {
+  if (paused) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  const p = getP();
+  animPhi += p.v * dt * 0.25;   // car moves faster with speed slider
+
+  const c = compute(p);
+  drawScene(p, c);
+  requestAnimationFrame(loop);
+}
+
+// Sliders
+document.getElementById('theta').addEventListener('input', function () {
+  document.getElementById('thetaV').textContent = this.value + '°';
+});
+document.getElementById('speed').addEventListener('input', function () {
+  document.getElementById('speedV').textContent = (+this.value).toFixed(1) + ' m/s';
+});
+document.getElementById('radius').addEventListener('input', function () {
+  document.getElementById('radiusV').textContent = this.value + ' m';
+});
+document.getElementById('mu').addEventListener('input', function () {
+  document.getElementById('muV').textContent = (+this.value).toFixed(2);
+});
+
+resetSim();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

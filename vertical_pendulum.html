@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vertical Pendulum — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0e0e12;
+    font-family: 'Segoe UI', sans-serif;
+    color: #c2c0b6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 36px;
+  }
+  header {
+    width: 100%;
+    background: #13131a;
+    border-bottom: 1px solid #2a2a38;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .brand { font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #6e6e8a; text-transform: uppercase; margin-bottom: 2px; }
+  .name  { font-size: 19px; font-weight: 600; color: #e8e6de; }
+  .name span { color: #6a8fff; }
+  .header-badge {
+    font-size: 11px; background: #1e1e2e; border: 1px solid #2e2e45;
+    color: #7a7a9a; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.06em;
+  }
+  .main-title { font-size: 15px; font-weight: 500; color: #9a9ab0; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #44445a; margin-bottom: 16px; }
+  canvas { display: block; background: #13131a; border: 1px solid #2a2a38; border-radius: 14px; }
+  .panel {
+    width: 680px; background: #13131a; border: 1px solid #2a2a38;
+    border-radius: 14px; padding: 18px 22px; margin-top: 14px;
+  }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl-row label { font-size: 12px; color: #6e6e8a; min-width: 130px; }
+  .ctrl-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 4px;
+    background: #2a2a3e; border-radius: 2px; outline: none;
+  }
+  .ctrl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #6a8fff; cursor: pointer; border: 2px solid #13131a;
+  }
+  .ctrl-row.highlight input[type=range]::-webkit-slider-thumb { background: #2db88a; }
+  .ctrl-row span { font-size: 12px; font-weight: 500; min-width: 60px; text-align: right; color: #c2c0b6; }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500;
+    border-radius: 8px; cursor: pointer; border: 1px solid #2a2a3e;
+    background: #1a1a2a; color: #9a9ab0; transition: background 0.15s;
+  }
+  button:hover { background: #22223a; }
+  button#pauseBtn { border-color: #e07850; color: #e07850; }
+  button#pauseBtn:hover { background: #1e1208; }
+  button#resetBtn { border-color: #6a8fff; color: #6a8fff; }
+  button#resetBtn:hover { background: #0e1020; }
+  button#modeBtn { border-color: #2db88a; color: #2db88a; }
+  button#modeBtn:hover { background: #081810; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+  .metric { background: #0e0e12; border: 1px solid #222232; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #55556a; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 16px; font-weight: 600; color: #e8e6de; }
+  .mode-indicator {
+    margin-top: 12px; padding: 8px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 500; text-align: center;
+  }
+  .mode-full  { background: #081818; border: 1px solid #0a5a3a; color: #2db88a; }
+  .mode-swing { background: #1a1220; border: 1px solid #4a2a6a; color: #a07fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6e6e8a; }
+  .leg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .leg-line { width: 18px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+  .eq {
+    background: #0e0e12; border: 1px solid #222232; border-radius: 8px;
+    padding: 12px 16px; margin-top: 14px; font-size: 12px; color: #55556a; line-height: 2;
+  }
+  .eq span { font-weight: 600; color: #9a9ab0; }
+  footer { margin-top: 18px; font-size: 11px; color: #33333f; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">Vertical Pendulum · Interactive</div>
+</header>
+
+<p class="main-title">Vertical Pendulum</p>
+<p class="sub">Adjust rotation speed to clearly observe force vectors. Single circular trace appears after first revolution.</p>
+
+<canvas id="cv" width="680" height="500"></canvas>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row highlight">
+      <label>Rotation speed</label>
+      <input type="range" id="rotspd" min="0.1" max="2.0" step="0.05" value="0.4">
+      <span id="rotspdV">0.40 rad/s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Length l (m)</label>
+      <input type="range" id="len" min="0.2" max="1.1" step="0.05" value="0.8">
+      <span id="lenV">0.80 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mass m (kg)</label>
+      <input type="range" id="mass" min="0.1" max="3.0" step="0.1" value="1.0">
+      <span id="massV">1.00 kg</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Show vectors</label>
+      <input type="range" id="vecscale" min="0.5" max="2.0" step="0.1" value="1.0">
+      <span id="vecscaleV">1.0×</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button id="pauseBtn" onclick="togglePause()">Pause</button>
+    <button id="modeBtn"  onclick="toggleMode()">Switch to Swing Mode</button>
+    <button id="resetBtn" onclick="resetPendulum()">Reset</button>
+  </div>
+
+  <div id="modeIndicator" class="mode-indicator mode-full">
+    Full 360° Rotation — constant controlled speed, no physics acceleration
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Angle θ</div><div class="val" id="mTheta">—</div></div>
+    <div class="metric"><div class="lbl">Speed v</div><div class="val" id="mV">—</div></div>
+    <div class="metric"><div class="lbl">Tension T</div><div class="val" id="mT">—</div></div>
+    <div class="metric"><div class="lbl">Revolutions</div><div class="val" id="mRev">0</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="leg-dot"  style="background:#6affcc;"></div> Bob (m)</div>
+    <div class="leg"><div class="leg-line" style="background:#6a8fff;"></div> String (l)</div>
+    <div class="leg"><div class="leg-line" style="background:#e04848;"></div> Tension T (along string)</div>
+    <div class="leg"><div class="leg-line" style="background:#d4a017;"></div> Weight mg (downward)</div>
+    <div class="leg"><div class="leg-line" style="background:#2db88a;"></div> Velocity v (tangential)</div>
+    <div class="leg"><div class="leg-line" style="background:#e07850;"></div> Circular trace</div>
+  </div>
+
+  <div class="eq">
+    <span>T = m(g cosθ + l·ω²)</span> &nbsp;·&nbsp;
+    <span>v = l·ω</span> &nbsp;·&nbsp;
+    <span>v_min_top = √(g·l)</span> &nbsp;·&nbsp;
+    <span>F_c = mω²l</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const G   = 9.81;
+const W   = cv.width, H = cv.height;
+const PX  = W / 2, PY = H / 2;
+const LSCALE = 185;
+
+// In full-rotation mode we drive theta at CONSTANT angular velocity — no physics acceleration
+// theta measured from TOP, clockwise positive
+let theta      = 0;          // start at top
+let totalAngle = 0;
+let revCount   = 0;
+let traceDrawn = false;
+let lastTs     = null;
+let paused     = false;
+let fullMode   = true;
+
+// For swing mode — real RK4 physics
+let swingTheta    = Math.PI * 0.55;
+let swingThetaDot = 0;
+let swingTrail    = [];
+
+function getP() {
+  return {
+    omega:    +document.getElementById('rotspd').value,   // constant angular speed (rad/s)
+    l:        +document.getElementById('len').value,
+    m:        +document.getElementById('mass').value,
+    vecscale: +document.getElementById('vecscale').value,
+  };
+}
+
+function resetPendulum() {
+  theta      = 0;
+  totalAngle = 0;
+  revCount   = 0;
+  traceDrawn = false;
+  swingTrail = [];
+  swingTheta    = Math.PI * 0.55;
+  swingThetaDot = 0;
+  document.getElementById('mRev').textContent = '0';
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+  if (!paused) { lastTs = null; requestAnimationFrame(loop); }
+}
+
+function toggleMode() {
+  fullMode = !fullMode;
+  const btn = document.getElementById('modeBtn');
+  const ind = document.getElementById('modeIndicator');
+  if (fullMode) {
+    btn.textContent = 'Switch to Swing Mode';
+    ind.className   = 'mode-indicator mode-full';
+    ind.textContent = 'Full 360° Rotation — constant controlled speed, no physics acceleration';
+  } else {
+    btn.textContent = 'Switch to Full Rotation Mode';
+    ind.className   = 'mode-indicator mode-swing';
+    ind.textContent = 'Swing Mode — real physics oscillation';
+  }
+  resetPendulum();
+}
+
+function arrowHead(x2, y2, fromX, fromY, color, size) {
+  size = size || 10;
+  const ang = Math.atan2(y2 - fromY, x2 - fromX);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang - 0.4), y2 - size * Math.sin(ang - 0.4));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang + 0.4), y2 - size * Math.sin(ang + 0.4));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function rk4Swing(th, thd, dt, l) {
+  const b = 0.015;
+  const f = (t, td) => -(G / l) * Math.sin(t) - b * td;
+  const k1t = thd,             k1v = f(th, thd);
+  const k2t = thd+.5*dt*k1v,  k2v = f(th+.5*dt*k1t, thd+.5*dt*k1v);
+  const k3t = thd+.5*dt*k2v,  k3v = f(th+.5*dt*k2t, thd+.5*dt*k2v);
+  const k4t = thd+   dt*k3v,  k4v = f(th+   dt*k3t, thd+   dt*k3v);
+  return {
+    theta:    th  + (dt/6)*(k1t+2*k2t+2*k3t+k4t),
+    thetaDot: thd + (dt/6)*(k1v+2*k2v+2*k3v+k4v),
+  };
+}
+
+function draw() {
+  const p         = getP();
+  const { l, m, omega, vecscale } = p;
+  const lPx       = l * LSCALE;
+  const curTheta  = fullMode ? theta : swingTheta;
+  const curOmega  = fullMode ? omega : swingThetaDot;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // dot grid
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
+  for (let x = 20; x < W; x += 32)
+    for (let y = 20; y < H; y += 32) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+    }
+
+  // faint ghost circle guide
+  ctx.save();
+  ctx.setLineDash([3, 8]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(PX, PY, lPx, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // faint cross
+  ctx.save();
+  ctx.setLineDash([3, 7]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PX, PY - lPx - 20); ctx.lineTo(PX, PY + lPx + 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX - lPx - 20, PY); ctx.lineTo(PX + lPx + 20, PY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ── Single clean circular trace
+  if (traceDrawn && fullMode) {
+    ctx.save();
+    ctx.strokeStyle = '#e07850';
+    ctx.lineWidth   = 1.8;
+    ctx.shadowColor = '#e07850';
+    ctx.shadowBlur  = 6;
+    ctx.beginPath(); ctx.arc(PX, PY, lPx, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // swing trail
+  if (!fullMode && swingTrail.length > 1) {
+    for (let i = 1; i < swingTrail.length; i++) {
+      const frac = i / swingTrail.length;
+      ctx.beginPath();
+      ctx.moveTo(swingTrail[i-1].x, swingTrail[i-1].y);
+      ctx.lineTo(swingTrail[i].x,   swingTrail[i].y);
+      ctx.strokeStyle = `rgba(160,127,255,${frac * 0.65})`;
+      ctx.lineWidth   = 1.5 * frac + 0.4;
+      ctx.stroke();
+    }
+  }
+
+  // Bob coordinates — theta from TOP, clockwise
+  const bx = PX + lPx * Math.sin(curTheta);
+  const by = PY - lPx * Math.cos(curTheta);
+
+  // TOP / BOTTOM labels
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#33335a'; ctx.textAlign = 'center';
+  ctx.fillText('TOP',    PX, PY - lPx - 12);
+  ctx.fillText('BOTTOM', PX, PY + lPx + 18);
+  ctx.textAlign = 'start';
+
+  // ── String
+  ctx.save();
+  ctx.shadowColor = '#6a8fff'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#6a8fff'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.restore();
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#6a8fff';
+  ctx.fillText('l', (PX+bx)/2 + 7, (PY+by)/2 - 6);
+
+  // ── Tension vector (toward pivot along string)
+  const tMag  = m * (G * Math.cos(curTheta) + l * curOmega * curOmega);
+  const tShow = Math.max(tMag, 0);
+  const sAng  = Math.atan2(PY - by, PX - bx);
+  const BASE_VEC = 55 * vecscale;
+  const tLen  = Math.min(tShow / (m * G) * BASE_VEC, BASE_VEC * 1.6);
+  if (tLen > 6) {
+    const tx2 = bx + tLen * Math.cos(sAng);
+    const ty2 = by + tLen * Math.sin(sAng);
+    ctx.save();
+    ctx.shadowColor = '#e04848'; ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#e04848'; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx2, ty2); ctx.stroke();
+    ctx.restore();
+    arrowHead(tx2, ty2, bx, by, '#e04848');
+    ctx.font = '13px sans-serif'; ctx.fillStyle = '#e04848';
+    ctx.fillText('T', tx2 + 6, ty2 - 5);
+  }
+
+  // ── Weight vector (straight down, fixed length)
+  const wLen = BASE_VEC * 0.9;
+  ctx.save();
+  ctx.shadowColor = '#d4a017'; ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + wLen); ctx.stroke();
+  ctx.restore();
+  arrowHead(bx, by + wLen, bx, by, '#d4a017');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#d4a017';
+  ctx.fillText('mg', bx + 6, by + wLen - 3);
+
+  // ── Velocity vector (tangential — perpendicular to string, in direction of rotation)
+  // Tangent direction: clockwise rotation → velocity direction = (cos θ, sin θ) in screen space
+  // string direction angle in screen: atan2(by-PY, bx-PX)
+  const strScreenAng = Math.atan2(by - PY, bx - PX);
+  const velAng = strScreenAng + Math.PI / 2;   // 90° ahead = tangential clockwise
+  const vMag   = Math.abs(curOmega) * l;
+  const vLen   = Math.min(vMag * vecscale * 28, BASE_VEC * 1.2);
+  const vSign  = curOmega >= 0 ? 1 : -1;
+  const vx2    = bx + vLen * Math.cos(velAng) * vSign;
+  const vy2    = by + vLen * Math.sin(velAng) * vSign;
+  ctx.save();
+  ctx.shadowColor = '#2db88a'; ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#2db88a'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(vx2, vy2); ctx.stroke();
+  ctx.restore();
+  arrowHead(vx2, vy2, bx, by, '#2db88a');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#2db88a';
+  ctx.fillText('v', vx2 + 6, vy2 - 4);
+
+  // ── Pivot support bar
+  const barW = 62, barH = 9;
+  ctx.fillStyle = '#252535';
+  ctx.fillRect(PX - barW/2, PY - barH, barW, barH);
+  ctx.strokeStyle = '#3a3a55'; ctx.lineWidth = 1;
+  ctx.strokeRect(PX - barW/2, PY - barH, barW, barH);
+  for (let i = -24; i <= 24; i += 9) {
+    ctx.beginPath();
+    ctx.moveTo(PX + i, PY - barH);
+    ctx.lineTo(PX + i - 6, PY - barH - 7);
+    ctx.strokeStyle = '#3a3a55'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#6a6a8a';
+  ctx.textAlign = 'center';
+  ctx.fillText('O  (pivot)', PX, PY - barH - 10);
+  ctx.textAlign = 'start';
+
+  ctx.beginPath(); ctx.arc(PX, PY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#7a7a9a'; ctx.fill();
+  ctx.strokeStyle = '#aaaacc'; ctx.lineWidth = 1; ctx.stroke();
+
+  // ── Bob
+  const bobR = 13 + m * 3;
+  ctx.save();
+  ctx.shadowColor = fullMode ? '#6affcc' : '#6a8fff';
+  ctx.shadowBlur  = 16;
+  ctx.beginPath(); ctx.arc(bx, by, bobR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0a1a20'; ctx.fill();
+  ctx.strokeStyle = fullMode ? '#6affcc' : '#6a8fff';
+  ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.restore();
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = fullMode ? '#aaffee' : '#a0b4ff';
+  ctx.textAlign = 'center';
+  ctx.fillText('m', bx, by + 4);
+  ctx.textAlign = 'start';
+
+  // Metrics
+  const normTheta = ((curTheta % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+  document.getElementById('mTheta').textContent = (normTheta * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('mV').textContent     = (vMag).toFixed(2) + ' m/s';
+  document.getElementById('mT').textContent     = tShow.toFixed(2) + ' N';
+  document.getElementById('mRev').textContent   = revCount;
+}
+
+// Sliders
+document.getElementById('rotspd').addEventListener('input', function () {
+  document.getElementById('rotspdV').textContent = (+this.value).toFixed(2) + ' rad/s';
+});
+document.getElementById('len').addEventListener('input', function () {
+  document.getElementById('lenV').textContent = (+this.value).toFixed(2) + ' m';
+  resetPendulum();
+});
+document.getElementById('mass').addEventListener('input', function () {
+  document.getElementById('massV').textContent = (+this.value).toFixed(2) + ' kg';
+});
+document.getElementById('vecscale').addEventListener('input', function () {
+  document.getElementById('vecscaleV').textContent = (+this.value).toFixed(1) + '×';
+});
+
+function loop(ts) {
+  if (paused) return;
+  if (!lastTs) lastTs = ts;
+  const dt   = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  const p    = getP();
+
+  if (fullMode) {
+    // ── CONSTANT angular velocity — no physics runaway
+    const dTheta = p.omega * dt;
+    theta      += dTheta;
+    totalAngle += dTheta;
+
+    const newRev = Math.floor(totalAngle / (2 * Math.PI));
+    if (newRev > 0 && !traceDrawn) traceDrawn = true;
+    if (newRev !== revCount) revCount = newRev;
+
+  } else {
+    // Real RK4 physics swing
+    const steps = 8;
+    const subDt = dt / steps;
+    for (let s = 0; s < steps; s++) {
+      const res = rk4Swing(swingTheta, swingThetaDot, subDt, p.l);
+      swingTheta    = res.theta;
+      swingThetaDot = res.thetaDot;
+    }
+    const lPx = p.l * LSCALE;
+    swingTrail.push({ x: PX + lPx * Math.sin(swingTheta), y: PY - lPx * Math.cos(swingTheta) });
+    if (swingTrail.length > 180) swingTrail.shift();
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resetPendulum();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

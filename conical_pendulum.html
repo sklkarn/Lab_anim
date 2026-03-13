@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conical Pendulum — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0e0e12;
+    font-family: 'Segoe UI', sans-serif;
+    color: #c2c0b6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 32px;
+  }
+  header {
+    width: 100%;
+    background: #13131a;
+    border-bottom: 1px solid #2a2a38;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .header-title .brand {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: #6e6e8a;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .header-title .name {
+    font-size: 19px;
+    font-weight: 600;
+    color: #e8e6de;
+  }
+  .header-title .name span { color: #6a8fff; }
+  .header-badge {
+    font-size: 11px;
+    background: #1e1e2e;
+    border: 1px solid #2e2e45;
+    color: #7a7a9a;
+    padding: 5px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+  }
+  .main-title { font-size: 15px; font-weight: 500; color: #9a9ab0; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #44445a; margin-bottom: 16px; }
+  canvas {
+    display: block;
+    background: #13131a;
+    border: 1px solid #2a2a38;
+    border-radius: 14px;
+  }
+  .panel {
+    width: 680px;
+    background: #13131a;
+    border: 1px solid #2a2a38;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-top: 14px;
+  }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl-row label { font-size: 12px; color: #6e6e8a; min-width: 120px; }
+  .ctrl-row input[type=range] {
+    flex: 1; -webkit-appearance: none;
+    height: 4px; background: #2a2a3e; border-radius: 2px; outline: none;
+  }
+  .ctrl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #6a8fff; cursor: pointer; border: 2px solid #13131a;
+  }
+  .ctrl-row.highlight input[type=range]::-webkit-slider-thumb { background: #e07850; }
+  .ctrl-row span { font-size: 12px; font-weight: 500; min-width: 60px; text-align: right; color: #c2c0b6; }
+  .ctrl-note {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: #55556a;
+    padding: 6px 10px;
+    background: #0e0e12;
+    border-radius: 6px;
+    border-left: 2px solid #e07850;
+  }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+  .metric { background: #0e0e12; border: 1px solid #222232; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #55556a; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 16px; font-weight: 600; color: #e8e6de; }
+  .metric.derived { border-color: #2a2a1a; }
+  .metric.derived .lbl { color: #6a5a30; }
+  .metric.derived .val { color: #d4a017; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6e6e8a; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .leg-line { width: 18px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+  .eq {
+    background: #0e0e12; border: 1px solid #222232; border-radius: 8px;
+    padding: 12px 16px; margin-top: 14px; font-size: 12px; color: #55556a; line-height: 2;
+  }
+  .eq span { font-weight: 600; color: #9a9ab0; }
+  footer { margin-top: 18px; font-size: 11px; color: #33333f; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">Conical Pendulum · Interactive</div>
+</header>
+
+<p class="main-title">Conical Pendulum</p>
+<p class="sub">Mass m on weightless inextensible string of length l — angle θ is determined by angular speed ω (real physics)</p>
+
+<canvas id="cv" width="680" height="500"></canvas>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row highlight">
+      <label>Angular speed ω (rad/s)</label>
+      <input type="range" id="omega" min="0.5" max="8.0" step="0.1" value="3.0">
+      <span id="omegaV">3.0 r/s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Length l (m)</label>
+      <input type="range" id="len" min="0.3" max="1.4" step="0.05" value="1.0">
+      <span id="lenV">1.00 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mass m (kg)</label>
+      <input type="range" id="mass" min="0.1" max="2.0" step="0.1" value="0.5">
+      <span id="massV">0.50 kg</span>
+    </div>
+    <div class="ctrl-note">
+      Physics: θ = arccos(g / ω²l) — increasing ω widens the angle automatically
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Angle θ</div><div class="val" id="mTheta">—</div></div>
+    <div class="metric"><div class="lbl">Tension T</div><div class="val" id="mT">—</div></div>
+    <div class="metric derived"><div class="lbl">Radius r</div><div class="val" id="mR">—</div></div>
+    <div class="metric derived"><div class="lbl">Period τ</div><div class="val" id="mP">—</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:#6a8fff;"></div> Mass (m)</div>
+    <div class="leg"><div class="leg-line" style="background:#6a8fff;"></div> String (l)</div>
+    <div class="leg"><div class="leg-line" style="background:#e07850;"></div> Ellipse front</div>
+    <div class="leg"><div class="leg-line" style="border-top:2px dashed #e07850;background:none;height:0;"></div> Ellipse back</div>
+    <div class="leg"><div class="leg-line" style="background:#e04848;"></div> Tension T</div>
+    <div class="leg"><div class="leg-line" style="background:#d4a017;"></div> Weight mg</div>
+    <div class="leg"><div class="leg-line" style="background:#2db88a;"></div> Centripetal Fc</div>
+  </div>
+
+  <div class="eq">
+    <span>cosθ = g / ω²l</span> &nbsp;·&nbsp;
+    <span>T = mg / cosθ</span> &nbsp;·&nbsp;
+    <span>r = l sinθ</span> &nbsp;·&nbsp;
+    <span>τ = 2π / ω</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const G   = 9.81;
+const W   = cv.width, H = cv.height;
+
+const VIEW_ANGLE = 28 * Math.PI / 180;
+const SCALE      = 165;
+const ORIGIN_Y   = 300;   // screen Y for orbit-plane centre (y3=0)
+
+let phi = 0, lastTs = null;
+
+function getP() {
+  const omega = +document.getElementById('omega').value;
+  const l     = +document.getElementById('len').value;
+  const m     = +document.getElementById('mass').value;
+
+  // Physics: cosθ = g/(ω²l)  →  θ from angular speed
+  const cosTheta = G / (omega * omega * l);
+
+  // Clamp: if ω is too slow to sustain any angle, cap at ~1°
+  // If cosTheta >= 1 the pendulum can't form a cone — θ → 0
+  const theta = cosTheta >= 1 ? 0.017 : Math.acos(Math.min(cosTheta, 0.9998));
+
+  const r      = l * Math.sin(theta);
+  const h      = l * Math.cos(theta);
+  const T      = m * G / Math.cos(theta);
+  const period = 2 * Math.PI / omega;
+
+  return { omega, l, m, theta, r, h, T, period };
+}
+
+// 3D → screen projection
+function project(x3, y3, z3) {
+  const sinA     = Math.sin(VIEW_ANGLE);
+  const cosA     = Math.cos(VIEW_ANGLE);
+  const screenDY = y3 * cosA - z3 * sinA;
+  return {
+    x: W / 2 + x3 * SCALE,
+    y: ORIGIN_Y - screenDY * SCALE,
+  };
+}
+
+function arrowHead(x2, y2, fromX, fromY, color, size) {
+  size = size || 9;
+  const ang = Math.atan2(y2 - fromY, x2 - fromX);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang - 0.38), y2 - size * Math.sin(ang - 0.38));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(ang + 0.38), y2 - size * Math.sin(ang + 0.38));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function draw() {
+  const p = getP();
+  const { theta, r, h, T, period, omega } = p;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // dot grid
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
+  for (let x = 20; x < W; x += 32)
+    for (let y = 20; y < H; y += 32) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+    }
+
+  const mx3 = r * Math.cos(phi);
+  const mz3 = r * Math.sin(phi);
+
+  const sup    = project(0,   h,  0);
+  const mass   = project(mx3, 0, mz3);
+  const center = project(0,   0,  0);
+
+  // Ellipse axes
+  const ea  = r * SCALE;
+  const eb  = r * SCALE * Math.sin(VIEW_ANGLE);
+  const ecx = W / 2;
+  const ecy = ORIGIN_Y;
+
+  // BACK half (dashed)
+  ctx.save();
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(224,120,80,0.5)';
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.ellipse(ecx, ecy, Math.max(ea, 1), Math.max(eb, 0.5), 0, 0, Math.PI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // FRONT half (solid + glow)
+  ctx.save();
+  ctx.shadowColor = '#e07850'; ctx.shadowBlur = 14;
+  ctx.strokeStyle = '#e07850'; ctx.lineWidth   = 2.8;
+  ctx.beginPath();
+  ctx.ellipse(ecx, ecy, Math.max(ea, 1), Math.max(eb, 0.5), 0, Math.PI, 2 * Math.PI);
+  ctx.stroke();
+  ctx.restore();
+
+  // ellipse label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#7a4535';
+  ctx.textAlign = 'center';
+  ctx.fillText('circular path (ellipse in perspective)', ecx, ecy + eb + 18);
+  ctx.textAlign = 'start';
+
+  // vertical axis
+  const axTop = project(0,  h + 0.08, 0);
+  const axBot = project(0, -0.18,     0);
+  ctx.save();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(axTop.x, axTop.y); ctx.lineTo(axBot.x, axBot.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // radius dashed
+  ctx.save();
+  ctx.setLineDash([4, 3]); ctx.strokeStyle = 'rgba(212,160,23,0.6)'; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(mass.x, mass.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#d4a017';
+  ctx.fillText('r', (center.x + mass.x) / 2 + 5, (center.y + mass.y) / 2 - 5);
+
+  // h indicator
+  const hPad  = 0.2;
+  const hTop2 = project(r + hPad, h, 0);
+  const hBot2 = project(r + hPad, 0, 0);
+  ctx.save();
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(hTop2.x, hTop2.y); ctx.lineTo(hBot2.x, hBot2.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#44445a';
+  ctx.fillText('h = l cosθ', hTop2.x + 6, (hTop2.y + hBot2.y) / 2 + 4);
+  ctx.restore();
+
+  // string
+  ctx.save();
+  ctx.shadowColor = '#6a8fff'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#6a8fff'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(sup.x, sup.y); ctx.lineTo(mass.x, mass.y); ctx.stroke();
+  ctx.restore();
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#6a8fff';
+  ctx.fillText('l', (sup.x + mass.x) / 2 - 14, (sup.y + mass.y) / 2 - 4);
+
+  // tension
+  const tScale = 0.52;
+  const tdx = (sup.x - mass.x) * tScale;
+  const tdy = (sup.y - mass.y) * tScale;
+  ctx.save();
+  ctx.shadowColor = '#e04848'; ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#e04848'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(mass.x, mass.y); ctx.lineTo(mass.x + tdx, mass.y + tdy); ctx.stroke();
+  ctx.restore();
+  arrowHead(mass.x + tdx, mass.y + tdy, mass.x, mass.y, '#e04848');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#e04848';
+  ctx.fillText('T', mass.x + tdx + 5, mass.y + tdy - 5);
+
+  // weight
+  const wLen = 55;
+  const wEnd = project(mx3, -wLen / SCALE, mz3);
+  ctx.save();
+  ctx.shadowColor = '#d4a017'; ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(mass.x, mass.y); ctx.lineTo(wEnd.x, wEnd.y); ctx.stroke();
+  ctx.restore();
+  arrowHead(wEnd.x, wEnd.y, mass.x, mass.y, '#d4a017');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#d4a017';
+  ctx.fillText('mg', wEnd.x + 5, wEnd.y + 5);
+
+  // centripetal
+  const fcLen = 52 / SCALE;
+  const fcEnd = project(mx3 - fcLen * Math.cos(phi), 0, mz3 - fcLen * Math.sin(phi));
+  ctx.save();
+  ctx.shadowColor = '#2db88a'; ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#2db88a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(mass.x, mass.y); ctx.lineTo(fcEnd.x, fcEnd.y); ctx.stroke();
+  ctx.restore();
+  arrowHead(fcEnd.x, fcEnd.y, mass.x, mass.y, '#2db88a');
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#2db88a';
+  ctx.fillText('Fc', fcEnd.x - 22, fcEnd.y - 6);
+
+  // theta arc
+  const strAng = Math.atan2(mass.y - sup.y, mass.x - sup.x);
+  ctx.save();
+  ctx.strokeStyle = '#a07fff'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(sup.x, sup.y, 38, Math.PI / 2 - 0.03, strAng + 0.03);
+  ctx.stroke();
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#a07fff';
+  ctx.fillText('θ', sup.x + 13, sup.y + 30);
+  ctx.restore();
+
+  // rigid support bar (on top)
+  const barW = 64, barH = 9;
+  ctx.fillStyle = '#252535';
+  ctx.fillRect(sup.x - barW / 2, sup.y - barH, barW, barH);
+  ctx.strokeStyle = '#3a3a55'; ctx.lineWidth = 1;
+  ctx.strokeRect(sup.x - barW / 2, sup.y - barH, barW, barH);
+  for (let i = -26; i <= 26; i += 9) {
+    ctx.beginPath();
+    ctx.moveTo(sup.x + i, sup.y - barH);
+    ctx.lineTo(sup.x + i - 7, sup.y - barH - 8);
+    ctx.strokeStyle = '#3a3a55'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#6a6a8a';
+  ctx.textAlign = 'center';
+  ctx.fillText('O  (rigid support)', sup.x, sup.y - barH - 12);
+  ctx.textAlign = 'start';
+
+  // knot
+  ctx.beginPath(); ctx.arc(sup.x, sup.y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#7a7a9a'; ctx.fill();
+  ctx.strokeStyle = '#aaaacc'; ctx.lineWidth = 1; ctx.stroke();
+
+  // mass ball
+  ctx.save();
+  ctx.shadowColor = '#6a8fff'; ctx.shadowBlur = 22;
+  ctx.beginPath(); ctx.arc(mass.x, mass.y, 15, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a2e'; ctx.fill();
+  ctx.strokeStyle = '#6a8fff'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.restore();
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#a0b4ff';
+  ctx.textAlign = 'center';
+  ctx.fillText('m', mass.x, mass.y + 4);
+  ctx.textAlign = 'start';
+
+  // metrics — angle is now derived from omega
+  document.getElementById('mTheta').textContent = (theta * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('mT').textContent     = T.toFixed(2) + ' N';
+  document.getElementById('mR').textContent     = r.toFixed(3) + ' m';
+  document.getElementById('mP').textContent     = period.toFixed(2) + ' s';
+}
+
+// sliders
+document.getElementById('omega').addEventListener('input', function () {
+  document.getElementById('omegaV').textContent = (+this.value).toFixed(1) + ' r/s';
+});
+document.getElementById('len').addEventListener('input', function () {
+  document.getElementById('lenV').textContent = (+this.value).toFixed(2) + ' m';
+});
+document.getElementById('mass').addEventListener('input', function () {
+  document.getElementById('massV').textContent = (+this.value).toFixed(2) + ' kg';
+});
+
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  const p = getP();
+  // phi advances at the REAL omega — no artificial speed multiplier needed
+  phi += p.omega * dt;
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

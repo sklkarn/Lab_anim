@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion in Air Drag — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #08090f;
+    font-family: 'Segoe UI', sans-serif;
+    color: #bdbbc8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 40px;
+  }
+  header {
+    width: 100%;
+    background: #0d0e1c;
+    border-bottom: 1px solid #1a1b34;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .brand { font-size: 11px; font-weight: 500; letter-spacing: 0.13em; color: #50507a; text-transform: uppercase; margin-bottom: 2px; }
+  .name  { font-size: 19px; font-weight: 700; color: #e4e2f0; }
+  .name span { color: #ff9040; }
+  .header-badge { font-size: 11px; background: #101020; border: 1px solid #202040; color: #606080; padding: 5px 14px; border-radius: 20px; }
+  .main-title { font-size: 15px; font-weight: 600; color: #808098; margin-bottom: 3px; }
+  .sub { font-size: 12px; color: #2e2e48; margin-bottom: 12px; }
+
+  .sim-wrap {
+    display: flex;
+    gap: 0;
+    border: 1px solid #1a1b34;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0d0e1c;
+  }
+  #simCanvas   { display: block; background: #0d0e1c; }
+  .divider     { width: 1px; background: #1a1b34; }
+  #graphCanvas { display: block; background: #07080e; }
+
+  .panel { width: 880px; background: #0d0e1c; border: 1px solid #1a1b34; border-radius: 14px; padding: 18px 22px; margin-top: 12px; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
+  .ctrl-row { display: flex; align-items: center; gap: 8px; }
+  .ctrl-row label { font-size: 12px; color: #50507a; min-width: 118px; }
+  .ctrl-row input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; background: #1a1b34; border-radius: 2px; outline: none; }
+  .ctrl-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #ff9040; cursor: pointer; border: 2px solid #0d0e1c; }
+  .ctrl-row span { font-size: 12px; font-weight: 600; min-width: 60px; text-align: right; color: #e4e2f0; }
+  .radio-row { display: flex; align-items: center; gap: 16px; }
+  .radio-row label { font-size: 12px; color: #50507a; min-width: 118px; }
+  .radio-row .opts { display: flex; gap: 14px; }
+  .radio-row input[type=radio] { accent-color: #ff9040; }
+  .radio-row .opt { font-size: 12px; color: #8080a0; display: flex; align-items: center; gap: 5px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+  button { flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; border: 1px solid #1e2040; background: #101020; color: #8080aa; transition: background 0.15s; }
+  button:hover { background: #161630; }
+  button#startBtn { border-color: #ff9040; color: #ff9040; }
+  button#resetBtn { border-color: #60c8ff; color: #60c8ff; }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; }
+  .metric { background: #08090f; border: 1px solid #141426; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #2c2c48; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 15px; font-weight: 700; color: #e4e2f0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #50507a; }
+  .leg-line { width: 20px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+  .eq { background: #08090f; border: 1px solid #141426; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 12px; color: #2e2e50; line-height: 2.1; }
+  .eq span { font-weight: 700; color: #686898; }
+  footer { margin-top: 18px; font-size: 11px; color: #181828; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">Air Drag · Motion · Interactive</div>
+</header>
+
+<p class="main-title">Motion Through Air — Drag Force & Changing Acceleration</p>
+<p class="sub">As velocity increases, air drag grows — acceleration decreases until terminal velocity is reached</p>
+
+<div class="sim-wrap">
+  <canvas id="simCanvas"   width="380" height="520"></canvas>
+  <div class="divider"></div>
+  <canvas id="graphCanvas" width="500" height="520"></canvas>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row">
+      <label>Mass m (kg)</label>
+      <input type="range" id="mass" min="0.5" max="20" step="0.5" value="5.0">
+      <span id="massV">5.0 kg</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Drag coeff C_d</label>
+      <input type="range" id="cd" min="0.1" max="2.0" step="0.05" value="0.47">
+      <span id="cdV">0.47</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Cross-section A (m²)</label>
+      <input type="range" id="area" min="0.01" max="1.0" step="0.01" value="0.10">
+      <span id="areaV">0.10 m²</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Air density ρ (kg/m³)</label>
+      <input type="range" id="rho" min="0.2" max="2.0" step="0.05" value="1.225">
+      <span id="rhoV">1.225</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Init. velocity v₀</label>
+      <input type="range" id="v0" min="0" max="60" step="1" value="0">
+      <span id="v0V">0 m/s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Drop height H (m)</label>
+      <input type="range" id="height" min="10" max="200" step="5" value="50">
+      <span id="heightV">50 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Speed ×</label>
+      <input type="range" id="spd" min="0.2" max="5.0" step="0.1" value="1.0">
+      <span id="spdV">1.0×</span>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:12px;">
+    <div class="radio-row" style="flex:2; border:1px solid #1a1b34; border-radius:8px; padding:8px 14px;">
+      <label>Drag model</label>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="dragModel" value="quadratic" checked> Quadratic F = ½ρC_d Av²</label>
+        <label class="opt"><input type="radio" name="dragModel" value="linear">    Linear F = bv (Stokes)</label>
+        <label class="opt"><input type="radio" name="dragModel" value="none">      No drag (free fall)</label>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button id="startBtn" onclick="toggleRun()">▶ Start</button>
+    <button id="resetBtn" onclick="resetSim()">↺ Reset</button>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Velocity v</div><div class="val" id="mV">—</div></div>
+    <div class="metric"><div class="lbl">Drag force F_d</div><div class="val" id="mFd">—</div></div>
+    <div class="metric"><div class="lbl">Net force F_net</div><div class="val" id="mFnet">—</div></div>
+    <div class="metric"><div class="lbl">Acceleration a</div><div class="val" id="mA">—</div></div>
+    <div class="metric"><div class="lbl">Terminal vel.</div><div class="val" id="mVt">—</div></div>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-line" style="background:#d4a017;"></div> Weight mg (down)</div>
+    <div class="leg"><div class="leg-line" style="background:#ff4444;"></div> Drag force F_d (up)</div>
+    <div class="leg"><div class="leg-line" style="background:#88ff88;"></div> Net force F_net</div>
+    <div class="leg"><div class="leg-line" style="background:#ff9040;"></div> Velocity v (graph)</div>
+    <div class="leg"><div class="leg-line" style="background:#60c8ff;"></div> Acceleration a (graph)</div>
+    <div class="leg"><div class="leg-line" style="background:#ff4444; opacity:0.5;"></div> Drag force (graph)</div>
+  </div>
+  <div class="eq">
+    <span>F_drag = ½ρC_d Av²</span> &nbsp;·&nbsp;
+    <span>F_net = mg − F_drag</span> &nbsp;·&nbsp;
+    <span>a = F_net / m</span> &nbsp;·&nbsp;
+    <span>v_terminal = √(2mg / ρC_d A)</span> &nbsp;·&nbsp;
+    <span>At terminal: a → 0</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const sc   = document.getElementById('simCanvas');
+const gc   = document.getElementById('graphCanvas');
+const sctx = sc.getContext('2d');
+const gctx = gc.getContext('2d');
+const SW = sc.width, SH = sc.height;
+const GW = gc.width, GH = gc.height;
+const G  = 9.81;
+const RHO_STD = 1.225;
+
+// State
+let running  = false;
+let lastTs   = null;
+let simTime  = 0;
+let vel      = 0;    // velocity downward (positive = down)
+let pos      = 0;    // displacement from start (metres, positive = down)
+
+// History arrays for graph
+const HIST    = 400;
+let vHist     = [];
+let aHist     = [];
+let fdHist    = [];
+let tHist     = [];
+
+function getP() {
+  return {
+    m:    +document.getElementById('mass').value,
+    cd:   +document.getElementById('cd').value,
+    A:    +document.getElementById('area').value,
+    rho:  +document.getElementById('rho').value,
+    v0:   +document.getElementById('v0').value,
+    spd:  +document.getElementById('spd').value,
+    H:    +document.getElementById('height').value,
+    model: document.querySelector('input[name=dragModel]:checked').value,
+  };
+}
+
+function computeForces(p, v) {
+  const { m, cd, A, rho, model } = p;
+  const mg = m * G;
+  let Fd = 0;
+  if (model === 'quadratic') {
+    Fd = 0.5 * rho * cd * A * v * v;
+  } else if (model === 'linear') {
+    // Stokes drag: F = 6πηrv ≈ b*v; use b = cd*A*rho as effective coefficient
+    Fd = cd * A * rho * 10 * v;
+  }
+  const Fnet = mg - Fd;
+  const a    = Fnet / m;
+  return { mg, Fd, Fnet, a };
+}
+
+function terminalVel(p) {
+  const { m, cd, A, rho, model } = p;
+  if (model === 'quadratic') return Math.sqrt(2 * m * G / (rho * cd * A));
+  if (model === 'linear')    return m * G / (cd * A * rho * 10);
+  return Infinity;
+}
+
+function toggleRun() {
+  running = !running;
+  document.getElementById('startBtn').textContent = running ? '⏸ Pause' : '▶ Start';
+  if (running) { lastTs = null; requestAnimationFrame(loop); }
+}
+
+function resetSim() {
+  running  = false;
+  lastTs   = null;
+  simTime  = 0;
+  pos      = 0;
+  const p  = getP();
+  vel      = p.v0;
+  vHist    = []; aHist = []; fdHist = []; tHist = [];
+  document.getElementById('startBtn').textContent = '▶ Start';
+  render();
+}
+
+function arrowCtx(ctx, x1, y1, x2, y2, col, w, size) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save();
+  ctx.shadowColor = col; ctx.shadowBlur = 10;
+  ctx.strokeStyle = col; ctx.lineWidth = w || 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.lineWidth = (w || 3) * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - (size||12)*Math.cos(ang-0.38), y2 - (size||12)*Math.sin(ang-0.38));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - (size||12)*Math.cos(ang+0.38), y2 - (size||12)*Math.sin(ang+0.38));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSim(p, forces) {
+  const { m, model } = p;
+  const { mg, Fd, Fnet, a } = forces;
+  const vt = terminalVel(p);
+
+  sctx.clearRect(0, 0, SW, SH);
+
+  // Background
+  sctx.fillStyle = '#0d0e1c';
+  sctx.fillRect(0, 0, SW, SH);
+
+  const ballR = 18 + Math.min(m * 1.2, 16);
+
+  // ── Fixed track: start at top, ground at bottom
+  const TRACK_TOP    = 55 + ballR;              // start point (px)
+  const TRACK_BOTTOM = SH - 52 - ballR;         // ground level (px)
+  const TRACK_H      = TRACK_BOTTOM - TRACK_TOP; // total track height (px)
+  const H_m          = p.H;                      // drop height in metres
+
+  // Scale: map H metres to TRACK_H pixels
+  const SCALE = TRACK_H / H_m;   // px per metre
+
+  // Ball y position: clamped so it never goes below ground
+  const ballX  = SW / 2;
+  const posClamped = Math.min(pos, H_m);
+  const ballY  = TRACK_TOP + posClamped * SCALE;
+
+  // ── Ground line
+  sctx.save();
+  sctx.strokeStyle = '#5a3010'; sctx.lineWidth = 3;
+  sctx.beginPath(); sctx.moveTo(30, TRACK_BOTTOM + ballR); sctx.lineTo(SW - 30, TRACK_BOTTOM + ballR); sctx.stroke();
+  // ground hatching
+  sctx.strokeStyle = '#3a1e08'; sctx.lineWidth = 1.2;
+  for (let x = 30; x < SW - 30; x += 14) {
+    sctx.beginPath(); sctx.moveTo(x, TRACK_BOTTOM + ballR); sctx.lineTo(x - 10, TRACK_BOTTOM + ballR + 10); sctx.stroke();
+  }
+  sctx.restore();
+  sctx.font = 'bold 11px sans-serif'; sctx.fillStyle = '#5a3010'; sctx.textAlign = 'center';
+  sctx.fillText('GROUND', SW/2, TRACK_BOTTOM + ballR + 18);
+  sctx.textAlign = 'start';
+
+  // ── Start marker line (dashed at top)
+  sctx.save();
+  sctx.setLineDash([5, 5]);
+  sctx.strokeStyle = 'rgba(100,200,100,0.35)'; sctx.lineWidth = 1.2;
+  sctx.beginPath(); sctx.moveTo(30, TRACK_TOP - ballR); sctx.lineTo(SW - 30, TRACK_TOP - ballR); sctx.stroke();
+  sctx.setLineDash([]); sctx.restore();
+  sctx.font = '10px sans-serif'; sctx.fillStyle = 'rgba(100,200,100,0.45)'; sctx.textAlign = 'center';
+  sctx.fillText(`START  (H = ${H_m} m)`, SW/2, TRACK_TOP - ballR - 5);
+  sctx.textAlign = 'start';
+
+  // ── Height ruler on RIGHT side (clear of velocity bar)
+  const rulerX = SW - 48;
+  const tickInterval = H_m <= 50 ? 5 : H_m <= 100 ? 10 : 20;
+  for (let hm = 0; hm <= H_m; hm += tickInterval) {
+    const ty = TRACK_TOP - ballR + (hm / H_m) * (TRACK_BOTTOM + ballR - (TRACK_TOP - ballR));
+    sctx.strokeStyle = 'rgba(80,80,130,0.45)'; sctx.lineWidth = 1;
+    sctx.beginPath(); sctx.moveTo(rulerX - 4, ty); sctx.lineTo(rulerX + 4, ty); sctx.stroke();
+    sctx.font = '9px sans-serif'; sctx.fillStyle = 'rgba(100,100,160,0.70)'; sctx.textAlign = 'center';
+    sctx.fillText(`${hm}m`, rulerX, ty - 5);
+    sctx.textAlign = 'start';
+  }
+  // Ruler vertical line
+  sctx.save();
+  sctx.strokeStyle = 'rgba(80,80,130,0.20)'; sctx.lineWidth = 1;
+  sctx.beginPath();
+  sctx.moveTo(rulerX, TRACK_TOP - ballR);
+  sctx.lineTo(rulerX, TRACK_BOTTOM + ballR);
+  sctx.stroke(); sctx.restore();
+
+  // Current height remaining label (above ball, centred)
+  const hRemaining = Math.max(H_m - posClamped, 0);
+  sctx.font = 'bold 10px sans-serif'; sctx.fillStyle = 'rgba(120,220,120,0.75)'; sctx.textAlign = 'center';
+  sctx.fillText(`↕ ${hRemaining.toFixed(1)} m`, ballX + 55, Math.max(ballY - ballR - 8, TRACK_TOP + 8));
+  sctx.textAlign = 'start';
+
+  // ── Dashed drop line (shows full fall path)
+  sctx.save();
+  sctx.setLineDash([2, 8]);
+  sctx.strokeStyle = 'rgba(255,144,64,0.15)'; sctx.lineWidth = 1.5;
+  sctx.beginPath(); sctx.moveTo(ballX, TRACK_TOP); sctx.lineTo(ballX, TRACK_BOTTOM + ballR); sctx.stroke();
+  sctx.setLineDash([]); sctx.restore();
+
+  // Scrolling air particles between start and ground
+  const trackSpan = TRACK_H + ballR * 2;
+  for (let i = 0; i < 24; i++) {
+    const px    = ((i * 113 + 40) % (SW - 100)) + 50;
+    const rawPy = ((i * 79 + 200) % trackSpan);
+    const py    = TRACK_TOP - ballR + ((rawPy - pos * SCALE * 0.7) % trackSpan + trackSpan) % trackSpan;
+    if (py < TRACK_TOP - ballR || py > TRACK_BOTTOM + ballR) continue;
+    const alpha = 0.06 + 0.05 * Math.sin(i * 1.3);
+    sctx.beginPath(); sctx.arc(px, py, 1.8, 0, Math.PI * 2);
+    sctx.fillStyle = `rgba(140,170,255,${alpha})`; sctx.fill();
+  }
+
+  // ── Motion trail (above ball)
+  const trailLen = Math.min(Math.floor(vel * 1.8) + 3, 16);
+  for (let i = 1; i <= trailLen; i++) {
+    const tY = ballY - i * Math.min(vel * 0.65, 11);
+    if (tY < TRACK_TOP - ballR) break;
+    const frac  = i / trailLen;
+    const tR    = ballR * (1 - frac * 0.7);
+    sctx.beginPath(); sctx.arc(ballX, tY, tR, 0, Math.PI * 2);
+    sctx.fillStyle = `rgba(255,144,64,${(1-frac)*0.32})`; sctx.fill();
+  }
+
+  // Speed streaks
+  if (vel > 3) {
+    const streaks = Math.min(Math.floor(vel / 4), 6);
+    for (let i = 0; i < streaks; i++) {
+      const sx   = ballX - 28 + i * 11;
+      const sLen = Math.min(vel * 2.2, 45);
+      sctx.save();
+      sctx.globalAlpha = (0.25 - i*0.03) * Math.min(vel/15, 1);
+      sctx.strokeStyle = '#ff9040'; sctx.lineWidth = 1.5;
+      sctx.beginPath(); sctx.moveTo(sx, ballY - ballR); sctx.lineTo(sx, ballY - ballR - sLen); sctx.stroke();
+      sctx.restore();
+    }
+  }
+
+  // Glow
+  const grad = sctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, ballR);
+  grad.addColorStop(0, '#ff9040');
+  grad.addColorStop(0.5, '#c05010');
+  grad.addColorStop(1, '#401800');
+  sctx.save();
+  sctx.shadowColor = '#ff9040'; sctx.shadowBlur = 20;
+  sctx.beginPath(); sctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+  sctx.fillStyle = grad; sctx.fill();
+  sctx.strokeStyle = '#ff9040'; sctx.lineWidth = 2; sctx.stroke();
+  sctx.restore();
+
+  // Mass label
+  sctx.font = 'bold 13px sans-serif'; sctx.fillStyle = '#ffcc88'; sctx.textAlign = 'center';
+  sctx.fillText(`m = ${m.toFixed(1)} kg`, ballX, ballY + 4);
+  sctx.textAlign = 'start';
+
+  // ── FORCE VECTORS
+  const FSCALE = 1.8;   // px per Newton
+  const mgLen  = Math.min(mg * FSCALE * 0.4, 120);
+  const fdLen  = Math.min(Fd * FSCALE * 0.4, 110);
+  const fnLen  = Math.min(Math.abs(Fnet) * FSCALE * 0.4, 100);
+
+  // Weight mg — downward (yellow-amber)
+  arrowCtx(sctx, ballX - 18, ballY + ballR, ballX - 18, ballY + ballR + mgLen, '#d4a017', 3, 12);
+  sctx.font = 'bold 13px sans-serif'; sctx.fillStyle = '#d4a017';
+  sctx.fillText('mg', ballX - 18 - 28, ballY + ballR + mgLen * 0.55);
+
+  // Drag force — upward (red)
+  if (Fd > 0.01) {
+    arrowCtx(sctx, ballX + 18, ballY - ballR, ballX + 18, ballY - ballR - fdLen, '#ff4444', 3, 12);
+    sctx.font = 'bold 13px sans-serif'; sctx.fillStyle = '#ff4444';
+    sctx.fillText('F_d', ballX + 18 + 6, ballY - ballR - fdLen * 0.5);
+
+    // Drag magnitude bar (visual gauge) — fixed at top right, not following ball
+    const ratio = Math.min(Fd / mg, 1);
+    const barW  = 10, barH = 70;
+    const barX  = SW - 36, barY = 60;
+    sctx.fillStyle = '#1a1a30';
+    sctx.fillRect(barX, barY, barW, barH);
+    sctx.fillStyle = `rgb(${Math.floor(255 * ratio)},${Math.floor(80*(1-ratio))},${Math.floor(40*(1-ratio))})`;
+    sctx.fillRect(barX, barY + barH * (1 - ratio), barW, barH * ratio);
+    sctx.strokeStyle = '#333358'; sctx.lineWidth = 1;
+    sctx.strokeRect(barX, barY, barW, barH);
+    sctx.font = '9px sans-serif'; sctx.fillStyle = '#444464'; sctx.textAlign = 'center';
+    sctx.fillText('F_d', barX + barW/2, barY - 5);
+    sctx.fillText(`${(ratio*100).toFixed(0)}%`, barX + barW/2, barY + barH + 12);
+    sctx.fillText('of mg', barX + barW/2, barY + barH + 22);
+    sctx.textAlign = 'start';
+  }
+
+  // Net force — downward (green) — shows direction and magnitude
+  if (Math.abs(Fnet) > 0.01) {
+    const netDir = Fnet > 0 ? 1 : -1;
+    const netY1  = ballY + netDir * ballR;
+    const netY2  = netY1 + netDir * fnLen;
+    arrowCtx(sctx, ballX, netY1, ballX, netY2, '#88ff88', 2.5, 11);
+    sctx.font = 'bold 12px sans-serif'; sctx.fillStyle = '#88ff88';
+    sctx.textAlign = 'center';
+    sctx.fillText('F_net', ballX, netY2 + netDir * 14);
+    sctx.textAlign = 'start';
+  }
+
+  // ── Air drag visual: swirl particles around mass (more = higher drag)
+  if (model !== 'none' && vel > 0.5) {
+    const swirlCount = Math.min(Math.floor(vel / 2) + 3, 14);
+    for (let i = 0; i < swirlCount; i++) {
+      const ang  = (i / swirlCount) * Math.PI * 2 + simTime * 1.5;
+      const r2   = ballR + 12 + Math.sin(ang * 2 + simTime) * 5;
+      const px   = ballX + r2 * Math.cos(ang);
+      const py   = ballY - ballR * 0.3 + r2 * 0.4 * Math.sin(ang);
+      const alpha= 0.15 + 0.12 * Math.sin(ang + simTime);
+      sctx.beginPath(); sctx.arc(px, py, 2.5, 0, Math.PI*2);
+      sctx.fillStyle = `rgba(255,80,40,${alpha})`; sctx.fill();
+    }
+  }
+
+  // ── Velocity indicator (left side bar — fixed position)
+  const barMaxV = Math.max(vt * 1.1, 20);
+  const vRatio  = Math.min(vel / barMaxV, 1);
+  const vbarX   = 16, vbarY = 50, vbarH = SH - 110;
+  sctx.fillStyle = '#0f0f20';
+  sctx.fillRect(vbarX, vbarY, 12, vbarH);
+  const vGrad = sctx.createLinearGradient(0, vbarY + vbarH, 0, vbarY);
+  vGrad.addColorStop(0, '#ff9040');
+  vGrad.addColorStop(0.7, '#ffcc40');
+  vGrad.addColorStop(1, '#ffffaa');
+  sctx.fillStyle = vGrad;
+  sctx.fillRect(vbarX, vbarY + vbarH * (1 - vRatio), 12, vbarH * vRatio);
+  sctx.strokeStyle = '#2a2a48'; sctx.lineWidth = 1;
+  sctx.strokeRect(vbarX, vbarY, 12, vbarH);
+  if (isFinite(vt)) {
+    const vtRatio = Math.min(vt / barMaxV, 1);
+    const vtLineY = vbarY + vbarH * (1 - vtRatio);
+    sctx.save(); sctx.setLineDash([3, 3]);
+    sctx.strokeStyle = '#ff4444'; sctx.lineWidth = 1.5;
+    sctx.beginPath(); sctx.moveTo(vbarX - 3, vtLineY); sctx.lineTo(vbarX + 20, vtLineY); sctx.stroke();
+    sctx.setLineDash([]); sctx.restore();
+    sctx.font = '9px sans-serif'; sctx.fillStyle = '#ff4444'; sctx.textAlign = 'left';
+    sctx.fillText('vₜ', vbarX + 15, vtLineY + 3);
+  }
+  sctx.font = '10px sans-serif'; sctx.fillStyle = '#ff9040'; sctx.textAlign = 'center';
+  sctx.fillText('v', vbarX + 6, vbarY - 8);
+  sctx.fillText(`${vel.toFixed(1)}`, vbarX + 6, vbarY + vbarH + 14);
+  sctx.fillText('m/s', vbarX + 6, vbarY + vbarH + 25);
+  sctx.textAlign = 'start';
+
+  // ── Acceleration indicator (right side bar — moved inward from ruler)
+  const aRatio = Math.min(Math.abs(a) / G, 1);
+  const abarX  = SW - 30, abarY = 50, abarH = SH - 110;
+  sctx.fillStyle = '#0f0f20';
+  sctx.fillRect(abarX - 12, abarY, 12, abarH);
+  const aGrad = sctx.createLinearGradient(0, abarY + abarH, 0, abarY);
+  aGrad.addColorStop(0, '#60c8ff');
+  aGrad.addColorStop(1, '#a080ff');
+  sctx.fillStyle = aGrad;
+  sctx.fillRect(abarX - 12, abarY + abarH * (1 - aRatio), 12, abarH * aRatio);
+  sctx.strokeStyle = '#2a2a48'; sctx.lineWidth = 1;
+  sctx.strokeRect(abarX - 12, abarY, 12, abarH);
+  sctx.font = '10px sans-serif'; sctx.fillStyle = '#60c8ff'; sctx.textAlign = 'center';
+  sctx.fillText('a', abarX - 6, abarY - 8);
+  sctx.fillText(`${a.toFixed(2)}`, abarX - 6, abarY + abarH + 14);
+  sctx.fillText('m/s²', abarX - 6, abarY + abarH + 25);
+  sctx.textAlign = 'start';
+
+  // ── Info text at bottom
+  sctx.font = '11px sans-serif'; sctx.fillStyle = '#404060'; sctx.textAlign = 'center';
+  sctx.fillText(`t = ${simTime.toFixed(2)} s     fallen = ${posClamped.toFixed(1)} m / ${H_m} m`, SW/2, SH - 16);
+  if (isFinite(vt)) {
+    const pct = Math.min(vel / vt * 100, 100);
+    sctx.fillStyle = pct > 90 ? '#ff6644' : '#404060';
+    sctx.fillText(`v_terminal = ${vt.toFixed(1)} m/s  (${pct.toFixed(0)}% reached)`, SW/2, SH - 4);
+  }
+  sctx.textAlign = 'start';
+
+  // Model label
+  const labels = { quadratic: 'Quadratic  F_d = ½ρC_d Av²', linear: 'Stokes  F_d = bv', none: 'Free Fall (No Drag)' };
+  sctx.font = 'bold 11px sans-serif'; sctx.fillStyle = '#404068'; sctx.textAlign = 'center';
+  sctx.fillText(labels[model], SW/2, 20);
+  sctx.textAlign = 'start';
+
+  // ── LANDED overlay (shown when ball has hit ground)
+  if (pos >= H_m) {
+    sctx.save();
+    sctx.globalAlpha = 0.85;
+    sctx.fillStyle = '#0a0a18';
+    sctx.fillRect(SW/2 - 110, TRACK_BOTTOM - 20, 220, 70);
+    sctx.globalAlpha = 1;
+    sctx.strokeStyle = '#ff9040'; sctx.lineWidth = 1.5;
+    sctx.strokeRect(SW/2 - 110, TRACK_BOTTOM - 20, 220, 70);
+    sctx.font = 'bold 16px sans-serif'; sctx.fillStyle = '#ff9040'; sctx.textAlign = 'center';
+    sctx.fillText('🎯 LANDED', SW/2, TRACK_BOTTOM + 8);
+    sctx.font = '12px sans-serif'; sctx.fillStyle = '#cc6622';
+    sctx.fillText(`v = ${vel.toFixed(2)} m/s   t = ${simTime.toFixed(2)} s`, SW/2, TRACK_BOTTOM + 26);
+    sctx.font = '11px sans-serif'; sctx.fillStyle = '#555578';
+    sctx.fillText(`Press ↺ Reset to drop again`, SW/2, TRACK_BOTTOM + 43);
+    sctx.textAlign = 'start';
+    sctx.restore();
+  }
+}
+
+function drawGraph(p, forces) {
+  const { a, Fd, mg } = forces;
+  const vt = terminalVel(p);
+
+  gctx.clearRect(0, 0, GW, GH);
+  gctx.fillStyle = '#07080e'; gctx.fillRect(0, 0, GW, GH);
+
+  // Three sub-graphs stacked vertically
+  const padding = { l: 52, r: 18, top: 28, bot: 24 };
+  const rows    = 3;
+  const totalH  = GH - padding.top - padding.bot - (rows - 1) * 12;
+  const rowH    = totalH / rows;
+
+  const graphs = [
+    { label: 'Velocity  v (m/s)',      color: '#ff9040', data: vHist, maxVal: Math.max(...vHist, vt * 1.05, 1), yMin: 0 },
+    { label: 'Acceleration  a (m/s²)', color: '#60c8ff', data: aHist, maxVal: G,                               yMin: 0 },
+    { label: 'Drag Force  F_d (N)',     color: '#ff4444', data: fdHist, maxVal: Math.max(...fdHist, mg * 1.05, 1), yMin: 0 },
+  ];
+
+  graphs.forEach((g, gi) => {
+    const gy0 = padding.top + gi * (rowH + 12);
+    const gy1 = gy0 + rowH;
+    const gx0 = padding.l;
+    const gx1 = GW - padding.r;
+    const gW2  = gx1 - gx0;
+    const gH2  = gy1 - gy0;
+
+    // background
+    gctx.fillStyle = 'rgba(10,10,22,0.6)';
+    gctx.fillRect(gx0, gy0, gW2, gH2);
+
+    // Grid lines
+    gctx.save(); gctx.setLineDash([2, 5]);
+    gctx.strokeStyle = 'rgba(255,255,255,0.05)'; gctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const y = gy0 + (gH2 / 4) * i;
+      gctx.beginPath(); gctx.moveTo(gx0, y); gctx.lineTo(gx1, y); gctx.stroke();
+    }
+    for (let i = 1; i < 4; i++) {
+      const x = gx0 + (gW2 / 4) * i;
+      gctx.beginPath(); gctx.moveTo(x, gy0); gctx.lineTo(x, gy1); gctx.stroke();
+    }
+    gctx.setLineDash([]); gctx.restore();
+
+    // Axes
+    gctx.save();
+    gctx.strokeStyle = 'rgba(255,255,255,0.2)'; gctx.lineWidth = 1.2;
+    gctx.beginPath(); gctx.moveTo(gx0, gy0); gctx.lineTo(gx0, gy1); gctx.stroke();
+    gctx.beginPath(); gctx.moveTo(gx0, gy1); gctx.lineTo(gx1, gy1); gctx.stroke();
+    gctx.restore();
+
+    // y-axis labels
+    gctx.font = '9px sans-serif'; gctx.fillStyle = '#303050'; gctx.textAlign = 'right';
+    gctx.fillText(g.maxVal.toFixed(g.maxVal > 10 ? 0 : 1), gx0 - 3, gy0 + 9);
+    gctx.fillText('0', gx0 - 3, gy1);
+
+    // Graph label
+    gctx.font = 'bold 11px sans-serif'; gctx.fillStyle = g.color; gctx.textAlign = 'left';
+    gctx.fillText(g.label, gx0 + 4, gy0 + 13);
+
+    // Terminal velocity line (only on velocity graph)
+    if (gi === 0 && isFinite(vt)) {
+      const vtY = gy1 - (vt / g.maxVal) * gH2;
+      if (vtY >= gy0 && vtY <= gy1) {
+        gctx.save();
+        gctx.setLineDash([5, 4]);
+        gctx.strokeStyle = 'rgba(255,68,68,0.55)'; gctx.lineWidth = 1.5;
+        gctx.beginPath(); gctx.moveTo(gx0, vtY); gctx.lineTo(gx1, vtY); gctx.stroke();
+        gctx.setLineDash([]); gctx.restore();
+        gctx.font = '9px sans-serif'; gctx.fillStyle = '#ff4444'; gctx.textAlign = 'right';
+        gctx.fillText(`v_t = ${vt.toFixed(1)}`, gx1, vtY - 3);
+      }
+    }
+
+    // Data curve
+    if (g.data.length > 1) {
+      gctx.save();
+      gctx.shadowColor = g.color; gctx.shadowBlur = 8;
+      gctx.strokeStyle = g.color; gctx.lineWidth = 2.2;
+      gctx.beginPath();
+      for (let i = 0; i < g.data.length; i++) {
+        const gx = gx0 + (i / (HIST - 1)) * gW2;
+        const norm = g.maxVal > 0 ? g.data[i] / g.maxVal : 0;
+        const gy   = gy1 - Math.max(0, Math.min(1, norm)) * gH2;
+        i === 0 ? gctx.moveTo(gx, gy) : gctx.lineTo(gx, gy);
+      }
+      gctx.stroke();
+      // Fill under curve
+      gctx.shadowBlur = 0;
+      gctx.globalAlpha = 0.08;
+      gctx.lineTo(gx0 + ((g.data.length - 1) / (HIST - 1)) * gW2, gy1);
+      gctx.lineTo(gx0, gy1);
+      gctx.closePath(); gctx.fillStyle = g.color; gctx.fill();
+      gctx.globalAlpha = 1;
+      gctx.restore();
+
+      // Live dot
+      const lastIdx  = g.data.length - 1;
+      const dotX     = gx0 + (lastIdx / (HIST - 1)) * gW2;
+      const lastNorm = g.maxVal > 0 ? g.data[lastIdx] / g.maxVal : 0;
+      const dotY     = gy1 - Math.max(0, Math.min(1, lastNorm)) * gH2;
+      gctx.save();
+      gctx.shadowColor = '#ffffff'; gctx.shadowBlur = 14;
+      gctx.beginPath(); gctx.arc(dotX, dotY, 4, 0, Math.PI*2);
+      gctx.fillStyle = g.color; gctx.fill(); gctx.restore();
+    }
+  });
+
+  // Time axis label at bottom
+  gctx.font = '10px sans-serif'; gctx.fillStyle = '#252540'; gctx.textAlign = 'center';
+  gctx.fillText(`time  →  t = ${simTime.toFixed(2)} s`, GW/2, GH - 8);
+
+  // Title
+  gctx.font = 'bold 12px sans-serif'; gctx.fillStyle = '#404068'; gctx.textAlign = 'center';
+  gctx.fillText('Live Plots — Velocity · Acceleration · Drag Force', GW/2, 14);
+  gctx.textAlign = 'start';
+}
+
+function render() {
+  const p  = getP();
+  const forces = computeForces(p, vel);
+  drawSim(p, forces);
+  drawGraph(p, forces);
+  // Update metrics
+  const vt = terminalVel(p);
+  document.getElementById('mV').textContent    = vel.toFixed(3) + ' m/s';
+  document.getElementById('mFd').textContent   = forces.Fd.toFixed(2) + ' N';
+  document.getElementById('mFnet').textContent = forces.Fnet.toFixed(2) + ' N';
+  document.getElementById('mA').textContent    = forces.a.toFixed(3) + ' m/s²';
+  document.getElementById('mVt').textContent   = isFinite(vt) ? vt.toFixed(2) + ' m/s' : '∞';
+}
+
+function loop(ts) {
+  if (!running) return;
+  if (!lastTs) lastTs = ts;
+  const rawDt = Math.min((ts - lastTs) / 1000, 0.04);
+  lastTs = ts;
+
+  const p   = getP();
+  const dt  = rawDt * p.spd;
+  const forces = computeForces(p, vel);
+
+  // Euler-Cromer integration
+  vel += forces.a * dt;
+  if (vel < 0) vel = 0;
+  pos += vel * dt;
+
+  simTime += dt;
+
+  // Record history
+  vHist.push(vel);
+  aHist.push(forces.a);
+  fdHist.push(forces.Fd);
+  if (vHist.length > HIST) { vHist.shift(); aHist.shift(); fdHist.shift(); }
+
+  // ── Stop when ball reaches ground
+  if (pos >= p.H) {
+    pos     = p.H;
+    running = false;
+    document.getElementById('startBtn').textContent = '▶ Start';
+  }
+
+  render();
+  if (running) requestAnimationFrame(loop);
+}
+
+// Slider listeners
+['mass','cd','area','rho','v0','spd','height'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    const suffixes = { mass:' kg', cd:'', area:' m²', rho:'', v0:' m/s', spd:'×', height:' m' };
+    const decimals = { mass:1, cd:2, area:2, rho:3, v0:0, spd:1, height:0 };
+    document.getElementById(id+'V').textContent = (+this.value).toFixed(decimals[id]) + suffixes[id];
+    if (!running) render();
+  });
+});
+document.querySelectorAll('input[name=dragModel]').forEach(r => {
+  r.addEventListener('change', () => { if (!running) render(); });
+});
+
+resetSim();
+</script>
+</body>
+</html>

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AC Generator — Rotating Coil in Magnetic Field — Dr. S Karna</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #07080f;
+    font-family: 'Segoe UI', sans-serif;
+    color: #c2c0cc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 40px;
+  }
+  header {
+    width: 100%;
+    background: #0d0e1a;
+    border-bottom: 1px solid #1e2040;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .brand { font-size: 11px; font-weight: 500; letter-spacing: 0.13em; color: #5a5a7a; text-transform: uppercase; margin-bottom: 2px; }
+  .name  { font-size: 19px; font-weight: 700; color: #e8e6f0; }
+  .name span { color: #7af0c8; }
+  .header-badge { font-size: 11px; background: #12132a; border: 1px solid #252548; color: #6a6a8a; padding: 5px 14px; border-radius: 20px; }
+
+  .sim-wrap {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    border: 1px solid #1e2040;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0d0e1a;
+  }
+  #coilCanvas { display: block; background: #0d0e1a; }
+  .divider { width: 1px; background: #1e2040; }
+  #acCanvas  { display: block; background: #080910; }
+
+  .main-title { font-size: 15px; font-weight: 600; color: #8a8ab0; margin-bottom: 3px; }
+  .sub { font-size: 12px; color: #363650; margin-bottom: 14px; }
+
+  .panel { width: 860px; background: #0d0e1a; border: 1px solid #1e2040; border-radius: 14px; padding: 18px 22px; margin-top: 14px; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .ctrl-row { display: flex; align-items: center; gap: 8px; }
+  .ctrl-row label { font-size: 12px; color: #5a5a7a; min-width: 110px; }
+  .ctrl-row input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; background: #1e2040; border-radius: 2px; outline: none; }
+  .ctrl-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #7af0c8; cursor: pointer; border: 2px solid #0d0e1a; }
+  .ctrl-row span { font-size: 12px; font-weight: 600; min-width: 55px; text-align: right; color: #e8e6f0; }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  button { flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; border: 1px solid #252548; background: #12132a; color: #8a8aaa; transition: background 0.15s; }
+  button:hover { background: #1a1b38; }
+  button#pauseBtn { border-color: #e07850; color: #e07850; }
+  button#resetBtn { border-color: #7af0c8; color: #7af0c8; }
+  button#flipBtn  { border-color: #f0a0ff; color: #f0a0ff; }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 16px; }
+  .metric { background: #07080f; border: 1px solid #181830; border-radius: 8px; padding: 10px 12px; }
+  .metric .lbl { font-size: 10px; color: #3a3a5a; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .metric .val { font-size: 15px; font-weight: 700; color: #e8e6f0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #5a5a7a; }
+  .leg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .leg-line { width: 20px; height: 2.5px; flex-shrink: 0; border-radius: 2px; }
+  .eq { background: #07080f; border: 1px solid #181830; border-radius: 8px; padding: 12px 16px; margin-top: 14px; font-size: 12px; color: #3a3a5a; line-height: 2.1; }
+  .eq span { font-weight: 700; color: #7a7aaa; }
+  footer { margin-top: 20px; font-size: 11px; color: #202030; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Physics Simulation</div>
+    <div class="name"><span>Claude</span> by Dr. S Karna</div>
+  </div>
+  <div class="header-badge">AC Generator · Rotating Coil · Interactive</div>
+</header>
+
+<p class="main-title">Rectangular Coil Rotating in Magnetic Field — AC Generator</p>
+<p class="sub">Coil rotates at constant ω — EMF = nBAω sinωt — observe current direction and live AC waveform</p>
+
+<div class="sim-wrap">
+  <canvas id="coilCanvas" width="500" height="420"></canvas>
+  <div class="divider"></div>
+  <canvas id="acCanvas"   width="360" height="420"></canvas>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <div class="ctrl-row">
+      <label>B field (T)</label>
+      <input type="range" id="B" min="0.2" max="3.0" step="0.1" value="1.0">
+      <span id="BV">1.0 T</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Current I (A)</label>
+      <input type="range" id="I" min="0.5" max="15.0" step="0.5" value="4.0">
+      <span id="IV">4.0 A</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Turns n</label>
+      <input type="range" id="n" min="1" max="20" step="1" value="5">
+      <span id="nV">5</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Width a (m)</label>
+      <input type="range" id="wa" min="0.05" max="0.30" step="0.01" value="0.14">
+      <span id="waV">0.14 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Height b (m)</label>
+      <input type="range" id="wb" min="0.05" max="0.30" step="0.01" value="0.10">
+      <span id="wbV">0.10 m</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Speed ω (rad/s)</label>
+      <input type="range" id="omega" min="0.3" max="6.0" step="0.1" value="1.5">
+      <span id="omegaV">1.5 rad/s</span>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button id="pauseBtn" onclick="togglePause()">Pause</button>
+    <button id="flipBtn"  onclick="flipCurrent()">Flip Current</button>
+    <button id="resetBtn" onclick="resetSim()">Reset</button>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Angle θ (deg)</div><div class="val" id="mTheta">—</div></div>
+    <div class="metric"><div class="lbl">Torque τ</div><div class="val" id="mTau">—</div></div>
+    <div class="metric"><div class="lbl">EMF = nBAω sinθ</div><div class="val" id="mEMF">—</div></div>
+    <div class="metric"><div class="lbl">Force F (each)</div><div class="val" id="mF">—</div></div>
+    <div class="metric"><div class="lbl">Moment μ = nIA</div><div class="val" id="mMu">—</div></div>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-line" style="background:#ff4444;"></div> Side AB (red) — F₁</div>
+    <div class="leg"><div class="leg-line" style="background:#4488ff;"></div> Side CD (blue) — F₂</div>
+    <div class="leg"><div class="leg-line" style="background:#7af0c8;"></div> Magnetic moment μ</div>
+    <div class="leg"><div class="leg-line" style="background:#ffe060;"></div> B field lines</div>
+    <div class="leg"><div class="leg-line" style="background:#f0c030;"></div> AC waveform (EMF)</div>
+    <div class="leg"><div class="leg-dot" style="background:#ff8833;"></div> ⊙ Current out of page</div>
+    <div class="leg"><div class="leg-dot" style="background:#4488ff;"></div> ⊗ Current into page</div>
+  </div>
+  <div class="eq">
+    <span>EMF = nBAω sinωt</span> &nbsp;·&nbsp;
+    <span>τ = nBIA sinθ</span> &nbsp;·&nbsp;
+    <span>F = nBIb (on each active side)</span> &nbsp;·&nbsp;
+    <span>μ = nIA</span>
+  </div>
+</div>
+
+<footer>© Dr. S Karna · Claude Physics Simulation</footer>
+
+<script>
+const cc  = document.getElementById('coilCanvas');
+const ac  = document.getElementById('acCanvas');
+const ctx = cc.getContext('2d');
+const actx= ac.getContext('2d');
+const CW = cc.width, CH = cc.height;
+const AW = ac.width, AH = ac.height;
+const CX = CW / 2, CY = CH / 2 + 10;
+
+let theta  = 0;     // angle of coil from position where plane is perpendicular to B
+let paused = false;
+let lastTs = null;
+let iSign  = 1;
+
+// AC signal history
+const AC_HISTORY = 280;
+let acHistory = [];
+
+function getP() {
+  return {
+    B:  +document.getElementById('B').value,
+    I:  +document.getElementById('I').value,
+    n:  +document.getElementById('n').value,
+    wa: +document.getElementById('wa').value,
+    wb: +document.getElementById('wb').value,
+    om: +document.getElementById('omega').value,
+  };
+}
+
+function resetSim() {
+  theta = 0;
+  acHistory = [];
+  lastTs = null;
+}
+
+function flipCurrent() { iSign *= -1; }
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+  if (!paused) { lastTs = null; requestAnimationFrame(loop); }
+}
+
+function arrowHead(c, x2, y2, fromX, fromY, col, size) {
+  size = size || 10;
+  const ang = Math.atan2(y2 - fromY, x2 - fromX);
+  c.save();
+  c.strokeStyle = col; c.lineWidth = 2.2; c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(x2, y2);
+  c.lineTo(x2 - size*Math.cos(ang-0.38), y2 - size*Math.sin(ang-0.38));
+  c.moveTo(x2, y2);
+  c.lineTo(x2 - size*Math.cos(ang+0.38), y2 - size*Math.sin(ang+0.38));
+  c.stroke(); c.restore();
+}
+
+function drawCurrentSym(c, x, y, outward) {
+  const col = outward ? '#ff8833' : '#4488ff';
+  c.save();
+  c.beginPath(); c.arc(x, y, 12, 0, Math.PI*2);
+  c.fillStyle = '#0a0b18'; c.fill();
+  c.strokeStyle = col; c.lineWidth = 2.5;
+  c.shadowColor = col; c.shadowBlur = 12;
+  c.stroke();
+  if (outward) {
+    c.beginPath(); c.arc(x, y, 4.5, 0, Math.PI*2);
+    c.fillStyle = col; c.fill();
+  } else {
+    c.lineWidth = 2.2; c.strokeStyle = col;
+    c.beginPath(); c.moveTo(x-6, y-6); c.lineTo(x+6, y+6); c.stroke();
+    c.beginPath(); c.moveTo(x+6, y-6); c.lineTo(x-6, y+6); c.stroke();
+  }
+  c.restore();
+}
+
+function drawCoil(p) {
+  const { B, I, n, wa, wb, om } = p;
+  const A = wa * wb;
+
+  // Fixed visual size for coil
+  const HALF_W = 110;   // half-width px (face-on)
+  const HALF_H = 85;    // half-height px
+
+  // theta = angle of coil normal from B (+x direction)
+  // Projected half-width = HALF_W * |sin(theta)|  (0 when normal || B = edge-on)
+  // When theta = 90°: full width visible (face-on), normal ⊥ B
+  const sinT  = Math.sin(theta);
+  const cosT  = Math.cos(theta);
+  const projW = HALF_W * Math.abs(sinT);
+
+  const xL = CX - projW;
+  const xR = CX + projW;
+  const yT = CY - HALF_H;
+  const yB = CY + HALF_H;
+
+  ctx.clearRect(0, 0, CW, CH);
+
+  // dot grid
+  ctx.fillStyle = 'rgba(255,255,255,0.018)';
+  for (let x = 16; x < CW; x += 28)
+    for (let y = 16; y < CH; y += 28) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+    }
+
+  // ── B field lines (horizontal, left→right)
+  for (let i = 0; i < 8; i++) {
+    const fy = CY - 175 + i * 50;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,224,80,0.18)'; ctx.lineWidth = 1.5; ctx.setLineDash([8,6]);
+    ctx.beginPath(); ctx.moveTo(20, fy); ctx.lineTo(CW-20, fy); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+    arrowHead(ctx, CW-24, fy, 20, fy, 'rgba(255,224,80,0.38)', 8);
+  }
+  ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = 'rgba(255,224,80,0.60)';
+  ctx.fillText('B  →', CW - 80, CY - 183);
+
+  // Magnet pole labels
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillStyle = '#e03030'; ctx.fillText('N', 10, CY + 9);
+  ctx.fillStyle = '#3060e0'; ctx.fillText('S', CW-34, CY + 9);
+
+  // ── Coil fill (translucent)
+  if (projW > 5) {
+    ctx.save();
+    ctx.globalAlpha = 0.09 + 0.07 * Math.abs(sinT);
+    ctx.fillStyle = '#7af0c8';
+    ctx.beginPath();
+    ctx.moveTo(xL, yT); ctx.lineTo(xR, yT); ctx.lineTo(xR, yB); ctx.lineTo(xL, yB);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+
+  // ── Top & bottom horizontal wires (fade when edge-on)
+  const hAlpha = Math.min(1.0, Math.abs(sinT) * 3.5 + 0.1);
+  if (projW > 3) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(180,180,255,${hAlpha})`; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(xL, yT); ctx.lineTo(xR, yT); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xL, yB); ctx.lineTo(xR, yB); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Left vertical wire AB (always shown, RED)
+  ctx.save();
+  ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 14;
+  ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(xL, yT); ctx.lineTo(xL, yB); ctx.stroke();
+  ctx.restore();
+  ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ff6666';
+  ctx.fillText('AB', xL - 30, CY + 5);
+
+  // ── Right vertical wire CD (always shown, BLUE)
+  ctx.save();
+  ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 14;
+  ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(xR, yT); ctx.lineTo(xR, yB); ctx.stroke();
+  ctx.restore();
+  ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#6699ff';
+  ctx.fillText('CD', xR + 8, CY + 5);
+
+  // ── Current direction arrows on vertical wires
+  // Convention: when theta is in 0→π (sinT > 0), AB wire carries current upward for iSign=+1
+  //             when theta is in π→2π (sinT < 0), AB wire carries current downward for iSign=+1
+  // This makes current alternate as coil rotates → AC!
+  const abUp = (iSign * sinT) >= 0;   // true = current flows UP in AB
+
+  // Arrow on AB (left wire)
+  const abY1 = abUp ? yB - 12 : yT + 12;
+  const abY2 = abUp ? yT + 12 : yB - 12;
+  ctx.save();
+  ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(xL, abY1); ctx.lineTo(xL, abY2); ctx.stroke();
+  ctx.restore();
+  arrowHead(ctx, xL, abY2, xL, abY1, '#ff4444', 11);
+
+  // Arrow on CD (right wire — opposite)
+  const cdY1 = !abUp ? yB - 12 : yT + 12;
+  const cdY2 = !abUp ? yT + 12 : yB - 12;
+  ctx.save();
+  ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(xR, cdY1); ctx.lineTo(xR, cdY2); ctx.stroke();
+  ctx.restore();
+  arrowHead(ctx, xR, cdY2, xR, cdY1, '#4488ff', 11);
+
+  // ── Current symbols on horizontal wires (mid-points, when visible)
+  if (projW > 22) {
+    const midX = (xL + xR) / 2;
+    // Top wire: current goes from AB-top to CD-top if AB is upward → top wire flows xR→xL direction
+    // when AB current is up: top wire current goes from xL→xR? No.
+    // current loop: AB up → top wire left-to-right? Let's set:
+    // AB up → leaves AB at top → flows RIGHT along top → enters CD at top → CD downward → leaves CD at bottom → flows LEFT along bottom → enters AB at bottom
+    const topWireRight = abUp;   // current in top wire flows right if AB current goes up
+    drawCurrentSym(ctx, midX, yT, topWireRight);   // right = out-of-page? No — symbol for horizontal wire direction
+    // Actually for horizontal wires carrying horizontal current, ⊙/⊗ show if force is up or down
+    // Let's just show direction label instead
+    ctx.font = '10px sans-serif'; ctx.fillStyle = '#6a6a8a'; ctx.textAlign = 'center';
+    ctx.fillText(topWireRight ? '→' : '←', midX, yT - 18);
+    ctx.fillText(!topWireRight ? '→' : '←', midX, yB + 22);
+    ctx.textAlign = 'start';
+  }
+
+  // ── Force vectors (into/out of page) on vertical wires
+  // F = I * L × B.  AB: L = b*(up or down depending on current), B = B*x̂
+  // If AB current up (+ŷ): F = Ib(ŷ × x̂) = Ib(-ẑ) = into page
+  // If AB current down (-ŷ): F = Ib(-ŷ × x̂) = Ib(ẑ) = out of page
+  const Fphys  = n * B * I * wb;   // physical force magnitude
+  const fLen   = Math.min(Fphys * 28, 72);
+
+  // Into-page perspective: diagonal upper-right
+  // Out-of-page perspective: diagonal lower-left
+  const abIntoPage = abUp;   // current up, B right → force into page (-z)
+
+  const dx_in  =  0.68, dy_in  = -0.52;   // into-page direction
+  const dx_out = -0.68, dy_out =  0.52;   // out-of-page direction
+
+  // F₁ on AB
+  const f1dx = abIntoPage ? dx_in  : dx_out;
+  const f1dy = abIntoPage ? dy_in  : dy_out;
+  const f1x2 = xL + f1dx * fLen;
+  const f1y2 = CY + f1dy * fLen;
+  ctx.save();
+  ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 12;
+  ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 2.8;
+  ctx.beginPath(); ctx.moveTo(xL, CY); ctx.lineTo(f1x2, f1y2); ctx.stroke();
+  ctx.restore();
+  arrowHead(ctx, f1x2, f1y2, xL, CY, '#ff4444', 11);
+  ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#ff6666';
+  ctx.fillText(abIntoPage ? 'F₁(⊗)' : 'F₁(⊙)', f1x2 - (abIntoPage ? 5 : 52), f1y2 - 6);
+
+  // F₂ on CD — opposite
+  const f2dx = -f1dx, f2dy = -f1dy;
+  const f2x2 = xR + f2dx * fLen;
+  const f2y2 = CY + f2dy * fLen;
+  ctx.save();
+  ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 12;
+  ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 2.8;
+  ctx.beginPath(); ctx.moveTo(xR, CY); ctx.lineTo(f2x2, f2y2); ctx.stroke();
+  ctx.restore();
+  arrowHead(ctx, f2x2, f2y2, xR, CY, '#4488ff', 11);
+  ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#6699ff';
+  ctx.fillText(!abIntoPage ? 'F₂(⊗)' : 'F₂(⊙)', f2x2 + (!abIntoPage ? 5 : -52), f2y2 - 6);
+
+  // ── Magnetic moment μ — perpendicular to coil plane, rotates with coil
+  // When theta=0: coil face-on, normal = +z, but in our projection show as perpendicular to B
+  // μ direction: angle theta from +x axis (B direction), showing in the xz plane
+  // On screen, we display as: angle from horizontal = (PI/2 - theta) from vertical
+  // = cosT from +x, sinT from +y... but coil rotates in xz plane not xy
+  // Clean: μ rotates in screen as coil rotates. Show μ at angle theta from B direction
+  // μ points along coil normal = cosT in x, sinT in z
+  // In 2D screen: map z → upward on screen
+  const muLen = 75;
+  const muX2  = CX + muLen * cosT * iSign;
+  const muY2  = CY - muLen * sinT * iSign;  // z maps to -y on canvas (up)
+  ctx.save();
+  ctx.shadowColor = '#7af0c8'; ctx.shadowBlur = 16;
+  ctx.strokeStyle = '#7af0c8'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(muX2, muY2); ctx.stroke();
+  ctx.restore();
+  arrowHead(ctx, muX2, muY2, CX, CY, '#7af0c8', 13);
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#7af0c8';
+  ctx.fillText('μ', muX2 + 7, muY2 - 7);
+
+  // ── Rotation axis (vertical dashed line through centre)
+  ctx.save();
+  ctx.setLineDash([4,6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(CX, CY - HALF_H - 38); ctx.lineTo(CX, CY + HALF_H + 38); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+  ctx.font = '10px sans-serif'; ctx.fillStyle = '#2a2a48'; ctx.textAlign = 'center';
+  ctx.fillText('rotation axis', CX, CY - HALF_H - 43);
+  ctx.textAlign = 'start';
+
+  // Pivot dots
+  [[CX, yT],[CX, yB]].forEach(([px, py]) => {
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2);
+    ctx.fillStyle = '#1a1a38'; ctx.fill();
+    ctx.strokeStyle = '#8888bb'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // ── θ arc between B and μ
+  const arcR = 48;
+  const muAng = Math.atan2(-(muY2 - CY), muX2 - CX);  // angle of mu on canvas
+  ctx.save();
+  ctx.strokeStyle = 'rgba(208,128,240,0.75)'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  const a0 = 0;
+  const a1 = muAng;
+  if (a1 >= 0) ctx.arc(CX, CY, arcR, -a1, 0);
+  else         ctx.arc(CX, CY, arcR, 0, -a1);
+  ctx.stroke(); ctx.restore();
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#d080f0';
+  ctx.fillText('θ', CX + arcR * 0.7 * Math.cos(muAng/2), CY - arcR * 0.7 * Math.sin(muAng/2) + 4);
+
+  // B reference line (short from centre)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,224,80,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(CX + 52, CY); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+  arrowHead(ctx, CX + 52, CY, CX, CY, 'rgba(255,224,80,0.5)', 8);
+  ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(255,224,80,0.5)';
+  ctx.fillText('B', CX + 56, CY + 4);
+
+  // ── Torque curved arc arrow
+  const tauPhys = n * B * I * A * Math.sin(theta) * iSign;
+  if (Math.abs(tauPhys) > 0.0001) {
+    const tArcR = HALF_H * 0.48;
+    const tDir  = tauPhys > 0 ? 1 : -1;
+    ctx.save();
+    ctx.shadowColor = '#f0a0ff'; ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#f0a0ff'; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    const arcStart = -Math.PI/2;
+    const arcEnd   = arcStart + tDir * 0.95;
+    ctx.arc(CX, CY, tArcR, Math.min(arcStart, arcEnd), Math.max(arcStart, arcEnd));
+    ctx.stroke();
+    const aex = CX + tArcR * Math.cos(arcEnd);
+    const aey = CY + tArcR * Math.sin(arcEnd);
+    arrowHead(ctx, aex, aey, aex - tDir * 8 * Math.cos(arcEnd - Math.PI/2), aey - tDir * 8 * Math.sin(arcEnd - Math.PI/2), '#f0a0ff', 9);
+    ctx.restore();
+    ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#f0a0ff';
+    ctx.fillText('τ', CX + tDir * (tArcR + 14), CY + 5);
+  }
+
+  // ── Rotation direction arrows (circular arrow near pivot)
+  const rArcR = HALF_H + 26;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(120,200,120,0.5)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(CX, CY, rArcR, -Math.PI*0.7, Math.PI*0.1); ctx.stroke();
+  const rAng = Math.PI * 0.1;
+  const rex  = CX + rArcR * Math.cos(rAng);
+  const rey  = CY + rArcR * Math.sin(rAng);
+  arrowHead(ctx, rex, rey, rex - 6, rey - 6, 'rgba(120,200,120,0.5)', 8);
+  ctx.restore();
+  ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(120,200,120,0.45)';
+  ctx.fillText('ω', CX + rArcR + 6, CY + 6);
+}
+
+function drawAC(p, emf, emfPeak) {
+  const { B, I, n, wa, wb, om } = p;
+  actx.clearRect(0, 0, AW, AH);
+
+  // background
+  actx.fillStyle = '#080910';
+  actx.fillRect(0, 0, AW, AH);
+
+  // Grid
+  const gx0 = 44, gx1 = AW - 16;
+  const gy0 = 28, gy1 = AH - 40;
+  const gMidY = (gy0 + gy1) / 2;
+  const gW = gx1 - gx0, gH = gy1 - gy0;
+
+  // horizontal grid lines
+  actx.save();
+  actx.setLineDash([3, 5]);
+  actx.strokeStyle = 'rgba(255,255,255,0.07)'; actx.lineWidth = 1;
+  for (let yi = 0; yi <= 4; yi++) {
+    const gy = gy0 + (gH / 4) * yi;
+    actx.beginPath(); actx.moveTo(gx0, gy); actx.lineTo(gx1, gy); actx.stroke();
+  }
+  // vertical grid lines
+  for (let xi = 0; xi <= 4; xi++) {
+    const gx = gx0 + (gW / 4) * xi;
+    actx.beginPath(); actx.moveTo(gx, gy0); actx.lineTo(gx, gy1); actx.stroke();
+  }
+  actx.setLineDash([]); actx.restore();
+
+  // axes
+  actx.save();
+  actx.strokeStyle = 'rgba(255,255,255,0.35)'; actx.lineWidth = 1.5;
+  actx.beginPath(); actx.moveTo(gx0, gy0); actx.lineTo(gx0, gy1); actx.stroke(); // y axis
+  actx.beginPath(); actx.moveTo(gx0, gMidY); actx.lineTo(gx1, gMidY); actx.stroke(); // x axis
+  actx.restore();
+
+  // y-axis label ticks
+  actx.font = '10px sans-serif'; actx.fillStyle = '#4a4a6a'; actx.textAlign = 'right';
+  actx.fillText('+EMF', gx0 - 4, gy0 + 10);
+  actx.fillText('  0', gx0 - 4, gMidY + 4);
+  actx.fillText('-EMF', gx0 - 4, gy1 - 2);
+  actx.fillText('EMF', gx0 + 2, gy0 - 10);
+  actx.textAlign = 'start';
+  actx.fillText('t →', gx1 - 16, gMidY - 6);
+
+  // ── AC waveform from history
+  if (acHistory.length > 1) {
+    actx.save();
+    actx.shadowColor = '#f0c030'; actx.shadowBlur = 8;
+    actx.strokeStyle = '#f0c030'; actx.lineWidth = 2.5;
+    actx.beginPath();
+    const maxE = Math.max(Math.abs(emfPeak), 0.001);
+    for (let i = 0; i < acHistory.length; i++) {
+      const gx = gx0 + (i / (AC_HISTORY - 1)) * gW;
+      const norm = acHistory[i] / maxE;  // -1 to +1
+      const gy = gMidY - norm * (gH / 2) * 0.88;
+      if (i === 0) actx.moveTo(gx, gy);
+      else         actx.lineTo(gx, gy);
+    }
+    actx.stroke(); actx.restore();
+
+    // Highlight current value dot
+    const lastNorm = acHistory[acHistory.length - 1] / maxE;
+    const dotY = gMidY - lastNorm * (gH / 2) * 0.88;
+    actx.save();
+    actx.shadowColor = '#ffffff'; actx.shadowBlur = 14;
+    actx.beginPath(); actx.arc(gx1, dotY, 5, 0, Math.PI*2);
+    actx.fillStyle = '#ffffff'; actx.fill();
+    actx.restore();
+
+    // Current value line (vertical)
+    actx.save();
+    actx.setLineDash([3, 4]);
+    actx.strokeStyle = 'rgba(255,255,255,0.2)'; actx.lineWidth = 1;
+    actx.beginPath(); actx.moveTo(gx1, gMidY); actx.lineTo(gx1, dotY); actx.stroke();
+    actx.setLineDash([]); actx.restore();
+  }
+
+  // ── Instantaneous EMF value display
+  actx.font = 'bold 14px sans-serif'; actx.fillStyle = '#f0c030';
+  actx.textAlign = 'center';
+  actx.fillText(`EMF = ${emf.toFixed(2)} V`, AW/2, AH - 16);
+  actx.font = '11px sans-serif'; actx.fillStyle = '#3a3a5a';
+  actx.fillText(`Peak = ${emfPeak.toFixed(2)} V`, AW/2, AH - 2);
+  actx.textAlign = 'start';
+
+  // Title
+  actx.font = 'bold 12px sans-serif'; actx.fillStyle = '#5a5a8a'; actx.textAlign = 'center';
+  actx.fillText('AC Waveform (EMF)', AW/2, 16);
+  actx.textAlign = 'start';
+
+  // Sine wave ghost (ideal, faint)
+  if (emfPeak > 0.001) {
+    actx.save();
+    actx.strokeStyle = 'rgba(120,100,200,0.22)'; actx.lineWidth = 1.5; actx.setLineDash([3,4]);
+    actx.beginPath();
+    for (let i = 0; i <= gW; i++) {
+      const t  = (i / gW) * Math.PI * 4;
+      const gy = gMidY - Math.sin(t) * (gH/2) * 0.88;
+      if (i === 0) actx.moveTo(gx0 + i, gy);
+      else         actx.lineTo(gx0 + i, gy);
+    }
+    actx.stroke(); actx.setLineDash([]); actx.restore();
+  }
+}
+
+function loop(ts) {
+  if (paused) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  const p   = getP();
+  const A   = p.wa * p.wb;
+
+  // Rotate at constant angular velocity
+  theta += p.om * dt * iSign;
+
+  // EMF = nBAω sinθ  (sinθ because flux = nBA cosθ, EMF = -dΦ/dt)
+  const emfPeak = p.n * p.B * A * p.om;
+  const emf     = emfPeak * Math.sin(theta);
+
+  // Push to AC history
+  acHistory.push(emf);
+  if (acHistory.length > AC_HISTORY) acHistory.shift();
+
+  // Torque
+  const tauPhys = p.n * p.B * p.I * A * Math.sin(theta) * iSign;
+
+  // Draw both panels
+  drawCoil(p);
+  drawAC(p, emf, emfPeak);
+
+  // Metrics
+  const normTheta = ((theta % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+  document.getElementById('mTheta').textContent = (normTheta * 180/Math.PI).toFixed(1) + '°';
+  document.getElementById('mTau').textContent   = tauPhys.toFixed(3) + ' N·m';
+  document.getElementById('mEMF').textContent   = emf.toFixed(3) + ' V';
+  document.getElementById('mF').textContent     = (p.n * p.B * p.I * p.wb).toFixed(3) + ' N';
+  document.getElementById('mMu').textContent    = (p.n * p.I * A).toFixed(4) + ' A·m²';
+
+  requestAnimationFrame(loop);
+}
+
+// Sliders
+document.getElementById('B').addEventListener('input',     e => document.getElementById('BV').textContent     = (+e.target.value).toFixed(1)+' T');
+document.getElementById('I').addEventListener('input',     e => document.getElementById('IV').textContent     = (+e.target.value).toFixed(1)+' A');
+document.getElementById('n').addEventListener('input',     e => document.getElementById('nV').textContent     = e.target.value);
+document.getElementById('wa').addEventListener('input',    e => document.getElementById('waV').textContent    = (+e.target.value).toFixed(2)+' m');
+document.getElementById('wb').addEventListener('input',    e => document.getElementById('wbV').textContent    = (+e.target.value).toFixed(2)+' m');
+document.getElementById('omega').addEventListener('input', e => document.getElementById('omegaV').textContent = (+e.target.value).toFixed(1)+' rad/s');
+
+resetSim();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
