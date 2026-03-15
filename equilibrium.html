@@ -252,6 +252,50 @@
 
 <footer>© Dr. S Karna · Claude Physics Simulation</footer>
 
+<!-- Funnel Illustration Panel -->
+<div style="display:flex; gap:16px; margin-top:16px;">
+
+  <!-- STABLE: Funnel cone-down on table -->
+  <div class="eq-card stable" style="flex:1;">
+    <div class="card-header">
+      <span class="card-title">STABLE — Cone on Table</span>
+      <span class="card-badge">Low centre of gravity</span>
+    </div>
+    <canvas id="funnelStable" width="280" height="220"></canvas>
+    <div class="card-desc">
+      Funnel rests <strong>cone-down</strong> on wide rim — lowest PE, wide base.<br>
+      Any tilt → gravity restores it. <em>Most stable position.</em>
+    </div>
+  </div>
+
+  <!-- UNSTABLE: Funnel balanced on stem tip -->
+  <div class="eq-card unstable" style="flex:1;">
+    <div class="card-header">
+      <span class="card-title">UNSTABLE — Balanced on Stem</span>
+      <span class="card-badge">High centre of gravity</span>
+    </div>
+    <canvas id="funnelUnstable" width="280" height="220"></canvas>
+    <div class="card-desc">
+      Funnel balanced <strong>upside-down on stem tip</strong> — highest PE, tiny contact.<br>
+      Any tiny tilt → gravity topples it. <em>Cannot maintain in practice.</em>
+    </div>
+  </div>
+
+  <!-- NEUTRAL: Funnel lying on its side -->
+  <div class="eq-card neutral" style="flex:1;">
+    <div class="card-header">
+      <span class="card-title">NEUTRAL — Lying on Side</span>
+      <span class="card-badge">Constant centre of gravity</span>
+    </div>
+    <canvas id="funnelNeutral" width="280" height="220"></canvas>
+    <div class="card-desc">
+      Funnel <strong>lying freely on its side</strong> — PE unchanged as it rolls.<br>
+      Any roll → same PE, no force. <em>Stays wherever placed.</em>
+    </div>
+  </div>
+
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 // Shared config
@@ -735,6 +779,252 @@ document.getElementById('nudge').addEventListener('input', e => {
 });
 
 requestAnimationFrame(loop);
+
+// ═══════════════════════════════════════════════
+// FUNNEL ILLUSTRATIONS — animated
+// ═══════════════════════════════════════════════
+let unstableTilt   = 0;
+let unstableTiltV  = 0.008;
+let unstableToppled = false;
+let neutralRollAngle = 0;
+
+function drawFunnelShape(ctx, cx, cy, angle, color, alpha) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  const coneH = 60, coneW = 46, stemH = 38, stemW = 5, neckW = 8;
+
+  // Cone trapezoid body
+  ctx.beginPath();
+  ctx.moveTo(-coneW, -coneH/2);
+  ctx.lineTo( coneW, -coneH/2);
+  ctx.lineTo( neckW,  coneH/2);
+  ctx.lineTo(-neckW,  coneH/2);
+  ctx.closePath();
+  const cGrad = ctx.createLinearGradient(-coneW, 0, coneW, 0);
+  cGrad.addColorStop(0,   `rgba(${hexToRgb(color)},${alpha*0.55})`);
+  cGrad.addColorStop(0.3, `rgba(${hexToRgb(color)},${alpha*0.18})`);
+  cGrad.addColorStop(0.65,`rgba(${hexToRgb(color)},${alpha*0.32})`);
+  cGrad.addColorStop(1,   `rgba(${hexToRgb(color)},${alpha*0.60})`);
+  ctx.fillStyle = cGrad;
+  ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+  // Rim ellipse (3D mouth)
+  ctx.beginPath();
+  ctx.ellipse(0, -coneH/2, coneW, coneW*0.18, 0, 0, Math.PI*2);
+  ctx.fillStyle = `rgba(${hexToRgb(color)},${alpha*0.22})`; ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Neck collar
+  ctx.beginPath();
+  ctx.ellipse(0, coneH/2, neckW, neckW*0.45, 0, 0, Math.PI*2);
+  ctx.fillStyle = `rgba(${hexToRgb(color)},${alpha*0.28})`; ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.stroke();
+
+  // Stem
+  ctx.beginPath();
+  ctx.rect(-stemW, coneH/2, stemW*2, stemH);
+  const sGrad = ctx.createLinearGradient(-stemW, 0, stemW, 0);
+  sGrad.addColorStop(0,   `rgba(${hexToRgb(color)},${alpha*0.55})`);
+  sGrad.addColorStop(0.5, `rgba(${hexToRgb(color)},${alpha*0.12})`);
+  sGrad.addColorStop(1,   `rgba(${hexToRgb(color)},${alpha*0.55})`);
+  ctx.fillStyle = sGrad; ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Stem tip
+  ctx.beginPath();
+  ctx.ellipse(0, coneH/2+stemH, stemW, stemW*0.38, 0, 0, Math.PI*2);
+  ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
+
+  // Glass shine
+  ctx.beginPath();
+  ctx.moveTo(-coneW*0.55, -coneH/2+5);
+  ctx.lineTo(-neckW*0.8,   coneH/2-5);
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawFunnelStable() {
+  const cv = document.getElementById('funnelStable');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#08090f'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(255,255,255,0.018)';
+  for (let x=16;x<W;x+=24) for (let y=16;y<H;y+=24) { ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill(); }
+
+  const tableY = H - 44;
+  ctx.fillStyle = '#0e1a14'; ctx.fillRect(20, tableY, W-40, 14);
+  ctx.strokeStyle = '#3de8a044'; ctx.lineWidth=1; ctx.strokeRect(20, tableY, W-40, 14);
+  for (let x=30; x<W-20; x+=20) {
+    ctx.beginPath(); ctx.moveTo(x,tableY); ctx.lineTo(x,tableY+14);
+    ctx.strokeStyle='rgba(61,232,160,0.05)'; ctx.lineWidth=1; ctx.stroke();
+  }
+  ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='#3de8a050'; ctx.textAlign='center';
+  ctx.fillText('Table Surface', W/2, tableY+26); ctx.textAlign='start';
+
+  // Stable: cone mouth DOWN (resting on rim on table), stem UP
+  // drawFunnelShape: wide end at top (−y), stem at bottom (+y)
+  // To flip (mouth down): rotate by π
+  const cx = W/2, cy = tableY - 78;
+  drawFunnelShape(ctx, cx, cy, Math.PI, '#3de8a0', 1);
+
+  // CoG (in lower half of cone since it rests wide-end down)
+  const cgY = cy + 22;
+  ctx.beginPath(); ctx.arc(cx, cgY, 5, 0, Math.PI*2);
+  ctx.fillStyle='#3de8a0'; ctx.shadowColor='#3de8a0'; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+  ctx.font='9px DM Mono,monospace'; ctx.fillStyle='#3de8a0aa'; ctx.textAlign='center';
+  ctx.fillText('CoG (low)', cx, cgY-10); ctx.textAlign='start';
+
+  // g arrow
+  ctx.save(); ctx.strokeStyle='#d4a017'; ctx.lineWidth=2; ctx.shadowColor='#d4a017'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.moveTo(cx+72, cy-24); ctx.lineTo(cx+72, cy+22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+72,cy+22); ctx.lineTo(cx+65,cy+10); ctx.moveTo(cx+72,cy+22); ctx.lineTo(cx+79,cy+10); ctx.stroke();
+  ctx.font='11px DM Sans,sans-serif'; ctx.fillStyle='#d4a017'; ctx.textAlign='center';
+  ctx.fillText('g', cx+72, cy-30); ctx.textAlign='start'; ctx.restore();
+
+  // Restoring arc
+  ctx.save(); ctx.setLineDash([3,4]);
+  ctx.strokeStyle='#3de8a066'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(cx-60, tableY-10, 22, -Math.PI*0.75, -Math.PI*0.1); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+
+  ctx.font='bold 11px DM Sans,sans-serif'; ctx.fillStyle='#3de8a0'; ctx.textAlign='center';
+  ctx.fillText('✓ Stable — Low CoG, rests on wide rim', W/2, H-10); ctx.textAlign='start';
+}
+
+function drawFunnelUnstable(ts) {
+  const cv = document.getElementById('funnelUnstable');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#08090f'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(255,255,255,0.018)';
+  for (let x=16;x<W;x+=24) for (let y=16;y<H;y+=24) { ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill(); }
+
+  const tableY = H - 44;
+  ctx.fillStyle = '#180e10'; ctx.fillRect(20, tableY, W-40, 14);
+  ctx.strokeStyle = '#ff556644'; ctx.lineWidth=1; ctx.strokeRect(20, tableY, W-40, 14);
+  ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='#ff556650'; ctx.textAlign='center';
+  ctx.fillText('Surface', W/2, tableY+26); ctx.textAlign='start';
+
+  // Animate tilt
+  if (!unstableToppled) {
+    unstableTiltV += 0.0004;
+    unstableTilt  += unstableTiltV;
+    if (Math.abs(unstableTilt) > 1.3) { unstableToppled = true; }
+  } else {
+    unstableTilt  = 0; unstableTiltV = 0.008;
+    unstableToppled = false;
+  }
+
+  // Unstable: stem DOWN on point, cone UP → angle=0 (default orientation of drawFunnelShape)
+  const stemH = 38, coneH = 60;
+  const cx = W/2, cy = tableY - stemH - coneH/2 - 2;
+  drawFunnelShape(ctx, cx, cy, unstableTilt, '#ff5566', 1);
+
+  // Tiny contact point dot
+  const tipX = cx + Math.sin(unstableTilt)*(stemH + coneH/2 + 2);
+  ctx.beginPath(); ctx.arc(tipX, tableY-2, 3, 0, Math.PI*2);
+  ctx.fillStyle='#ff5566'; ctx.fill();
+
+  // CoG (high — in cone which is at top)
+  const cgDist = -18;
+  const cgX = cx + Math.sin(unstableTilt)*cgDist;
+  const cgY2 = cy + Math.cos(unstableTilt)*cgDist;
+  ctx.beginPath(); ctx.arc(cgX, cgY2, 5, 0, Math.PI*2);
+  ctx.fillStyle='#ff5566'; ctx.shadowColor='#ff5566'; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+  ctx.font='9px DM Mono,monospace'; ctx.fillStyle='#ff5566aa'; ctx.textAlign='center';
+  ctx.fillText('CoG (high)', cgX, cgY2-12); ctx.textAlign='start';
+
+  // Tipping arrow
+  if (Math.abs(unstableTilt) > 0.05) {
+    const tipDir = unstableTilt > 0 ? 1 : -1;
+    ctx.save(); ctx.strokeStyle='#ff5566aa'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx, tableY-6, 35, -Math.PI/2, -Math.PI/2 + tipDir*0.9);
+    ctx.stroke();
+    const aAng = -Math.PI/2 + tipDir*0.9;
+    const aex = cx + 35*Math.cos(aAng), aey = (tableY-6) + 35*Math.sin(aAng);
+    ctx.beginPath();
+    ctx.moveTo(aex, aey);
+    ctx.lineTo(aex - tipDir*8*Math.cos(aAng-0.5), aey - 8*Math.sin(aAng-0.5));
+    ctx.moveTo(aex, aey);
+    ctx.lineTo(aex - tipDir*8*Math.cos(aAng+0.5), aey - 8*Math.sin(aAng+0.5));
+    ctx.stroke(); ctx.restore();
+  }
+
+  ctx.font='bold 11px DM Sans,sans-serif'; ctx.fillStyle='#ff5566'; ctx.textAlign='center';
+  ctx.fillText('✗ Unstable — High CoG, stem-tip only', W/2, H-10); ctx.textAlign='start';
+}
+
+function drawFunnelNeutral() {
+  const cv = document.getElementById('funnelNeutral');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#08090f'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(255,255,255,0.018)';
+  for (let x=16;x<W;x+=24) for (let y=16;y<H;y+=24) { ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill(); }
+
+  const tableY = H - 44;
+  ctx.fillStyle = '#0c1018'; ctx.fillRect(20, tableY, W-40, 14);
+  ctx.strokeStyle = '#60b8ff44'; ctx.lineWidth=1; ctx.strokeRect(20, tableY, W-40, 14);
+  ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='#60b8ff50'; ctx.textAlign='center';
+  ctx.fillText('Ground', W/2, tableY+26); ctx.textAlign='start';
+
+  // Slow rolling side-to-side
+  neutralRollAngle += 0.010;
+  const rollX = W/2 + Math.sin(neutralRollAngle * 0.38) * 52;
+  const rollAngle = Math.PI/2 + Math.sin(neutralRollAngle * 0.38) * 0.15;
+
+  const coneH = 60;
+  const cy = tableY - coneH/2 - 4;
+  drawFunnelShape(ctx, rollX, cy, rollAngle, '#60b8ff', 1);
+
+  // CoG stays at same height always
+  ctx.beginPath(); ctx.arc(rollX, cy, 5, 0, Math.PI*2);
+  ctx.fillStyle='#60b8ff'; ctx.shadowColor='#60b8ff'; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+  ctx.font='9px DM Mono,monospace'; ctx.fillStyle='#60b8ffaa'; ctx.textAlign='center';
+  ctx.fillText('CoG', rollX, cy-14); ctx.textAlign='start';
+
+  // Constant-height dashed line
+  ctx.save(); ctx.setLineDash([4,5]);
+  ctx.strokeStyle='#60b8ff30'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(28, cy); ctx.lineTo(W-28, cy); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+  ctx.font='9px DM Mono,monospace'; ctx.fillStyle='#60b8ff45'; ctx.textAlign='right';
+  ctx.fillText('CoG = const height', W-30, cy-5); ctx.textAlign='start';
+
+  // Motion arrow
+  const velDir = Math.cos(neutralRollAngle*0.38) > 0 ? 1 : -1;
+  ctx.save(); ctx.strokeStyle='#60b8ff88'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(rollX, cy+35); ctx.lineTo(rollX + velDir*28, cy+35); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(rollX + velDir*28, cy+35);
+  ctx.lineTo(rollX + velDir*28 - velDir*8, cy+29);
+  ctx.moveTo(rollX + velDir*28, cy+35);
+  ctx.lineTo(rollX + velDir*28 - velDir*8, cy+41);
+  ctx.stroke(); ctx.restore();
+
+  ctx.font='bold 11px DM Sans,sans-serif'; ctx.fillStyle='#60b8ff'; ctx.textAlign='center';
+  ctx.fillText('○ Neutral — CoG constant, rolls freely', W/2, H-10); ctx.textAlign='start';
+}
+
+let funnelRAF = null;
+function funnelLoop() {
+  drawFunnelStable();
+  drawFunnelUnstable();
+  drawFunnelNeutral();
+  funnelRAF = requestAnimationFrame(funnelLoop);
+}
+requestAnimationFrame(funnelLoop);
 </script>
 </body>
 </html>

@@ -1,0 +1,356 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans,sans-serif);background:transparent}
+  .outer{padding:0.75rem 0 1.5rem}
+  canvas{display:block;border-radius:14px;background:#03030f;width:100%}
+  .stat-row{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+  .sc{background:var(--color-background-secondary,#f0f0ec);border-radius:8px;padding:8px 14px;flex:1;min-width:80px}
+  .sl{font-size:11px;color:var(--color-text-secondary,#888);margin-bottom:2px}
+  .sv{font-size:14px;font-weight:500;color:var(--color-text-primary,#111)}
+  .ctrl{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-text-secondary,#666);margin-bottom:8px}
+  .ctrl input[type=range]{flex:1}
+  .cv{min-width:48px;font-weight:500;color:var(--color-text-primary,#111)}
+  .btn-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .tbtn{padding:7px 18px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary,#aaa);background:transparent;border-radius:20px;color:var(--color-text-secondary,#555);transition:all .18s}
+  .tbtn.on{background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff);border-color:transparent}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--color-text-secondary,#666)}
+  .leg{display:flex;align-items:center;gap:5px}
+  .lsq{width:11px;height:11px;border-radius:2px}
+  .info-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .info-card{background:var(--color-background-primary,#fff);border:0.5px solid var(--color-border-tertiary,rgba(0,0,0,.12));border-radius:10px;padding:10px 14px}
+  .ic-title{font-size:12px;font-weight:500;margin-bottom:4px}
+  .ic-row{font-size:11px;color:var(--color-text-secondary,#777);line-height:1.6}
+  .ic-row span{font-weight:500;color:var(--color-text-primary,#111)}
+</style>
+
+<div class="outer">
+  <div class="btn-row">
+    <button class="tbtn on" id="btn-geo"  onclick="setMode('geo')">Geostationary</button>
+    <button class="tbtn"    id="btn-sync" onclick="setMode('sync')">Geosynchronous</button>
+    <button class="tbtn"    id="btn-both" onclick="setMode('both')">Both together</button>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="lsq" style="background:#4fc3f7"></div>Earth (23.5° tilt, CCW spin)</div>
+    <div class="leg"><div class="lsq" style="background:#ffd54f"></div>Geostationary (CCW, equatorial plane)</div>
+    <div class="leg"><div class="lsq" style="background:#ef5350"></div>Geosynchronous (CCW, inclined)</div>
+  </div>
+
+  <canvas id="cv" height="480"></canvas>
+
+  <div class="stat-row" style="margin-top:12px">
+    <div class="sc"><div class="sl">Orbital altitude</div><div class="sv">35,786 km</div></div>
+    <div class="sc"><div class="sl">Period</div><div class="sv">23h 56m 4s</div></div>
+    <div class="sc"><div class="sl">Axis tilt</div><div class="sv">23.5°</div></div>
+    <div class="sc"><div class="sl">Orbital speed</div><div class="sv">3.07 km/s</div></div>
+  </div>
+  <div class="ctrl">
+    <span>Speed</span>
+    <input type="range" id="spd" min="0.2" max="5" value="1" step="0.1"
+      oninput="document.getElementById('spd-v').textContent=parseFloat(this.value).toFixed(1)+'x'">
+    <span class="cv" id="spd-v">1.0x</span>
+  </div>
+  <div class="ctrl">
+    <span>Extra inclination (geosync)</span>
+    <input type="range" id="incl" min="0" max="60" value="28" step="1"
+      oninput="document.getElementById('incl-v').textContent=this.value+'°';document.getElementById('incl-disp').textContent=this.value+'°'">
+    <span class="cv" id="incl-v">28°</span>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card">
+      <div class="ic-title" style="color:#ffd54f">Geostationary</div>
+      <div class="ic-row">Orbit plane: <span>Earth's equatorial plane</span></div>
+      <div class="ic-row">Tilt: <span>23.5° with Earth's axis</span></div>
+      <div class="ic-row">From ground: <span>Fixed point in sky</span></div>
+    </div>
+    <div class="info-card">
+      <div class="ic-title" style="color:#ef5350">Geosynchronous</div>
+      <div class="ic-row">Extra inclination: <span id="incl-disp">28°</span></div>
+      <div class="ic-row">From ground: <span>Figure-8 analemma</span></div>
+      <div class="ic-row">Covers: <span>High-latitude regions</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TAU = Math.PI * 2;
+const TILT = 23.5 * Math.PI / 180;
+let mode = 'geo', t = 0;
+
+function setMode(m) {
+  mode = m;
+  ['geo','sync','both'].forEach(k => document.getElementById('btn-'+k).classList.toggle('on', k===m));
+}
+
+function resizeCv() {
+  const cv = document.getElementById('cv');
+  cv.width = cv.parentElement.clientWidth || 640;
+}
+
+// ─── 3D → 2D projection ───────────────────────────────────────────────────
+// We view Earth from a fixed camera slightly above the equatorial plane.
+// 3D coords: X=right, Y=up, Z=toward viewer (right-hand).
+// Earth's axis tilts in the X-Y plane by TILT degrees from Y.
+// Axial tilt: rotate world around Z-axis by TILT so north pole leans right.
+//   Xp =  X*cos(TILT) - Y*sin(TILT)
+//   Yp =  X*sin(TILT) + Y*cos(TILT)
+//   Zp =  Z
+// Then project to canvas: canvas_x = Xp, canvas_y = -Yp  (flip Y for screen)
+// Depth = Zp (positive = toward viewer = draw on top)
+
+function project(X, Y, Z) {
+  const Xp =  X * Math.cos(TILT) + Y * Math.sin(TILT);
+  const Yp = -X * Math.sin(TILT) + Y * Math.cos(TILT);
+  const Zp =  Z;
+  return { sx: Xp, sy: -Yp, depth: Zp };
+  // canvas coords: (cx + sx, cy + sy)
+}
+
+// ─── Orbit point ─────────────────────────────────────────────────────────────
+// CCW when viewed from above (North Pole = +Y axis).
+// In the X-Z plane (equatorial plane), CCW from above means:
+//   angle increases → X = r*sin(a), Z = r*cos(a)   (standard math CCW in X-Z)
+// Then apply extra inclination around X-axis.
+function orbitPt(r, a, extraIncl) {
+  // CCW in equatorial plane (X-Z): as a increases, goes X+→Z-→X-→Z+
+  const ex =  r * Math.sin(a);   // east-west
+  const ey =  0;                  // equatorial → no vertical in base
+  const ez =  r * Math.cos(a);   // toward/away viewer (before tilt)
+
+  // Apply extra inclination: rotate around X-axis
+  const ix =  ex;
+  const iy =  ey * Math.cos(extraIncl) - ez * Math.sin(extraIncl);
+  const iz =  ey * Math.sin(extraIncl) + ez * Math.cos(extraIncl);
+
+  return project(ix, iy, iz);
+}
+
+// ─── Draw orbit ellipse ───────────────────────────────────────────────────────
+function drawOrbitRing(ctx, cx, cy, r, extraIncl, color, dashed) {
+  const steps = 120;
+  ctx.beginPath();
+  for (let s = 0; s <= steps; s++) {
+    const a = TAU * s / steps;
+    const p = orbitPt(r, a, extraIncl);
+    s === 0 ? ctx.moveTo(cx + p.sx, cy + p.sy) : ctx.lineTo(cx + p.sx, cy + p.sy);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.setLineDash(dashed ? [6,5] : []); ctx.stroke(); ctx.setLineDash([]);
+}
+
+// ─── Draw Earth ───────────────────────────────────────────────────────────────
+// spin increases with time → CCW when viewed from +Y (North Pole above)
+// In X-Z plane, CCW spin: longitude = spin → X = sin(lon), Z = cos(lon)
+function drawEarth(ctx, cx, cy, R, spin) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.clip();
+
+  // Ocean base
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU);
+  ctx.fillStyle = '#1a3a5c'; ctx.fill();
+
+  // Latitude rings
+  for (let latDeg = -60; latDeg <= 60; latDeg += 20) {
+    const phi = latDeg * Math.PI / 180;
+    const ringR = R * Math.cos(phi);
+    const ringY = R * Math.sin(phi);  // height along axis
+    const steps = 80;
+    ctx.beginPath();
+    for (let s = 0; s <= steps; s++) {
+      const a = TAU * s / steps;
+      const X = ringR * Math.sin(a);
+      const Z = ringR * Math.cos(a);
+      const p = project(X, ringY, Z);
+      s === 0 ? ctx.moveTo(cx + p.sx, cy + p.sy) : ctx.lineTo(cx + p.sx, cy + p.sy);
+    }
+    const isEq = latDeg === 0;
+    ctx.strokeStyle = isEq ? 'rgba(100,200,255,0.55)' : 'rgba(100,180,255,0.14)';
+    ctx.lineWidth = isEq ? 1.2 : 0.6; ctx.stroke();
+  }
+
+  // Continents — longitude shifts with spin (CCW → sin/cos of spin+lon)
+  const continents = [
+    { lon: -1.1,  lat:  0.15, rx: 0.19, ry: 0.28 },  // Americas
+    { lon:  0.3,  lat:  0.08, rx: 0.21, ry: 0.28 },  // Europe/Africa
+    { lon:  1.6,  lat:  0.12, rx: 0.20, ry: 0.25 },  // Asia
+    { lon:  2.3,  lat: -0.22, rx: 0.12, ry: 0.15 },  // Australia
+  ];
+  continents.forEach(c => {
+    const lon = c.lon + spin;
+    const phi = c.lat;
+    const X =  R * Math.cos(phi) * Math.sin(lon);
+    const Y =  R * Math.sin(phi);
+    const Z =  R * Math.cos(phi) * Math.cos(lon);
+    const p = project(X, Y, Z);
+    if (p.depth < -R * 0.08) return;
+    const alpha = Math.min(1, 0.4 + p.depth / (R * 1.3));
+    ctx.beginPath();
+    ctx.ellipse(cx + p.sx, cy + p.sy, R * c.rx, R * c.ry, 0, 0, TAU);
+    ctx.fillStyle = `rgba(34,110,45,${0.82 * alpha})`; ctx.fill();
+  });
+
+  ctx.restore();
+
+  // Globe border
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU);
+  ctx.strokeStyle = '#2e6da4'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Axis poles
+  const npP = project(0,  R * 1.08, 0);
+  const spP = project(0, -R * 1.08, 0);
+  ctx.beginPath();
+  ctx.moveTo(cx + npP.sx, cy + npP.sy);
+  ctx.lineTo(cx + spP.sx, cy + spP.sy);
+  ctx.strokeStyle = 'rgba(200,210,255,0.38)'; ctx.lineWidth = 1;
+  ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(200,220,255,0.8)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('N', cx + npP.sx, cy + npP.sy - 4);
+  ctx.fillText('S', cx + spP.sx, cy + spP.sy + 13);
+  ctx.textAlign = 'left';
+
+  // CCW spin indicator arc near north pole
+  // Draw arc in equatorial plane at height ~0.75R, going CCW
+  // CCW in X-Z: as angle increases X=sin,Z=cos → left to right at top when viewed from front
+  const arcR = R * 0.45, arcH = R * 0.80;
+  const a0 = 0.2, a1 = TAU * 0.72;
+  ctx.beginPath();
+  for (let s = 0; s <= 40; s++) {
+    const a = a0 + (a1 - a0) * s / 40;
+    const p = project(arcR * Math.sin(a), arcH, arcR * Math.cos(a));
+    s === 0 ? ctx.moveTo(cx + p.sx, cy + p.sy) : ctx.lineTo(cx + p.sx, cy + p.sy);
+  }
+  ctx.strokeStyle = 'rgba(79,195,247,0.85)'; ctx.lineWidth = 1.8;
+  ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+
+  // Arrowhead at end of spin arc (pointing in CCW direction)
+  const pTip  = project(arcR * Math.sin(a1),        arcH, arcR * Math.cos(a1));
+  const pPrev = project(arcR * Math.sin(a1 - 0.18), arcH, arcR * Math.cos(a1 - 0.18));
+  const adx = (cx + pTip.sx) - (cx + pPrev.sx);
+  const ady = (cy + pTip.sy) - (cy + pPrev.sy);
+  const aang = Math.atan2(ady, adx);
+  ctx.save();
+  ctx.translate(cx + pTip.sx, cy + pTip.sy); ctx.rotate(aang);
+  ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-5, -3.5); ctx.lineTo(-5, 3.5); ctx.closePath();
+  ctx.fillStyle = 'rgba(79,195,247,0.9)'; ctx.fill();
+  ctx.restore();
+}
+
+// ─── Draw satellite body ──────────────────────────────────────────────────────
+function drawSat(ctx, sx, sy, color, label, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(sx, sy);
+  ctx.fillStyle = color;
+  ctx.fillRect(-13, -3, 9, 6); ctx.fillRect(4, -3, 9, 6);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 0.5;
+  ctx.strokeRect(-13, -3, 9, 6); ctx.strokeRect(4, -3, 9, 6);
+  ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(4,0); ctx.lineTo(0,5); ctx.lineTo(-4,0); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = color; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(label, 0, -11);
+  ctx.restore();
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────────────
+function loop() {
+  const cv  = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#03030f'; ctx.fillRect(0, 0, W, H);
+
+  for (let i = 0; i < 130; i++) {
+    ctx.beginPath();
+    ctx.arc((i*97+23)%W, (i*61+11)%H, i%8<1?1.5:0.7, 0, TAU);
+    ctx.fillStyle = `rgba(255,255,255,${0.08+0.38*(i%7)/7})`; ctx.fill();
+  }
+
+  const spd = parseFloat(document.getElementById('spd').value);
+  const extraInclDeg = parseFloat(document.getElementById('incl').value);
+  const extraIncl = extraInclDeg * Math.PI / 180;
+
+  const earthR = Math.min(W, H) * 0.17;
+  const orbitR = earthR * (42164 / 6371) * 0.27;
+  const cx = W * 0.5, cy = H * 0.5;
+
+  // CCW: angle increases with time (sin/cos mapping gives CCW in X-Z plane viewed from +Y)
+  const orbAngle = t * 0.4;
+  const spinAngle = t * 0.4;  // same angular rate, CCW
+
+  // Orbit rings
+  if (mode === 'geo'  || mode === 'both') drawOrbitRing(ctx, cx, cy, orbitR, 0,          'rgba(255,213,79,0.35)', false);
+  if (mode === 'sync' || mode === 'both') drawOrbitRing(ctx, cx, cy, orbitR, extraIncl,  'rgba(239,83,80,0.28)',  true);
+
+  // Satellite 3D positions
+  const geoP  = orbitPt(orbitR, orbAngle, 0);
+  const syncP = orbitPt(orbitR, orbAngle, extraIncl);
+
+  const geoX = cx + geoP.sx,  geoY = cy + geoP.sy;
+  const syncX = cx + syncP.sx, syncY = cy + syncP.sy;
+
+  const geoBehind  = geoP.depth  < 0;
+  const syncBehind = syncP.depth < 0;
+
+  // ── CCW trails ──
+  const TSTEPS = 55;
+  if (mode === 'geo' || mode === 'both') {
+    ctx.beginPath();
+    for (let i = TSTEPS; i >= 0; i--) {
+      const p = orbitPt(orbitR, orbAngle - i * 0.05, 0);
+      i === TSTEPS ? ctx.moveTo(cx+p.sx, cy+p.sy) : ctx.lineTo(cx+p.sx, cy+p.sy);
+    }
+    ctx.strokeStyle = 'rgba(255,213,79,0.8)'; ctx.lineWidth = 2.5; ctx.stroke();
+    // direction arrow
+    const pp = orbitPt(orbitR, orbAngle - 0.14, 0);
+    const ang = Math.atan2(geoY-(cy+pp.sy), geoX-(cx+pp.sx));
+    ctx.save(); ctx.translate(geoX, geoY); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.closePath();
+    ctx.fillStyle='rgba(255,213,79,0.95)'; ctx.fill(); ctx.restore();
+  }
+  if (mode === 'sync' || mode === 'both') {
+    ctx.beginPath();
+    for (let i = TSTEPS; i >= 0; i--) {
+      const p = orbitPt(orbitR, orbAngle - i * 0.05, extraIncl);
+      i === TSTEPS ? ctx.moveTo(cx+p.sx, cy+p.sy) : ctx.lineTo(cx+p.sx, cy+p.sy);
+    }
+    ctx.strokeStyle = 'rgba(239,83,80,0.8)'; ctx.lineWidth = 2.5; ctx.stroke();
+    const pp = orbitPt(orbitR, orbAngle - 0.14, extraIncl);
+    const ang = Math.atan2(syncY-(cy+pp.sy), syncX-(cx+pp.sx));
+    ctx.save(); ctx.translate(syncX, syncY); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.closePath();
+    ctx.fillStyle='rgba(239,83,80,0.95)'; ctx.fill(); ctx.restore();
+  }
+
+  // Back satellites
+  if (geoBehind  && (mode==='geo'  || mode==='both')) drawSat(ctx, geoX,  geoY,  '#ffd54f','GEO', 0.18);
+  if (syncBehind && (mode==='sync' || mode==='both')) drawSat(ctx, syncX, syncY, '#ef5350','SYNC',0.18);
+
+  // Earth
+  drawEarth(ctx, cx, cy, earthR, spinAngle);
+
+  // Nadir line GEO → Earth surface
+  if (!geoBehind && (mode==='geo' || mode==='both')) {
+    const np = orbitPt(earthR, orbAngle, 0);
+    ctx.beginPath(); ctx.moveTo(geoX,geoY); ctx.lineTo(cx+np.sx, cy+np.sy);
+    ctx.strokeStyle='rgba(255,213,79,0.4)'; ctx.lineWidth=0.8;
+    ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Front satellites
+  if (!geoBehind  && (mode==='geo'  || mode==='both')) drawSat(ctx, geoX,  geoY,  '#ffd54f','GEO', 1);
+  if (!syncBehind && (mode==='sync' || mode==='both')) drawSat(ctx, syncX, syncY, '#ef5350','SYNC',1);
+
+  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('GEO orbit — 35,786 km (equatorial plane, tilted 23.5° with Earth)', cx, cy - orbitR * 0.72 - 14);
+  ctx.textAlign='left';
+
+  t += 0.012 * spd;
+  requestAnimationFrame(loop);
+}
+
+resizeCv();
+window.addEventListener('resize', resizeCv);
+loop();
+</script>

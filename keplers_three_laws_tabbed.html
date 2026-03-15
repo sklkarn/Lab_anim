@@ -1,0 +1,507 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; font-family: var(--font-sans, sans-serif); }
+  .wrap { padding: 0.5rem 0 1rem; }
+
+  .tab-bar {
+    display: flex; gap: 0; margin-bottom: 1.2rem;
+    border: 0.5px solid var(--color-border-secondary, #aaa);
+    border-radius: 10px; overflow: hidden; width: fit-content;
+  }
+  .tab-btn {
+    padding: 9px 22px; font-size: 13px; font-weight: 500; cursor: pointer;
+    background: transparent; border: none; border-right: 0.5px solid var(--color-border-secondary,#aaa);
+    color: var(--color-text-secondary, #666); transition: all 0.18s; white-space: nowrap;
+  }
+  .tab-btn:last-child { border-right: none; }
+  .tab-btn.active {
+    background: var(--color-text-primary, #111);
+    color: var(--color-background-primary, #fff);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  canvas { display: block; border-radius: 12px; background: #050510; width: 100%; }
+
+  .stat-row { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--color-background-secondary, #f0f0ec);
+    border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 90px;
+  }
+  .stat-label { font-size: 11px; color: var(--color-text-secondary,#888); margin-bottom: 2px; }
+  .stat-val { font-size: 15px; font-weight: 500; color: var(--color-text-primary,#111); }
+
+  .ctrl-row { display: flex; align-items: center; gap: 10px; font-size: 13px;
+    color: var(--color-text-secondary,#666); margin-bottom: 8px; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-val { min-width: 38px; text-align: right; }
+
+  .btn-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .act-btn {
+    padding: 6px 16px; font-size: 12px; font-weight: 500; cursor: pointer;
+    border: 0.5px solid var(--color-border-secondary,#aaa);
+    background: transparent; border-radius: 20px; color: var(--color-text-secondary,#555);
+    transition: all 0.18s;
+  }
+  .act-btn.on { background: var(--color-text-primary,#111); color: var(--color-background-primary,#fff); border-color:transparent; }
+
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary,#666); }
+  .leg-dot { width: 11px; height: 11px; border-radius: 2px; }
+
+  .law-heading { font-size: 16px; font-weight: 500; color: var(--color-text-primary,#111); margin-bottom: 4px; }
+  .law-sub { font-size: 13px; color: var(--color-text-secondary,#666); line-height: 1.55; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showLaw(0)">I Law — Ellipses</button>
+    <button class="tab-btn"        onclick="showLaw(1)">II Law — Equal Areas</button>
+    <button class="tab-btn"        onclick="showLaw(2)">III Law — Harmonics</button>
+  </div>
+
+  <!-- ═══════════════ LAW 1 ═══════════════ -->
+  <div class="panel active" id="p0">
+    <div class="law-heading">The Law of Ellipses</div>
+    <div class="law-sub">Every planet orbits the Sun in an ellipse with the Sun at one focus — not the center.</div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Eccentricity (e)</div><div class="stat-val" id="l1-ecc">0.55</div></div>
+      <div class="stat-card"><div class="stat-label">Perihelion</div><div class="stat-val" id="l1-peri">0.45 AU</div></div>
+      <div class="stat-card"><div class="stat-label">Aphelion</div><div class="stat-val" id="l1-aphe">1.55 AU</div></div>
+    </div>
+    <div class="ctrl-row">
+      <span>Eccentricity</span>
+      <input type="range" id="l1-sl" min="5" max="82" value="55" step="1" oninput="l1UpdateEcc()">
+      <span class="ctrl-val" id="l1-sl-out">0.55</span>
+    </div>
+    <canvas id="c1" height="360"></canvas>
+  </div>
+
+  <!-- ═══════════════ LAW 2 ═══════════════ -->
+  <div class="panel" id="p1">
+    <div class="law-heading">The Law of Equal Areas</div>
+    <div class="law-sub">A line from the Sun to the planet sweeps equal areas in equal time — so planets move faster near perihelion and slower near aphelion.</div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Speed</div><div class="stat-val" id="l2-spd">— km/s</div></div>
+      <div class="stat-card"><div class="stat-label">Distance</div><div class="stat-val" id="l2-dst">— AU</div></div>
+      <div class="stat-card"><div class="stat-label">Each area</div><div class="stat-val">equal ✓</div></div>
+    </div>
+    <div class="ctrl-row">
+      <span>Eccentricity</span>
+      <input type="range" id="l2-ecc-sl" min="10" max="80" value="55" step="1" oninput="l2UpdateEcc()">
+      <span class="ctrl-val" id="l2-ecc-out">0.55</span>
+    </div>
+    <div class="ctrl-row">
+      <span>Anim speed</span>
+      <input type="range" id="l2-spd-sl" min="1" max="6" value="2" step="0.5">
+      <span class="ctrl-val" id="l2-spd-out">2×</span>
+    </div>
+    <div class="btn-row">
+      <button class="act-btn on" id="l2-pause-btn" onclick="l2TogglePause()">⏸ Pause</button>
+      <button class="act-btn on"  id="l2-wedge-btn" onclick="l2ToggleWedges()">Hide wedges</button>
+    </div>
+    <div class="legend" id="l2-legend"></div>
+    <canvas id="c2" height="360"></canvas>
+  </div>
+
+  <!-- ═══════════════ LAW 3 ═══════════════ -->
+  <div class="panel" id="p2">
+    <div class="law-heading">The Law of Harmonics</div>
+    <div class="law-sub">T² ∝ a³ — the square of a planet's orbital period equals the cube of its semi-major axis. Click any planet to inspect it.</div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Planet</div><div class="stat-val" id="l3-name">Earth</div></div>
+      <div class="stat-card"><div class="stat-label">Semi-major axis (AU)</div><div class="stat-val" id="l3-axis">1.000</div></div>
+      <div class="stat-card"><div class="stat-label">Period (years)</div><div class="stat-val" id="l3-period">1.000</div></div>
+      <div class="stat-card"><div class="stat-label">T² / a³</div><div class="stat-val" id="l3-ratio">1.000</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="act-btn on" id="l3-pause-btn" onclick="l3TogglePause()">⏸ Pause</button>
+    </div>
+    <canvas id="c3" height="360"></canvas>
+  </div>
+
+</div>
+<script>
+const TAU = Math.PI*2;
+let activeRaf = null, currentLaw = 0;
+
+/* ─────────────────────── shared ─────────────────────── */
+function solveKepler(M, e) {
+  let E = M;
+  for(let i=0;i<40;i++){
+    const d=(M-E+e*Math.sin(E))/(1-e*Math.cos(E)); E+=d;
+    if(Math.abs(d)<1e-10) break;
+  }
+  return E;
+}
+function trueAnom(M, e){
+  const E=solveKepler(((M%TAU)+TAU)%TAU,e);
+  return 2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
+}
+function radAt(nu,e){ return (1-e*e)/(1+e*Math.cos(nu)); }
+
+function drawStars(ctx,W,H,n){
+  for(let i=0;i<n;i++){
+    const rx=(i*97+31)%W, ry=(i*61+17)%H;
+    ctx.beginPath(); ctx.arc(rx,ry,i%5<1?1.5:0.7,0,TAU);
+    ctx.fillStyle=`rgba(255,255,255,${0.1+0.4*(i%5)/5})`; ctx.fill();
+  }
+}
+function drawSun(ctx,x,y,r){
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,'#fff9c0'); g.addColorStop(0.4,'#ffd840'); g.addColorStop(1,'rgba(255,200,40,0)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fillStyle=g; ctx.fill();
+}
+function resizeCv(id){
+  const cv=document.getElementById(id);
+  cv.width=cv.parentElement.clientWidth||640;
+}
+
+/* ══════════════════════ LAW 1 ══════════════════════ */
+let l1Ecc=0.55, l1Nu=0;
+function l1UpdateEcc(){
+  l1Ecc=document.getElementById('l1-sl').value/100;
+  document.getElementById('l1-sl-out').textContent=l1Ecc.toFixed(2);
+  document.getElementById('l1-ecc').textContent=l1Ecc.toFixed(2);
+  document.getElementById('l1-peri').textContent=(1-l1Ecc).toFixed(2)+' AU';
+  document.getElementById('l1-aphe').textContent=(1+l1Ecc).toFixed(2)+' AU';
+}
+l1UpdateEcc();
+
+function drawL1(){
+  const cv=document.getElementById('c1');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
+  drawStars(ctx,W,H,80);
+
+  const aPx=Math.min(W,H)*0.36, e=l1Ecc;
+  const bPx=aPx*Math.sqrt(1-e*e), fPx=aPx*e;
+  const cx=W/2, cy=H/2;
+  const sx=cx+fPx, sy=cy;  // Sun at right focus
+
+  // Orbit
+  ctx.beginPath(); ctx.ellipse(cx,cy,aPx,bPx,0,0,TAU);
+  ctx.strokeStyle='rgba(100,160,255,0.3)'; ctx.lineWidth=1; ctx.stroke();
+
+  // Axes (dashed)
+  ctx.setLineDash([4,6]);
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(cx-aPx,cy); ctx.lineTo(cx+aPx,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-bPx); ctx.lineTo(cx,cy+bPx); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Center cross
+  ctx.beginPath(); ctx.arc(cx,cy,4,0,TAU);
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='11px sans-serif';
+  ctx.fillText('center',cx+6,cy-6);
+
+  // Empty focus
+  ctx.beginPath(); ctx.arc(cx-fPx,cy,4,0,TAU);
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='11px sans-serif';
+  ctx.fillText('empty focus',cx-fPx+6,cy-6);
+
+  // semi-major axis label
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(cx,cy-6); ctx.lineTo(cx+aPx,cy-6); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('a (semi-major axis)',cx+aPx/2,cy-10);
+  ctx.textAlign='left';
+
+  // Planet
+  const pNu=trueAnom(l1Nu,e), rPx=radAt(pNu,e)*aPx;
+  const px=sx+rPx*Math.cos(pNu), py=sy-rPx*Math.sin(pNu);
+
+  // Line Sun→planet
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(px,py);
+  ctx.strokeStyle='rgba(255,200,80,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Trail
+  for(let i=0;i<50;i++){
+    const tM=l1Nu-i*0.04, tNu=trueAnom(tM,e), tr=radAt(tNu,e)*aPx;
+    const tpx=sx+tr*Math.cos(tNu), tpy=sy-tr*Math.sin(tNu);
+    ctx.beginPath(); ctx.arc(tpx,tpy,2*(1-i/50),0,TAU);
+    ctx.fillStyle=`rgba(80,180,255,${0.6*(1-i/50)})`; ctx.fill();
+  }
+
+  // Planet glow
+  const pg=ctx.createRadialGradient(px,py,0,px,py,10);
+  pg.addColorStop(0,'#a0d8ff'); pg.addColorStop(1,'#2060c0');
+  ctx.beginPath(); ctx.arc(px,py,10,0,TAU); ctx.fillStyle=pg; ctx.fill();
+
+  // Perihelion / Aphelion labels
+  ctx.fillStyle='rgba(255,180,80,0.8)'; ctx.font='11px sans-serif';
+  ctx.fillText('Perihelion',sx+aPx*(1-e)+4,cy+16);
+  ctx.fillStyle='rgba(100,180,255,0.8)';
+  ctx.fillText('Aphelion',sx-aPx*(1+e)+4,cy+16);
+
+  // Sun label
+  drawSun(ctx,sx,sy,18);
+  ctx.fillStyle='rgba(255,240,160,0.75)'; ctx.font='11px sans-serif';
+  ctx.fillText('Sun (focus)',sx+14,sy-12);
+
+  l1Nu+=0.012;
+  activeRaf=requestAnimationFrame(drawL1);
+}
+
+/* ══════════════════════ LAW 2 ══════════════════════ */
+const W2_COLORS=[
+  ['#ff6030','rgba(255,96,48,0.28)'],
+  ['#ffd040','rgba(255,208,64,0.28)'],
+  ['#40e090','rgba(64,224,144,0.28)'],
+  ['#40aaff','rgba(64,170,255,0.28)'],
+  ['#c060ff','rgba(192,96,255,0.28)'],
+];
+const N_W=5, DT_W=TAU/N_W;
+let l2Ecc=0.55, l2M=0, l2Paused=false, l2ShowW=true;
+
+// Build legend
+(function(){
+  const leg=document.getElementById('l2-legend');
+  W2_COLORS.forEach(([c],i)=>{
+    const d=document.createElement('div'); d.className='leg-item';
+    d.innerHTML=`<div class="leg-dot" style="background:${c}"></div><span>Area ${i+1}</span>`;
+    leg.appendChild(d);
+  });
+})();
+
+function l2UpdateEcc(){
+  l2Ecc=document.getElementById('l2-ecc-sl').value/100;
+  document.getElementById('l2-ecc-out').textContent=l2Ecc.toFixed(2);
+  l2M=0;
+}
+function l2TogglePause(){
+  l2Paused=!l2Paused;
+  const b=document.getElementById('l2-pause-btn');
+  b.textContent=l2Paused?'▶ Resume':'⏸ Pause';
+  b.classList.toggle('on',!l2Paused);
+}
+function l2ToggleWedges(){
+  l2ShowW=!l2ShowW;
+  const b=document.getElementById('l2-wedge-btn');
+  b.textContent=l2ShowW?'Hide wedges':'Show wedges';
+}
+
+function buildWedges(e,aPx,sx,sy){
+  return Array.from({length:N_W},(_,w)=>{
+    const M0=w*DT_W, M1=M0+DT_W;
+    const nu0=trueAnom(M0,e), nu1=trueAnom(M1,e);
+    let range=nu1-nu0; if(range<0) range+=TAU;
+    const pts=[{x:sx,y:sy}];
+    for(let s=0;s<=40;s++){
+      const t=nu0+range*(s/40), r=radAt(t,e)*aPx;
+      pts.push({x:sx+r*Math.cos(t),y:sy-r*Math.sin(t)});
+    }
+    pts.push({x:sx,y:sy});
+    return {pts,nu0,nu1,M0,M1};
+  });
+}
+
+function drawL2(){
+  const cv=document.getElementById('c2');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
+  drawStars(ctx,W,H,80);
+
+  const spd=parseFloat(document.getElementById('l2-spd-sl').value);
+  document.getElementById('l2-spd-out').textContent=spd+'×';
+
+  const aPx=Math.min(W,H)*0.36, e=l2Ecc;
+  const bPx=aPx*Math.sqrt(1-e*e), fPx=aPx*e;
+  const cx=W/2, cy=H/2;
+  const sx=cx+fPx, sy=cy;
+
+  ctx.beginPath(); ctx.ellipse(cx,cy,aPx,bPx,0,0,TAU);
+  ctx.strokeStyle='rgba(100,160,255,0.22)'; ctx.lineWidth=1; ctx.stroke();
+
+  const wedges=buildWedges(e,aPx,sx,sy);
+
+  if(l2ShowW){
+    wedges.forEach((w,i)=>{
+      const [sc,fc]=W2_COLORS[i];
+      ctx.beginPath();
+      w.pts.forEach((p,j)=>j===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+      ctx.closePath();
+      ctx.fillStyle=fc; ctx.fill();
+      ctx.strokeStyle=sc; ctx.lineWidth=1; ctx.stroke();
+      // centroid label
+      const arc=w.pts.slice(1,w.pts.length-1);
+      let lx=0,ly=0; arc.forEach(p=>{lx+=p.x;ly+=p.y;});
+      lx=(lx/arc.length+sx)*0.55; ly=(ly/arc.length+sy)*0.55;
+      ctx.fillStyle=sc; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('A'+(i+1),lx,ly+4);
+    });
+    ctx.textAlign='left';
+  }
+
+  drawSun(ctx,sx,sy,18);
+  ctx.fillStyle='rgba(255,240,160,0.7)'; ctx.font='11px sans-serif';
+  ctx.fillText('Sun',sx+13,sy-12);
+
+  const nuP=trueAnom(((l2M%TAU)+TAU)%TAU,e);
+  const rP=radAt(nuP,e)*aPx;
+  const px=sx+rP*Math.cos(nuP), py=sy-rP*Math.sin(nuP);
+
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(px,py);
+  ctx.strokeStyle='rgba(255,220,80,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  for(let i=0;i<60;i++){
+    const tM=l2M-i*0.012*spd, tNu=trueAnom(((tM%TAU)+TAU)%TAU,e);
+    const tr=radAt(tNu,e)*aPx;
+    const tpx=sx+tr*Math.cos(tNu),tpy=sy-tr*Math.sin(tNu);
+    ctx.beginPath(); ctx.arc(tpx,tpy,2*(1-i/60),0,TAU);
+    ctx.fillStyle=`rgba(80,200,180,${0.7*(1-i/60)})`; ctx.fill();
+  }
+
+  // Active wedge highlight ring
+  const cWi=Math.floor((((l2M%TAU)+TAU)%TAU)/DT_W)%N_W;
+  ctx.beginPath(); ctx.arc(px,py,15,0,TAU);
+  ctx.strokeStyle=W2_COLORS[cWi][0]; ctx.lineWidth=2; ctx.stroke();
+
+  const pg=ctx.createRadialGradient(px,py,0,px,py,10);
+  pg.addColorStop(0,'#80ffee'); pg.addColorStop(1,'#1080a0');
+  ctx.beginPath(); ctx.arc(px,py,10,0,TAU); ctx.fillStyle=pg; ctx.fill();
+
+  ctx.fillStyle='rgba(255,180,80,0.8)'; ctx.font='bold 11px sans-serif';
+  ctx.fillText('← Fast',sx+aPx*(1-e)+10,sy+4);
+  ctx.fillStyle='rgba(100,180,255,0.8)';
+  ctx.fillText('Slow →',sx-aPx*(1+e)-58,sy+4);
+
+  const rAU=radAt(nuP,e);
+  document.getElementById('l2-spd').textContent=(30/rAU).toFixed(1)+' km/s';
+  document.getElementById('l2-dst').textContent=rAU.toFixed(3)+' AU';
+
+  if(!l2Paused) l2M+=0.006*spd;
+  activeRaf=requestAnimationFrame(drawL2);
+}
+
+/* ══════════════════════ LAW 3 ══════════════════════ */
+const PLANETS=[
+  {name:'Mercury',a:0.387,T:0.241,color:'#c8b89a',size:5},
+  {name:'Venus',  a:0.723,T:0.615,color:'#e8c870',size:7},
+  {name:'Earth',  a:1.000,T:1.000,color:'#4090e0',size:8},
+  {name:'Mars',   a:1.524,T:1.881,color:'#d05030',size:6},
+  {name:'Jupiter',a:5.203,T:11.86,color:'#d08050',size:14},
+];
+let l3Sel=2, l3Angles=PLANETS.map((_,i)=>i*1.1), l3Paused=false;
+
+function l3TogglePause(){
+  l3Paused=!l3Paused;
+  const b=document.getElementById('l3-pause-btn');
+  b.textContent=l3Paused?'▶ Resume':'⏸ Pause';
+  b.classList.toggle('on',!l3Paused);
+}
+function l3SelectPlanet(i){
+  l3Sel=i;
+  const p=PLANETS[i];
+  document.getElementById('l3-name').textContent=p.name;
+  document.getElementById('l3-axis').textContent=p.a.toFixed(3);
+  document.getElementById('l3-period').textContent=p.T.toFixed(3);
+  document.getElementById('l3-ratio').textContent=(p.T*p.T/(p.a*p.a*p.a)).toFixed(3);
+}
+l3SelectPlanet(2);
+
+function drawL3(){
+  const cv=document.getElementById('c3');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
+  drawStars(ctx,W,H,90);
+
+  const cx=W/2,cy=H/2;
+  const scale=Math.min(W,H)*0.065; // AU → px
+
+  drawSun(ctx,cx,cy,22);
+  ctx.fillStyle='rgba(255,240,160,0.7)'; ctx.font='11px sans-serif';
+  ctx.fillText('Sun',cx+14,cy-14);
+
+  PLANETS.forEach((p,i)=>{
+    const r=p.a*scale;
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,TAU);
+    ctx.strokeStyle=i===l3Sel?p.color.replace('#','rgba(').replace(/(..)(..)(..)/, (_,r,g,b)=>`${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`)+'0.6)':'rgba(100,130,200,0.18)';
+    // simpler color for orbit
+    ctx.strokeStyle=i===l3Sel?p.color+'aa':'rgba(100,130,200,0.18)';
+    ctx.lineWidth=i===l3Sel?1.5:0.8; ctx.stroke();
+
+    if(!l3Paused) l3Angles[i]+=0.008/p.T;
+    const px=cx+r*Math.cos(l3Angles[i]), py=cy+r*Math.sin(l3Angles[i]);
+
+    // Trail
+    for(let j=0;j<25;j++){
+      const ta=l3Angles[i]-j*0.06/p.T*p.T;
+      const tpx=cx+r*Math.cos(ta),tpy=cy+r*Math.sin(ta);
+      ctx.beginPath(); ctx.arc(tpx,tpy,1.5*(1-j/25),0,TAU);
+      ctx.fillStyle=p.color+(j===0?'ff':'33'); ctx.fill();
+    }
+
+    if(i===l3Sel){
+      ctx.beginPath(); ctx.arc(px,py,p.size+5,0,TAU);
+      ctx.strokeStyle=p.color; ctx.lineWidth=1.5; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(px,py,p.size,0,TAU);
+    ctx.fillStyle=p.color; ctx.fill();
+
+    // Name label (just outside orbit)
+    const lAngle = -Math.PI/4 + i*0.3;
+    const lx=cx+(r+p.size+8)*Math.cos(lAngle), ly=cy+(r+p.size+8)*Math.sin(lAngle);
+    ctx.fillStyle=i===l3Sel?p.color:'rgba(255,255,255,0.38)';
+    ctx.font=i===l3Sel?'bold 12px sans-serif':'11px sans-serif';
+    ctx.textAlign='center'; ctx.fillText(p.name,lx,ly); ctx.textAlign='left';
+  });
+
+  // T² ∝ a³ annotation
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='12px sans-serif';
+  ctx.fillText('T² ∝ a³',10,H-14);
+
+  cv.onclick=(e)=>{
+    const rect=cv.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(W/rect.width);
+    const my=(e.clientY-rect.top)*(H/rect.height);
+    let best=-1,bestD=30;
+    PLANETS.forEach((p,i)=>{
+      const r=p.a*scale;
+      const px=cx+r*Math.cos(l3Angles[i]),py=cy+r*Math.sin(l3Angles[i]);
+      const d=Math.hypot(mx-px,my-py);
+      if(d<bestD){bestD=d;best=i;}
+    });
+    if(best>=0) l3SelectPlanet(best);
+  };
+  cv.style.cursor='pointer';
+
+  activeRaf=requestAnimationFrame(drawL3);
+}
+
+/* ══════════════════════ Tab logic ══════════════════════ */
+const DRAWS=[drawL1,drawL2,drawL3];
+const CVS=['c1','c2','c3'];
+
+function showLaw(n){
+  if(activeRaf) cancelAnimationFrame(activeRaf);
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+  currentLaw=n;
+  resizeCv(CVS[n]);
+  DRAWS[n]();
+}
+
+window.addEventListener('resize',()=>{ resizeCv(CVS[currentLaw]); });
+
+// Start
+resizeCv('c1');
+drawL1();
+</script>
+</body>
+</html>

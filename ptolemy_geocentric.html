@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ptolemy's Geocentric Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Uncial+Antiqua&family=Cinzel:wght@400;600;900&display=swap');
+
+:root {
+  --bg:        #0d0a05;
+  --parchment: #f5e9c8;
+  --ink:       #2a1f08;
+  --gold:      #d4a843;
+  --gold2:     #f0c860;
+  --rust:      #9b4a1a;
+  --crimson:   #8b1a1a;
+  --azure:     #1a4a7a;
+  --verdigris: #2a6b5a;
+  --dim:       rgba(212,168,67,0.25);
+  --ring:      rgba(212,168,67,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+  font-family: 'IM Fell English', serif;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* Vellum texture overlay */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(30,20,5,0) 40%, rgba(5,3,0,0.7) 100%),
+    repeating-linear-gradient(
+      92deg,
+      transparent,
+      transparent 3px,
+      rgba(212,168,67,0.015) 3px,
+      rgba(212,168,67,0.015) 4px
+    );
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+header {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+.header-ornament {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.5em;
+  color: var(--gold);
+  opacity: 0.6;
+  margin-bottom: 0.5rem;
+}
+
+header h1 {
+  font-family: 'Uncial Antiqua', cursive;
+  font-size: clamp(1.6rem, 5vw, 3rem);
+  color: var(--gold2);
+  text-shadow: 0 0 30px rgba(212,168,67,0.4), 0 2px 0 rgba(0,0,0,0.8);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+}
+
+header .subtitle {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.75rem, 2vw, 1rem);
+  color: rgba(212,168,67,0.55);
+  margin-top: 0.3rem;
+  letter-spacing: 0.08em;
+}
+
+.header-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 0.8rem auto 0;
+  max-width: 420px;
+}
+.header-rule::before,
+.header-rule::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.header-rule span {
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+/* ── Main layout ─────────────────────────────────────────────── */
+.main-wrap {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem 2rem;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────── */
+#orrery {
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(212,168,67,0.15),
+    0 0 60px rgba(212,168,67,0.08),
+    0 0 120px rgba(100,60,10,0.3);
+}
+
+/* ── Controls ────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ctrl-btn {
+  background: none;
+  border: 1px solid rgba(212,168,67,0.4);
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  padding: 0.4rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-transform: uppercase;
+}
+.ctrl-btn:hover {
+  background: rgba(212,168,67,0.1);
+  border-color: var(--gold2);
+  color: var(--gold2);
+}
+
+.speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: rgba(212,168,67,0.5);
+  letter-spacing: 0.15em;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 80px; height: 2px;
+  background: rgba(212,168,67,0.3);
+  outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+}
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: rgba(212,168,67,0.5);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.toggle-wrap input { cursor: pointer; accent-color: var(--gold); }
+
+/* ── Info panel ──────────────────────────────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1px;
+  max-width: 860px;
+  width: 100%;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(212,168,67,0.2);
+  background: rgba(212,168,67,0.07);
+}
+
+.info-cell {
+  padding: 1.1rem 1.3rem;
+  background: rgba(13,10,5,0.85);
+  border-right: 1px solid rgba(212,168,67,0.1);
+}
+.info-cell:last-child { border-right: none; }
+
+.info-cell .label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 0.45rem;
+}
+
+.info-cell .value {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.88rem;
+  color: var(--parchment);
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
+/* ── Legend ──────────────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  max-width: 860px;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(212,168,67,0.12);
+  background: rgba(212,168,67,0.04);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: rgba(212,168,67,0.6);
+  text-transform: uppercase;
+}
+
+.legend-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+footer {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 1.2rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.3em;
+  color: rgba(212,168,67,0.25);
+  border-top: 1px solid rgba(212,168,67,0.08);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-ornament">Claudius Ptolemaeus · Ἀλεξάνδρεια · c. 150 AD</div>
+  <h1>Ptolemy's Geocentric Model</h1>
+  <div class="subtitle">The Almagest — Earth at the Centre of All Heavens</div>
+  <div class="header-rule"><span>✦</span></div>
+</header>
+
+<div class="main-wrap">
+  <canvas id="orrery"></canvas>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="pauseBtn">Pause</button>
+    <div class="speed-wrap">
+      <span>Tempo</span>
+      <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+    </div>
+    <label class="toggle-wrap">
+      <input type="checkbox" id="showEpicycles" checked>
+      <span>Show Epicycles</span>
+    </label>
+    <label class="toggle-wrap">
+      <input type="checkbox" id="showDeferents" checked>
+      <span>Show Deferents</span>
+    </label>
+    <label class="toggle-wrap">
+      <input type="checkbox" id="showTrails" checked>
+      <span>Trails</span>
+    </label>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-cell">
+      <div class="label">The Deferent</div>
+      <div class="value">Each planet moves on a great circle called the <em>deferent</em>, centred not on Earth but on a small offset point — the <em>eccentric</em>.</div>
+    </div>
+    <div class="info-cell">
+      <div class="label">The Epicycle</div>
+      <div class="value">Upon the deferent rides a smaller circle, the <em>epicycle</em>. The planet itself moves upon this inner wheel, producing looping <em>retrograde</em> motion.</div>
+    </div>
+    <div class="info-cell">
+      <div class="label">The Equant</div>
+      <div class="value">Uniform angular speed is measured not from Earth but from a third point, the <em>equant</em> — Ptolemy's boldest mathematical device.</div>
+    </div>
+    <div class="info-cell">
+      <div class="label">The Primum Mobile</div>
+      <div class="value">Beyond all planets lies the outermost sphere of fixed stars, the <em>Primum Mobile</em>, which carries all the heavens in its daily rotation.</div>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+</div>
+
+<footer>PTOLEMAIC GEOCENTRIC COSMOLOGY · INTERACTIVE ORRERY · THE ALMAGEST</footer>
+
+<script>
+const cv = document.getElementById('orrery');
+const ctx = cv.getContext('2d');
+
+// ── Responsive sizing
+function setSize() {
+  const maxW = Math.min(window.innerWidth - 32, 640);
+  cv.width = maxW;
+  cv.height = maxW;
+}
+setSize();
+window.addEventListener('resize', setSize);
+
+// ── Planet definitions (Ptolemaic order outward from Earth)
+// deferent: radius, speed (rad/s sim), eccentricOffset
+// epicycle: radius, speed relative to deferent
+const PLANETS = [
+  {
+    name: 'Moon',
+    color: '#d0cfc0',
+    glow:  '#e0e0cc',
+    size:   5,
+    deferent: { r: 0.13, speed: 13.2  },
+    epicycle: { r: 0.025, speed: -18 },
+    eccOffset: 0.008,
+  },
+  {
+    name: 'Mercury',
+    color: '#b0a898',
+    glow:  '#c8bfaa',
+    size:   4,
+    deferent: { r: 0.20, speed: 4.1 },
+    epicycle: { r: 0.07,  speed: 26  },
+    eccOffset: 0.02,
+  },
+  {
+    name: 'Venus',
+    color: '#e8d870',
+    glow:  '#f5e898',
+    size:   6,
+    deferent: { r: 0.29, speed: 1.6  },
+    epicycle: { r: 0.10,  speed: 18  },
+    eccOffset: 0.015,
+  },
+  {
+    name: 'Sun',
+    color: '#ffdd66',
+    glow:  '#ffee99',
+    size:   9,
+    deferent: { r: 0.38, speed: 1.0  },
+    epicycle: { r: 0.0,   speed: 0   },   // Sun has no epicycle in Ptolemy
+    eccOffset: 0.02,
+    isSun: true,
+  },
+  {
+    name: 'Mars',
+    color: '#d46030',
+    glow:  '#e87840',
+    size:   6,
+    deferent: { r: 0.48, speed: 0.53 },
+    epicycle: { r: 0.115, speed: 9.5 },
+    eccOffset: 0.05,
+  },
+  {
+    name: 'Jupiter',
+    color: '#c8a870',
+    glow:  '#d8b880',
+    size:   8,
+    deferent: { r: 0.60, speed: 0.084},
+    epicycle: { r: 0.055, speed: 4.0 },
+    eccOffset: 0.025,
+  },
+  {
+    name: 'Saturn',
+    color: '#c8b888',
+    glow:  '#d8c898',
+    size:   7,
+    deferent: { r: 0.72, speed: 0.034},
+    epicycle: { r: 0.045, speed: 2.2 },
+    eccOffset: 0.03,
+  },
+];
+
+const TRAIL_LEN = 300;
+PLANETS.forEach(p => { p.trail = []; p.angle = Math.random() * Math.PI * 2; p.epicAngle = Math.random() * Math.PI * 2; });
+
+// ── State
+let paused = false;
+let speed = 1;
+let showEpicycles = true;
+let showDeferents = true;
+let showTrails = true;
+let lastTs = null;
+
+document.getElementById('pauseBtn').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? 'Play' : 'Pause';
+});
+document.getElementById('speedSlider').addEventListener('input', e => speed = +e.target.value);
+document.getElementById('showEpicycles').addEventListener('change', e => showEpicycles = e.target.checked);
+document.getElementById('showDeferents').addEventListener('change', e => showDeferents = e.target.checked);
+document.getElementById('showTrails').addEventListener('change', e => showTrails = e.target.checked);
+
+// ── Build legend
+const leg = document.getElementById('legend');
+PLANETS.forEach(p => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${p.color};box-shadow:0 0 5px ${p.glow}"></div>${p.name}`;
+  leg.appendChild(item);
+});
+
+// ── Draw helpers
+function circle(x, y, r, fill, glow, blur=0) {
+  ctx.save();
+  if (blur > 0) {
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = blur;
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.restore();
+}
+
+function ringCircle(x, y, r, stroke, alpha=0.3, dash=[]) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.setLineDash(dash);
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.strokeStyle = stroke;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Starfield background (static)
+let starField = null;
+function buildStarField(W, H) {
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const c = off.getContext('2d');
+  // Deep space bg
+  const bg = c.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.55);
+  bg.addColorStop(0,   '#12100a');
+  bg.addColorStop(0.6, '#0b0905');
+  bg.addColorStop(1,   '#050403');
+  c.fillStyle = bg;
+  c.fillRect(0,0,W,H);
+  // Stars
+  for (let i=0;i<260;i++) {
+    const x = Math.random()*W, y = Math.random()*H;
+    const r = Math.random()*1.2+0.2;
+    const a = Math.random()*0.7+0.15;
+    const d = Math.sqrt((x-W/2)**2+(y-H/2)**2);
+    if (d > W*0.48) continue;
+    c.beginPath();
+    c.arc(x,y,r,0,Math.PI*2);
+    c.fillStyle = `rgba(240,230,200,${a})`;
+    c.fill();
+  }
+  return off;
+}
+
+// ── Outer sphere of fixed stars decorations
+function drawSphereDecor(cx, cy, R) {
+  // Outer ring
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R*0.90,0,Math.PI*2);
+  const grad = ctx.createLinearGradient(cx-R,cy-R,cx+R,cy+R);
+  grad.addColorStop(0, 'rgba(212,168,67,0.12)');
+  grad.addColorStop(0.5,'rgba(212,168,67,0.04)');
+  grad.addColorStop(1,'rgba(212,168,67,0.12)');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 12;
+  ctx.stroke();
+  ctx.restore();
+
+  // Zodiac ring marks
+  ctx.save();
+  for (let i=0;i<12;i++) {
+    const a = (i/12)*Math.PI*2;
+    const x = cx + Math.cos(a)*R*0.89;
+    const y = cy + Math.sin(a)*R*0.89;
+    ctx.beginPath();
+    ctx.arc(x,y,2,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(212,168,67,0.5)';
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Zodiac glyphs
+  const glyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+  ctx.save();
+  ctx.font = '11px serif';
+  ctx.fillStyle = 'rgba(212,168,67,0.45)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i=0;i<12;i++) {
+    const a = (i/12)*Math.PI*2 - Math.PI/2;
+    const x = cx + Math.cos(a)*R*0.85;
+    const y = cy + Math.sin(a)*R*0.85;
+    ctx.fillText(glyphs[i],x,y);
+  }
+  ctx.restore();
+}
+
+// ── Main draw
+function draw(ts) {
+  const W = cv.width, H = cv.height;
+  const CX = W/2, CY = H/2;
+  const SCALE = W * 0.46; // px per unit
+
+  if (!starField || starField.width !== W) {
+    starField = buildStarField(W, H);
+  }
+
+  const dt = lastTs ? Math.min((ts - lastTs)/1000, 0.05) : 0;
+  lastTs = ts;
+
+  if (!paused) {
+    PLANETS.forEach(p => {
+      p.angle     += p.deferent.speed * dt * speed * 0.3;
+      p.epicAngle += p.epicycle.speed * dt * speed * 0.3;
+    });
+  }
+
+  // Background
+  ctx.drawImage(starField, 0, 0);
+
+  // Outer sphere
+  drawSphereDecor(CX, CY, W*0.495);
+
+  // Earth at centre
+  // Equant/eccentric label
+  ctx.save();
+  ctx.font = '9px Cinzel, serif';
+  ctx.fillStyle = 'rgba(212,168,67,0.35)';
+  ctx.textAlign = 'center';
+  ctx.fillText('TERRA', CX, CY + 16);
+  ctx.restore();
+
+  const earthGrad = ctx.createRadialGradient(CX,CY,0,CX,CY,10);
+  earthGrad.addColorStop(0,'#6ab4e8');
+  earthGrad.addColorStop(0.5,'#2a6090');
+  earthGrad.addColorStop(1,'#0a2840');
+  circle(CX,CY,10,earthGrad,'#6ab4e8',18);
+
+  // Draw each planet
+  PLANETS.forEach(p => {
+    const DR = p.deferent.r * SCALE;
+    const ER = p.epicycle.r * SCALE;
+
+    // Eccentric offset (deferent center ≠ Earth)
+    const eccX = CX + p.eccOffset * SCALE;
+    const eccY = CY;
+
+    // Deferent center position (slightly off Earth)
+    const defCX = eccX;
+    const defCY = eccY;
+
+    // Deferent ring
+    if (showDeferents) {
+      ringCircle(defCX, defCY, DR, '#d4a843', 0.18, [4,6]);
+    }
+
+    // Position on deferent
+    const dx = defCX + DR * Math.cos(p.angle);
+    const dy = defCY + DR * Math.sin(p.angle);
+
+    // Epicycle ring
+    if (showEpicycles && ER > 0) {
+      ringCircle(dx, dy, ER, '#d4a843', 0.28, [2,4]);
+    }
+
+    // Planet position (on epicycle, or on deferent if no epicycle)
+    let px, py;
+    if (ER > 0) {
+      px = dx + ER * Math.cos(p.epicAngle);
+      py = dy + ER * Math.sin(p.epicAngle);
+    } else {
+      px = dx;
+      py = dy;
+    }
+
+    // Trail
+    p.trail.push([px, py]);
+    if (p.trail.length > TRAIL_LEN) p.trail.shift();
+
+    if (showTrails && p.trail.length > 1) {
+      ctx.save();
+      for (let i=1; i<p.trail.length; i++) {
+        const a = (i/p.trail.length)*0.55;
+        ctx.beginPath();
+        ctx.moveTo(p.trail[i-1][0], p.trail[i-1][1]);
+        ctx.lineTo(p.trail[i][0], p.trail[i][1]);
+        ctx.strokeStyle = p.color;
+        ctx.globalAlpha = a * 0.6;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Epicycle spoke (deferent point → planet)
+    if (showEpicycles && ER > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(dx, dy);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = p.color;
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Deferent spoke (Earth → deferent point)
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(CX, CY);
+    ctx.lineTo(dx, dy);
+    ctx.strokeStyle = p.color;
+    ctx.globalAlpha = 0.1;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // Planet body
+    if (p.isSun) {
+      const sg = ctx.createRadialGradient(px,py,0,px,py,p.size*2.5);
+      sg.addColorStop(0,'#fffde0');
+      sg.addColorStop(0.3,p.color);
+      sg.addColorStop(1,'transparent');
+      ctx.beginPath();
+      ctx.arc(px,py,p.size*2.5,0,Math.PI*2);
+      ctx.fillStyle = sg;
+      ctx.fill();
+    }
+    circle(px, py, p.size, p.color, p.glow, p.isSun ? 22 : 10);
+
+    // Label
+    ctx.save();
+    ctx.font = p.isSun ? 'bold 9px Cinzel, serif' : '9px Cinzel, serif';
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = 0.8;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name.toUpperCase(), px + p.size + 4, py);
+    ctx.restore();
+  });
+
+  // Equant point label
+  ctx.save();
+  ctx.font = '8px Cinzel, serif';
+  ctx.fillStyle = 'rgba(212,168,67,0.35)';
+  ctx.textAlign = 'center';
+  ctx.fillText('⊕ EQUANT', CX + SCALE*0.05, CY + 8);
+  ctx.restore();
+
+  requestAnimationFrame(draw);
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

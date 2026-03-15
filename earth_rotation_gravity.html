@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earth Rotation & Gravity — Interactive Simulation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #060c14;
+    --surface:  #0d1829;
+    --surface2: #121f33;
+    --border:   rgba(100,160,255,0.12);
+    --teal:     #00d4b4;
+    --red:      #ff4e6a;
+    --amber:    #f9a825;
+    --blue:     #4a9eff;
+    --text:     #e8f0ff;
+    --muted:    #6a84a8;
+    --font:     'Space Grotesk', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Starfield background */
+  #stars-canvas {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  header {
+    text-align: center; margin-bottom: 36px;
+  }
+  header h1 {
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, #4a9eff, #00d4b4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Layout grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media(max-width:700px){ .grid{ grid-template-columns:1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── Earth canvas ── */
+  #earth-canvas {
+    width: 100%;
+    aspect-ratio: 1;
+    display: block;
+    border-radius: 12px;
+  }
+
+  /* ── Stats ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--teal);
+  }
+  .stat-unit {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Controls ── */
+  .ctrl-group { margin-bottom: 14px; }
+  .ctrl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .ctrl-header label { color: var(--muted); }
+  .ctrl-header .val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 500;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    border: 1px solid var(--border);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--blue);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(74,158,255,0.5);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--blue);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px rgba(74,158,255,0.5);
+  }
+
+  /* Animate toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .toggle {
+    position: relative;
+    width: 38px; height: 22px;
+  }
+  .toggle input { opacity:0; width:0; height:0; }
+  .slider-tog {
+    position: absolute; cursor:pointer;
+    top:0;left:0;right:0;bottom:0;
+    background: var(--surface2);
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    transition: background .2s;
+  }
+  .slider-tog:before {
+    content:''; position:absolute;
+    height:16px; width:16px;
+    left:2px; bottom:2px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: transform .2s, background .2s;
+  }
+  .toggle input:checked + .slider-tog { background: rgba(74,158,255,0.2); }
+  .toggle input:checked + .slider-tog:before { transform:translateX(16px); background:var(--blue); }
+
+  /* ── Formula box ── */
+  .formula-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .formula-box .comment { color: var(--muted); font-size: 11px; }
+  .formula-box .highlight { color: var(--teal); }
+  .formula-box .var-r { color: var(--red); }
+  .formula-box .var-a { color: var(--amber); }
+
+  /* ── Chart ── */
+  #g-chart { width:100%; }
+
+  /* ── Facts ticker ── */
+  .fact-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+    margin-top: 20px;
+  }
+  .fact-bar span { color: var(--text); }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 18px;
+    justify-content: center;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:5px;
+  }
+
+  /* Glow pulses */
+  @keyframes pulse-teal {
+    0%,100%{ box-shadow: 0 0 0 0 rgba(0,212,180,0); }
+    50%    { box-shadow: 0 0 16px 4px rgba(0,212,180,0.25); }
+  }
+  .stat:first-child { animation: pulse-teal 3s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<div class="wrapper">
+  <header>
+    <h1>🌍 Earth's Rotation &amp; Gravitational Acceleration</h1>
+    <p>Visualising how Earth's spin reduces effective gravity — strongest at the equator, zero at the poles</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">g effective</div>
+      <div class="stat-value" id="sv-g">9.780</div>
+      <div class="stat-unit">m/s²</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Centripetal a_c</div>
+      <div class="stat-value" id="sv-ac" style="color:var(--red)">0.0337</div>
+      <div class="stat-unit">m/s²</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">g reduction</div>
+      <div class="stat-value" id="sv-red" style="color:var(--amber)">0.344</div>
+      <div class="stat-unit">%</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Earth animation card -->
+    <div class="card">
+      <div class="card-title">Live Earth Model</div>
+      <canvas id="earth-canvas" width="420" height="420"></canvas>
+      <div class="legend" style="margin-top:12px">
+        <span><span class="legend-dot" style="background:#00d4b4"></span>Gravity</span>
+        <span><span class="legend-dot" style="background:#ff4e6a"></span>Centripetal</span>
+        <span><span class="legend-dot" style="background:#f9a825"></span>Observer</span>
+      </div>
+    </div>
+
+    <!-- Controls + chart -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-title">Controls</div>
+
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="anim-toggle" checked>
+            <span class="slider-tog"></span>
+          </label>
+          <span>Auto-rotate latitude</span>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-header">
+            <label>Latitude (φ)</label>
+            <span class="val" id="lat-val">0°</span>
+          </div>
+          <input type="range" id="lat-slider" min="0" max="90" value="0" step="0.5">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-header">
+            <label>Spin rate multiplier (ω×)</label>
+            <span class="val" id="omega-val">1.0×</span>
+          </div>
+          <input type="range" id="omega-slider" min="0" max="10" value="1" step="0.1">
+        </div>
+
+        <div class="formula-box">
+          <div class="comment">// Effective gravity formula</div>
+          <span class="highlight">g_eff</span>(φ) = <span class="var-r">g₀</span> − <span class="var-a">ω²</span> · R · cos²(φ)
+          <br>
+          <div class="comment" style="margin-top:6px">
+            g₀ = 9.814 m/s²&nbsp;&nbsp;ω = 7.2921×10⁻⁵ rad/s<br>
+            R  = 6.371×10⁶ m&nbsp;&nbsp;φ = latitude
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">g vs Latitude Curve</div>
+        <canvas id="g-chart" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="fact-bar" id="fact-bar">
+    <span id="fact-text">At the equator, Earth's surface moves at <span>~1674 km/h</span> — the centrifugal effect is strongest here.</span>
+  </div>
+</div>
+
+<script>
+/* ── Starfield ── */
+(function(){
+  const c = document.getElementById('stars-canvas');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+    stars = Array.from({length:200},()=>({
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: Math.random()*1.4+0.2,
+      o: Math.random()*0.6+0.1,
+      sp: Math.random()*0.4+0.1
+    }));
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  let t=0;
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,220,255,${s.o*(0.6+0.4*Math.sin(t*s.sp))})`;
+      ctx.fill();
+    });
+    t += 0.02;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── Physics constants ── */
+const G0    = 9.814;
+const R     = 6.371e6;
+const W0    = 7.2921e-5;
+
+function gEff(latDeg, omMult){
+  const phi = latDeg * Math.PI / 180;
+  const om  = W0 * omMult;
+  return G0 - om*om*R*Math.cos(phi)*Math.cos(phi);
+}
+function centrifugal(latDeg, omMult){
+  const phi = latDeg * Math.PI / 180;
+  const om  = W0 * omMult;
+  return om*om*R*Math.cos(phi)*Math.cos(phi);
+}
+
+/* ── State ── */
+let lat       = 0;
+let omMult    = 1;
+let autoAnim  = true;
+let earthAngle = 0;
+
+/* ── DOM refs ── */
+const latSlider   = document.getElementById('lat-slider');
+const omSlider    = document.getElementById('omega-slider');
+const animToggle  = document.getElementById('anim-toggle');
+const latVal      = document.getElementById('lat-val');
+const omVal       = document.getElementById('omega-val');
+
+latSlider.addEventListener('input',  e => { lat = parseFloat(e.target.value); syncUI(); });
+omSlider.addEventListener('input',   e => { omMult = parseFloat(e.target.value); syncUI(); });
+animToggle.addEventListener('change', e => { autoAnim = e.target.checked; });
+
+/* ── Chart ── */
+const chartCtx = document.getElementById('g-chart').getContext('2d');
+const chartLabels = Array.from({length:91},(_,i)=>i);
+const chart = new Chart(chartCtx, {
+  type: 'line',
+  data: {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: 'g curve',
+        data: chartLabels.map(l => gEff(l,1)),
+        borderColor: '#4a9eff',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: { target:'origin', above:'rgba(74,158,255,0.07)' }
+      },
+      {
+        label: 'Position',
+        data: [{x:0, y:gEff(0,1)}],
+        borderColor: '#f9a825',
+        borderWidth: 0,
+        pointRadius: 8,
+        pointBackgroundColor: '#f9a825',
+        pointBorderColor: '#f9a825',
+        showLine: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    animation: { duration: 0 },
+    plugins: { legend:{ display:false } },
+    scales: {
+      x: {
+        title:{ display:true, text:'Latitude (°)', color:'#6a84a8', font:{size:11,family:'Space Grotesk'} },
+        ticks:{ color:'#6a84a8', font:{size:10}, maxTicksLimit:10, callback: v=>v+'°' },
+        grid:{ color:'rgba(100,160,255,0.06)' }
+      },
+      y: {
+        title:{ display:true, text:'g (m/s²)', color:'#6a84a8', font:{size:11,family:'Space Grotesk'} },
+        ticks:{ color:'#6a84a8', font:{size:10,family:'JetBrains Mono'}, callback: v=>v.toFixed(3) },
+        grid:{ color:'rgba(100,160,255,0.06)' },
+        min: 9.75, max: 9.82
+      }
+    }
+  }
+});
+
+/* ── Earth Canvas ── */
+const ec  = document.getElementById('earth-canvas');
+const ectx = ec.getContext('2d');
+const W   = ec.width, H = ec.height;
+const CX  = W/2, CY = H/2;
+const ER  = W*0.38; // earth radius in px
+
+function drawEarth(){
+  ectx.clearRect(0,0,W,H);
+
+  /* Glow behind earth */
+  const grd = ectx.createRadialGradient(CX,CY,ER*0.5,CX,CY,ER*1.4);
+  grd.addColorStop(0, 'rgba(30,80,160,0.18)');
+  grd.addColorStop(1, 'transparent');
+  ectx.fillStyle = grd;
+  ectx.beginPath();
+  ectx.arc(CX,CY,ER*1.4,0,Math.PI*2);
+  ectx.fill();
+
+  /* Rotation axis (dashed) */
+  ectx.save();
+  ectx.setLineDash([5,5]);
+  ectx.strokeStyle = 'rgba(100,160,255,0.25)';
+  ectx.lineWidth = 1;
+  ectx.beginPath();
+  ectx.moveTo(CX, CY - ER - 30);
+  ectx.lineTo(CX, CY + ER + 30);
+  ectx.stroke();
+  ectx.restore();
+
+  /* Earth body */
+  ectx.save();
+  ectx.beginPath();
+  ectx.arc(CX, CY, ER, 0, Math.PI*2);
+  ectx.clip();
+
+  /* Base ocean */
+  const ocean = ectx.createRadialGradient(CX-ER*0.2, CY-ER*0.2, 0, CX, CY, ER);
+  ocean.addColorStop(0, '#1a4a8a');
+  ocean.addColorStop(0.6, '#0f3060');
+  ocean.addColorStop(1, '#081a3a');
+  ectx.fillStyle = ocean;
+  ectx.fillRect(CX-ER, CY-ER, ER*2, ER*2);
+
+  /* Continents (simplified rotating blobs) */
+  const conts = [
+    { ox:0.15, oy:-0.1, rw:0.3, rh:0.35, col:'#2d6e3a' },  // Americas
+    { ox:-0.35, oy:-0.05, rw:0.25, rh:0.3, col:'#3a7040' }, // Europe/Africa
+    { ox:0.35, oy:-0.05, rw:0.28, rh:0.25, col:'#3a6840' }, // Asia
+    { ox:0.4,  oy:0.3,  rw:0.2,  rh:0.15, col:'#c8a86e' }, // Australia
+    { ox:-0.1, oy:0.55, rw:0.5,  rh:0.08, col:'#e0e8f0' }, // Antarctica
+  ];
+  conts.forEach(cont => {
+    const px = CX + (Math.cos(earthAngle)*cont.ox - Math.sin(earthAngle)*0)*ER;
+    const py = CY + cont.oy*ER;
+    ectx.beginPath();
+    ectx.ellipse(px, py, cont.rw*ER*Math.abs(Math.cos(earthAngle))*0.9+0.05*ER, cont.rh*ER, 0, 0, Math.PI*2);
+    ectx.fillStyle = cont.col;
+    ectx.fill();
+  });
+
+  /* Latitude lines */
+  ectx.restore();
+  const latLines = [-60,-30,0,30,60];
+  latLines.forEach(ll => {
+    const phi = ll * Math.PI/180;
+    const lY  = CY - ER*Math.sin(phi);
+    const lRx = ER*Math.cos(phi);
+    ectx.beginPath();
+    ectx.ellipse(CX, lY, lRx, lRx*0.12, 0, 0, Math.PI*2);
+    ectx.strokeStyle = ll===0 ? 'rgba(249,168,37,0.45)' : 'rgba(100,160,255,0.18)';
+    ectx.lineWidth = ll===0 ? 1.5 : 0.7;
+    ectx.setLineDash([]);
+    ectx.stroke();
+  });
+
+  /* Meridians (2) */
+  [0, Math.PI/2].forEach(a => {
+    const mx = Math.cos(earthAngle + a);
+    ectx.beginPath();
+    ectx.ellipse(CX, CY, ER*Math.abs(mx)*0.05+1, ER, 0, 0, Math.PI*2);
+    ectx.strokeStyle = 'rgba(100,160,255,0.12)';
+    ectx.lineWidth = 0.7;
+    ectx.stroke();
+  });
+
+  /* Earth outline */
+  ectx.beginPath();
+  ectx.arc(CX, CY, ER, 0, Math.PI*2);
+  ectx.strokeStyle = 'rgba(100,160,255,0.4)';
+  ectx.lineWidth = 1.5;
+  ectx.stroke();
+
+  /* Observer dot */
+  const phi = lat * Math.PI / 180;
+  const dotY = CY - ER * Math.sin(phi);
+  const dotX = CX + ER * Math.cos(phi);
+
+  /* Gravity arrow (toward center) */
+  const g  = gEff(lat, omMult);
+  const gLen = 55 + (g - 9.76)*400;
+  const ang = Math.atan2(CY - dotY, CX - dotX);
+  ectx.save();
+  ectx.strokeStyle = '#00d4b4';
+  ectx.lineWidth = 2.5;
+  ectx.shadowColor = '#00d4b4';
+  ectx.shadowBlur = 8;
+  ectx.beginPath();
+  ectx.moveTo(dotX, dotY);
+  const gex = dotX + gLen*Math.cos(ang);
+  const gey = dotY + gLen*Math.sin(ang);
+  ectx.lineTo(gex, gey);
+  ectx.stroke();
+  arrowHead(ectx, gex, gey, ang, '#00d4b4', 10);
+  ectx.restore();
+
+  /* Centripetal arrow (toward rotation axis — horizontally inward, perpendicular to axis) */
+  const ac    = centrifugal(lat, omMult);
+  const acLen = Math.min(ac / (W0*W0*R) * 100, 70) * omMult*0.3 + 5;
+  // Centripetal points FROM the observer TOWARD the spin axis (i.e. toward CX at same y=dotY)
+  const cpDirX = -Math.cos(phi); // inward (opposite of centrifugal)
+  ectx.save();
+  ectx.strokeStyle = '#ff4e6a';
+  ectx.lineWidth = 2;
+  ectx.shadowColor = '#ff4e6a';
+  ectx.shadowBlur = 6;
+  ectx.beginPath();
+  ectx.moveTo(dotX, dotY);
+  const cex = dotX + acLen*cpDirX;
+  const cey = dotY;
+  ectx.lineTo(cex, cey);
+  ectx.stroke();
+  arrowHead(ectx, cex, cey, Math.PI, '#ff4e6a', 8);
+  ectx.restore();
+
+  /* Observer dot */
+  ectx.save();
+  ectx.shadowColor = '#f9a825';
+  ectx.shadowBlur = 16;
+  ectx.beginPath();
+  ectx.arc(dotX, dotY, 7, 0, Math.PI*2);
+  ectx.fillStyle = '#f9a825';
+  ectx.fill();
+  ectx.restore();
+
+  /* Latitude label */
+  ectx.font = '500 12px Space Grotesk, sans-serif';
+  ectx.fillStyle = '#f9a825';
+  ectx.fillText(`φ = ${lat.toFixed(1)}°`, dotX+14, dotY-8);
+
+  /* Rotation arc arrow */
+  ectx.save();
+  ectx.strokeStyle = 'rgba(249,168,37,0.5)';
+  ectx.lineWidth = 1.5;
+  ectx.setLineDash([5,4]);
+  ectx.beginPath();
+  ectx.ellipse(CX, CY + ER*0.03, ER*0.78, ER*0.1, 0, Math.PI*0.15, Math.PI*0.85);
+  ectx.stroke();
+  ectx.restore();
+
+  /* ω label */
+  ectx.font = 'italic 13px Space Grotesk, sans-serif';
+  ectx.fillStyle = 'rgba(249,168,37,0.75)';
+  ectx.fillText(`ω×${omMult.toFixed(1)}`, CX + ER*0.65, CY + ER*0.18);
+}
+
+function arrowHead(ctx, x, y, angle, color, size){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.lineTo(-size,-size*0.5);
+  ctx.lineTo(-size,+size*0.5);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 5;
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ── Sync UI ── */
+function syncUI(){
+  const g  = gEff(lat, omMult);
+  const ac = centrifugal(lat, omMult);
+  const red = ((G0 - g)/G0)*100;
+
+  document.getElementById('sv-g').textContent   = g.toFixed(3);
+  document.getElementById('sv-ac').textContent  = ac.toFixed(4);
+  document.getElementById('sv-red').textContent = red.toFixed(3);
+
+  latVal.textContent  = lat.toFixed(1)+'°';
+  omVal.textContent   = omMult.toFixed(1)+'×';
+  latSlider.value     = lat;
+  omSlider.value      = omMult;
+
+  /* Update chart */
+  const newLine = chartLabels.map(l => gEff(l, omMult));
+  chart.data.datasets[0].data = newLine;
+  chart.data.datasets[1].data = [{x: Math.round(lat), y: g}];
+  const mn = Math.min(...newLine), mx = Math.max(...newLine);
+  chart.options.scales.y.min = parseFloat((mn-0.005).toFixed(3));
+  chart.options.scales.y.max = parseFloat((mx+0.005).toFixed(3));
+  chart.update('none');
+
+  /* Fact bar */
+  const facts = [
+    lat < 5  ? `At the equator, Earth's surface moves at <span>~1,674 km/h</span> — centrifugal reduction is maximum.` :
+    lat < 30 ? `At ${lat.toFixed(0)}° latitude, the surface speed is <span>~${(1674*Math.cos(lat*Math.PI/180)).toFixed(0)} km/h</span>.` :
+    lat < 60 ? `Mid-latitude: g is close to the global average of <span>9.807 m/s²</span>.` :
+    lat < 85 ? `Near the poles, the surface barely moves — centrifugal effect nearly <span>zero</span>.` :
+               `At the pole, Earth's rotation has <span>no effect</span> on g — cos(90°) = 0.`
+  ];
+  document.getElementById('fact-text').innerHTML = facts[0];
+}
+
+/* ── Main loop ── */
+let animLat = 0;
+let animDir = 1;
+let lastT   = 0;
+
+function loop(ts){
+  const dt = Math.min((ts - lastT)/1000, 0.05);
+  lastT = ts;
+
+  earthAngle += dt * 0.4 * omMult;
+
+  if(autoAnim){
+    animLat += dt * 12 * animDir;
+    if(animLat >= 90){ animLat = 90; animDir = -1; }
+    if(animLat <= 0) { animLat = 0;  animDir =  1; }
+    lat = animLat;
+    syncUI();
+  }
+
+  drawEarth();
+  requestAnimationFrame(loop);
+}
+
+syncUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
