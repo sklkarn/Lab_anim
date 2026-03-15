@@ -1,37 +1,38 @@
 
 <style>
-  .wrap { padding: 0.5rem 0 1.5rem; font-family: var(--font-sans, sans-serif); }
-  .tab-bar { display:flex; gap:0; margin-bottom:1.2rem; border:0.5px solid var(--color-border-secondary,#aaa); border-radius:10px; overflow:hidden; width:fit-content; }
-  .tab-btn { padding:9px 24px; font-size:13px; font-weight:500; cursor:pointer; background:transparent; border:none; border-right:0.5px solid var(--color-border-secondary,#aaa); color:var(--color-text-secondary,#666); transition:all 0.18s; }
-  .tab-btn:last-child { border-right:none; }
-  .tab-btn.active { background:var(--color-text-primary,#111); color:var(--color-background-primary,#fff); }
-  .panel { display:none; }
-  .panel.active { display:block; }
-  .stat-row { display:flex; gap:10px; margin:10px 0 14px; flex-wrap:wrap; }
-  .stat-card { background:var(--color-background-secondary,#f0f0ec); border-radius:8px; padding:8px 14px; flex:1; min-width:90px; }
-  .stat-label { font-size:11px; color:var(--color-text-secondary,#888); margin-bottom:2px; }
-  .stat-val { font-size:16px; font-weight:500; color:var(--color-text-primary,#111); }
-  .ctrl-row { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--color-text-secondary,#666); margin-bottom:10px; }
-  .ctrl-row input[type=range] { flex:1; }
-  .ctrl-val { min-width:52px; text-align:right; font-weight:500; color:var(--color-text-primary,#111); }
-  .chart-wrap { position:relative; width:100%; height:300px; }
-  .formula-box { background:var(--color-background-secondary,#f5f5f2); border-radius:8px; padding:10px 16px; font-size:13px; color:var(--color-text-secondary,#777); margin-bottom:12px; line-height:1.7; }
-  .formula-box strong { color:var(--color-text-primary,#111); font-weight:500; }
-  .legend-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:12px; color:var(--color-text-secondary,#666); }
-  .leg { display:flex; align-items:center; gap:5px; }
-  .leg-sq { width:10px; height:10px; border-radius:2px; }
-  .earth-vis { display:flex; gap:16px; align-items:flex-start; margin-bottom:14px; }
-  .earth-canvas-wrap { flex-shrink:0; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:transparent;font-family:var(--font-sans,sans-serif)}
+  .dark-wrap{background:#0d0d14;border-radius:14px;padding:16px;color:#e0e0e8}
+  .tab-bar{display:flex;gap:0;margin-bottom:1.1rem;border:0.5px solid #444;border-radius:10px;overflow:hidden;width:fit-content}
+  .tab-btn{padding:9px 22px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;border:none;border-right:0.5px solid #444;color:#888;transition:all .18s}
+  .tab-btn:last-child{border-right:none}
+  .tab-btn.active{background:#e0e0e8;color:#0d0d14}
+  .panel{display:none}
+  .panel.active{display:block}
+  canvas{display:block;border-radius:10px;width:100%;background:#050510}
+  .stat-row{display:flex;gap:10px;margin:10px 0 14px;flex-wrap:wrap}
+  .stat-card{background:#1a1a2a;border:0.5px solid #333;border-radius:8px;padding:8px 14px;flex:1;min-width:90px}
+  .stat-label{font-size:11px;color:#888;margin-bottom:2px}
+  .stat-val{font-size:16px;font-weight:500;color:#e0e0e8}
+  .ctrl-row{display:flex;align-items:center;gap:10px;font-size:13px;color:#888;margin-bottom:10px}
+  .ctrl-row input[type=range]{flex:1;accent-color:#4a9fd4}
+  .ctrl-val{min-width:52px;text-align:right;font-weight:500;color:#e0e0e8}
+  .formula-box{background:#1a1a2a;border:0.5px solid #333;border-radius:8px;padding:10px 16px;font-size:13px;color:#aaa;margin-bottom:12px;line-height:1.7}
+  .formula-box strong{color:#e0e0e8;font-weight:500}
+  .legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:#aaa}
+  .leg{display:flex;align-items:center;gap:5px}
+  .leg-sq{width:10px;height:10px;border-radius:2px}
+  .earth-vis{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px}
 </style>
 
-<div class="wrap">
+<div class="dark-wrap">
   <div class="tab-bar">
     <button class="tab-btn active" onclick="showTab(0)">g vs depth</button>
     <button class="tab-btn" onclick="showTab(1)">g vs altitude</button>
     <button class="tab-btn" onclick="showTab(2)">combined view</button>
   </div>
 
-  <!-- ═══ TAB 0: DEPTH ═══ -->
+  <!-- TAB 0: DEPTH -->
   <div class="panel active" id="tab0">
     <div class="formula-box">
       Inside Earth (uniform density model): <strong>g(d) = g₀ × (1 − d/R)</strong><br>
@@ -49,22 +50,20 @@
       <span class="ctrl-val" id="depth-sl-out">0 km</span>
     </div>
     <div class="earth-vis">
-      <div class="earth-canvas-wrap">
-        <canvas id="earth-cv" width="160" height="300"></canvas>
-      </div>
-      <div style="flex:1; min-width:0;">
+      <div style="flex-shrink:0"><canvas id="earth-cv" width="160" height="300"></canvas></div>
+      <div style="flex:1;min-width:0">
         <div class="legend-row">
           <div class="leg"><div class="leg-sq" style="background:#378ADD"></div>Crust (0–35 km)</div>
           <div class="leg"><div class="leg-sq" style="background:#1D9E75"></div>Mantle (35–2890 km)</div>
           <div class="leg"><div class="leg-sq" style="background:#EF9F27"></div>Outer core (2890–5150 km)</div>
           <div class="leg"><div class="leg-sq" style="background:#E24B4A"></div>Inner core (5150–6371 km)</div>
         </div>
-        <div class="chart-wrap"><canvas id="chart-depth"></canvas></div>
+        <div style="position:relative;width:100%;height:300px"><canvas id="chart-depth"></canvas></div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ TAB 1: ALTITUDE ═══ -->
+  <!-- TAB 1: ALTITUDE -->
   <div class="panel" id="tab1">
     <div class="formula-box">
       Above Earth's surface: <strong>g(h) = g₀ × R² / (R + h)²</strong><br>
@@ -73,7 +72,7 @@
     <div class="stat-row">
       <div class="stat-card"><div class="stat-label">Altitude</div><div class="stat-val" id="a-alt">0 km</div></div>
       <div class="stat-card"><div class="stat-label">g at altitude</div><div class="stat-val" id="a-g">9.81 m/s²</div></div>
-      <div class="stat-card"><div class="stat-label">% of surface g</div><div class="stat-val" id="a-pct">100%</div></div>
+      <div class="stat-card"><div class="stat-label">% of surface g</div><div class="stat-val" id="a-pct">100.00%</div></div>
       <div class="stat-card"><div class="stat-label">Reference</div><div class="stat-val" id="a-ref">Sea level</div></div>
     </div>
     <div class="ctrl-row">
@@ -83,344 +82,213 @@
     </div>
     <div class="legend-row">
       <div class="leg"><div class="leg-sq" style="background:#378ADD"></div>g (m/s²)</div>
-      <div class="leg"><div class="leg-sq" style="background:#D4537E"></div>altitude markers</div>
+      <div class="leg"><div class="leg-sq" style="background:#D4537E"></div>current position</div>
     </div>
-    <div class="chart-wrap"><canvas id="chart-alt"></canvas></div>
+    <div style="position:relative;width:100%;height:300px"><canvas id="chart-alt"></canvas></div>
   </div>
 
-  <!-- ═══ TAB 2: COMBINED ═══ -->
+  <!-- TAB 2: COMBINED -->
   <div class="panel" id="tab2">
     <div class="formula-box">
-      Full picture: g peaks at Earth's surface (9.81 m/s²), falls linearly inward, and falls as 1/r² outward.<br>
-      <strong>Centre of Earth: g = 0</strong> — gravitational pulls from all sides cancel perfectly.
+      Full picture: g peaks at Earth's surface (9.81 m/s²), falls <strong>linearly</strong> inward and as <strong>1/r²</strong> outward.<br>
+      At Earth's centre: <strong>g = 0</strong> — gravitational pulls from all sides cancel perfectly.
     </div>
     <div class="stat-row">
       <div class="stat-card"><div class="stat-label">Surface g</div><div class="stat-val">9.81 m/s²</div></div>
       <div class="stat-card"><div class="stat-label">At Earth's centre</div><div class="stat-val">0 m/s²</div></div>
-      <div class="stat-card"><div class="stat-label">ISS altitude (~400 km)</div><div class="stat-val">8.69 m/s²</div></div>
-      <div class="stat-card"><div class="stat-label">Moon distance (~384k km)</div><div class="stat-val">0.003 m/s²</div></div>
+      <div class="stat-card"><div class="stat-label">ISS (~400 km)</div><div class="stat-val">8.69 m/s²</div></div>
+      <div class="stat-card"><div class="stat-label">Moon (~384k km)</div><div class="stat-val">0.003 m/s²</div></div>
     </div>
     <div class="legend-row">
       <div class="leg"><div class="leg-sq" style="background:#E24B4A"></div>below surface (depth)</div>
       <div class="leg"><div class="leg-sq" style="background:#378ADD"></div>above surface (altitude)</div>
     </div>
-    <div class="chart-wrap" style="height:340px"><canvas id="chart-combined"></canvas></div>
+    <div style="position:relative;width:100%;height:340px"><canvas id="chart-combined"></canvas></div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const R = 6371;
-const g0 = 9.81;
+const R=6371, g0=9.81;
+const LAYER_COLORS=['#378ADD','#1D9E75','#EF9F27','#E24B4A'];
 
-function gDepth(d){ return g0 * (1 - d/R); }
-function gAlt(h){ return g0 * (R*R) / ((R+h)*(R+h)); }
+function gDepth(d){ return g0*(1-d/R); }
+function gAlt(h){ return g0*R*R/((R+h)*(R+h)); }
 
-const LAYER_COLORS = ['#378ADD','#1D9E75','#EF9F27','#E24B4A'];
-const LAYER_BOUNDS = [0,35,2890,5150,6371];
-const LAYER_NAMES = ['Crust','Mantle','Outer core','Inner core'];
-
-function layerColor(d){
-  if(d<35) return LAYER_COLORS[0];
-  if(d<2890) return LAYER_COLORS[1];
-  if(d<5150) return LAYER_COLORS[2];
-  return LAYER_COLORS[3];
-}
+function layerColor(d){ return d<35?LAYER_COLORS[0]:d<2890?LAYER_COLORS[1]:d<5150?LAYER_COLORS[2]:LAYER_COLORS[3]; }
 function layerName(d){
-  if(d===0) return 'Surface';
-  if(d<35) return 'Crust';
-  if(d<2890) return 'Mantle';
-  if(d<5150) return 'Outer core';
-  if(d<6371) return 'Inner core';
-  return 'Centre';
+  if(d===0)return'Surface'; if(d<35)return'Crust';
+  if(d<2890)return'Mantle'; if(d<5150)return'Outer core';
+  if(d<6371)return'Inner core'; return'Centre';
 }
 function altRef(h){
-  if(h===0) return 'Sea level';
-  if(h<12) return 'Troposphere';
-  if(h<50) return 'Stratosphere';
-  if(h<85) return 'Mesosphere';
-  if(h<600) return 'Thermosphere';
-  if(h<10000) return 'Exosphere';
-  return 'Deep space';
+  if(h===0)return'Sea level'; if(h<12)return'Troposphere';
+  if(h<50)return'Stratosphere'; if(h<85)return'Mesosphere';
+  if(h<600)return'Thermosphere'; if(h<10000)return'Exosphere';
+  return'Deep space';
 }
 
-/* ── Earth cross-section canvas ── */
+// Dark chart defaults
+const DARK_GRID='rgba(255,255,255,0.07)';
+const DARK_TICK='#888';
+const DARK_TITLE='#aaa';
+
+function darkScales(xTitle,yTitle){
+  return{
+    x:{title:{display:true,text:xTitle,color:DARK_TITLE,font:{size:11}},
+       ticks:{maxTicksLimit:8,color:DARK_TICK,font:{size:11}},
+       grid:{color:DARK_GRID}},
+    y:{title:{display:true,text:yTitle,color:DARK_TITLE,font:{size:11}},
+       min:0,max:10.5,
+       ticks:{color:DARK_TICK,font:{size:11}},
+       grid:{color:DARK_GRID}}
+  };
+}
+
+/* ── Earth cross-section ── */
 function drawEarth(depth){
-  const cv = document.getElementById('earth-cv');
-  if(!cv) return;
-  const ctx = cv.getContext('2d');
-  const W=cv.width, H=cv.height;
+  const cv=document.getElementById('earth-cv');
+  if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
   ctx.clearRect(0,0,W,H);
-  const cx=W/2, cy=H/2, maxR=Math.min(W,H)/2-10;
-
-  const radii = [maxR, maxR*35/6371, maxR*2890/6371, maxR*5150/6371].reverse();
-  const colors = [LAYER_COLORS[3],LAYER_COLORS[2],LAYER_COLORS[1],LAYER_COLORS[0]];
-  radii.forEach((r,i)=>{
-    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.fillStyle=colors[i]; ctx.fill();
+  ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)/2-10;
+  [[maxR,LAYER_COLORS[3]],[maxR*5150/6371,LAYER_COLORS[2]],
+   [maxR*2890/6371,LAYER_COLORS[1]],[maxR*35/6371,LAYER_COLORS[0]]].forEach(([r,c])=>{
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();
   });
-
-  // indicator line for depth
-  const dFrac = depth/R;
-  const dotR = maxR*(1-dFrac);
-  ctx.beginPath(); ctx.arc(cx,cy,dotR,0,Math.PI*2);
-  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
-
-  // dot on surface of indicator
-  ctx.beginPath(); ctx.arc(cx, cy-dotR, 5, 0, Math.PI*2);
-  ctx.fillStyle='#fff'; ctx.fill();
-
-  // depth label
-  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
-  ctx.fillText(depth===0?'surface':depth>=6371?'centre':depth+' km', cx, H-4);
+  const dotR=maxR*(1-depth/R);
+  ctx.beginPath();ctx.arc(cx,cy,dotR,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(cx,cy-dotR,5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText(depth===0?'surface':depth>=6371?'centre':depth+' km',cx,H-4);
   ctx.textAlign='left';
 }
 
 /* ── Depth chart ── */
-const depthPts = 200;
-const depthLabels = Array.from({length:depthPts+1},(_,i)=>Math.round(i*R/depthPts));
-const depthData   = depthLabels.map(d=>+gDepth(d).toFixed(3));
-const depthBgColors = depthLabels.map(d=>layerColor(d)+'55');
-const depthBorderColors = depthLabels.map(d=>layerColor(d));
-
-let chartDepth = null, markerDepth = null;
+const depthPts=200;
+const depthLabels=Array.from({length:depthPts+1},(_,i)=>Math.round(i*R/depthPts));
+const depthData=depthLabels.map(d=>+gDepth(d).toFixed(3));
+let chartDepth=null;
 
 function buildDepthChart(){
-  const ctx = document.getElementById('chart-depth').getContext('2d');
-  chartDepth = new Chart(ctx,{
+  const ctx=document.getElementById('chart-depth').getContext('2d');
+  chartDepth=new Chart(ctx,{
     type:'line',
-    data:{
-      labels: depthLabels,
-      datasets:[
-        {
-          label:'g (m/s²)',
-          data: depthData,
-          borderColor:'#378ADD',
-          backgroundColor:'rgba(55,138,221,0.12)',
-          borderWidth:2,
-          pointRadius:0,
-          fill:true,
-          tension:0
-        },
-        {
-          label:'Current depth',
-          data: [{x:0,y:g0}],
-          borderColor:'#E24B4A',
-          backgroundColor:'#E24B4A',
-          pointRadius:7,
-          pointHoverRadius:9,
-          showLine:false,
-          type:'scatter'
-        }
-      ]
-    },
+    data:{labels:depthLabels,datasets:[
+      {label:'g (m/s²)',data:depthData,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',
+       borderWidth:2,pointRadius:0,fill:true,tension:0},
+      {label:'Current depth',data:[{x:0,y:g0}],borderColor:'#E24B4A',backgroundColor:'#E24B4A',
+       pointRadius:7,pointHoverRadius:9,showLine:false,type:'scatter'}
+    ]},
     options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false},
-        annotation:{} },
-      scales:{
-        x:{ title:{display:true,text:'Depth (km)',color:'#888',font:{size:11}},
-            ticks:{maxTicksLimit:8, color:'#888', font:{size:11},
-              callback:v=>depthLabels[v]!==undefined?depthLabels[v]+'':'' },
-            grid:{color:'rgba(128,128,128,0.1)'} },
-        y:{ title:{display:true,text:'g (m/s²)',color:'#888',font:{size:11}},
-            min:0, max:10.5,
-            ticks:{color:'#888',font:{size:11}},
-            grid:{color:'rgba(128,128,128,0.1)'} }
-      }
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:darkScales('Depth (km)','g (m/s²)')
     }
   });
 }
 
 function updateDepth(){
-  const d = +document.getElementById('depth-sl').value;
-  document.getElementById('depth-sl-out').textContent = d+' km';
-  const gv = gDepth(d);
-  document.getElementById('d-depth').textContent = d+' km';
-  document.getElementById('d-g').textContent = gv.toFixed(3)+' m/s²';
-  document.getElementById('d-pct').textContent = (gv/g0*100).toFixed(1)+'%';
-  document.getElementById('d-loc').textContent = layerName(d);
+  const d=+document.getElementById('depth-sl').value;
+  document.getElementById('depth-sl-out').textContent=d+' km';
+  const gv=gDepth(d);
+  document.getElementById('d-depth').textContent=d+' km';
+  document.getElementById('d-g').textContent=gv.toFixed(3)+' m/s²';
+  document.getElementById('d-pct').textContent=(gv/g0*100).toFixed(1)+'%';
+  document.getElementById('d-loc').textContent=layerName(d);
   drawEarth(d);
   if(chartDepth){
-    const idx = Math.round(d/R*depthPts);
-    chartDepth.data.datasets[1].data = [{x:idx, y:gv}];
+    const idx=Math.round(d/R*depthPts);
+    chartDepth.data.datasets[1].data=[{x:idx,y:gv}];
     chartDepth.update('none');
   }
 }
 
 /* ── Altitude chart ── */
-const altMax = 40000;
-const altPts = 300;
-const altLabels = Array.from({length:altPts+1},(_,i)=>Math.round(i*altMax/altPts));
-const altData   = altLabels.map(h=>+gAlt(h).toFixed(4));
-
-let chartAlt = null;
-
-const altMarkers = [
-  {h:8.8,   label:'Everest (8.8 km)'},
-  {h:400,   label:'ISS (~400 km)'},
-  {h:35786, label:'GEO (~35,786 km)'},
-];
+const altMax=40000,altPts=300;
+const altLabels=Array.from({length:altPts+1},(_,i)=>Math.round(i*altMax/altPts));
+const altData=altLabels.map(h=>+gAlt(h).toFixed(4));
+let chartAlt=null;
 
 function buildAltChart(){
-  const ctx = document.getElementById('chart-alt').getContext('2d');
-  chartAlt = new Chart(ctx,{
+  const ctx=document.getElementById('chart-alt').getContext('2d');
+  chartAlt=new Chart(ctx,{
     type:'line',
-    data:{
-      labels: altLabels,
-      datasets:[
-        {
-          label:'g (m/s²)',
-          data: altData,
-          borderColor:'#378ADD',
-          backgroundColor:'rgba(55,138,221,0.12)',
-          borderWidth:2,
-          pointRadius:0,
-          fill:true,
-          tension:0
-        },
-        {
-          label:'Current altitude',
-          data:[{x:0,y:g0}],
-          borderColor:'#D4537E',
-          backgroundColor:'#D4537E',
-          pointRadius:7,
-          pointHoverRadius:9,
-          showLine:false,
-          type:'scatter'
-        }
-      ]
-    },
+    data:{labels:altLabels,datasets:[
+      {label:'g (m/s²)',data:altData,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',
+       borderWidth:2,pointRadius:0,fill:true,tension:0},
+      {label:'Current altitude',data:[{x:0,y:g0}],borderColor:'#D4537E',backgroundColor:'#D4537E',
+       pointRadius:7,pointHoverRadius:9,showLine:false,type:'scatter'}
+    ]},
     options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            title: items => altLabels[items[0].dataIndex]+' km',
-            label: items => 'g = '+items.raw.toFixed(3)+' m/s²'
-          }
-        }
-      },
-      scales:{
-        x:{ title:{display:true,text:'Altitude (km)',color:'#888',font:{size:11}},
-            ticks:{maxTicksLimit:8,color:'#888',font:{size:11},
-              callback:v=>altLabels[v]!==undefined?altLabels[v]+'':'' },
-            grid:{color:'rgba(128,128,128,0.1)'} },
-        y:{ title:{display:true,text:'g (m/s²)',color:'#888',font:{size:11}},
-            min:0, max:10.5,
-            ticks:{color:'#888',font:{size:11}},
-            grid:{color:'rgba(128,128,128,0.1)'} }
-      }
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:darkScales('Altitude (km)','g (m/s²)')
     }
   });
 }
 
 function updateAlt(){
-  const h = +document.getElementById('alt-sl').value;
-  const hKm = (h/1).toFixed(0);
-  document.getElementById('alt-sl-out').textContent = hKm+' km';
-  const gv = gAlt(h);
-  document.getElementById('a-alt').textContent = hKm+' km';
-  document.getElementById('a-g').textContent = gv.toFixed(3)+' m/s²';
-  document.getElementById('a-pct').textContent = (gv/g0*100).toFixed(2)+'%';
-  document.getElementById('a-ref').textContent = altRef(h);
+  const h=+document.getElementById('alt-sl').value;
+  document.getElementById('alt-sl-out').textContent=h+' km';
+  const gv=gAlt(h);
+  document.getElementById('a-alt').textContent=h+' km';
+  document.getElementById('a-g').textContent=gv.toFixed(3)+' m/s²';
+  document.getElementById('a-pct').textContent=(gv/g0*100).toFixed(2)+'%';
+  document.getElementById('a-ref').textContent=altRef(h);
   if(chartAlt){
-    const idx = Math.round(h/altMax*altPts);
-    chartAlt.data.datasets[1].data = [{x:idx, y:gv}];
+    const idx=Math.round(h/altMax*altPts);
+    chartAlt.data.datasets[1].data=[{x:idx,y:gv}];
     chartAlt.update('none');
   }
 }
 
 /* ── Combined chart ── */
 function buildCombinedChart(){
-  const ctx = document.getElementById('chart-combined').getContext('2d');
-  const depthPts2 = 100;
-  const altPts2 = 100;
-  const altMax2 = 20000;
-
-  // x: negative = below surface (depth), positive = above surface (altitude)
-  // We'll use a single x-axis with 0 = surface
-  // left half: -6371 to 0 (depth, x = -d)
-  // right half: 0 to altMax2 (altitude)
-  const labelsBelow = Array.from({length:depthPts2+1},(_,i)=>-Math.round(R*(depthPts2-i)/depthPts2));
-  const labelsAbove = Array.from({length:altPts2},(_,i)=>Math.round(altMax2*(i+1)/altPts2));
-  const allLabels = [...labelsBelow, ...labelsAbove];
-  const allData = [
-    ...labelsBelow.map(x=>+gDepth(-x).toFixed(3)),
-    ...labelsAbove.map(x=>+gAlt(x).toFixed(3))
-  ];
-  const allColors = [
-    ...labelsBelow.map(()=>'rgba(226,75,74,0.7)'),
-    ...labelsAbove.map(()=>'rgba(55,138,221,0.7)')
-  ];
-
+  const ctx=document.getElementById('chart-combined').getContext('2d');
+  const dp=100,ap=100,am=20000;
+  const labelsBelow=Array.from({length:dp+1},(_,i)=>-Math.round(R*(dp-i)/dp));
+  const labelsAbove=Array.from({length:ap},(_,i)=>Math.round(am*(i+1)/ap));
+  const allLabels=[...labelsBelow,...labelsAbove];
+  const allData=[...labelsBelow.map(x=>+gDepth(-x).toFixed(3)),...labelsAbove.map(x=>+gAlt(x).toFixed(3))];
   new Chart(ctx,{
     type:'line',
-    data:{
-      labels: allLabels,
-      datasets:[
-        {
-          label:'g (m/s²)',
-          data: allData,
-          borderColor: allColors,
-          segment:{ borderColor: ctx2 => ctx2.p0DataIndex < depthPts2+1 ? '#E24B4A' : '#378ADD' },
-          backgroundColor:'rgba(55,138,221,0.07)',
-          borderWidth:2.5,
-          pointRadius:0,
-          fill:false,
-          tension:0
-        }
-      ]
-    },
+    data:{labels:allLabels,datasets:[{
+      label:'g (m/s²)',data:allData,
+      segment:{borderColor:c=>c.p0DataIndex<dp+1?'#E24B4A':'#378ADD'},
+      backgroundColor:'rgba(55,138,221,0.07)',
+      borderWidth:2.5,pointRadius:0,fill:false,tension:0
+    }]},
     options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            title: items=>{
-              const v=allLabels[items[0].dataIndex];
-              return v<=0 ? 'Depth: '+(-v)+' km' : 'Altitude: '+v+' km';
-            },
-            label: items=>'g = '+items.raw.toFixed(3)+' m/s²'
-          }
-        }
-      },
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{
+          title:items=>{const v=allLabels[items[0].dataIndex];return v<=0?'Depth: '+(-v)+' km':'Altitude: '+v+' km';},
+          label:items=>'g = '+items.raw.toFixed(3)+' m/s²'
+        }}},
       scales:{
-        x:{
-          title:{display:true,text:'← depth (km)    surface    altitude (km) →',color:'#888',font:{size:11}},
-          ticks:{
-            maxTicksLimit:10, color:'#888', font:{size:11},
-            callback:(_,i)=>{
-              const v=allLabels[i];
-              if(v===undefined) return '';
-              if(v===0) return 'surface';
-              return v<0?(-v)+'':v+'';
-            }
-          },
-          grid:{color:'rgba(128,128,128,0.1)'}
-        },
-        y:{
-          title:{display:true,text:'g (m/s²)',color:'#888',font:{size:11}},
-          min:0, max:10.5,
-          ticks:{color:'#888',font:{size:11}},
-          grid:{color:'rgba(128,128,128,0.1)'}
-        }
+        x:{title:{display:true,text:'← depth (km)    surface    altitude (km) →',color:DARK_TITLE,font:{size:11}},
+           ticks:{maxTicksLimit:10,color:DARK_TICK,font:{size:11},
+             callback:(_,i)=>{const v=allLabels[i];if(v===undefined)return'';if(v===0)return'surface';return v<0?(-v)+'':v+'';}},
+           grid:{color:DARK_GRID}},
+        y:{title:{display:true,text:'g (m/s²)',color:DARK_TITLE,font:{size:11}},
+           min:0,max:10.5,ticks:{color:DARK_TICK,font:{size:11}},grid:{color:DARK_GRID}}
       }
     }
   });
 }
 
 /* ── Tab switching ── */
-let chartsBuilt = [false,false,false];
+let chartsBuilt=[false,false,false];
 function showTab(n){
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
-  if(n===0 && !chartsBuilt[0]){ buildDepthChart(); drawEarth(0); chartsBuilt[0]=true; }
-  if(n===1 && !chartsBuilt[1]){ buildAltChart(); chartsBuilt[1]=true; }
-  if(n===2 && !chartsBuilt[2]){ buildCombinedChart(); chartsBuilt[2]=true; }
+  if(n===0&&!chartsBuilt[0]){buildDepthChart();drawEarth(0);chartsBuilt[0]=true;}
+  if(n===1&&!chartsBuilt[1]){buildAltChart();chartsBuilt[1]=true;}
+  if(n===2&&!chartsBuilt[2]){buildCombinedChart();chartsBuilt[2]=true;}
 }
-
 showTab(0);
 </script>
