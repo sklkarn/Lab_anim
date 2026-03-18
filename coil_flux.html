@@ -1,0 +1,358 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body, .page { background: #0d0f14; color: rgba(255,255,255,0.85); font-family: sans-serif; }
+  .page { padding: 20px 16px 28px; display: flex; flex-direction: column; gap: 20px; min-height: 100vh; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { background: #161920; border: 0.5px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 90px; }
+  .stat-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 3px; }
+  .stat-val { font-size: 19px; font-weight: 500; color: rgba(255,255,255,0.9); }
+  .panels { display: flex; gap: 16px; flex-wrap: wrap; }
+  .panel { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px; }
+  .panel-title { font-size: 12px; color: rgba(255,255,255,0.38); }
+  canvas { width: 100%; border-radius: 10px; display: block; background: #0d0f14; border: 0.5px solid rgba(255,255,255,0.07); }
+  .controls { background: #161920; border: 0.5px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .ctrl-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .ctrl-label { font-size: 12px; color: rgba(255,255,255,0.45); min-width: 54px; }
+  input[type=range] { flex: 1; min-width: 100px; accent-color: #4da6ff; }
+  .ctrl-val { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.8); min-width: 46px; text-align: right; }
+  button { background: #1e2130; border: 0.5px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); border-radius: 7px; padding: 6px 20px; font-size: 13px; cursor: pointer; }
+  button:hover { background: #252a3a; }
+  .divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); }
+  .formula { font-size: 13px; color: rgba(255,255,255,0.45); text-align: center; letter-spacing: 0.3px; }
+</style>
+
+<div class="page">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Angle θ (B̂ · n̂)</div><div class="stat-val" id="s-angle">0.0°</div></div>
+    <div class="stat"><div class="stat-label">Flux Φ = BA cosθ</div><div class="stat-val" id="s-flux">1.000 Wb</div></div>
+    <div class="stat"><div class="stat-label">cos θ</div><div class="stat-val" id="s-cos">1.000</div></div>
+    <div class="stat"><div class="stat-label">B · A</div><div class="stat-val" id="s-ba">1.00 Wb</div></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-title">Coil rotating about its edge — B field horizontal</div>
+      <canvas id="c3d" height="280"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Φ vs θ &nbsp;(θ = angle between B and area vector n̂)</div>
+      <canvas id="cgraph" height="280"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-row">
+      <span class="ctrl-label">Speed</span>
+      <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
+      <span class="ctrl-val" id="speed-out">1.0×</span>
+      <div class="divider"></div>
+      <button id="pausebtn">Pause</button>
+      <button id="resetbtn">Reset</button>
+    </div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">B (Tesla)</span>
+      <input type="range" id="bfield" min="0.5" max="2" step="0.1" value="1">
+      <span class="ctrl-val" id="b-out">1.0 T</span>
+      <div class="divider"></div>
+      <span class="ctrl-label">A (m²)</span>
+      <input type="range" id="area" min="0.5" max="2" step="0.1" value="1">
+      <span class="ctrl-val" id="a-out">1.0 m²</span>
+    </div>
+    <div class="formula">Φ = B · A · cos θ &nbsp;|&nbsp; θ is the angle between <b>B</b> and the area normal vector <b>n̂</b></div>
+  </div>
+</div>
+
+<script>
+const c3d = document.getElementById('c3d');
+const cg  = document.getElementById('cgraph');
+const ctx3 = c3d.getContext('2d');
+const ctxg = cg.getContext('2d');
+
+let theta = 0, paused = false, speed = 1, B = 1, Aval = 1;
+
+document.getElementById('pausebtn').onclick = function(){
+  paused = !paused; this.textContent = paused ? 'Resume' : 'Pause';
+};
+document.getElementById('resetbtn').onclick = () => { theta = 0; };
+document.getElementById('speed').oninput = function(){
+  speed = +this.value; document.getElementById('speed-out').textContent = speed.toFixed(1)+'×';
+};
+document.getElementById('bfield').oninput = function(){
+  B = +this.value; document.getElementById('b-out').textContent = B.toFixed(1)+' T';
+};
+document.getElementById('area').oninput = function(){
+  Aval = +this.value; document.getElementById('a-out').textContent = Aval.toFixed(1)+' m²';
+};
+
+// Colors
+const BG       = '#0d0f14';
+const FIELD    = '#4da6ff';
+const COIL     = '#FAC775';
+const PIVOT    = '#ff6b6b';
+const NORMAL   = '#4ecda4';
+const CURVE    = '#4da6ff';
+const DOT      = '#ff6b6b';
+const GRID     = 'rgba(255,255,255,0.06)';
+const AXISCOL  = 'rgba(255,255,255,0.22)';
+const TEXTCOL  = 'rgba(255,255,255,0.55)';
+
+// theta here = angle between B (horizontal) and n̂ (normal to coil face)
+// When theta=0: n̂ parallel to B → face perpendicular to B → max flux
+// Coil rotates about left edge. The coil face makes angle (90-theta) with B direction.
+// Visually: coil face angle from vertical = theta (since B is horizontal, n̂ at theta from B means face at theta from vertical)
+
+function draw3D(th) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = c3d.clientWidth * dpr;
+  const H = 280 * dpr;
+  c3d.width = W; c3d.height = H;
+  ctx3.clearRect(0,0,W,H);
+  ctx3.fillStyle = BG; ctx3.fillRect(0,0,W,H);
+
+  const cx = W/2, cy = H/2;
+  const sc = Math.min(W,H) * 0.30;
+
+  // B field arrows (horizontal, going right)
+  ctx3.strokeStyle = FIELD;
+  ctx3.lineWidth = 1.5*dpr;
+  ctx3.globalAlpha = 0.5;
+  for (let row = -2; row <= 2; row++) {
+    const by = cy + row * sc * 0.44;
+    for (let col = 0; col < 4; col++) {
+      const bx = cx - sc*0.85 + col * sc*0.58;
+      const len = sc * 0.18;
+      ctx3.beginPath();
+      ctx3.moveTo(bx, by); ctx3.lineTo(bx + len, by);
+      ctx3.moveTo(bx+len - 6*dpr, by - 4*dpr);
+      ctx3.lineTo(bx+len, by);
+      ctx3.lineTo(bx+len - 6*dpr, by + 4*dpr);
+      ctx3.stroke();
+    }
+  }
+  ctx3.globalAlpha = 1;
+  ctx3.fillStyle = FIELD;
+  ctx3.font = `${12*dpr}px sans-serif`;
+  ctx3.fillText('B', cx - sc*0.95, cy - sc*0.85);
+
+  // Pivot edge (left vertical)
+  const pivotX = cx - sc*0.5;
+  const topY = cy - sc*0.48;
+  const botY = cy + sc*0.48;
+
+  ctx3.strokeStyle = PIVOT;
+  ctx3.lineWidth = 3.5*dpr;
+  ctx3.beginPath(); ctx3.moveTo(pivotX, topY); ctx3.lineTo(pivotX, botY); ctx3.stroke();
+
+  // Coil: rotates about pivot edge
+  // th = angle between B (x-axis) and n̂
+  // n̂ direction: (cos th, 0) in 2D → coil face normal at angle th from horizontal
+  // Coil face lies perpendicular to n̂, so face direction = angle (th + 90°) from horizontal
+  // Right edge offset from pivot: L * face_direction
+  const L = sc * 0.95;
+  const perspFactor = 0.32;
+  // face direction vector (unit vector along the coil plane from pivot to free edge)
+  // If n̂ = (cos th, sin th*persp), face vector = (-sin th, cos th * persp) — perpendicular to n̂
+  const faceAngle = th + Math.PI/2; // angle of coil plane from horizontal
+  const rx = pivotX + L * Math.cos(faceAngle);
+  const rdy = L * Math.sin(faceAngle) * perspFactor;
+  const rtX = rx, rtY = topY + rdy;
+  const rbX = rx, rbY = botY + rdy;
+
+  // Fill
+  const fa = Math.abs(Math.cos(th));
+  ctx3.fillStyle = `rgba(250,199,117,${0.05 + 0.22*fa})`;
+  ctx3.beginPath();
+  ctx3.moveTo(pivotX, topY); ctx3.lineTo(rtX, rtY);
+  ctx3.lineTo(rbX, rbY); ctx3.lineTo(pivotX, botY);
+  ctx3.closePath(); ctx3.fill();
+
+  // Coil edges
+  ctx3.strokeStyle = COIL;
+  ctx3.lineWidth = 2.5*dpr;
+  ctx3.setLineDash([]);
+  ctx3.beginPath();
+  ctx3.moveTo(pivotX, topY); ctx3.lineTo(rtX, rtY);
+  ctx3.lineTo(rbX, rbY); ctx3.lineTo(pivotX, botY);
+  ctx3.stroke();
+  ctx3.setLineDash(Math.cos(faceAngle) < 0 ? [5*dpr,4*dpr] : []);
+  ctx3.beginPath(); ctx3.moveTo(pivotX, topY); ctx3.lineTo(pivotX, botY); ctx3.stroke();
+  ctx3.setLineDash([]);
+
+  // Normal vector n̂ (from center of coil, pointing in direction of n̂)
+  const midX = (pivotX + rx)/2;
+  const midY = (topY + botY)/2 + rdy/2;
+  const nLen = sc * 0.5;
+  // n̂ is at angle th from horizontal (B direction)
+  const nnx = midX + nLen * Math.cos(th);
+  const nny = midY + nLen * Math.sin(th) * perspFactor;
+
+  ctx3.strokeStyle = NORMAL; ctx3.lineWidth = 2*dpr;
+  ctx3.beginPath(); ctx3.moveTo(midX, midY); ctx3.lineTo(nnx, nny);
+  const na = Math.atan2(nny - midY, nnx - midX);
+  ctx3.moveTo(nnx, nny);
+  ctx3.lineTo(nnx - 9*dpr*Math.cos(na-0.4), nny - 9*dpr*Math.sin(na-0.4));
+  ctx3.moveTo(nnx, nny);
+  ctx3.lineTo(nnx - 9*dpr*Math.cos(na+0.4), nny - 9*dpr*Math.sin(na+0.4));
+  ctx3.stroke();
+  ctx3.fillStyle = NORMAL; ctx3.font = `${12*dpr}px sans-serif`;
+  ctx3.fillText('n̂', nnx + 6*dpr, nny - 3*dpr);
+
+  // B direction indicator arrow from midX, midY
+  const bLen = sc * 0.4;
+  ctx3.strokeStyle = FIELD; ctx3.lineWidth = 1.8*dpr;
+  ctx3.globalAlpha = 0.7;
+  ctx3.beginPath(); ctx3.moveTo(midX, midY); ctx3.lineTo(midX + bLen, midY);
+  const ba = 0;
+  ctx3.moveTo(midX+bLen, midY);
+  ctx3.lineTo(midX+bLen - 9*dpr*Math.cos(ba-0.4), midY - 9*dpr*Math.sin(ba-0.4));
+  ctx3.moveTo(midX+bLen, midY);
+  ctx3.lineTo(midX+bLen - 9*dpr*Math.cos(ba+0.4), midY - 9*dpr*Math.sin(ba+0.4));
+  ctx3.stroke();
+  ctx3.globalAlpha = 1;
+  ctx3.fillStyle = FIELD; ctx3.font = `${11*dpr}px sans-serif`;
+  ctx3.fillText('B', midX + bLen + 5*dpr, midY + 4*dpr);
+
+  // Angle arc between B (horizontal) and n̂
+  const arcR = sc * 0.25;
+  ctx3.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx3.lineWidth = 1.2*dpr;
+  ctx3.beginPath();
+  ctx3.arc(midX, midY, arcR, 0, th < 0 ? th : th, th < 0);
+  // draw from 0 to th
+  ctx3.arc(midX, midY, arcR, 0, th, false);
+  ctx3.stroke();
+  // But arc() draws CCW if needed - redraw properly:
+  ctx3.beginPath();
+  const startA = 0, endA = th;
+  ctx3.arc(midX, midY, arcR, Math.min(startA,endA), Math.max(startA,endA));
+  ctx3.stroke();
+
+  const midAng = th/2;
+  ctx3.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx3.font = `${13*dpr}px sans-serif`;
+  ctx3.fillText('θ', midX + (arcR+6*dpr)*Math.cos(midAng), midY + (arcR+4*dpr)*Math.sin(midAng)*perspFactor + 4*dpr);
+
+  // Pivot dots
+  ctx3.fillStyle = PIVOT;
+  ctx3.beginPath(); ctx3.arc(pivotX, topY, 4*dpr, 0, Math.PI*2); ctx3.fill();
+  ctx3.beginPath(); ctx3.arc(pivotX, botY, 4*dpr, 0, Math.PI*2); ctx3.fill();
+}
+
+function drawGraph(th) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = cg.clientWidth * dpr;
+  const H = 280 * dpr;
+  cg.width = W; cg.height = H;
+  ctxg.clearRect(0,0,W,H);
+  ctxg.fillStyle = BG; ctxg.fillRect(0,0,W,H);
+
+  const pad = {l:52*dpr, r:18*dpr, t:18*dpr, b:38*dpr};
+  const gw = W - pad.l - pad.r;
+  const gh = H - pad.t - pad.b;
+  const cy0 = pad.t + gh/2;
+  const xScale = gw / (2*Math.PI);
+  const yScale = gh/2 * 0.83;
+
+  // Grid
+  ctxg.strokeStyle = GRID; ctxg.lineWidth = dpr;
+  for (let v of [-1,-0.5,0.5,1]) {
+    const y = cy0 - v*yScale;
+    ctxg.beginPath(); ctxg.moveTo(pad.l,y); ctxg.lineTo(W-pad.r,y); ctxg.stroke();
+  }
+  for (let i=0;i<=4;i++) {
+    const x = pad.l + i*Math.PI/2*xScale;
+    ctxg.beginPath(); ctxg.moveTo(x,pad.t); ctxg.lineTo(x,pad.t+gh); ctxg.stroke();
+  }
+
+  // Axes
+  ctxg.strokeStyle = AXISCOL; ctxg.lineWidth = 1.5*dpr;
+  ctxg.beginPath(); ctxg.moveTo(pad.l,pad.t); ctxg.lineTo(pad.l,pad.t+gh); ctxg.stroke();
+  ctxg.beginPath(); ctxg.moveTo(pad.l,cy0); ctxg.lineTo(W-pad.r,cy0); ctxg.stroke();
+
+  // Axis labels
+  ctxg.fillStyle = TEXTCOL; ctxg.font = `${11*dpr}px sans-serif`;
+  ctxg.textAlign = 'center';
+  ['0','π/2','π','3π/2','2π'].forEach((lbl,i) => {
+    ctxg.fillText(lbl, pad.l + i*Math.PI/2*xScale, pad.t+gh+24*dpr);
+  });
+  ctxg.textAlign = 'right';
+  for (let v of [-1,-0.5,0,0.5,1]) {
+    ctxg.fillText((B*Aval*v).toFixed(1), pad.l-7*dpr, cy0-v*yScale+4*dpr);
+  }
+  ctxg.textAlign = 'left';
+  ctxg.fillText('θ', W-pad.r-8*dpr, cy0-7*dpr);
+  ctxg.textAlign = 'center';
+  ctxg.save(); ctxg.translate(13*dpr, pad.t+gh/2); ctxg.rotate(-Math.PI/2);
+  ctxg.fillText('Φ (Wb)', 0, 0); ctxg.restore();
+
+  // Area under curve fill
+  ctxg.save();
+  ctxg.beginPath(); ctxg.moveTo(pad.l, cy0);
+  for (let i=0;i<=300;i++) {
+    const t = i/300*2*Math.PI;
+    ctxg.lineTo(pad.l + t*xScale, cy0 - B*Aval*Math.cos(t)*yScale);
+  }
+  ctxg.lineTo(W-pad.r, cy0); ctxg.closePath();
+  ctxg.fillStyle = 'rgba(77,166,255,0.06)'; ctxg.fill();
+  ctxg.restore();
+
+  // Curve
+  ctxg.strokeStyle = CURVE; ctxg.lineWidth = 2.3*dpr;
+  ctxg.shadowColor = 'rgba(77,166,255,0.4)'; ctxg.shadowBlur = 6*dpr;
+  ctxg.beginPath();
+  for (let i=0;i<=300;i++) {
+    const t = i/300*2*Math.PI;
+    const x = pad.l + t*xScale;
+    const y = cy0 - B*Aval*Math.cos(t)*yScale;
+    i===0 ? ctxg.moveTo(x,y) : ctxg.lineTo(x,y);
+  }
+  ctxg.stroke();
+  ctxg.shadowBlur = 0;
+
+  // Current dot
+  const normTh = ((th%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const dotX = pad.l + normTh*xScale;
+  const dotY = cy0 - B*Aval*Math.cos(normTh)*yScale;
+
+  ctxg.setLineDash([4*dpr,3*dpr]);
+  ctxg.strokeStyle = 'rgba(255,107,107,0.55)'; ctxg.lineWidth = 1.2*dpr;
+  ctxg.beginPath(); ctxg.moveTo(dotX,cy0); ctxg.lineTo(dotX,dotY); ctxg.stroke();
+  ctxg.setLineDash([]);
+
+  ctxg.fillStyle = DOT;
+  ctxg.shadowColor = 'rgba(255,107,107,0.65)'; ctxg.shadowBlur = 8*dpr;
+  ctxg.beginPath(); ctxg.arc(dotX,dotY,5.5*dpr,0,Math.PI*2); ctxg.fill();
+  ctxg.shadowBlur = 0;
+
+  // Flux value label near dot
+  ctxg.fillStyle = 'rgba(255,107,107,0.85)';
+  ctxg.font = `${11*dpr}px sans-serif`; ctxg.textAlign = 'left';
+  const fluxVal = (B*Aval*Math.cos(normTh)).toFixed(2);
+  ctxg.fillText(`Φ=${fluxVal}`, Math.min(dotX+8*dpr, W-pad.r-55*dpr), dotY-8*dpr);
+}
+
+let last = null;
+function loop(ts) {
+  if (!last) last = ts;
+  const dt = Math.min((ts-last)/1000, 0.05);
+  last = ts;
+  if (!paused) {
+    theta += dt * speed * 1.2;
+    if (theta > 2*Math.PI) theta -= 2*Math.PI;
+  }
+
+  const normTh = ((theta%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const phi = B * Aval * Math.cos(normTh);
+
+  document.getElementById('s-angle').textContent = (normTh*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('s-flux').textContent = phi.toFixed(3)+' Wb';
+  document.getElementById('s-cos').textContent = Math.cos(normTh).toFixed(3);
+  document.getElementById('s-ba').textContent = (B*Aval).toFixed(2)+' Wb';
+
+  draw3D(normTh);
+  drawGraph(normTh);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>

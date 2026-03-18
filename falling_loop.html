@@ -1,0 +1,354 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.page{background:#0d0f14;color:rgba(255,255,255,0.85);font-family:sans-serif;padding:18px 16px 26px;display:flex;flex-direction:column;gap:16px}
+canvas{width:100%;border-radius:10px;display:block;border:0.5px solid rgba(255,255,255,0.07)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:9px}
+.stat{background:#161920;border:0.5px solid rgba(255,255,255,0.09);border-radius:10px;padding:9px 13px}
+.sl{font-size:10px;color:rgba(255,255,255,0.36);margin-bottom:2px}
+.sv{font-size:15px;font-weight:500;color:rgba(255,255,255,0.9)}
+.panels{display:flex;gap:14px;flex-wrap:wrap}
+.panel{flex:1;min-width:220px;display:flex;flex-direction:column;gap:5px}
+.pt{font-size:11px;color:rgba(255,255,255,0.35)}
+.ctrls{background:#161920;border:0.5px solid rgba(255,255,255,0.09);border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:10px}
+.cr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cl{font-size:11px;color:rgba(255,255,255,0.4);min-width:72px}
+input[type=range]{flex:1;min-width:70px;accent-color:#4da6ff}
+.cv{font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);min-width:44px;text-align:right}
+button{background:#1e2130;border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);border-radius:7px;padding:5px 16px;font-size:12px;cursor:pointer}
+button:hover{background:#252a3a}
+.formula-box{background:#111520;border:0.5px solid rgba(77,140,255,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.9;text-align:center}
+.formula-box span{color:rgba(255,255,255,0.85);font-weight:500}
+</style>
+
+<div class="page">
+<div class="stats">
+  <div class="stat"><div class="sl">Velocity v</div><div class="sv" id="sv" style="color:#4da6ff">0.000 m/s</div></div>
+  <div class="stat"><div class="sl">Terminal v<sub>t</sub></div><div class="sv" id="svt" style="color:#4ecda4">— m/s</div></div>
+  <div class="stat"><div class="sl">EMF</div><div class="sv" id="semf">0.000 V</div></div>
+  <div class="stat"><div class="sl">Braking force</div><div class="sv" id="sfb">0.000 N</div></div>
+  <div class="stat"><div class="sl">Net force</div><div class="sv" id="sfn">— N</div></div>
+  <div class="stat"><div class="sl">Phase</div><div class="sv" id="sph" style="font-size:10px;color:rgba(255,255,255,0.7)">—</div></div>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <div class="pt">Loop falling through field B (into page)</div>
+    <canvas id="cscene" height="480"></canvas>
+  </div>
+  <div class="panel">
+    <div class="pt">Velocity vs time</div>
+    <canvas id="cgraph" height="165"></canvas>
+    <div class="pt" style="margin-top:4px">Forces vs time</div>
+    <canvas id="cfgraph" height="165"></canvas>
+  </div>
+</div>
+
+<div class="formula-box">
+  Terminal velocity (when exiting): <span>Mg = B²l²v<sub>t</sub> / R</span>
+  &nbsp;→&nbsp; <span id="fml">v<sub>t</sub> = MgR / B²l²</span>
+</div>
+
+<div class="ctrls">
+  <div class="cr">
+    <span class="cl">Sim speed</span>
+    <input type="range" id="isimspeed" min="0.05" max="1" step="0.05" value="0.2">
+    <span class="cv" id="osimspeed">0.20×</span>
+  </div>
+  <div class="cr">
+    <span class="cl">Mass M (kg)</span>
+    <input type="range" id="iM" min="0.01" max="0.5" step="0.01" value="0.1">
+    <span class="cv" id="oM">0.10 kg</span>
+  </div>
+  <div class="cr">
+    <span class="cl">Resistance R (Ω)</span>
+    <input type="range" id="iR" min="0.1" max="5" step="0.1" value="1">
+    <span class="cv" id="oR">1.0 Ω</span>
+  </div>
+  <div class="cr">
+    <span class="cl">B field (T)</span>
+    <input type="range" id="iB" min="0.2" max="3" step="0.1" value="1">
+    <span class="cv" id="oB">1.0 T</span>
+  </div>
+  <div class="cr">
+    <span class="cl">Length l (m)</span>
+    <input type="range" id="il" min="0.1" max="0.8" step="0.05" value="0.4">
+    <span class="cv" id="ol">0.40 m</span>
+  </div>
+  <div class="cr">
+    <span class="cl">Width w (m)</span>
+    <input type="range" id="iw" min="0.1" max="0.6" step="0.05" value="0.25">
+    <span class="cv" id="ow">0.25 m</span>
+    <button id="btnreset" style="margin-left:8px">Reset</button>
+    <button id="btnpause">Pause</button>
+  </div>
+</div>
+</div>
+
+<script>
+const G=9.8;
+let M=0.1,R=1,B=1,l=0.4,w=0.25,simSpeed=0.2;
+let vy=0,paused=false;
+const vHist=[],fHist=[],MAX_H=400;
+
+const WORLD_H=10, FIELD_TOP=3.2, FIELD_H=3.0, FIELD_BOT=FIELD_TOP+FIELD_H, START_Y=0.4;
+let yCoil=START_Y;
+
+// Fixed axis scales — computed once per parameter change, never per frame
+let fixedMaxV=1, fixedMaxF=1;
+
+function computeScales(){
+  const vt=terminalV();
+  // max velocity: coil accelerates from rest through ~FIELD_TOP metres before entering
+  // v after free fall of FIELD_TOP m: sqrt(2*g*FIELD_TOP), then may grow more inside field
+  const vFreefall=Math.sqrt(2*G*(FIELD_TOP+FIELD_H));
+  fixedMaxV = Math.max(vt*1.5, vFreefall)*1.1;
+  // max force: gravity is Mg, braking can equal Mg at terminal velocity, give headroom
+  fixedMaxF = M*G*2.2;
+}
+
+function reset(){
+  vy=0; yCoil=START_Y;
+  vHist.length=0; fHist.length=0;
+  computeScales();
+}
+reset();
+
+function terminalV(){return (M*G*R)/(B*B*l*l);}
+
+function bind(id,cb){document.getElementById(id).addEventListener('input',cb);}
+bind('isimspeed',function(){simSpeed=+this.value;document.getElementById('osimspeed').textContent=simSpeed.toFixed(2)+'×';});
+bind('iM',function(){M=+this.value;document.getElementById('oM').textContent=M.toFixed(2)+' kg';reset();});
+bind('iR',function(){R=+this.value;document.getElementById('oR').textContent=R.toFixed(1)+' Ω';reset();});
+bind('iB',function(){B=+this.value;document.getElementById('oB').textContent=B.toFixed(1)+' T';reset();});
+bind('il',function(){l=+this.value;document.getElementById('ol').textContent=l.toFixed(2)+' m';reset();});
+bind('iw',function(){w=+this.value;document.getElementById('ow').textContent=w.toFixed(2)+' m';reset();});
+document.getElementById('btnreset').onclick=reset;
+document.getElementById('btnpause').onclick=function(){paused=!paused;this.textContent=paused?'Resume':'Pause';};
+
+const BG='#0d0f14';
+const LOOP_COL='#FAC775',VEL_COL='#4da6ff',GRAV_COL='#ff6b6b',BRAKE_COL='#4ecda4';
+const VT_COL='rgba(78,205,164,0.5)',AXIS='rgba(255,255,255,0.2)',GRID='rgba(255,255,255,0.06)',TC='rgba(255,255,255,0.42)';
+
+function getPhase(){
+  const top=yCoil,bot=yCoil+w;
+  if(bot<=FIELD_TOP) return 'above';
+  if(top<FIELD_TOP&&bot>FIELD_TOP&&bot<=FIELD_BOT) return 'entering';
+  if(top>=FIELD_TOP&&bot<=FIELD_BOT) return 'inside';
+  if(top>=FIELD_TOP&&top<FIELD_BOT&&bot>FIELD_BOT) return 'exiting';
+  if(top>=FIELD_BOT) return 'exited';
+  if(top<FIELD_TOP&&bot>FIELD_BOT) return 'spanning';
+  return 'inside';
+}
+function getBraking(phase){
+  if(phase==='entering'||phase==='exiting') return (B*B*l*l*vy)/R;
+  return 0;
+}
+
+function drawScene(){
+  const cv=document.getElementById('cscene');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth*dpr,H=480*dpr;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  const toY=yw=>(yw/WORLD_H)*H;
+  const fieldTopPx=toY(FIELD_TOP),fieldBotPx=toY(FIELD_BOT);
+  const fLeft=W*0.20,fRight=W*0.80,fW=fRight-fLeft;
+  const loopCx=W*0.50,loopWpx=(l/1.5)*W*0.5,loopHpx=toY(w),loopLeft=loopCx-loopWpx/2;
+  const coilTopPx=toY(yCoil),coilBotPx=toY(yCoil+w);
+
+  ctx.fillStyle='rgba(77,140,255,0.11)';ctx.fillRect(fLeft,fieldTopPx,fW,fieldBotPx-fieldTopPx);
+  ctx.strokeStyle='rgba(77,140,255,0.38)';ctx.lineWidth=1.1*dpr;
+  const sp=26*dpr;
+  for(let xx=fLeft+sp/2;xx<fRight;xx+=sp)for(let yy=fieldTopPx+sp/2;yy<fieldBotPx;yy+=sp){
+    const r=3.2*dpr;
+    ctx.beginPath();ctx.moveTo(xx-r,yy-r);ctx.lineTo(xx+r,yy+r);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xx+r,yy-r);ctx.lineTo(xx-r,yy+r);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(77,140,255,0.55)';ctx.lineWidth=1.3*dpr;ctx.setLineDash([6*dpr,4*dpr]);
+  ctx.beginPath();ctx.moveTo(fLeft,fieldTopPx);ctx.lineTo(fRight,fieldTopPx);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(fLeft,fieldBotPx);ctx.lineTo(fRight,fieldBotPx);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(77,140,255,0.12)';ctx.lineWidth=0.8*dpr;
+  ctx.beginPath();ctx.moveTo(fLeft,fieldTopPx);ctx.lineTo(fLeft,fieldBotPx);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(fRight,fieldTopPx);ctx.lineTo(fRight,fieldBotPx);ctx.stroke();
+  ctx.fillStyle='rgba(77,140,255,0.6)';ctx.font=`${11*dpr}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText('B  (into page)',loopCx,fieldTopPx+16*dpr);
+  ctx.fillStyle='rgba(77,140,255,0.5)';ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+  ctx.fillText('field top',fRight+5*dpr,fieldTopPx-3*dpr);
+  ctx.fillText('field bottom',fRight+5*dpr,fieldBotPx+11*dpr);
+  ctx.fillStyle='rgba(255,255,255,0.16)';ctx.font=`${10*dpr}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText('no field',loopCx,fieldTopPx*0.45);
+  ctx.fillText('no field',loopCx,fieldBotPx+(H-fieldBotPx)*0.5);
+
+  const overTop=Math.max(coilTopPx,fieldTopPx),overBot=Math.min(coilBotPx,fieldBotPx);
+  if(overBot>overTop){ctx.fillStyle='rgba(250,199,117,0.10)';ctx.fillRect(loopLeft,overTop,loopWpx,overBot-overTop);}
+  if(coilTopPx<fieldTopPx){ctx.fillStyle='rgba(250,199,117,0.03)';ctx.fillRect(loopLeft,coilTopPx,loopWpx,Math.min(fieldTopPx,coilBotPx)-coilTopPx);}
+  if(coilBotPx>fieldBotPx){ctx.fillStyle='rgba(250,199,117,0.03)';ctx.fillRect(loopLeft,Math.max(fieldBotPx,coilTopPx),loopWpx,coilBotPx-Math.max(fieldBotPx,coilTopPx));}
+  ctx.strokeStyle=LOOP_COL;ctx.lineWidth=2.5*dpr;ctx.setLineDash([]);
+  ctx.strokeRect(loopLeft,coilTopPx,loopWpx,loopHpx);
+  ctx.fillStyle=TC;ctx.font=`${10*dpr}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText('l',loopLeft+loopWpx/2,coilTopPx-8*dpr);
+  ctx.textAlign='right';ctx.fillText('w',loopLeft-6*dpr,coilTopPx+loopHpx/2+4*dpr);
+
+  const phase=getPhase();
+  if(phase==='entering'){
+    ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+    ctx.fillStyle='rgba(255,107,107,0.9)';ctx.fillText('← bottom edge cuts field lines',loopLeft+loopWpx+6*dpr,coilBotPx+3*dpr);
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fillText('← top edge (outside)',loopLeft+loopWpx+6*dpr,coilTopPx+3*dpr);
+  } else if(phase==='exiting'){
+    ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+    ctx.fillStyle='rgba(78,205,164,0.9)';ctx.fillText('← top edge cuts field lines',loopLeft+loopWpx+6*dpr,coilTopPx+3*dpr);
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fillText('← bottom edge (outside)',loopLeft+loopWpx+6*dpr,coilBotPx+3*dpr);
+  }
+  const midY=(coilTopPx+coilBotPx)/2;
+  const vArrow=Math.min(vy*(H/WORLD_H)*0.5,55*dpr);
+  if(vArrow>2){
+    ctx.strokeStyle=VEL_COL;ctx.lineWidth=2*dpr;
+    ctx.beginPath();ctx.moveTo(loopCx,midY);ctx.lineTo(loopCx,midY+vArrow);
+    ctx.moveTo(loopCx-5*dpr,midY+vArrow-8*dpr);ctx.lineTo(loopCx,midY+vArrow);ctx.lineTo(loopCx+5*dpr,midY+vArrow-8*dpr);
+    ctx.stroke();
+    ctx.fillStyle=VEL_COL;ctx.font=`${10*dpr}px sans-serif`;ctx.textAlign='right';
+    ctx.fillText('v',loopCx-8*dpr,midY+vArrow*0.55+4*dpr);
+  }
+  ctx.font=`${10*dpr}px sans-serif`;ctx.textAlign='right';
+  ctx.fillStyle=GRAV_COL;ctx.fillText('Mg ↓',fLeft-8*dpr,midY+5*dpr);
+  if(phase==='entering'||phase==='exiting'){ctx.fillStyle=BRAKE_COL;ctx.fillText('F_brake ↑',fLeft-8*dpr,midY-12*dpr);}
+
+  const vt=terminalV(),ratio=vy/(vt||1);
+  const phaseTxt={'above':'Free fall — approaching field','entering':'Entering field — bottom edge braking','inside':'Fully inside — no flux change, free fall','exiting':ratio>0.97?'Terminal velocity reached!':'Exiting field — top edge braking','exited':'Exited field — free fall continues','spanning':'Spanning field'};
+  const phaseCol={'above':'rgba(255,255,255,0.4)','entering':'#FAC775','inside':'rgba(255,255,255,0.4)','exiting':ratio>0.97?'#4ecda4':'#ff6b6b','exited':'rgba(255,255,255,0.4)','spanning':'#FAC775'};
+  ctx.fillStyle=phaseCol[phase]||'white';ctx.font=`${11*dpr}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText(phaseTxt[phase]||phase,W/2,H-8*dpr);
+}
+
+function drawVGraph(){
+  const cv=document.getElementById('cgraph');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth*dpr,H=165*dpr;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  const pad={l:44*dpr,r:12*dpr,t:14*dpr,b:28*dpr};
+  const gw=W-pad.l-pad.r,gh=H-pad.t-pad.b;
+  ctx.strokeStyle=GRID;ctx.lineWidth=dpr;
+  [0.25,0.5,0.75].forEach(f=>{const y=H-pad.b-f*gh;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();});
+  ctx.strokeStyle=AXIS;ctx.lineWidth=1.2*dpr;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+
+  // Fixed y-axis tick labels
+  ctx.fillStyle=TC;ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='right';
+  ctx.fillText('v (m/s)',pad.l-3*dpr,pad.t+8*dpr);
+  [0.25,0.5,0.75,1.0].forEach(f=>{
+    const y=H-pad.b-f*gh;
+    ctx.fillText((fixedMaxV*f).toFixed(1),pad.l-4*dpr,y+3*dpr);
+  });
+  ctx.textAlign='center';ctx.fillText('time →',pad.l+gw/2,H-pad.b+18*dpr);
+
+  if(vHist.length<2)return;
+  const vt=terminalV();
+  // Terminal velocity line using fixed scale
+  ctx.strokeStyle=VT_COL;ctx.lineWidth=1*dpr;ctx.setLineDash([5*dpr,4*dpr]);
+  const vtY=H-pad.b-(vt/fixedMaxV)*gh;
+  if(vtY>pad.t){ctx.beginPath();ctx.moveTo(pad.l,vtY);ctx.lineTo(W-pad.r,vtY);ctx.stroke();}
+  ctx.setLineDash([]);
+  ctx.fillStyle=BRAKE_COL;ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+  if(vtY>pad.t+8*dpr)ctx.fillText('v_t',pad.l+3*dpr,vtY-3*dpr);
+
+  ctx.strokeStyle=VEL_COL;ctx.lineWidth=2*dpr;
+  ctx.beginPath();
+  vHist.forEach((v,i)=>{
+    const sx=pad.l+(i/MAX_H)*gw;
+    const sy=H-pad.b-Math.min(v/fixedMaxV,1)*gh;
+    i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
+  });
+  ctx.stroke();
+}
+
+function drawFGraph(){
+  const cv=document.getElementById('cfgraph');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth*dpr,H=165*dpr;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  const pad={l:44*dpr,r:12*dpr,t:14*dpr,b:28*dpr};
+  const gw=W-pad.l-pad.r,gh=H-pad.t-pad.b;
+
+  ctx.strokeStyle=GRID;ctx.lineWidth=dpr;
+  [0.25,0.5,0.75].forEach(f=>{const y=H-pad.b-f*gh;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();});
+  ctx.strokeStyle=AXIS;ctx.lineWidth=1.2*dpr;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+
+  // Fixed y-axis tick labels
+  ctx.fillStyle=TC;ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='right';
+  ctx.fillText('F (N)',pad.l-3*dpr,pad.t+8*dpr);
+  [0.25,0.5,0.75,1.0].forEach(f=>{
+    const y=H-pad.b-f*gh;
+    ctx.fillText((fixedMaxF*f).toFixed(2),pad.l-4*dpr,y+3*dpr);
+  });
+  ctx.textAlign='center';ctx.fillText('time →',pad.l+gw/2,H-pad.b+18*dpr);
+
+  if(fHist.length<2)return;
+  const mg=M*G;
+
+  // Mg constant line — fixed position
+  ctx.strokeStyle=GRAV_COL;ctx.lineWidth=1.5*dpr;ctx.setLineDash([4*dpr,3*dpr]);
+  const mgY=H-pad.b-(mg/fixedMaxF)*gh;
+  ctx.beginPath();ctx.moveTo(pad.l,mgY);ctx.lineTo(W-pad.r,mgY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=GRAV_COL;ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+  ctx.fillText('Mg',pad.l+3*dpr,mgY-3*dpr);
+
+  // F_brake curve — fixed scale
+  ctx.strokeStyle=BRAKE_COL;ctx.lineWidth=2*dpr;
+  ctx.beginPath();
+  fHist.forEach((f,i)=>{
+    const sx=pad.l+(i/MAX_H)*gw;
+    const sy=H-pad.b-Math.min(f/fixedMaxF,1)*gh;
+    i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
+  });
+  ctx.stroke();
+  ctx.fillStyle=BRAKE_COL;ctx.font=`${9*dpr}px sans-serif`;ctx.textAlign='left';
+  ctx.fillText('F_brake',pad.l+3*dpr,pad.t+10*dpr);
+
+  // Legend note
+  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font=`${8*dpr}px sans-serif`;ctx.textAlign='right';
+  ctx.fillText('scale fixed per cycle',W-pad.r,H-pad.b+18*dpr);
+}
+
+let last=null;
+function loop(ts){
+  if(!last)last=ts;
+  const rawDt=Math.min((ts-last)/1000,0.033);last=ts;
+  const dt=rawDt*simSpeed;
+  if(!paused){
+    const phase=getPhase();
+    const Fb=getBraking(phase);
+    vy+=((M*G-Fb)/M)*dt;
+    if(vy<0)vy=0;
+    yCoil+=vy*dt;
+    if(yCoil>WORLD_H+1)reset();
+    const emfNow=(phase==='entering'||phase==='exiting')?(B*l*vy):0;
+    vHist.push(vy);fHist.push(Fb);
+    if(vHist.length>MAX_H)vHist.shift();
+    if(fHist.length>MAX_H)fHist.shift();
+    const vt=terminalV();
+    document.getElementById('sv').textContent=vy.toFixed(3)+' m/s';
+    document.getElementById('svt').textContent=vt.toFixed(3)+' m/s';
+    document.getElementById('semf').textContent=emfNow.toFixed(3)+' V';
+    document.getElementById('sfb').textContent=Fb.toFixed(3)+' N';
+    document.getElementById('sfn').textContent=(M*G-Fb).toFixed(3)+' N';
+    const ratio=vy/(vt||1);
+    const pl={'above':'Free fall (above)','entering':'Entering — braking','inside':'Inside — free fall','exiting':ratio>0.97?'Terminal velocity!':'Exiting — braking','exited':'Exited — free fall','spanning':'Spanning field'};
+    document.getElementById('sph').textContent=pl[phase]||phase;
+    document.getElementById('fml').innerHTML=`v<sub>t</sub> = MgR / B²l² = <span style="color:#4ecda4">${vt.toFixed(3)} m/s</span>`;
+  }
+  drawScene();drawVGraph();drawFGraph();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>

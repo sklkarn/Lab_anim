@@ -1,0 +1,282 @@
+
+<style>
+  *{box-sizing:border-box;}
+  @keyframes xpulse{0%,100%{opacity:0.35}50%{opacity:0.9}}
+  .xd{animation:xpulse 2s ease-in-out infinite;}
+  .wrap{background:#0d1117;border-radius:14px;padding:14px;font-family:sans-serif;}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:9px;}
+  .clabel{font-size:11px;color:#8b949e;margin-bottom:3px;}
+  .cval{font-size:18px;font-weight:600;}
+  .row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+  .slrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+  .sllabel{font-size:11px;color:#8b949e;display:flex;justify-content:space-between;margin-bottom:3px;}
+  .slval{font-weight:600;color:#e6edf3;}
+  input[type=range]{width:100%;accent-color:#58a6ff;}
+  .charts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+</style>
+
+<div class="wrap">
+
+<div class="row4">
+  <div class="card">
+    <div class="clabel">Phase</div>
+    <div id="d-phase" style="font-size:12px;font-weight:600;color:#e6edf3;line-height:1.4;">Free fall</div>
+  </div>
+  <div class="card">
+    <div class="clabel">Velocity (m/s)</div>
+    <div id="d-vel" class="cval" style="color:#58a6ff;">0.000</div>
+  </div>
+  <div class="card">
+    <div class="clabel">F_brake (N)</div>
+    <div id="d-fb" class="cval" style="color:#f85149;">0.000</div>
+  </div>
+  <div class="card">
+    <div class="clabel">v_terminal (m/s)</div>
+    <div id="d-vt" class="cval" style="color:#d2a8ff;">—</div>
+  </div>
+</div>
+
+<div class="slrow">
+  <div>
+    <div class="sllabel">M (kg)<span id="v-M" class="slval">0.10</span></div>
+    <input type="range" min="0.01" max="0.5" step="0.01" value="0.10" id="sl-M">
+  </div>
+  <div>
+    <div class="sllabel">R (Ω)<span id="v-R" class="slval">1.0</span></div>
+    <input type="range" min="0.1" max="10" step="0.1" value="1.0" id="sl-R">
+  </div>
+  <div>
+    <div class="sllabel">B (T)<span id="v-B" class="slval">1.0</span></div>
+    <input type="range" min="0.1" max="5" step="0.1" value="1.0" id="sl-B">
+  </div>
+  <div>
+    <div class="sllabel">l (m)<span id="v-l" class="slval">0.20</span></div>
+    <input type="range" min="0.05" max="0.5" step="0.01" value="0.20" id="sl-l">
+  </div>
+</div>
+
+<div class="charts">
+
+<svg width="100%" viewBox="0 0 300 520" id="sim" style="background:#0d1117;border-radius:10px;">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect x="30" y="170" width="200" height="290" fill="#1c2a3a" stroke="#388bfd" stroke-width="0.8" stroke-dasharray="6 4"/>
+  <g id="xg"></g>
+  <line x1="30" y1="170" x2="230" y2="170" stroke="#388bfd" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="130" y="164" font-size="9" fill="#58a6ff" text-anchor="middle">entry boundary</text>
+  <line x1="30" y1="460" x2="230" y2="460" stroke="#f85149" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="130" y="474" font-size="9" fill="#f85149" text-anchor="middle">exit boundary</text>
+  <text x="244" y="295" font-size="9" fill="#58a6ff">B</text>
+  <text x="241" y="307" font-size="9" fill="#58a6ff">into</text>
+  <text x="241" y="319" font-size="9" fill="#58a6ff">page</text>
+
+  <rect id="lr" x="65" y="50" width="130" height="90" rx="3" fill="#1c2a1c" fill-opacity="0.6" stroke="#ffa657" stroke-width="2.5"/>
+  <g id="curr-g" opacity="0">
+    <path id="ct" d="" stroke="#d2a8ff" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+    <path id="cb" d="" stroke="#d2a8ff" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+  </g>
+
+  <line id="a-mg" x1="0" y1="0" x2="0" y2="0" stroke="#ffa657" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text id="t-mg" font-size="10" fill="#ffa657" x="0" y="0">Mg</text>
+  <line id="a-fb" x1="0" y1="0" x2="0" y2="0" stroke="#f85149" stroke-width="2.5" marker-end="url(#ah)" opacity="0"/>
+  <text id="t-fb" font-size="10" fill="#f85149" x="0" y="0" opacity="0">F_b</text>
+  <line id="a-v"  x1="0" y1="0" x2="0" y2="0" stroke="#58a6ff" stroke-width="2" marker-end="url(#ah)"/>
+  <text id="t-v"  font-size="10" fill="#58a6ff" x="0" y="0">v</text>
+
+  <g id="emf-g" opacity="0">
+    <rect id="emf-box" x="0" y="0" width="84" height="19" rx="4" fill="#1a1a2e" stroke="#d2a8ff" stroke-width="0.8"/>
+    <text id="emf-t" font-size="10" fill="#d2a8ff" x="0" y="0" text-anchor="middle"></text>
+  </g>
+  <g id="cur-g" opacity="0">
+    <rect id="cur-box" x="0" y="0" width="84" height="19" rx="4" fill="#2a1a1a" stroke="#f85149" stroke-width="0.8"/>
+    <text id="cur-t" font-size="10" fill="#f85149" x="0" y="0" text-anchor="middle"></text>
+  </g>
+
+  <rect x="2" y="4" width="100" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="0.8"/>
+  <text x="52" y="18" font-size="9" fill="#8b949e" text-anchor="middle">v_t = MgR / B²l²</text>
+  <text id="vt-eq" x="52" y="36" font-size="12" font-weight="600" fill="#d2a8ff" text-anchor="middle">—</text>
+</svg>
+
+<svg width="100%" viewBox="0 0 300 520" id="graph" style="background:#0d1117;border-radius:10px;">
+  <defs>
+    <marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="150" y="16" font-size="11" font-weight="600" fill="#e6edf3" text-anchor="middle">force &amp; velocity vs time</text>
+  <line x1="36" y1="30" x2="36" y2="390" stroke="#484f58" stroke-width="0.8" marker-end="url(#ah2)"/>
+  <line x1="36" y1="390" x2="290" y2="390" stroke="#484f58" stroke-width="0.8" marker-end="url(#ah2)"/>
+  <text x="26" y="212" font-size="9" fill="#8b949e" text-anchor="middle" transform="rotate(-90,26,212)">value</text>
+  <text x="163" y="406" font-size="9" fill="#8b949e" text-anchor="middle">time →</text>
+
+  <line x1="36" y1="30" x2="290" y2="30" stroke="#21262d" stroke-width="0.5"/>
+  <line x1="36" y1="110" x2="290" y2="110" stroke="#21262d" stroke-width="0.5"/>
+  <line x1="36" y1="190" x2="290" y2="190" stroke="#21262d" stroke-width="0.5"/>
+  <line x1="36" y1="270" x2="290" y2="270" stroke="#21262d" stroke-width="0.5"/>
+  <line x1="36" y1="350" x2="290" y2="350" stroke="#21262d" stroke-width="0.5"/>
+
+  <polyline id="gMg" points="" fill="none" stroke="#ffa657" stroke-width="1.5" stroke-linejoin="round"/>
+  <polyline id="gFb" points="" fill="none" stroke="#f85149" stroke-width="1.8" stroke-dasharray="5 3" stroke-linejoin="round"/>
+  <polyline id="gFn" points="" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linejoin="round"/>
+  <polyline id="gv"  points="" fill="none" stroke="#58a6ff" stroke-width="2.2" stroke-linejoin="round"/>
+
+  <rect x="30" y="412" width="10" height="3" rx="1" fill="#58a6ff"/>
+  <text x="44" y="418" font-size="9" fill="#8b949e">velocity</text>
+  <rect x="88" y="412" width="10" height="3" rx="1" fill="#ffa657"/>
+  <text x="102" y="418" font-size="9" fill="#8b949e">Mg</text>
+  <line x1="135" y1="414" x2="148" y2="414" stroke="#f85149" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <text x="153" y="418" font-size="9" fill="#8b949e">F_brake</text>
+  <rect x="200" y="412" width="10" height="3" rx="1" fill="#3fb950"/>
+  <text x="214" y="418" font-size="9" fill="#8b949e">F_net</text>
+
+  <text id="g-ph" x="150" y="438" font-size="11" font-weight="600" text-anchor="middle" fill="#58a6ff"></text>
+  <text id="g-d1" x="150" y="452" font-size="9" text-anchor="middle" fill="#8b949e"></text>
+  <text id="g-d2" x="150" y="464" font-size="9" text-anchor="middle" fill="#8b949e"></text>
+  <text id="g-d3" x="150" y="476" font-size="9" text-anchor="middle" fill="#8b949e"></text>
+  <text id="g-d4" x="150" y="488" font-size="9" text-anchor="middle" fill="#8b949e"></text>
+</svg>
+
+</div>
+</div>
+
+<script>
+const G=9.8,SC=9;
+const FT=170,FB=460,LW=130,LH=90,LX=65;
+let M=0.10,R=1.0,B=1.0,l=0.20;
+let ly=30,vel=0,lastTs=null,tSim=0,frameN=0;
+const HIST=220,GX0=36,GX1=288,GY0=390,GY1=32;
+const GW=GX1-GX0,GH=GY0-GY1;
+let hV=[],hMg=[],hFb=[],hFn=[];
+
+function calcVt(){return (M*G*R)/(B*B*l*l);}
+function getPhase(y){
+  const bot=y+LH;
+  if(bot<=FT) return 'free1';
+  if(y>=FT&&bot<=FB) return 'inside';
+  if(y<FT&&bot>FT&&bot<=FB) return 'entry';
+  if(y>=FT&&y<FB&&bot>FB) return 'exit';
+  return 'free2';
+}
+
+function drawX(){
+  const g=document.getElementById('xg');g.innerHTML='';
+  for(let r=0;r<7;r++)for(let c=0;c<4;c++){
+    const cx=52+c*46,cy=192+r*40,d=(r*0.25+c*0.15).toFixed(2);
+    g.innerHTML+=`<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#388bfd" class="xd" style="animation-delay:${d}s">×</text>`;
+  }
+}
+
+function sa(id,a){const e=document.getElementById(id);if(e)for(const k in a)e.setAttribute(k,a[k]);}
+function st(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function sop(id,v){const e=document.getElementById(id);if(e)e.setAttribute('opacity',v);}
+
+function pts(arr,scale){
+  if(arr.length<2)return '';
+  return arr.map((v,i)=>{
+    const x=GX0+GW*(i/(HIST-1));
+    const y=GY0-Math.min(GH-2,Math.max(2,GH*(v/scale)));
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+}
+
+const phaseInfo={
+  free1:{label:'Free fall — above field',  color:'#58a6ff', d:['ε = 0  |  I = 0  |  F_brake = 0','Gravity unopposed — loop accelerates','','']},
+  entry:{label:'Entering — braking force', color:'#ffa657', d:['ε = Blv  →  I = Blv/R','F_brake = B²l²v/R  (upward)','Mg balanced at v_t = MgR/B²l²','']},
+  inside:{label:'Inside — free fall resumes',color:'#3fb950',d:['Flux constant → ε = 0','No current, no braking force','Loop accelerates freely again','']},
+  exit:{label:'Exiting — braking again',   color:'#f85149', d:['Top edge exits: flux decreasing','ε = Blv (reversed polarity)','F_brake upward → same v_t','']},
+  free2:{label:'Below field — free fall',   color:'#d2a8ff', d:['Loop clear of field','ε = 0  |  F_brake = 0','Free acceleration under gravity','']},
+};
+
+function tick(ts){
+  if(!lastTs)lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,0.04);lastTs=ts;tSim+=dt;frameN++;
+
+  const VT=calcVt(),Mg=M*G,ph=getPhase(ly);
+  let brake=0,acc=0;
+  if(ph==='free1'||ph==='free2'||ph==='inside'){
+    acc=G*SC;
+  } else {
+    brake=(B*B*l*l*vel)/R;
+    acc=Math.max(0,(Mg-brake)/M)*SC;
+    if(vel>VT*1.005)vel=VT*1.005;
+  }
+  vel+=acc*dt; ly+=vel*dt;
+  if(ly>530){ly=30;vel=0;lastTs=null;tSim=0;hV=[];hMg=[];hFb=[];hFn=[];}
+
+  const Fnet=Mg-brake;
+  if(frameN%2===0){
+    if(hV.length>=HIST){hV.shift();hMg.shift();hFb.shift();hFn.shift();}
+    hV.push(+vel.toFixed(3));hMg.push(+Mg.toFixed(3));hFb.push(+brake.toFixed(3));hFn.push(+Fnet.toFixed(3));
+  }
+
+  const mx=LX+LW/2,my=ly+LH/2;
+  sa('lr',{x:LX,y:ly,width:LW,height:LH});
+
+  const vLen=Math.min(34,Math.max(5,vel*3.5));
+  const mgLen=Math.min(32,Math.max(5,Mg*30));
+  sa('a-mg',{x1:mx-26,y1:my,x2:mx-26,y2:my+mgLen});
+  sa('t-mg',{x:mx-20,y:my+mgLen+11});
+  sa('a-v',{x1:mx,y1:ly+LH+4,x2:mx,y2:ly+LH+4+vLen});
+  st('t-v','v='+vel.toFixed(2));
+  sa('t-v',{x:mx+4,y:ly+LH+4+vLen+11});
+
+  if(ph==='entry'||ph==='exit'){
+    const bLen=Math.min(32,Math.max(5,brake*30));
+    sa('a-fb',{x1:mx+26,y1:my+12,x2:mx+26,y2:my+12-bLen,opacity:1});
+    sa('t-fb',{x:mx+30,y:my+12-bLen-3,opacity:1});
+    sop('curr-g',1);
+    const flip=ph==='exit'?-1:1;
+    const tx1=LX+LW*0.72,tx2=LX+LW*0.2,bx1=LX+LW*0.28,bx2=LX+LW*0.8;
+    if(flip>0){sa('ct',{d:`M${tx1} ${ly} L${tx2} ${ly}`});sa('cb',{d:`M${bx1} ${ly+LH} L${bx2} ${ly+LH}`});}
+    else{sa('ct',{d:`M${tx2} ${ly} L${tx1} ${ly}`});sa('cb',{d:`M${bx2} ${ly+LH} L${bx1} ${ly+LH}`});}
+    const bx=LX+LW+5,by=ly+6;
+    sa('emf-box',{x:bx,y:by});sa('emf-t',{x:bx+42,y:by+13});
+    st('emf-t','ε='+(B*l*vel).toFixed(3)+' V');sop('emf-g',1);
+    sa('cur-box',{x:bx,y:by+23});sa('cur-t',{x:bx+42,y:by+36});
+    st('cur-t','I='+(B*l*vel/R).toFixed(3)+' A');sop('cur-g',1);
+  } else {
+    sop('a-fb',0);sop('t-fb',0);sop('curr-g',0);sop('emf-g',0);sop('cur-g',0);
+  }
+
+  st('d-phase',phaseInfo[ph].label);
+  st('d-vel',vel.toFixed(3));
+  st('d-fb',brake.toFixed(3));
+  st('d-vt',VT.toFixed(3));
+  st('vt-eq',VT.toFixed(3)+' m/s');
+
+  const scale=Math.max(Mg*2,0.01);
+  document.getElementById('gv').setAttribute('points',pts(hV,scale));
+  document.getElementById('gMg').setAttribute('points',pts(hMg,scale));
+  document.getElementById('gFb').setAttribute('points',pts(hFb,scale));
+  document.getElementById('gFn').setAttribute('points',pts(hFn,scale));
+
+  const pi=phaseInfo[ph];
+  st('g-ph',pi.label);
+  document.getElementById('g-ph').setAttribute('fill',pi.color);
+  st('g-d1',pi.d[0]);st('g-d2',pi.d[1]);st('g-d3',pi.d[2]);st('g-d4',pi.d[3]);
+
+  requestAnimationFrame(tick);
+}
+
+function resetAll(){
+  ly=30;vel=0;lastTs=null;tSim=0;
+  hV=[];hMg=[];hFb=[];hFn=[];
+  ['gv','gMg','gFb','gFn'].forEach(id=>document.getElementById(id).setAttribute('points',''));
+}
+function updParams(){
+  M=+document.getElementById('sl-M').value;
+  R=+document.getElementById('sl-R').value;
+  B=+document.getElementById('sl-B').value;
+  l=+document.getElementById('sl-l').value;
+  st('v-M',M.toFixed(2));st('v-R',R.toFixed(1));
+  st('v-B',B.toFixed(1));st('v-l',l.toFixed(2));
+  resetAll();
+}
+['sl-M','sl-R','sl-B','sl-l'].forEach(id=>document.getElementById(id).addEventListener('input',updParams));
+drawX();updParams();requestAnimationFrame(tick);
+</script>

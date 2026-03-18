@@ -1,0 +1,247 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.page{background:#0d0f14;color:rgba(255,255,255,0.85);font-family:sans-serif;padding:18px 16px 24px;display:flex;flex-direction:column;gap:18px;min-height:100vh}
+canvas{width:100%;border-radius:10px;display:block;border:0.5px solid rgba(255,255,255,0.07)}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:#161920;border:0.5px solid rgba(255,255,255,0.09);border-radius:10px;padding:9px 14px;flex:1;min-width:80px}
+.stat-label{font-size:11px;color:rgba(255,255,255,0.38);margin-bottom:2px}
+.stat-val{font-size:18px;font-weight:500;color:rgba(255,255,255,0.9)}
+.controls{background:#161920;border:0.5px solid rgba(255,255,255,0.09);border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:11px}
+.crow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cl{font-size:12px;color:rgba(255,255,255,0.42);min-width:52px}
+input[type=range]{flex:1;min-width:80px;accent-color:#4da6ff}
+.cv{font-size:12px;font-weight:500;color:rgba(255,255,255,0.75);min-width:42px;text-align:right}
+button{background:#1e2130;border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);border-radius:7px;padding:6px 18px;font-size:13px;cursor:pointer}
+button:hover{background:#252a3a}
+</style>
+
+<div class="page">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Phase</div><div class="stat-val" id="s-phase" style="font-size:14px">Approaching</div></div>
+    <div class="stat"><div class="stat-label">Flux Φ</div><div class="stat-val" id="s-flux">0.00 Wb</div></div>
+    <div class="stat"><div class="stat-label">|EMF|</div><div class="stat-val" id="s-emf">0.00 V</div></div>
+    <div class="stat"><div class="stat-label">Inside field</div><div class="stat-val" id="s-frac">0%</div></div>
+  </div>
+
+  <canvas id="cscene" height="230"></canvas>
+  <canvas id="cgraph" height="200"></canvas>
+
+  <div class="controls">
+    <div class="crow">
+      <span class="cl">Speed</span>
+      <input type="range" id="ispeed" min="0.3" max="3" step="0.1" value="1">
+      <span class="cv" id="ospeed">1.0×</span>
+      <button id="btnpause">Pause</button>
+      <button id="btnreset">Reset</button>
+    </div>
+    <div class="crow">
+      <span class="cl">B strength</span>
+      <input type="range" id="ibfield" min="0.5" max="3" step="0.1" value="1">
+      <span class="cv" id="obfield">1.0 T</span>
+      <span class="cl" style="margin-left:8px">Coil size</span>
+      <input type="range" id="isize" min="0.1" max="0.6" step="0.05" value="0.3">
+      <span class="cv" id="osize">0.3 m</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const cscene=document.getElementById('cscene');
+const cgraph=document.getElementById('cgraph');
+const cs=cscene.getContext('2d');
+const cg=cgraph.getContext('2d');
+
+const BG='#0d0f14',FIELD_BG='rgba(77,140,255,0.10)',FIELD_BORDER='rgba(77,140,255,0.35)';
+const COIL_COL='#FAC775',DOT_COL='rgba(77,140,255,0.55)';
+const EMF_COL='#ff6b6b',FLUX_COL='#4ecda4';
+const AXIS='rgba(255,255,255,0.22)',GRID='rgba(255,255,255,0.06)',TEXTC='rgba(255,255,255,0.5)';
+
+let speed=1,B=1,L=0.3,paused=false;
+let xCoil=-0.5;
+const fieldLeft=0.5,fieldRight=2.0,totalTravel=3.5;
+const history=[],MAX_H=500;
+
+document.getElementById('ispeed').oninput=function(){speed=+this.value;document.getElementById('ospeed').textContent=speed.toFixed(1)+'×'};
+document.getElementById('ibfield').oninput=function(){B=+this.value;document.getElementById('obfield').textContent=B.toFixed(1)+' T'};
+document.getElementById('isize').oninput=function(){L=+this.value;document.getElementById('osize').textContent=L.toFixed(2)+' m'};
+document.getElementById('btnpause').onclick=function(){paused=!paused;this.textContent=paused?'Resume':'Pause'};
+document.getElementById('btnreset').onclick=()=>{xCoil=-0.5;history.length=0};
+
+function getPhase(x){
+  const cl=x,cr=x+L;
+  if(cr<=fieldLeft) return 'approaching';
+  if(cl>=fieldRight) return 'exited';
+  if(cl>=fieldLeft&&cr<=fieldRight) return 'fully inside';
+  if(cl<fieldLeft&&cr>fieldLeft&&cr<=fieldRight) return 'entering';
+  if(cl>=fieldLeft&&cl<fieldRight&&cr>fieldRight) return 'exiting';
+  return 'fully inside';
+}
+
+function getFlux(x){
+  const cl=x,cr=x+L;
+  const overlap=Math.max(0,Math.min(cr,fieldRight)-Math.max(cl,fieldLeft));
+  return B*overlap*L;
+}
+
+function getEMF(x,dx){
+  const cl=x,cr=x+L;
+  const entering=cl<fieldLeft&&cr>fieldLeft&&cr<=fieldRight;
+  const exiting=cl>=fieldLeft&&cl<fieldRight&&cr>fieldRight;
+  if(entering) return B*L*dx;
+  if(exiting)  return B*L*dx;
+  return 0;
+}
+
+function drawScene(x){
+  const dpr=window.devicePixelRatio||1;
+  const W=cscene.clientWidth*dpr,H=230*dpr;
+  cscene.width=W;cscene.height=H;
+  cs.clearRect(0,0,W,H);
+  cs.fillStyle=BG;cs.fillRect(0,0,W,H);
+
+  const pad=40*dpr,avail=W-2*pad;
+  const toX=n=>pad+n/totalTravel*avail;
+  const midY=H*0.5;
+  const coilPx=(L/totalTravel)*avail;
+
+  const fx1=toX(fieldLeft),fx2=toX(fieldRight);
+  cs.fillStyle=FIELD_BG;
+  cs.fillRect(fx1,pad*0.5,fx2-fx1,H-pad);
+  cs.strokeStyle=FIELD_BORDER;cs.lineWidth=1.2*dpr;cs.setLineDash([5*dpr,4*dpr]);
+  cs.beginPath();cs.moveTo(fx1,pad*0.4);cs.lineTo(fx1,H-pad*0.4);cs.stroke();
+  cs.beginPath();cs.moveTo(fx2,pad*0.4);cs.lineTo(fx2,H-pad*0.4);cs.stroke();
+  cs.setLineDash([]);
+
+  cs.fillStyle='rgba(77,140,255,0.6)';cs.font=`${11*dpr}px sans-serif`;cs.textAlign='center';
+  cs.fillText('B field (into page)',(fx1+fx2)/2,pad*0.35);
+
+  cs.fillStyle=DOT_COL;
+  const dotSpX=22*dpr,dotSpY=22*dpr;
+  for(let dx2=fx1+dotSpX/2;dx2<fx2;dx2+=dotSpX){
+    for(let dy=pad*0.55;dy<H-pad*0.5;dy+=dotSpY){
+      cs.strokeStyle='rgba(77,140,255,0.45)';cs.lineWidth=1.2*dpr;
+      cs.beginPath();cs.moveTo(dx2-3.5*dpr,dy-3.5*dpr);cs.lineTo(dx2+3.5*dpr,dy+3.5*dpr);cs.stroke();
+      cs.beginPath();cs.moveTo(dx2+3.5*dpr,dy-3.5*dpr);cs.lineTo(dx2-3.5*dpr,dy+3.5*dpr);cs.stroke();
+    }
+  }
+
+  const coilX=toX(x);
+  const coilTop=midY-coilPx/2;
+
+  const overlapL=Math.max(toX(x),fx1),overlapR=Math.min(toX(x)+coilPx,fx2);
+  if(overlapR>overlapL){
+    cs.fillStyle='rgba(250,199,117,0.08)';
+    cs.fillRect(overlapL,coilTop,overlapR-overlapL,coilPx);
+  }
+
+  cs.strokeStyle=COIL_COL;cs.lineWidth=2.5*dpr;cs.setLineDash([]);
+  cs.strokeRect(coilX,coilTop,coilPx,coilPx);
+
+  const arrowY=midY+coilPx/2+16*dpr;
+  cs.strokeStyle='rgba(255,255,255,0.5)';cs.lineWidth=1.8*dpr;
+  cs.beginPath();cs.moveTo(coilX,arrowY);cs.lineTo(coilX+26*dpr,arrowY);
+  cs.moveTo(coilX+26*dpr,arrowY-5*dpr);cs.lineTo(coilX+33*dpr,arrowY);cs.lineTo(coilX+26*dpr,arrowY+5*dpr);
+  cs.stroke();
+  cs.fillStyle='rgba(255,255,255,0.45)';cs.font=`${10*dpr}px sans-serif`;cs.textAlign='left';
+  cs.fillText('v',coilX+36*dpr,arrowY+4*dpr);
+
+  const phase=getPhase(x);
+  const phaseColor={'approaching':'rgba(255,255,255,0.45)','entering':'#4ecda4','fully inside':'rgba(255,255,255,0.45)','exiting':'#ff6b6b','exited':'rgba(255,255,255,0.45)'}[phase]||'white';
+  cs.fillStyle=phaseColor;cs.font=`${11*dpr}px sans-serif`;cs.textAlign='center';
+  cs.fillText(phase,coilX+coilPx/2,coilTop-10*dpr);
+}
+
+function drawGraph(){
+  const dpr=window.devicePixelRatio||1;
+  const W=cgraph.clientWidth*dpr,H=200*dpr;
+  cgraph.width=W;cgraph.height=H;
+  cg.clearRect(0,0,W,H);
+  cg.fillStyle=BG;cg.fillRect(0,0,W,H);
+
+  const pad={l:50*dpr,r:16*dpr,t:14*dpr,b:34*dpr};
+  const gw=W-pad.l-pad.r,gh=H-pad.t-pad.b;
+  const splitY=pad.t+gh*0.48;
+  const fluxH=splitY-pad.t;
+  const emfH=H-pad.b-splitY-4*dpr;
+
+  cg.strokeStyle=GRID;cg.lineWidth=dpr;
+  [pad.t+fluxH/2,splitY+emfH/2].forEach(y=>{
+    cg.beginPath();cg.moveTo(pad.l,y);cg.lineTo(W-pad.r,y);cg.stroke();
+  });
+
+  cg.strokeStyle=AXIS;cg.lineWidth=1.2*dpr;
+  cg.beginPath();cg.moveTo(pad.l,pad.t);cg.lineTo(pad.l,H-pad.b);cg.stroke();
+  cg.beginPath();cg.moveTo(pad.l,splitY);cg.lineTo(W-pad.r,splitY);cg.stroke();
+  cg.beginPath();cg.moveTo(pad.l,H-pad.b);cg.lineTo(W-pad.r,H-pad.b);cg.stroke();
+
+  cg.fillStyle=TEXTC;cg.font=`${10*dpr}px sans-serif`;cg.textAlign='right';
+  cg.fillText('Φ',pad.l-5*dpr,pad.t+10*dpr);
+  cg.fillText('|EMF|',pad.l-5*dpr,splitY+12*dpr);
+  cg.textAlign='center';
+  cg.fillText('time  →',pad.l+gw/2,H-pad.b+22*dpr);
+
+  if(history.length<2)return;
+
+  const maxFlux=B*L*L*1.1||1;
+  const maxEMF=B*L*speed*1.1||1;
+  const xToScreen=i=>pad.l+(i/MAX_H)*gw;
+
+  cg.strokeStyle=FLUX_COL;cg.lineWidth=2*dpr;
+  cg.beginPath();
+  history.forEach((h,i)=>{
+    const sx=xToScreen(i),sy=splitY-(h.flux/maxFlux)*fluxH*0.85;
+    i===0?cg.moveTo(sx,sy):cg.lineTo(sx,sy);
+  });
+  cg.stroke();
+
+  cg.strokeStyle=EMF_COL;cg.lineWidth=2*dpr;
+  cg.beginPath();
+  history.forEach((h,i)=>{
+    const sx=xToScreen(i),sy=splitY+4*dpr+(h.emf/maxEMF)*emfH*0.85;
+    i===0?cg.moveTo(sx,sy):cg.lineTo(sx,sy);
+  });
+  cg.stroke();
+
+  cg.fillStyle=FLUX_COL;cg.font=`${10*dpr}px sans-serif`;cg.textAlign='left';
+  cg.fillText('Flux Φ',pad.l+6*dpr,pad.t+12*dpr);
+  cg.fillStyle=EMF_COL;
+  cg.fillText('|EMF|',pad.l+6*dpr,splitY+14*dpr);
+
+  cg.strokeStyle='rgba(255,255,255,0.08)';cg.lineWidth=dpr;cg.setLineDash([3*dpr,3*dpr]);
+  cg.beginPath();cg.moveTo(pad.l,splitY+2*dpr);cg.lineTo(W-pad.r,splitY+2*dpr);cg.stroke();
+  cg.setLineDash([]);
+}
+
+let last=null;
+function loop(ts){
+  if(!last)last=ts;
+  const dt=Math.min((ts-last)/1000,0.05);last=ts;
+  const v=speed*0.4;
+  if(!paused){xCoil+=v*dt;if(xCoil>totalTravel)xCoil=-0.5;}
+
+  const flux=getFlux(xCoil);
+  const emf=Math.abs(getEMF(xCoil,v));
+  const phase=getPhase(xCoil);
+
+  history.push({flux,emf});
+  if(history.length>MAX_H)history.shift();
+
+  const cl=xCoil,cr=xCoil+L;
+  const overlap=Math.max(0,Math.min(cr,fieldRight)-Math.max(cl,fieldLeft));
+  const frac=Math.round(overlap/L*100);
+
+  document.getElementById('s-phase').textContent=phase;
+  document.getElementById('s-flux').textContent=flux.toFixed(3)+' Wb';
+  document.getElementById('s-emf').textContent=emf.toFixed(3)+' V';
+  document.getElementById('s-frac').textContent=frac+'%';
+
+  const pc={'approaching':'rgba(255,255,255,0.7)','entering':'#4ecda4','fully inside':'rgba(255,255,255,0.5)','exiting':'#ff6b6b','exited':'rgba(255,255,255,0.7)'};
+  document.getElementById('s-phase').style.color=pc[phase]||'white';
+
+  drawScene(xCoil);
+  drawGraph();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
