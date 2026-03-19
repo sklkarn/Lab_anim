@@ -1,0 +1,242 @@
+
+<style>
+  @keyframes moveAlpha {
+    0%   { transform: translateX(0);    opacity: 1; }
+    38%  { transform: translateX(136px); opacity: 1; }
+    42%  { transform: translateX(140px); opacity: 0; }
+    100% { transform: translateX(140px); opacity: 0; }
+  }
+  @keyframes moveBeta {
+    0%   { transform: translateX(0);    opacity: 1; }
+    60%  { transform: translateX(262px); opacity: 1; }
+    64%  { transform: translateX(266px); opacity: 0; }
+    100% { transform: translateX(266px); opacity: 0; }
+  }
+  @keyframes moveGamma {
+    0%   { transform: translateX(0);   opacity: 1; }
+    100% { transform: translateX(434px); opacity: 0.35; }
+  }
+  @keyframes dashFlow {
+    to { stroke-dashoffset: -16; }
+  }
+  @keyframes glowPulse {
+    0%,100% { opacity: 0.65; }
+    50%      { opacity: 1; }
+  }
+  @keyframes sourcePulse {
+    0%,100% { r: 28; opacity: 0.15; }
+    50%      { r: 36; opacity: 0.07; }
+  }
+  .p-alpha  { animation: moveAlpha 4s ease-in-out infinite; }
+  .p-beta   { animation: moveBeta  4s ease-in-out infinite; }
+  .p-gamma  { animation: moveGamma 4s linear infinite; }
+  .gamma-dash { animation: dashFlow 0.35s linear infinite; }
+  .glow-alpha { animation: glowPulse 1.2s ease-in-out infinite; }
+  .glow-beta  { animation: glowPulse 1.5s ease-in-out infinite 0.3s; }
+  .glow-gamma { animation: glowPulse 1s ease-in-out infinite 0.1s; }
+  .src-ring   { animation: sourcePulse 2s ease-in-out infinite; }
+  .paused * { animation-play-state: paused !important; }
+  .ctrl-btn {
+    font-size: 12px; padding: 5px 13px; cursor: pointer;
+    border-radius: 6px; border: 1px solid #3a4a5a;
+    background: #1a2535; color: #a0c0e0;
+    transition: background 0.15s;
+  }
+  .ctrl-btn:hover { background: #243348; }
+  .info-dark {
+    margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+    background: #0e1720; border: 1px solid #1e3040;
+    font-size: 13px; color: #7090a8; min-height: 40px;
+    font-family: var(--font-sans);
+  }
+  .info-dark strong { color: #c0d8f0; font-weight: 500; }
+</style>
+
+<div style="background:#0a1220; border-radius:12px; padding:16px 12px 12px; overflow:hidden;">
+<svg id="sv" width="100%" viewBox="0 0 680 410">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <clipPath id="cb"><polygon points="148,100 194,100 194,300 148,300"/></clipPath>
+    <clipPath id="ca"><polygon points="276,100 322,100 322,300 276,300"/></clipPath>
+  </defs>
+
+  <!-- Instructor label -->
+  <text x="660" y="22" text-anchor="end" font-size="12" font-weight="500" fill="#6888a8" font-family="var(--font-sans)">Dr. S Karna</text>
+  <line x1="580" y1="26" x2="660" y2="26" stroke="#2a4060" stroke-width="0.5"/>
+
+  <!-- Background grid -->
+  <g opacity="0.06" stroke="#4080c0" stroke-width="0.5">
+    <line x1="0" y1="100" x2="680" y2="100"/>
+    <line x1="0" y1="200" x2="680" y2="200"/>
+    <line x1="0" y1="300" x2="680" y2="300"/>
+    <line x1="100" y1="0" x2="100" y2="410"/>
+    <line x1="200" y1="0" x2="200" y2="410"/>
+    <line x1="300" y1="0" x2="300" y2="410"/>
+    <line x1="400" y1="0" x2="400" y2="410"/>
+    <line x1="500" y1="0" x2="500" y2="410"/>
+    <line x1="600" y1="0" x2="600" y2="410"/>
+  </g>
+
+  <!-- SOURCE -->
+  <circle class="src-ring" cx="56" cy="200" r="28" fill="none" stroke="#ff6040" stroke-width="8"/>
+  <circle cx="56" cy="200" r="36" fill="#1a0a05" stroke="#ff4020" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="56" cy="200" r="26" fill="#200a05" stroke="#ff5030" stroke-width="0.8"/>
+  <g transform="translate(56,200)">
+    <circle r="18" fill="#1e0a04" stroke="#ff5535" stroke-width="1"/>
+    <path d="M0,0 L14,0 A14 14 0 0 0 7,-12.12Z" fill="#ff5535"/>
+    <path d="M0,0 L-7,-12.12 A14 14 0 0 0 -14,0Z" fill="#ff5535"/>
+    <path d="M0,0 L7,12.12 A14 14 0 0 0 -7,12.12Z" fill="#ff5535"/>
+    <circle r="5" fill="#1e0a04"/>
+  </g>
+  <text x="56" y="252" text-anchor="middle" font-size="10" fill="#ff7050" font-family="var(--font-sans)" font-weight="500">source</text>
+
+  <!-- ── CARDBOARD PLATE ── -->
+  <polygon points="148,100 194,100 212,82 166,82" fill="#5a3a08" stroke="#c08820" stroke-width="0.7"/>
+  <polygon points="194,100 212,82 212,282 194,300" fill="#3a2204" stroke="#c08820" stroke-width="0.7"/>
+  <polygon points="148,100 194,100 194,300 148,300" fill="#7a5010" stroke="#d09830" stroke-width="0.8"/>
+  <g opacity="0.18" stroke="#f0c060" stroke-width="0.5">
+    <line x1="152" y1="110" x2="190" y2="290"/>
+    <line x1="162" y1="100" x2="194" y2="250"/>
+    <line x1="148" y1="140" x2="188" y2="300"/>
+    <line x1="148" y1="180" x2="180" y2="300"/>
+  </g>
+  <text x="171" y="360" text-anchor="middle" font-size="11" font-weight="500" fill="#d09828" font-family="var(--font-sans)">Cardboard</text>
+  <text x="171" y="375" text-anchor="middle" font-size="10" fill="#806010" font-family="var(--font-sans)">(thin plate)</text>
+
+  <!-- ── ALUMINUM PLATE ── -->
+  <polygon points="276,100 322,100 340,82 294,82" fill="#2a3a4a" stroke="#70a0c8" stroke-width="0.7"/>
+  <polygon points="322,100 340,82 340,282 322,300" fill="#1a2838" stroke="#70a0c8" stroke-width="0.7"/>
+  <polygon points="276,100 322,100 322,300 276,300" fill="#243444" stroke="#80b0d0" stroke-width="0.8"/>
+  <g opacity="0.12" stroke="#a0d0f0" stroke-width="0.6">
+    <line x1="278" y1="115" x2="320" y2="115"/><line x1="278" y1="135" x2="320" y2="135"/>
+    <line x1="278" y1="155" x2="320" y2="155"/><line x1="278" y1="175" x2="320" y2="175"/>
+    <line x1="278" y1="195" x2="320" y2="195"/><line x1="278" y1="215" x2="320" y2="215"/>
+    <line x1="278" y1="235" x2="320" y2="235"/><line x1="278" y1="255" x2="320" y2="255"/>
+    <line x1="278" y1="275" x2="320" y2="275"/><line x1="278" y1="295" x2="320" y2="295"/>
+  </g>
+  <text x="304" y="360" text-anchor="middle" font-size="11" font-weight="500" fill="#80b8e0" font-family="var(--font-sans)">Aluminum</text>
+  <text x="304" y="375" text-anchor="middle" font-size="10" fill="#405870" font-family="var(--font-sans)">(thin plate)</text>
+
+  <!-- ── LEAD PLATE ── -->
+  <polygon points="416,100 492,100 510,82 434,82" fill="#282828" stroke="#686868" stroke-width="0.7"/>
+  <polygon points="492,100 510,82 510,282 492,300" fill="#181818" stroke="#585858" stroke-width="0.7"/>
+  <polygon points="416,100 492,100 492,300 416,300" fill="#303030" stroke="#606060" stroke-width="0.8"/>
+  <g opacity="0.12" stroke="#a0a0a0" stroke-width="0.5">
+    <line x1="420" y1="120" x2="488" y2="120"/><line x1="420" y1="145" x2="488" y2="145"/>
+    <line x1="420" y1="170" x2="488" y2="170"/><line x1="420" y1="195" x2="488" y2="195"/>
+    <line x1="420" y1="220" x2="488" y2="220"/><line x1="420" y1="245" x2="488" y2="245"/>
+    <line x1="420" y1="270" x2="488" y2="270"/><line x1="420" y1="295" x2="488" y2="295"/>
+    <line x1="438" y1="102" x2="438" y2="298"/><line x1="456" y1="102" x2="456" y2="298"/>
+    <line x1="474" y1="102" x2="474" y2="298"/>
+  </g>
+  <text x="454" y="360" text-anchor="middle" font-size="11" font-weight="500" fill="#a0a0a0" font-family="var(--font-sans)">Lead</text>
+  <text x="454" y="375" text-anchor="middle" font-size="10" fill="#505050" font-family="var(--font-sans)">(thick plate)</text>
+
+  <!-- ── STATIC BEAM TRACKS ── -->
+  <!-- Alpha: source exit(94) → deep inside cardboard(188), y=175 -->
+  <line x1="94" y1="175" x2="188" y2="175" stroke="#ff5535" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.8"/>
+  <!-- Beta: source→cardboard front(148), cardboard exit(194)→deep inside alum(316), y=200 -->
+  <line x1="94" y1="200" x2="148" y2="200" stroke="#4090ff" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.8"/>
+  <line x1="194" y1="200" x2="316" y2="200" stroke="#4090ff" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.8"/>
+  <!-- Gamma: animated dash source → through all plates, y=225 -->
+  <line x1="94" y1="225" x2="418" y2="225" stroke="#20d090" stroke-width="2" stroke-dasharray="7 4" class="gamma-dash" opacity="0.85"/>
+  <!-- Gamma faint after lead -->
+  <line x1="492" y1="225" x2="638" y2="225" stroke="#20d090" stroke-width="1" stroke-dasharray="5 6" opacity="0.28"/>
+
+  <!-- Glow halos on tracks -->
+  <line x1="94" y1="175" x2="188" y2="175" stroke="#ff3010" stroke-width="7" opacity="0.1" class="glow-alpha"/>
+  <line x1="94" y1="200" x2="316" y2="200" stroke="#2060ff" stroke-width="7" opacity="0.1" class="glow-beta"/>
+  <line x1="94" y1="225" x2="492" y2="225" stroke="#00ff90" stroke-width="7" opacity="0.08" class="glow-gamma"/>
+
+  <!-- ── STOP MARKERS — placed deep inside each plate ── -->
+  <!-- Alpha: stops near right edge of cardboard front face, x≈186 -->
+  <circle cx="186" cy="175" r="9" fill="#ff2000" opacity="0.22"/>
+  <line x1="179" y1="168" x2="193" y2="182" stroke="#ff4422" stroke-width="2.4" stroke-linecap="round"/>
+  <line x1="193" y1="168" x2="179" y2="182" stroke="#ff4422" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="171" y="160" font-size="9" fill="#ff7755" font-family="var(--font-sans)">blocked</text>
+
+  <!-- Beta: stops near right edge of aluminum front face, x≈314 -->
+  <circle cx="314" cy="200" r="9" fill="#2060ff" opacity="0.22"/>
+  <line x1="307" y1="193" x2="321" y2="207" stroke="#4488ff" stroke-width="2.4" stroke-linecap="round"/>
+  <line x1="321" y1="193" x2="307" y2="207" stroke="#4488ff" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="300" y="185" font-size="9" fill="#6699ff" font-family="var(--font-sans)">blocked</text>
+
+  <!-- Gamma attenuated -->
+  <text x="498" y="220" font-size="9" fill="#20c080" font-family="var(--font-sans)" font-weight="500">attenuated →</text>
+
+  <!-- ── ANIMATED PARTICLES ── -->
+  <!-- Alpha: starts at x=94, travels +140px before fading (lands at x=234 ≡ deep in cardboard at 188 visually) -->
+  <!-- translateX of 140 from origin 94 = 234... but source is at x=94, cardboard front is 148, inside is 148..194 -->
+  <!-- So particle travels from 94, stops at ~186 inside cardboard → distance = 92px -->
+  <!-- Using translateX(92) with origin at 94 gives final cx=94+92=186 ✓ -->
+  <g class="p-alpha" transform="translate(94,0)">
+    <circle cx="0" cy="175" r="9" fill="#cc2200" opacity="0.3"/>
+    <circle cx="0" cy="175" r="6" fill="#ff4422"/>
+    <text x="0" y="179" text-anchor="middle" font-size="8" fill="white" font-family="var(--font-sans)" font-weight="500">α</text>
+  </g>
+
+  <!-- Beta: starts at x=94, stops at x=314 inside aluminum → distance = 220px -->
+  <g class="p-beta" transform="translate(94,0)">
+    <circle cx="0" cy="200" r="8" fill="#1040cc" opacity="0.3"/>
+    <circle cx="0" cy="200" r="5" fill="#4488ff"/>
+    <text x="0" y="204" text-anchor="middle" font-size="8" fill="white" font-family="var(--font-sans)" font-weight="500">β</text>
+  </g>
+
+  <!-- Gamma wave pulse -->
+  <g class="p-gamma" transform="translate(94,0)">
+    <ellipse cx="16" cy="225" rx="18" ry="5" fill="#00ff90" opacity="0.12"/>
+    <path d="M0,225 Q4,217 8,225 Q12,233 16,225 Q20,217 24,225 Q28,233 32,225"
+      fill="none" stroke="#20ffaa" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- ── BEAM LABELS ── -->
+  <text x="92" y="170" text-anchor="end" font-size="12" font-weight="500" fill="#ff6644" font-family="var(--font-sans)">α</text>
+  <text x="92" y="195" text-anchor="end" font-size="12" font-weight="500" fill="#5599ff" font-family="var(--font-sans)">β</text>
+  <text x="92" y="220" text-anchor="end" font-size="12" font-weight="500" fill="#20d090" font-family="var(--font-sans)">γ</text>
+
+  <!-- ── PENETRATION BARS ── -->
+  <text x="582" y="108" text-anchor="middle" font-size="10" font-weight="500" fill="#7090a8" font-family="var(--font-sans)">Penetrating</text>
+  <text x="582" y="121" text-anchor="middle" font-size="10" font-weight="500" fill="#7090a8" font-family="var(--font-sans)">power</text>
+  <rect x="554" y="128" width="12" height="80" rx="2" fill="#ff4422" opacity="0.1" stroke="#ff4422" stroke-width="0.5"/>
+  <rect x="572" y="128" width="12" height="80" rx="2" fill="#4488ff" opacity="0.1" stroke="#4488ff" stroke-width="0.5"/>
+  <rect x="590" y="128" width="12" height="80" rx="2" fill="#20d090" opacity="0.1" stroke="#20d090" stroke-width="0.5"/>
+  <rect x="554" y="190" width="12" height="18" rx="2" fill="#ff4422" opacity="0.8"/>
+  <rect x="572" y="166" width="12" height="42" rx="2" fill="#4488ff" opacity="0.8"/>
+  <rect x="590" y="128" width="12" height="80" rx="2" fill="#20d090" opacity="0.75"/>
+  <text x="560" y="218" text-anchor="middle" font-size="9" fill="#ff6644" font-family="var(--font-sans)">α</text>
+  <text x="578" y="218" text-anchor="middle" font-size="9" fill="#5599ff" font-family="var(--font-sans)">β</text>
+  <text x="596" y="218" text-anchor="middle" font-size="9" fill="#20d090" font-family="var(--font-sans)">γ</text>
+
+  <!-- ── LEGEND ── -->
+  <circle cx="554" cy="242" r="5" fill="#ff4422"/>
+  <text x="564" y="246" font-size="10" fill="#a0b8c8" font-family="var(--font-sans)">Alpha — low penetration</text>
+  <circle cx="554" cy="260" r="4" fill="#4488ff"/>
+  <text x="564" y="264" font-size="10" fill="#a0b8c8" font-family="var(--font-sans)">Beta — medium</text>
+  <path d="M549,276 Q552,271 555,276 Q558,281 561,276" fill="none" stroke="#20d090" stroke-width="2" stroke-linecap="round"/>
+  <text x="564" y="280" font-size="10" fill="#a0b8c8" font-family="var(--font-sans)">Gamma — high</text>
+</svg>
+
+<div style="display:flex;align-items:center;gap:10px;margin:8px 0 0;flex-wrap:wrap;">
+  <button class="ctrl-btn" onclick="toggle()">⏸ Pause / Play</button>
+  <button class="ctrl-btn" onclick="info('alpha')">α Alpha</button>
+  <button class="ctrl-btn" onclick="info('beta')">β Beta</button>
+  <button class="ctrl-btn" onclick="info('gamma')">γ Gamma</button>
+</div>
+<div class="info-dark" id="ibox">Click a particle type above, or watch the beams travel into each plate before stopping.</div>
+</div>
+
+<script>
+let paused = false;
+function toggle() {
+  paused = !paused;
+  document.getElementById('sv').classList.toggle('paused', paused);
+}
+const d = {
+  alpha: '<strong>Alpha (α) — stopped inside cardboard.</strong> Heaviest particle (2 protons + 2 neutrons). Travels only a short distance and is absorbed deep within the cardboard plate. Highly ionizing but very low penetrating power.',
+  beta:  '<strong>Beta (β) — stopped inside aluminum.</strong> Fast electrons from the nucleus. Pass through cardboard but absorbed well inside the aluminum plate. More penetrating than alpha but blocked by a few mm of metal.',
+  gamma: '<strong>Gamma (γ) — attenuated by thick lead.</strong> Pure electromagnetic radiation. Passes through all three shields and only weakens significantly through thick dense lead. Most penetrating of all three types.'
+};
+function info(t) { document.getElementById('ibox').innerHTML = d[t]; }
+</script>

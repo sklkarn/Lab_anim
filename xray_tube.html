@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<head>
+<style>
+body { margin: 0; background: transparent; }
+#wrap {
+  background: #141412;
+  border-radius: 12px;
+  padding: 0 0 10px;
+  font-family: var(--font-sans, sans-serif);
+}
+canvas { display: block; border-radius: 12px 12px 0 0; }
+.controls {
+  display: flex; align-items: center; gap: 14px; padding: 10px 20px; flex-wrap: wrap;
+  font-size: 13px; color: #888780;
+}
+button {
+  padding: 5px 14px; border-radius: 6px; border: 0.5px solid #444441;
+  background: #1e1e1c; color: #c2c0b6; font-size: 13px; cursor: pointer;
+}
+button:active { transform: scale(0.97); }
+label { display: flex; align-items: center; gap: 6px; color: #888780; }
+input[type=range] { width: 80px; accent-color: #378ADD; }
+.legend {
+  display: flex; gap: 16px; padding: 0 20px 4px; font-size: 12px;
+  color: #888780; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="680" height="480"></canvas>
+<div class="controls">
+  <button id="playBtn">Pause</button>
+  <button id="resetBtn">Reset</button>
+  <label>kV <input type="range" id="kvRange" min="40" max="150" step="5" value="80"> <span id="kvLabel" style="color:#c2c0b6">80 kV</span></label>
+  <label>mA <input type="range" id="maRange" min="1" max="5" step="1" value="3"> <span id="maLabel" style="color:#c2c0b6">3 (rel.)</span></label>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Thermionic electrons</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> X-ray photons (bremsstrahlung)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Characteristic x-rays</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9FE1CB"></div> Heat at anode</div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 480;
+let t = 0, running = true;
+let kV = 80, mA = 3;
+
+const BG          = '#141412';
+const TEXT        = '#c2c0b6';
+const TEXT2       = '#888780';
+const GLASS       = 'rgba(80,120,170,0.15)';
+const GLASS_STROKE= 'rgba(90,150,220,0.45)';
+const METAL       = '#4a4a42';
+const METAL_DARK  = '#2e2e28';
+const ELEC_COL    = '#FAC775';
+const XRAY_COL    = '#378ADD';
+const CHAR_COL    = '#E24B4A';
+const HEAT_COL    = '#9FE1CB';
+
+const TX = 90, TY = 240, TW = 500, TH = 150;
+const TCX = TX + TW / 2;
+const TCY = TY + TH / 2;
+
+const CAT_X = TX + 62, CAT_Y = TCY;
+const ANO_X = TX + TW - 70;
+
+const TGT_X   = ANO_X - 16;
+const TGT_TOP = TY + 30;
+const TGT_BOT = TY + TH - 30;
+const TGT_MID = (TGT_TOP + TGT_BOT) / 2;
+
+const IMP_X = TGT_X - 8;
+const IMP_Y = TGT_MID;
+
+const WIN_CX = TGT_X - 50;
+const WIN_W  = 40;
+const WIN_Y  = TY;
+
+const BEAM_ANG_DEG = -110;
+const BEAM_ANG     = (BEAM_ANG_DEG * Math.PI) / 180;
+const BEAM_DX      = Math.cos(BEAM_ANG);
+const BEAM_DY      = Math.sin(BEAM_ANG);
+const BEAM_LEN     = 180;
+const FAN_HALF     = 18;
+
+const electrons     = [];
+const xrays         = [];
+const charXrays     = [];
+const heatParticles = [];
+const internalRays  = [];
+
+function spawnElectron() {
+  const spread = (Math.random() - 0.5) * 14;
+  electrons.push({
+    x: CAT_X + 16, y: CAT_Y + spread,
+    vx: 2.0 + (kV / 150) * 3.0,
+    vy: (Math.random() - 0.5) * 0.25,
+    life: 1
+  });
+}
+
+function spawnInternalRay() {
+  const dx = WIN_CX - IMP_X;
+  const dy = (WIN_Y + 4) - IMP_Y;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  internalRays.push({
+    x: IMP_X, y: IMP_Y,
+    vx: (dx/len)*4.5, vy: (dy/len)*4.5,
+    life: 1, spawned: false
+  });
+}
+
+function spawnExitRay(ox, oy, isChar) {
+  const spread = (Math.random() - 0.5) * 2 * FAN_HALF;
+  const rad = ((BEAM_ANG_DEG + spread) * Math.PI) / 180;
+  const spd = 4.0 + Math.random() * 1.5;
+  (isChar ? charXrays : xrays).push({
+    x: ox, y: oy,
+    vx: Math.cos(rad) * spd,
+    vy: Math.sin(rad) * spd,
+    life: 1
+  });
+}
+
+function spawnHeat() {
+  for (let i = 0; i < 2; i++) {
+    heatParticles.push({
+      x: IMP_X + (Math.random()-0.5)*10,
+      y: IMP_Y + (Math.random()-0.5)*10,
+      vx: (Math.random()-0.5)*0.6,
+      vy: -0.3 - Math.random()*0.9,
+      life: 1, r: 2 + Math.random()*2.5
+    });
+  }
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawBeamCone() {
+  const ang1 = ((BEAM_ANG_DEG - FAN_HALF) * Math.PI) / 180;
+  const ang2 = ((BEAM_ANG_DEG + FAN_HALF) * Math.PI) / 180;
+  const ax = WIN_CX, ay = WIN_Y;
+  const t1x = ax + Math.cos(ang1)*BEAM_LEN, t1y = ay + Math.sin(ang1)*BEAM_LEN;
+  const t2x = ax + Math.cos(ang2)*BEAM_LEN, t2y = ay + Math.sin(ang2)*BEAM_LEN;
+
+  // Glowing filled cone
+  const grd = ctx.createLinearGradient(ax, ay, ax + BEAM_DX*BEAM_LEN, ay + BEAM_DY*BEAM_LEN);
+  grd.addColorStop(0, 'rgba(55,138,221,0.22)');
+  grd.addColorStop(1, 'rgba(55,138,221,0.0)');
+  ctx.fillStyle = grd;
+  ctx.globalAlpha = 0.9 + 0.1*Math.sin(t*2.5);
+  ctx.beginPath();
+  ctx.moveTo(ax - WIN_W/2, ay);
+  ctx.lineTo(t1x, t1y); ctx.lineTo(t2x, t2y);
+  ctx.lineTo(ax + WIN_W/2, ay);
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Dashed boundary
+  ctx.strokeStyle = XRAY_COL; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.moveTo(ax - WIN_W/2, ay); ctx.lineTo(t1x, t1y);
+  ctx.moveTo(ax + WIN_W/2, ay); ctx.lineTo(t2x, t2y);
+  ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  // Label
+  const lx = ax + BEAM_DX*(BEAM_LEN+14);
+  const ly = ay + BEAM_DY*(BEAM_LEN+14);
+  ctx.fillStyle = XRAY_COL; ctx.font = '500 13px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('x-ray beam', lx, ly);
+}
+
+function drawGlassTube() {
+  // Tube body
+  ctx.save();
+  ctx.beginPath(); rr(ctx, TX, TY, TW, TH, 44);
+  ctx.fillStyle = GLASS; ctx.fill();
+  ctx.strokeStyle = GLASS_STROKE; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+
+  // Be window
+  ctx.fillStyle = 'rgba(90,150,220,0.35)';
+  ctx.strokeStyle = 'rgba(90,160,230,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(WIN_CX - WIN_W/2, WIN_Y - 5, WIN_W, 10);
+  ctx.strokeRect(WIN_CX - WIN_W/2, WIN_Y - 5, WIN_W, 10);
+
+  // Window glow pulse
+  ctx.globalAlpha = 0.18 + 0.1*Math.sin(t*3);
+  ctx.fillStyle = XRAY_COL;
+  ctx.fillRect(WIN_CX - WIN_W/2, WIN_Y - 5, WIN_W, 10);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = XRAY_COL; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('Be window', WIN_CX, WIN_Y - 7);
+
+  ctx.fillStyle = TEXT2; ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('vacuum', TCX - 60, TCY + 28);
+}
+
+function drawTargetGlow() {
+  const pulse = 0.5 + 0.5*Math.sin(t*4);
+  const r = 10 + pulse*7;
+  const grd = ctx.createRadialGradient(IMP_X, IMP_Y, 1, IMP_X, IMP_Y, r);
+  grd.addColorStop(0, 'rgba(55,138,221,0.65)');
+  grd.addColorStop(1, 'rgba(55,138,221,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(IMP_X, IMP_Y, r, 0, Math.PI*2); ctx.fill();
+}
+
+function drawCathode() {
+  ctx.fillStyle = METAL; ctx.strokeStyle = METAL_DARK; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(CAT_X-22, CAT_Y-26); ctx.lineTo(CAT_X-10, CAT_Y-17);
+  ctx.lineTo(CAT_X-10, CAT_Y+17); ctx.lineTo(CAT_X-22, CAT_Y+26);
+  ctx.lineTo(CAT_X-30, CAT_Y+26); ctx.lineTo(CAT_X-30, CAT_Y-26);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Filament
+  ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  const cx = CAT_X-18, cTop = CAT_Y-13, cBot = CAT_Y+13;
+  ctx.beginPath(); ctx.moveTo(cx, cTop);
+  for (let i = 0; i <= 7; i++) {
+    const fy = cTop + i*(cBot-cTop)/7;
+    ctx.lineTo(cx + (i%2===0 ? -4 : 4), fy);
+  }
+  ctx.stroke();
+
+  // Filament glow — brighter on dark bg
+  const grd = ctx.createRadialGradient(cx, CAT_Y, 2, cx, CAT_Y, 22);
+  grd.addColorStop(0, 'rgba(250,190,60,0.55)');
+  grd.addColorStop(1, 'rgba(250,120,20,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx, CAT_Y, 22, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = METAL_DARK; ctx.fillRect(TX+18, CAT_Y-5, 40, 10);
+
+  ctx.fillStyle = '#EF9F27'; ctx.font = '500 12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('cathode (−)', CAT_X-12, TY+TH+8);
+}
+
+function drawAnode() {
+  ctx.fillStyle = METAL_DARK;
+  ctx.fillRect(TGT_X+16, CAT_Y-5, TX+TW-(TGT_X+16)-20, 10);
+
+  // Copper heat sink
+  ctx.fillStyle = '#5a3d18'; ctx.strokeStyle = METAL_DARK; ctx.lineWidth = 1;
+  ctx.beginPath(); rr(ctx, TGT_X+12, TY+36, 36, TH-72, 5); ctx.fill(); ctx.stroke();
+
+  // Tungsten target
+  const tw = 26;
+  ctx.fillStyle = '#5e5540'; ctx.strokeStyle = '#888060'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(TGT_X-tw*0.6, TGT_TOP);
+  ctx.lineTo(TGT_X+tw*0.4, TGT_TOP+16);
+  ctx.lineTo(TGT_X+tw*0.4, TGT_BOT-16);
+  ctx.lineTo(TGT_X-tw*0.6, TGT_BOT);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Impact spot — bright glow
+  const grd = ctx.createRadialGradient(IMP_X, IMP_Y, 1, IMP_X, IMP_Y, 8);
+  grd.addColorStop(0, 'rgba(220,200,80,0.9)');
+  grd.addColorStop(1, 'rgba(220,160,40,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(IMP_X, IMP_Y, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e8d860'; ctx.beginPath(); ctx.arc(IMP_X, IMP_Y, 3, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = TEXT2; ctx.font = '500 12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('anode (+)', ANO_X-10, TY+TH+8);
+  ctx.font = '11px sans-serif';
+  ctx.fillText('W target', TGT_X+16, TGT_TOP-2);
+}
+
+function drawHVLabel() {
+  const midX = (CAT_X + TGT_X) / 2;
+  ctx.fillStyle = TEXT2; ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(`${kV} kV`, midX, TY+TH+28);
+  ctx.strokeStyle = TEXT2; ctx.lineWidth = 0.8;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(CAT_X, TY+TH+22); ctx.lineTo(TGT_X, TY+TH+22); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(TGT_X, TY+TH+22); ctx.lineTo(TGT_X-7, TY+TH+17);
+  ctx.moveTo(TGT_X, TY+TH+22); ctx.lineTo(TGT_X-7, TY+TH+27);
+  ctx.stroke();
+}
+
+function drawInternalRays() {
+  internalRays.forEach(r => {
+    ctx.globalAlpha = r.life * 0.8;
+    ctx.strokeStyle = XRAY_COL; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(r.x - r.vx*2, r.y - r.vy*2); ctx.lineTo(r.x, r.y); ctx.stroke();
+    ctx.fillStyle = XRAY_COL; ctx.globalAlpha = r.life * 0.9;
+    ctx.beginPath(); ctx.arc(r.x, r.y, 2.5, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawElectrons() {
+  electrons.forEach(e => {
+    ctx.globalAlpha = e.life * 0.92;
+    ctx.fillStyle = ELEC_COL;
+    ctx.beginPath(); ctx.arc(e.x, e.y, 2.8, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = ELEC_COL; ctx.lineWidth = 1;
+    ctx.globalAlpha = e.life * 0.3;
+    ctx.beginPath(); ctx.moveTo(e.x-e.vx*4, e.y-e.vy*4); ctx.lineTo(e.x, e.y); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawExitXrays() {
+  xrays.forEach(x => {
+    ctx.globalAlpha = x.life * 0.88;
+    ctx.strokeStyle = XRAY_COL; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x.x, x.y); ctx.lineTo(x.x-x.vx*3, x.y-x.vy*3); ctx.stroke();
+    ctx.globalAlpha = x.life * 0.35; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x.x+x.vx, x.y+x.vy, 3, 0, Math.PI*2); ctx.stroke();
+  });
+  charXrays.forEach(x => {
+    ctx.globalAlpha = x.life * 0.92;
+    ctx.strokeStyle = CHAR_COL; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x.x, x.y); ctx.lineTo(x.x-x.vx*3, x.y-x.vy*3); ctx.stroke();
+    ctx.fillStyle = CHAR_COL; ctx.globalAlpha = x.life * 0.7;
+    ctx.beginPath(); ctx.arc(x.x, x.y, 2.5, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawHeatParticles() {
+  heatParticles.forEach(h => {
+    ctx.globalAlpha = h.life * 0.7;
+    ctx.fillStyle = HEAT_COL;
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.r*h.life, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawTitle() {
+  ctx.fillStyle = TEXT; ctx.font = '500 15px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('X-ray tube — beam exits tilted from anode target through window', W/2, TY+TH+52);
+  ctx.fillStyle = TEXT2; ctx.font = '13px sans-serif';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('Dr. S Karna', W-12, TY+TH+52);
+}
+
+function update() {
+  if (Math.random() < mA * 0.38) spawnElectron();
+
+  for (let i = electrons.length-1; i >= 0; i--) {
+    const e = electrons[i];
+    e.x += e.vx; e.y += e.vy; e.life -= 0.013;
+    if (e.x >= TGT_X - 10) {
+      spawnInternalRay(); spawnHeat(); electrons.splice(i, 1);
+    } else if (e.life <= 0) electrons.splice(i, 1);
+  }
+
+  for (let i = internalRays.length-1; i >= 0; i--) {
+    const r = internalRays[i];
+    r.x += r.vx; r.y += r.vy; r.life -= 0.028;
+    if (!r.spawned && r.y <= WIN_Y + 8) {
+      r.spawned = true;
+      spawnExitRay(r.x, WIN_Y, false);
+      if (kV >= 65 && Math.random() < 0.4) spawnExitRay(r.x, WIN_Y, true);
+    }
+    if (r.life <= 0 || r.y < WIN_Y - 5) internalRays.splice(i, 1);
+  }
+
+  for (let i = xrays.length-1; i >= 0; i--) {
+    const x = xrays[i]; x.x += x.vx; x.y += x.vy; x.life -= 0.017;
+    if (x.life <= 0 || x.y < -10) xrays.splice(i, 1);
+  }
+  for (let i = charXrays.length-1; i >= 0; i--) {
+    const x = charXrays[i]; x.x += x.vx; x.y += x.vy; x.life -= 0.017;
+    if (x.life <= 0 || x.y < -10) charXrays.splice(i, 1);
+  }
+  for (let i = heatParticles.length-1; i >= 0; i--) {
+    const h = heatParticles[i];
+    h.x += h.vx; h.y += h.vy; h.vy -= 0.04; h.life -= 0.022;
+    if (h.life <= 0) heatParticles.splice(i, 1);
+  }
+}
+
+function frame() {
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  update();
+  drawBeamCone();
+  drawGlassTube();
+  drawTargetGlow();
+  drawCathode();
+  drawAnode();
+  drawInternalRays();
+  drawElectrons();
+  drawExitXrays();
+  drawHeatParticles();
+  drawHVLabel();
+  drawTitle();
+  if (running) { t += 0.016; requestAnimationFrame(frame); }
+}
+
+document.getElementById('playBtn').onclick = () => {
+  running = !running;
+  document.getElementById('playBtn').textContent = running ? 'Pause' : 'Play';
+  if (running) frame();
+};
+document.getElementById('resetBtn').onclick = () => {
+  electrons.length = 0; xrays.length = 0; charXrays.length = 0;
+  heatParticles.length = 0; internalRays.length = 0; t = 0;
+  if (!running) { running = true; document.getElementById('playBtn').textContent = 'Pause'; frame(); }
+};
+document.getElementById('kvRange').oninput = function() {
+  kV = parseInt(this.value); document.getElementById('kvLabel').textContent = kV + ' kV';
+};
+document.getElementById('maRange').oninput = function() {
+  mA = parseInt(this.value); document.getElementById('maLabel').textContent = mA + ' (rel.)';
+};
+
+frame();
+</script>
+</body>
+</html>

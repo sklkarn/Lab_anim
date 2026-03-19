@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<head>
+<style>
+body { margin: 0; background: transparent; }
+#wrap {
+  background: #141412;
+  border-radius: 12px;
+  padding: 0 0 10px;
+  font-family: var(--font-sans, sans-serif);
+}
+canvas { display: block; border-radius: 12px 12px 0 0; }
+.controls {
+  display: flex; align-items: center; gap: 16px; padding: 10px 20px; flex-wrap: wrap;
+  font-size: 13px; color: #888780;
+}
+button {
+  padding: 5px 14px; border-radius: 6px; border: 0.5px solid #444441;
+  background: #1e1e1c; color: #c2c0b6; font-size: 13px; cursor: pointer;
+}
+button:active { transform: scale(0.97); }
+label { display: flex; align-items: center; gap: 6px; color: #888780; }
+input[type=range] { width: 90px; accent-color: #AFA9EC; }
+.legend {
+  display: flex; gap: 18px; padding: 0 20px 4px; font-size: 12px;
+  color: #888780; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="680" height="460"></canvas>
+<div class="controls">
+  <button id="playBtn">Pause</button>
+  <button id="resetBtn">Reset</button>
+  <label>Speed <input type="range" id="speedRange" min="0.3" max="3" step="0.1" value="1"></label>
+  <span id="statusLabel" style="font-weight:500; min-width:220px; font-size:12px; color:#c2c0b6;"></span>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> N pole / flux ↓</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#AFA9EC"></div> CCW current (N entering)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> CW current (S leaving)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div> Opposing B field</div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 460;
+let running = true, speed = 1;
+
+const BG        = '#141412';
+const TEXT      = '#c2c0b6';
+const TEXT2     = '#888780';
+const RING_COL  = '#1D9E75';
+const N_COLOR   = '#E24B4A';
+const CCW_COLOR = '#AFA9EC';   // purple
+const CW_COLOR  = '#EF9F27';
+const OPPOSE    = '#1D9E75';
+
+const ringCX = W / 2;
+const ringY  = 270;
+const ringRX = 130, ringRY = 22;
+const ringThick = 14;
+
+const magW = 52, magH = 160;
+const magX = ringCX - magW / 2;
+
+const BASE_VY        = 1.6;
+const BRAKE_STRENGTH = 0.72;
+
+let magY = -magH - 20;
+let vy   = BASE_VY;
+let animT = 0;
+
+function brakeFactor(my) {
+  const mid  = my + magH / 2;
+  const dist = Math.abs(mid - ringY);
+  const range = ringRY + 100;
+  if (dist > range) return 0;
+  const norm = 1 - dist / range;
+  return norm * norm;
+}
+
+function resetMagnet() { magY = -magH - 20; vy = BASE_VY; animT = 0; }
+
+function roundRect(ctx, x, y, w, h, r) {
+  const [tl,tr,br,bl] = Array.isArray(r) ? r : [r,r,r,r];
+  ctx.beginPath();
+  ctx.moveTo(x+tl,y); ctx.lineTo(x+w-tr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+tr);
+  ctx.lineTo(x+w,y+h-br); ctx.quadraticCurveTo(x+w,y+h,x+w-br,y+h);
+  ctx.lineTo(x+bl,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-bl);
+  ctx.lineTo(x,y+tl); ctx.quadraticCurveTo(x,y,x+tl,y);
+  ctx.closePath();
+}
+
+function drawRingBack(intensity, glowColor) {
+  ctx.save();
+  const lw = ringThick*2 + intensity*5;
+  if (intensity > 0.05) {
+    ctx.beginPath();
+    ctx.ellipse(ringCX, ringY, ringRX+6, ringRY+4, 0, Math.PI, 2*Math.PI);
+    ctx.strokeStyle = glowColor; ctx.lineWidth = lw+10;
+    ctx.globalAlpha = intensity*0.13; ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.ellipse(ringCX, ringY, ringRX, ringRY, 0, Math.PI, 2*Math.PI);
+  ctx.strokeStyle = RING_COL; ctx.lineWidth = lw;
+  ctx.globalAlpha = 0.55;
+  ctx.shadowColor = glowColor; ctx.shadowBlur = intensity*14;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRingFront(intensity, glowColor) {
+  ctx.save();
+  const lw = ringThick*2 + intensity*5;
+  if (intensity > 0.05) {
+    ctx.beginPath();
+    ctx.ellipse(ringCX, ringY, ringRX+6, ringRY+4, 0, 0, Math.PI);
+    ctx.strokeStyle = glowColor; ctx.lineWidth = lw+10;
+    ctx.globalAlpha = intensity*0.2; ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.ellipse(ringCX, ringY, ringRX, ringRY, 0, 0, Math.PI);
+  ctx.strokeStyle = RING_COL; ctx.lineWidth = lw;
+  ctx.globalAlpha = 1;
+  ctx.shadowColor = glowColor; ctx.shadowBlur = intensity*20;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function _drawArrow(angle, alpha, color, ccw) {
+  const ax = ringCX + ringRX*Math.cos(angle);
+  const ay = ringY  + ringRY*Math.sin(angle);
+  const tx_ = ccw ?  Math.sin(angle) : -Math.sin(angle);
+  const ty_ = ccw ? -Math.cos(angle) :  Math.cos(angle);
+  const L = 16;
+  const hx = ax+tx_*L/2, hy = ay+ty_*L/2;
+  const ex = ax-tx_*L/2, ey = ay-ty_*L/2;
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = color; ctx.shadowBlur = alpha*12;
+  ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(hx,hy); ctx.stroke();
+  ctx.shadowBlur = 0;
+  const ha = Math.atan2(ty_,tx_), as = 7;
+  ctx.beginPath();
+  ctx.moveTo(hx,hy);
+  ctx.lineTo(hx+Math.cos(ha+Math.PI*.75)*as, hy+Math.sin(ha+Math.PI*.75)*as);
+  ctx.moveTo(hx,hy);
+  ctx.lineTo(hx+Math.cos(ha-Math.PI*.75)*as, hy+Math.sin(ha-Math.PI*.75)*as);
+  ctx.stroke();
+}
+
+function drawCurrentArrowsHalf(n, intensity, color, ccw, front) {
+  if (intensity < 0.05) return;
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const angle = (i/n)*Math.PI*2 + (ccw ? -1 : +1)*animT*1.5;
+    const isFront = Math.sin(angle) >= 0;
+    if (front !== isFront) continue;
+    _drawArrow(angle, front ? intensity*0.92 : intensity*0.5, color, ccw);
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+
+function drawMagnet(my) {
+  const sY = my, nY = my + magH*0.5;
+  ctx.fillStyle = '#1a2d4a'; ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 1.5;
+  roundRect(ctx, magX, sY, magW, magH/2, [6,6,0,0]);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#85B7EB'; ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('S', magX+magW/2, sY+magH/4);
+
+  ctx.fillStyle = '#3a1414'; ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 1.5;
+  roundRect(ctx, magX, nY, magW, magH/2, [0,0,6,6]);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#F09595'; ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('N', magX+magW/2, nY+magH/4);
+}
+
+function drawMagnetClipped(my, inside) {
+  ctx.save();
+  if (inside) {
+    ctx.beginPath();
+    ctx.ellipse(ringCX, ringY, ringRX-ringThick, ringRY-ringThick+2, 0, 0, Math.PI*2);
+    ctx.clip();
+  } else {
+    const p = new Path2D();
+    p.rect(0, 0, W, H);
+    p.ellipse(ringCX, ringY, ringRX-ringThick, ringRY-ringThick+2, 0, 0, Math.PI*2);
+    ctx.clip(p, 'evenodd');
+  }
+  drawMagnet(my);
+  ctx.restore();
+}
+
+function drawSpeedIndicator(normVy) {
+  const bx = W-38, by = 60, bh = 180, bw = 16;
+  const fill = normVy * bh;
+  ctx.fillStyle = '#2a2a26';
+  ctx.beginPath(); roundRect(ctx, bx, by, bw, bh, 4); ctx.fill();
+  const col = normVy > 0.75 ? '#1D9E75' : normVy > 0.45 ? '#EF9F27' : '#E24B4A';
+  ctx.fillStyle = col;
+  ctx.beginPath(); roundRect(ctx, bx, by+bh-fill, bw, fill, [0,0,4,4]); ctx.fill();
+  ctx.strokeStyle = '#444441'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); roundRect(ctx, bx, by, bw, bh, 4); ctx.stroke();
+  ctx.fillStyle = TEXT2; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('speed', bx+bw/2, by+bh+6);
+  ctx.fillStyle = col; ctx.font = '500 12px sans-serif';
+  ctx.fillText(Math.round(normVy*100)+'%', bx+bw/2, by-16);
+
+  const arrowX = magX-22, mid = magY+magH/2;
+  const arrowLen = 8 + normVy*28;
+  ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(arrowX, mid-arrowLen/2); ctx.lineTo(arrowX, mid+arrowLen/2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(arrowX, mid+arrowLen/2); ctx.lineTo(arrowX-5, mid+arrowLen/2-8);
+  ctx.moveTo(arrowX, mid+arrowLen/2); ctx.lineTo(arrowX+5, mid+arrowLen/2-8);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawDownwardField(my, intensity) {
+  if (intensity < 0.05) return;
+  ctx.save();
+  const nTipY = my+magH;
+  for (let i = 0; i < 5; i++) {
+    const fx = ringCX-60+i*30;
+    const fromY = Math.max(nTipY, ringY-ringRY-80), toY = ringY+ringRY+14;
+    if (fromY >= toY) continue;
+    ctx.strokeStyle = N_COLOR; ctx.lineWidth = 1.2;
+    ctx.globalAlpha = intensity*0.55; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(fx,fromY); ctx.lineTo(fx,toY); ctx.stroke();
+    const aY = (fromY+toY)/2;
+    ctx.globalAlpha = intensity*0.7; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(fx,aY+6); ctx.lineTo(fx-4,aY-2);
+    ctx.moveTo(fx,aY+6); ctx.lineTo(fx+4,aY-2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.restore();
+}
+
+function drawUpwardField(intensity) {
+  if (intensity < 0.05) return;
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const fx = ringCX-60+i*30;
+    const fromY = ringY-ringRY-8, toY = Math.max(30,ringY-90);
+    ctx.strokeStyle = CCW_COLOR; ctx.lineWidth = 1.2;
+    ctx.globalAlpha = intensity*0.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(fx,fromY); ctx.lineTo(fx,toY); ctx.stroke();
+    const aY = (fromY+toY)/2;
+    ctx.globalAlpha = intensity*0.65; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(fx,aY-6); ctx.lineTo(fx-4,aY+2);
+    ctx.moveTo(fx,aY-6); ctx.lineTo(fx+4,aY+2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.restore();
+}
+
+function drawOpposingUp(intensity) {
+  if (intensity < 0.05) return;
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const fx = ringCX-35+i*35;
+    ctx.strokeStyle = OPPOSE; ctx.lineWidth = 1.5;
+    ctx.globalAlpha = intensity*0.65; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(fx,ringY+ringRY-6); ctx.lineTo(fx,ringY-80); ctx.stroke();
+    const aY = ringY-30;
+    ctx.globalAlpha = intensity*0.8; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(fx,aY-6); ctx.lineTo(fx-4,aY+2);
+    ctx.moveTo(fx,aY-6); ctx.lineTo(fx+4,aY+2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.restore();
+}
+
+function drawOpposingDown(intensity) {
+  if (intensity < 0.05) return;
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const fx = ringCX-35+i*35;
+    ctx.strokeStyle = OPPOSE; ctx.lineWidth = 1.5;
+    ctx.globalAlpha = intensity*0.65; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(fx,ringY-ringRY+6); ctx.lineTo(fx,ringY+80); ctx.stroke();
+    const aY = ringY+30;
+    ctx.globalAlpha = intensity*0.8; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(fx,aY+6); ctx.lineTo(fx-4,aY-2);
+    ctx.moveTo(fx,aY+6); ctx.lineTo(fx+4,aY-2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.restore();
+}
+
+function drawLabels(phase, iA, iB) {
+  ctx.font = '13px sans-serif'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = TEXT; ctx.textAlign = 'left';
+  ctx.fillText('Conducting ring', ringCX+ringRX+14, ringY);
+  if (phase === 'N_entering' && iA > 0.1) {
+    ctx.fillStyle = CCW_COLOR; ctx.globalAlpha = Math.min(1,iA*1.4);
+    ctx.fillText('Induced current (CCW)', ringCX+ringRX+14, ringY+22);
+    ctx.fillStyle = OPPOSE; ctx.globalAlpha = Math.min(1,iA*1.1);
+    ctx.textAlign = 'right';
+    ctx.fillText('Opposing B ↑', ringCX-ringRX-14, ringY-52);
+    ctx.fillStyle = N_COLOR; ctx.globalAlpha = Math.min(1,iA*1.3);
+    ctx.fillText('B field ↓', ringCX-ringRX-14, ringY+32);
+  }
+  if (phase === 'S_leaving' && iB > 0.1) {
+    ctx.fillStyle = CW_COLOR; ctx.globalAlpha = Math.min(1,iB*1.4);
+    ctx.fillText('Induced current (CW)', ringCX+ringRX+14, ringY+22);
+    ctx.fillStyle = OPPOSE; ctx.globalAlpha = Math.min(1,iB*1.1);
+    ctx.textAlign = 'right';
+    ctx.fillText('Opposing B ↓', ringCX-ringRX-14, ringY+52);
+    ctx.fillStyle = CCW_COLOR; ctx.globalAlpha = Math.min(1,iB*1.2);
+    ctx.fillText('B field ↑ (S)', ringCX-ringRX-14, ringY-52);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTitle() {
+  ctx.fillStyle = TEXT; ctx.font = '500 15px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText("Lenz's Law — magnetic braking as magnet passes through ring", W/2, 10);
+  ctx.fillStyle = TEXT2; ctx.font = '13px sans-serif';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('Dr. S Karna', W-12, 10);
+}
+
+function getPhase(my) {
+  const nTip = my+magH, mid = my+magH*0.5, sTip = my;
+  const ringTop = ringY-ringRY, ringBot = ringY+ringRY;
+  if (nTip < ringTop && nTip > ringTop-120) {
+    const prog = 1-(ringTop-nTip)/120;
+    return { phase:'N_entering', label:'N pole approaching — slowing due to Lenz braking force', iA:prog*0.7, iB:0 };
+  }
+  if (nTip >= ringTop && mid <= ringBot)
+    return { phase:'N_entering', label:'N pole entering ring — maximum braking, slowest speed', iA:1, iB:0 };
+  if (mid > ringBot && sTip < ringTop)
+    return { phase:'N_entering', label:'Magnet centred inside ring — peak flux, strong CCW current', iA:1, iB:0 };
+  if (sTip >= ringTop && sTip <= ringBot)
+    return { phase:'S_leaving', label:'S pole exiting — still braking, CW current, speed recovering', iA:0, iB:1 };
+  if (sTip > ringBot && sTip < ringBot+160) {
+    const prog = 1-(sTip-ringBot)/160;
+    return { phase:'S_leaving', label:'S pole clear — braking fading, magnet accelerating away', iA:0, iB:Math.max(0,prog) };
+  }
+  return { phase:'none', label:'Free fall — no flux change, magnet at full speed', iA:0, iB:0 };
+}
+
+function frame() {
+  if (running) {
+    const bf = brakeFactor(magY);
+    const targetVy = BASE_VY * speed * (1 - BRAKE_STRENGTH * bf);
+    vy += (targetVy - vy) * 0.06;
+    magY += vy;
+    animT += 0.016 * speed;
+    if (magY > H + 40) resetMagnet();
+  }
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+
+  const { phase, label, iA, iB } = getPhase(magY);
+  const intensity = Math.max(iA, iB);
+  const glowColor = iA > 0 ? CCW_COLOR : (iB > 0 ? CW_COLOR : RING_COL);
+  const n = 8;
+
+  drawTitle();
+  if (phase === 'N_entering') { drawDownwardField(magY, iA); drawOpposingUp(iA); }
+  if (phase === 'S_leaving')  { drawUpwardField(iB); drawOpposingDown(iB); }
+
+  drawRingBack(intensity, glowColor);
+  if (phase === 'N_entering') drawCurrentArrowsHalf(n, iA, CCW_COLOR, true,  false);
+  else if (phase === 'S_leaving') drawCurrentArrowsHalf(n, iB, CW_COLOR, false, false);
+
+  drawMagnetClipped(magY, false);
+  drawMagnetClipped(magY, true);
+
+  drawRingFront(intensity, glowColor);
+  if (phase === 'N_entering') drawCurrentArrowsHalf(n, iA, CCW_COLOR, true,  true);
+  else if (phase === 'S_leaving') drawCurrentArrowsHalf(n, iB, CW_COLOR, false, true);
+
+  const normVy = Math.max(0, Math.min(1, vy / (BASE_VY * speed)));
+  drawSpeedIndicator(normVy);
+  drawLabels(phase, iA, iB);
+  document.getElementById('statusLabel').textContent = label;
+
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('playBtn').onclick = () => {
+  running = !running;
+  document.getElementById('playBtn').textContent = running ? 'Pause' : 'Play';
+};
+document.getElementById('resetBtn').onclick = () => { resetMagnet(); };
+document.getElementById('speedRange').oninput = function() { speed = parseFloat(this.value); };
+
+frame();
+</script>
+</body>
+</html>

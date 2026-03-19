@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<head>
+<style>
+body { margin: 0; background: transparent; }
+#wrap {
+  background: #141412;
+  border-radius: 12px;
+  padding: 0 0 10px;
+  font-family: var(--font-sans, sans-serif);
+}
+canvas { display: block; border-radius: 12px 12px 0 0; }
+.controls {
+  display: flex; align-items: center; gap: 14px; padding: 10px 20px; flex-wrap: wrap;
+  font-size: 13px; color: #888780;
+}
+button {
+  padding: 5px 14px; border-radius: 6px; border: 0.5px solid #444441;
+  background: #1e1e1c; color: #c2c0b6; font-size: 13px; cursor: pointer;
+}
+button:active { transform: scale(0.97); }
+label { display: flex; align-items: center; gap: 6px; color: #888780; }
+input[type=range] { width: 80px; accent-color: #378ADD; }
+.legend {
+  display: flex; gap: 16px; padding: 0 20px 4px; font-size: 12px;
+  color: #888780; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="680" height="420"></canvas>
+<div class="controls">
+  <button id="playBtn">Pause</button>
+  <button id="resetBtn">Reset</button>
+  <label>Field strength <input type="range" id="bStrength" min="0.2" max="2" step="0.1" value="1"></label>
+  <label>Speed <input type="range" id="speedRange" min="0.3" max="3" step="0.1" value="1"></label>
+  <span id="statusLabel" style="font-weight:500; font-size:12px; min-width:240px; color:#c2c0b6;"></span>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> Magnetic field B</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Eddy current loops</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Joule heating</div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 420;
+let t = 0, running = true, speed = 1, bStrength = 1;
+
+const BG       = '#141412';
+const TEXT     = '#c2c0b6';
+const TEXT2    = '#888780';
+const PLATE    = '#2e2e28';
+const PLATE_HL = '#3e3e36';
+const PLATE_ED = '#4a4a42';
+const B_COLOR  = '#378ADD';
+const EC_COLOR = '#E24B4A';
+const HEAT_COL = '#EF9F27';
+
+const PX = 120, PY = 110, PW = 440, PH = 200;
+const PCX = PX + PW / 2, PCY = PY + PH / 2;
+
+const COLS = 5, ROWS = 3;
+const loops = [];
+for (let r = 0; r < ROWS; r++)
+  for (let c = 0; c < COLS; c++)
+    loops.push({
+      cx: PX + (c + 0.5) * (PW / COLS),
+      cy: PY + (r + 0.5) * (PH / ROWS),
+      rx: (PW / COLS) * 0.38,
+      ry: (PH / ROWS) * 0.32,
+      phase: (r * COLS + c) * 0.18
+    });
+
+const bDots = [];
+for (let r = 0; r < 5; r++)
+  for (let c = 0; c < 9; c++)
+    bDots.push({ x: PX + 28 + c * (PW - 56) / 8, y: PY + 22 + r * (PH - 44) / 4 });
+
+function getField(t) {
+  return { B: Math.sin(t * 1.2), dB: Math.cos(t * 1.2) * 1.2 };
+}
+
+function drawPlate() {
+  // Subtle shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); roundRect(ctx, PX+4, PY+6, PW, PH, 10); ctx.fill();
+
+  // Plate face
+  ctx.fillStyle = PLATE;
+  ctx.beginPath(); roundRect(ctx, PX, PY, PW, PH, 10); ctx.fill();
+
+  // Top highlight strip
+  ctx.fillStyle = PLATE_HL;
+  ctx.beginPath(); roundRect(ctx, PX, PY, PW, 18, [10,10,0,0]); ctx.fill();
+
+  // Edge
+  ctx.strokeStyle = PLATE_ED;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); roundRect(ctx, PX, PY, PW, PH, 10); ctx.stroke();
+
+  // Label
+  ctx.fillStyle = TEXT2;
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('Conducting plate', PCX, PY + PH + 10);
+}
+
+function drawBField(B, dB) {
+  const absB = Math.abs(B) * bStrength;
+  const intoPage = B >= 0;
+  bDots.forEach(d => {
+    ctx.globalAlpha = Math.min(1, absB * 0.75 + 0.12);
+    ctx.strokeStyle = B_COLOR; ctx.fillStyle = B_COLOR; ctx.lineWidth = 1.5;
+    if (intoPage) {
+      const s = 5 * Math.min(1, absB + 0.2);
+      ctx.beginPath();
+      ctx.moveTo(d.x-s, d.y-s); ctx.lineTo(d.x+s, d.y+s);
+      ctx.moveTo(d.x+s, d.y-s); ctx.lineTo(d.x-s, d.y+s);
+      ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(d.x, d.y, 2.8*Math.min(1, absB+0.2), 0, Math.PI*2); ctx.fill();
+    }
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = B_COLOR; ctx.font = '500 13px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const dir = intoPage ? 'into page (×)' : 'out of page (·)';
+  ctx.fillText(`B ${dir}`, PX + PW + 14, PY + 24);
+  ctx.font = '12px sans-serif'; ctx.fillStyle = TEXT2;
+  ctx.fillText(`dB/dt = ${dB >= 0 ? '+' : ''}${dB.toFixed(2)}`, PX + PW + 14, PY + 44);
+}
+
+function drawEddyLoops(dB) {
+  const intensity = Math.min(1, Math.abs(dB) * bStrength / 1.2);
+  if (intensity < 0.02) return;
+  const ccw = dB > 0;
+
+  loops.forEach(lp => {
+    const nArrows = 6;
+    for (let a = 0; a < nArrows; a++) {
+      const angle = (a / nArrows) * Math.PI * 2 + lp.phase + (ccw ? -1 : +1) * t * 1.4;
+      const ax = lp.cx + lp.rx * Math.cos(angle);
+      const ay = lp.cy + lp.ry * Math.sin(angle);
+
+      const etx = (ccw ?  Math.sin(angle) : -Math.sin(angle)) * lp.rx;
+      const ety = (ccw ? -Math.cos(angle) :  Math.cos(angle)) * lp.ry;
+      const elen = Math.sqrt(etx*etx + ety*ety) + 1e-9;
+      const ntx = etx / elen, nty = ety / elen;
+
+      const arrowLen = 11;
+      const hx = ax + ntx * arrowLen / 2, hy = ay + nty * arrowLen / 2;
+      const tx2= ax - ntx * arrowLen / 2, ty2= ay - nty * arrowLen / 2;
+
+      ctx.strokeStyle = EC_COLOR; ctx.lineWidth = 1.8;
+      ctx.globalAlpha = intensity * 0.88;
+      ctx.beginPath(); ctx.moveTo(tx2, ty2); ctx.lineTo(hx, hy); ctx.stroke();
+
+      const ha = Math.atan2(nty, ntx), aSize = 5;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx + Math.cos(ha+Math.PI*0.8)*aSize, hy + Math.sin(ha+Math.PI*0.8)*aSize);
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx + Math.cos(ha-Math.PI*0.8)*aSize, hy + Math.sin(ha-Math.PI*0.8)*aSize);
+      ctx.stroke();
+    }
+
+    // Ellipse outline
+    ctx.globalAlpha = intensity * 0.22;
+    ctx.strokeStyle = EC_COLOR; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(lp.cx, lp.cy, lp.rx, lp.ry, 0, 0, Math.PI*2); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = EC_COLOR; ctx.font = '500 13px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(`Eddy currents (${ccw ? 'CCW' : 'CW'})`, PX + PW + 14, PY + 80);
+}
+
+function drawHeat(dB) {
+  const intensity = Math.min(1, Math.abs(dB) * bStrength / 1.2);
+  if (intensity < 0.05) return;
+  loops.forEach(lp => {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3 + lp.phase * 4);
+    const r = 3 + pulse * 5 * intensity * bStrength;
+    ctx.globalAlpha = intensity * 0.5 * pulse;
+    ctx.fillStyle = HEAT_COL;
+    ctx.beginPath(); ctx.arc(lp.cx, lp.cy, r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  const power = (Math.min(1, Math.abs(dB)*bStrength/1.2) ** 2 * bStrength).toFixed(2);
+  ctx.fillStyle = HEAT_COL; ctx.font = '500 13px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(`Joule heating ~${power} (rel.)`, PX + PW + 14, PY + 104);
+}
+
+function drawFieldArrow(dB) {
+  const x = PX - 50, yTop = PY + 20, yBot = PY + PH - 20;
+  const arrowDir = dB >= 0 ? 1 : -1;
+  const mid = (yTop + yBot) / 2;
+  ctx.strokeStyle = B_COLOR; ctx.lineWidth = 2; ctx.globalAlpha = 0.65;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x, yTop); ctx.lineTo(x, yBot); ctx.stroke();
+  ctx.setLineDash([]);
+  const aY = mid + arrowDir * 18;
+  ctx.beginPath();
+  ctx.moveTo(x, aY); ctx.lineTo(x-5, aY - arrowDir*10);
+  ctx.moveTo(x, aY); ctx.lineTo(x+5, aY - arrowDir*10);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = B_COLOR; ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('B', x, yTop - 14);
+}
+
+function drawTitle() {
+  ctx.fillStyle = TEXT; ctx.font = '500 15px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('Eddy currents in a conducting plate — changing magnetic field', W/2, 10);
+  ctx.fillStyle = TEXT2; ctx.font = '13px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('Dr. S Karna', W - 12, 10);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const [tl,tr,br,bl] = Array.isArray(r) ? r : [r,r,r,r];
+  ctx.beginPath();
+  ctx.moveTo(x+tl, y); ctx.lineTo(x+w-tr, y); ctx.quadraticCurveTo(x+w, y, x+w, y+tr);
+  ctx.lineTo(x+w, y+h-br); ctx.quadraticCurveTo(x+w, y+h, x+w-br, y+h);
+  ctx.lineTo(x+bl, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-bl);
+  ctx.lineTo(x, y+tl); ctx.quadraticCurveTo(x, y, x+tl, y);
+  ctx.closePath();
+}
+
+function getStatus(B, dB) {
+  const absDB = Math.abs(dB) * bStrength;
+  if (absDB < 0.15) return 'B field at peak or trough — dB/dt ≈ 0, eddy currents minimal';
+  if (dB > 0 && B > 0) return 'B increasing into page — Lenz: CCW eddy currents oppose increase';
+  if (dB < 0 && B > 0) return 'B decreasing (into page) — Lenz: CW eddy currents oppose decrease';
+  if (dB > 0 && B < 0) return 'B increasing (out of page) — Lenz: CW eddy currents oppose increase';
+  return 'B decreasing (out of page) — Lenz: CCW eddy currents oppose decrease';
+}
+
+function frame() {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  const { B, dB } = getField(t);
+  drawTitle();
+  drawPlate();
+  drawBField(B, dB * bStrength);
+  drawEddyLoops(dB);
+  drawHeat(dB);
+  drawFieldArrow(dB);
+  document.getElementById('statusLabel').textContent = getStatus(B, dB);
+
+  if (running) { t += 0.016 * speed; requestAnimationFrame(frame); }
+}
+
+document.getElementById('playBtn').onclick = () => {
+  running = !running;
+  document.getElementById('playBtn').textContent = running ? 'Pause' : 'Play';
+  if (running) frame();
+};
+document.getElementById('resetBtn').onclick = () => {
+  t = 0;
+  if (!running) { running = true; document.getElementById('playBtn').textContent = 'Pause'; frame(); }
+};
+document.getElementById('speedRange').oninput = function() { speed = parseFloat(this.value); };
+document.getElementById('bStrength').oninput = function() { bStrength = parseFloat(this.value); };
+
+frame();
+</script>
+</body>
+</html>
