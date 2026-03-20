@@ -1,0 +1,391 @@
+
+<style>
+  .cm-root { padding: 1rem 1.25rem; background: #0a0c14; border-radius: 12px; font-family: var(--font-sans); }
+  .cm-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .cm-title { font-size: 22px; font-weight: 500; color: #e8e8e8; }
+  .cm-instructor { font-size: 13px; color: #8a8f9e; font-style: italic; }
+  canvas { width: 100%; display: block; border-radius: 8px; background: #0d1117; }
+  .cm-controls { display: flex; align-items: center; gap: 20px; margin-top: 1rem; flex-wrap: wrap; }
+  .cm-ctrl { display: flex; align-items: center; gap: 8px; }
+  .cm-label { font-size: 13px; color: #8a8f9e; }
+  .cm-val { font-size: 13px; font-weight: 500; color: #e8e8e8; min-width: 42px; }
+  .cm-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 1rem; }
+  .cm-card { background: #1c2030; border-radius: 8px; padding: 10px 14px; border: 0.5px solid #2e3347; }
+  .cm-card-label { font-size: 11px; color: #8a8f9e; margin-bottom: 3px; }
+  .cm-card-val { font-size: 14px; font-weight: 500; color: #e8e8e8; }
+  input[type=range] { accent-color: #85B7EB; }
+</style>
+
+<div class="cm-root">
+  <div class="cm-top">
+    <span class="cm-title">Convex mirror — image formation</span>
+    <span class="cm-instructor">Dr. S Karna</span>
+  </div>
+
+  <canvas id="cmCanvas" height="360"></canvas>
+
+  <div class="cm-controls">
+    <div class="cm-ctrl">
+      <span class="cm-label">Object distance (u)</span>
+      <input type="range" id="objDist" min="40" max="300" step="5" value="160" style="width:130px;">
+      <span class="cm-val" id="objDistVal">160</span>
+    </div>
+    <div class="cm-ctrl">
+      <span class="cm-label">Object height</span>
+      <input type="range" id="objH" min="20" max="80" step="5" value="50" style="width:100px;">
+      <span class="cm-val" id="objHVal">50</span>
+    </div>
+    <div class="cm-ctrl">
+      <span class="cm-label">Focal length (f)</span>
+      <input type="range" id="focalLen" min="40" max="160" step="5" value="80" style="width:110px;">
+      <span class="cm-val" id="focalVal">80</span>
+    </div>
+  </div>
+
+  <div class="cm-info">
+    <div class="cm-card">
+      <div class="cm-card-label">Image distance (v)</div>
+      <div class="cm-card-val" id="infoV">—</div>
+    </div>
+    <div class="cm-card">
+      <div class="cm-card-label">Magnification (m)</div>
+      <div class="cm-card-val" id="infoM">—</div>
+    </div>
+    <div class="cm-card">
+      <div class="cm-card-label">Image nature</div>
+      <div class="cm-card-val" id="infoN">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('cmCanvas');
+  const ctx = canvas.getContext('2d');
+  const objDistSlider = document.getElementById('objDist');
+  const objHSlider = document.getElementById('objH');
+  const focalSlider = document.getElementById('focalLen');
+  const objDistVal = document.getElementById('objDistVal');
+  const objHVal = document.getElementById('objHVal');
+  const focalVal = document.getElementById('focalVal');
+  const infoV = document.getElementById('infoV');
+  const infoM = document.getElementById('infoM');
+  const infoN = document.getElementById('infoN');
+
+  const DPR = window.devicePixelRatio || 1;
+
+  function initCanvas() {
+    const w = canvas.parentElement.clientWidth;
+    canvas.width = w * DPR;
+    canvas.height = 360 * DPR;
+    canvas.style.height = '360px';
+    ctx.scale(DPR, DPR);
+  }
+
+  function W() { return canvas.width / DPR; }
+  function H() { return canvas.height / DPR; }
+
+  function getParams() {
+    return {
+      u: parseFloat(objDistSlider.value),
+      oh: parseFloat(objHSlider.value),
+      f: parseFloat(focalSlider.value)
+    };
+  }
+
+  function mirrorFormula(u, f) {
+    // Mirror formula: 1/v + 1/u = 1/f
+    // Convex mirror: f > 0 (virtual focus behind mirror)
+    // Object is real: u < 0 (in front of mirror, sign convention)
+    // Using: 1/v = 1/f - 1/u  => v = uf/(u-f)
+    // Sign convention: object at -u, f = +f
+    const uSigned = -u;
+    const fSigned = f;
+    const v = (uSigned * fSigned) / (uSigned - fSigned);
+    const m = -v / uSigned;
+    return { v, m };
+  }
+
+  function arrow(x1, y1, x2, y2, color, dashed) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.4;
+    if (dashed) ctx.setLineDash([5, 4]);
+    else ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    // arrowhead
+    if (!dashed) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - 9 * Math.cos(angle - 0.4), y2 - 9 * Math.sin(angle - 0.4));
+      ctx.lineTo(x2 - 9 * Math.cos(angle + 0.4), y2 - 9 * Math.sin(angle + 0.4));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function label(text, x, y, color, align) {
+    ctx.save();
+    ctx.fillStyle = color || '#8a8f9e';
+    ctx.font = '12px var(--font-sans)';
+    ctx.textAlign = align || 'center';
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function draw() {
+    const { u, oh, f } = getParams();
+    const w = W(), h = H();
+    const cy = h / 2;
+
+    // Mirror sits at right side; principal axis is horizontal
+    const mirrorX = w - 80;
+    const SCALE = 1; // px = px (object distances map directly)
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, w, h);
+
+    // ── Principal axis ──
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#2a3040';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(w, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── Convex mirror arc ──
+    // Draw as a thick arc on the right side (convex = bulging toward object)
+    const R = f * 2; // radius of curvature
+    const arcH = Math.min(120, h * 0.45);
+    ctx.strokeStyle = '#85B7EB';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    // Arc: center is to the RIGHT of mirrorX (behind mirror)
+    const arcCX = mirrorX + R;
+    const arcAngle = Math.asin(arcH / R);
+    ctx.arc(arcCX, cy, R, Math.PI - arcAngle, Math.PI + arcAngle);
+    ctx.stroke();
+
+    // Mirror surface line (thin)
+    ctx.strokeStyle = '#1e2840';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, cy - arcH);
+    ctx.lineTo(mirrorX, cy + arcH);
+    ctx.stroke();
+
+    // Label P (pole)
+    label('P', mirrorX + 10, cy + 16, '#85B7EB');
+
+    // ── Key points on axis ──
+    // Focus F behind mirror (virtual), Centre of curvature C behind mirror
+    const fX = mirrorX + f;   // virtual focus (behind mirror)
+    const cX = mirrorX + 2*f; // virtual centre of curvature
+
+    // Dashed marker for F
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#3a4060';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(fX, cy - 8); ctx.lineTo(fX, cy + 8); ctx.stroke();
+    ctx.setLineDash([]);
+    label('F', fX, cy + 20, '#9FE1CB');
+
+    // Dashed marker for C
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#3a4060';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(cX, cy - 8); ctx.lineTo(cX, cy + 8); ctx.stroke();
+    ctx.setLineDash([]);
+    label('C', cX, cy + 20, '#9FE1CB');
+
+    // ── Object ──
+    const objX = mirrorX - u;
+    const objTipY = cy - oh;
+
+    // Object arrow (upward)
+    arrow(objX, cy, objX, objTipY, '#F0997B', false);
+    label('Object', objX, cy + 18, '#F0997B');
+    // Label A at tip
+    label('A', objX - 10, objTipY - 4, '#F0997B', 'right');
+    label("A'", objX + 2, cy + 8, '#F0997B', 'left');
+
+    // ── Mirror formula ──
+    const { v, m } = mirrorFormula(u, f);
+    // v is positive → image is behind mirror (virtual)
+    const imgX = mirrorX + Math.abs(v);
+    const imgH = oh * Math.abs(m);
+    const imgTipY = cy - imgH; // image is erect (positive m)
+
+    // ── Ray 1: Parallel to principal axis → reflects as if from F ──
+    // Incident: from object tip horizontal to mirror pole height = objTipY
+    // Hits mirror at mirrorX, y = objTipY (paraxial approx, hit at top of arc)
+    const hitY1 = objTipY;
+    arrow(objX, objTipY, mirrorX, hitY1, '#EF9F27', false);
+    // Reflected ray: diverges away from F (appears to come from F behind mirror)
+    // Direction: from fX,cy through mirrorX,hitY1, extended to left
+    const dx1 = mirrorX - fX;
+    const dy1 = hitY1 - cy;
+    const ext1 = (objX - mirrorX) / dx1;
+    const reflEndX = objX;
+    const reflEndY = hitY1 + dy1 * (reflEndX - mirrorX) / dx1;
+    arrow(mirrorX, hitY1, reflEndX, reflEndY, '#EF9F27', false);
+    // Dashed extension behind mirror to F
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#EF9F2755';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, hitY1);
+    ctx.lineTo(fX, cy);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Ray 2: Directed toward F → reflects parallel to axis ──
+    // Incident: from object tip toward fX,cy → hits mirror
+    // Find intersection with mirror line x = mirrorX
+    const dx2 = fX - objX;
+    const dy2 = cy - objTipY;
+    const t2 = (mirrorX - objX) / dx2;
+    const hitY2 = objTipY + dy2 * t2;
+    arrow(objX, objTipY, mirrorX, hitY2, '#9FE1CB', false);
+    // Reflected: parallel to axis going left
+    arrow(mirrorX, hitY2, objX, hitY2, '#9FE1CB', false);
+    // Dashed extension behind mirror
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#9FE1CB55';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, hitY2);
+    ctx.lineTo(fX, hitY2);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Ray 3: Toward centre of curvature C → reflects back on itself ──
+    const dx3 = cX - objX;
+    const dy3 = cy - objTipY;
+    const t3 = (mirrorX - objX) / dx3;
+    const hitY3 = objTipY + dy3 * t3;
+    arrow(objX, objTipY, mirrorX, hitY3, '#AFA9EC', false);
+    // Reflected back toward C (diverges, appears to come from C)
+    arrow(mirrorX, hitY3, objX, objTipY, '#AFA9EC', false);
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#AFA9EC55';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, hitY3);
+    ctx.lineTo(cX, cy);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Dashed lines converging to image behind mirror ──
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = '#ffffff22';
+    ctx.lineWidth = 1;
+    // Ray 1 extended behind mirror to image tip
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, hitY1);
+    ctx.lineTo(imgX, imgTipY);
+    ctx.stroke();
+    // Ray 2 extended behind mirror to image tip
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, hitY2);
+    ctx.lineTo(imgX, imgTipY);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Image (virtual, erect, behind mirror) ──
+    if (imgX > mirrorX && imgX < w - 10) {
+      // Dashed image arrow
+      ctx.save();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = '#5DCAA5';
+      ctx.fillStyle = '#5DCAA5';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(imgX, cy);
+      ctx.lineTo(imgX, imgTipY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // arrowhead
+      ctx.beginPath();
+      ctx.moveTo(imgX, imgTipY);
+      ctx.lineTo(imgX - 5, imgTipY + 9);
+      ctx.lineTo(imgX + 5, imgTipY + 9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      label("Image (virtual)", imgX, cy + 18, '#5DCAA5');
+      label("B'", imgX + 10, imgTipY - 4, '#5DCAA5', 'left');
+    }
+
+    // ── Distance annotations ──
+    const annotY = cy + 50;
+    ctx.strokeStyle = '#3a4060';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([]);
+
+    // u label
+    ctx.beginPath();
+    ctx.moveTo(objX, annotY - 5); ctx.lineTo(objX, annotY + 5); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mirrorX, annotY - 5); ctx.lineTo(mirrorX, annotY + 5); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(objX, annotY); ctx.lineTo(mirrorX, annotY); ctx.stroke();
+    label(`u = ${u}`, (objX + mirrorX) / 2, annotY + 14, '#8a8f9e');
+
+    // v label (behind mirror)
+    if (imgX > mirrorX && imgX < w - 5) {
+      ctx.beginPath();
+      ctx.moveTo(mirrorX, annotY - 5); ctx.lineTo(mirrorX, annotY + 5); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(imgX, annotY - 5); ctx.lineTo(imgX, annotY + 5); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mirrorX, annotY); ctx.lineTo(imgX, annotY); ctx.stroke();
+      label(`v = ${Math.abs(v).toFixed(1)}`, (mirrorX + imgX) / 2, annotY + 14, '#5DCAA5');
+    }
+
+    // ── Info cards update ──
+    infoV.textContent = `+${Math.abs(v).toFixed(1)} (behind mirror)`;
+    infoM.textContent = `+${Math.abs(m).toFixed(2)} (diminished)`;
+    infoN.textContent = 'Virtual, erect, diminished';
+
+    // ── Legend ──
+    const lx = 14, ly = 18;
+    const items = [
+      { color: '#F0997B', label: 'Ray parallel to axis' },
+      { color: '#9FE1CB', label: 'Ray toward focus' },
+      { color: '#AFA9EC', label: 'Ray toward centre C' },
+    ];
+    items.forEach((it, i) => {
+      ctx.fillStyle = it.color;
+      ctx.fillRect(lx, ly + i * 18, 18, 2);
+      label(it.label, lx + 24, ly + i * 18 + 4, it.color, 'left');
+    });
+  }
+
+  [objDistSlider, objHSlider, focalSlider].forEach(el => {
+    el.addEventListener('input', () => {
+      objDistVal.textContent = objDistSlider.value;
+      objHVal.textContent = objHSlider.value;
+      focalVal.textContent = focalSlider.value;
+      draw();
+    });
+  });
+
+  initCanvas();
+  draw();
+})();
+</script>

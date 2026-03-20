@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLC Circuit Animation</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; padding-bottom: 20px; }
+h1 { text-align: center; font-size: 1.25rem; font-weight: 500; color: #aac4f2; padding: 14px 0 2px; }
+.subtitle { text-align: center; font-size: 0.76rem; color: #5a6a8a; margin-bottom: 10px; }
+
+.controls {
+  max-width: 1060px; margin: 0 auto 10px; padding: 10px 18px;
+  display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center;
+  background: #161b2e; border-radius: 10px; border: 1px solid #252f4a;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 2px; min-width: 130px; }
+.ctrl-group label { font-size: 0.7rem; color: #7a9acb; }
+.ctrl-row { display: flex; align-items: center; gap: 8px; }
+.ctrl-row input[type=range] { width: 100px; accent-color: #4a90e2; cursor: pointer; }
+.ctrl-val { font-size: 0.8rem; color: #c0d4f8; font-weight: 500; min-width: 52px; }
+
+.btn {
+  padding: 6px 16px; border-radius: 7px; border: 1px solid #3a5088;
+  background: #1e2d50; color: #9ab8f0; font-size: 0.8rem; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn:hover { background: #2a4070; }
+.btn.on { background: #163060; border-color: #4a80d0; color: #d0e8ff; }
+
+.main { display: flex; gap: 0; max-width: 1060px; margin: 0 auto; }
+
+.circuit-panel {
+  flex: 0 0 360px;
+  background: #161b2e; border: 1px solid #252f4a;
+  border-radius: 12px 0 0 12px; padding: 12px 10px 10px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.circuit-panel h2 { font-size: 0.78rem; font-weight: 500; color: #7090b8; margin-bottom: 6px; }
+
+.graph-panel {
+  flex: 1; background: #13182a; border: 1px solid #252f4a;
+  border-left: none; border-radius: 0 12px 12px 0;
+  padding: 12px 14px 10px; display: flex; flex-direction: column;
+}
+.graph-panel h2 { font-size: 0.78rem; font-weight: 500; color: #7090b8; margin-bottom: 4px; }
+
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 5px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #7a8aaa; }
+.leg-line { width: 18px; height: 2px; border-radius: 1px; }
+
+.infobar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 7px; padding-top: 6px; border-top: 1px solid #1e2840; width: 100%; }
+.info-item { font-size: 0.72rem; color: #5a6a8a; }
+.info-item span { color: #aac4f2; font-weight: 500; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+.u { background: #142010; color: #60c040; border: 1px solid #284020; }
+.o { background: #281414; color: #e06060; border: 1px solid #501818; }
+.c { background: #282010; color: #e0b030; border: 1px solid #504010; }
+</style>
+</head>
+<body>
+
+<h1>RLC Series Circuit — Transient Analysis</h1>
+<p class="subtitle">Switch closes at t = 0 &nbsp;·&nbsp; Growth and decay of current and capacitor voltage</p>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Resistance R (Ω)</label>
+    <div class="ctrl-row">
+      <input type="range" id="sR" min="1" max="200" value="30" step="1" oninput="onParam()">
+      <span class="ctrl-val" id="vR">30 Ω</span>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <label>Inductance L (mH)</label>
+    <div class="ctrl-row">
+      <input type="range" id="sL" min="5" max="500" value="100" step="5" oninput="onParam()">
+      <span class="ctrl-val" id="vL">100 mH</span>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <label>Capacitance C (μF)</label>
+    <div class="ctrl-row">
+      <input type="range" id="sC" min="10" max="1000" value="200" step="10" oninput="onParam()">
+      <span class="ctrl-val" id="vC">200 μF</span>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <label>Battery EMF (V)</label>
+    <div class="ctrl-row">
+      <input type="range" id="sV" min="5" max="50" value="12" step="1" oninput="onParam()">
+      <span class="ctrl-val" id="vV">12 V</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-left:auto">
+    <button class="btn" id="swBtn" onclick="toggleSwitch()">Close Switch</button>
+    <button class="btn" onclick="doReset()">Reset</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="circuit-panel">
+    <h2>Circuit Diagram</h2>
+    <canvas id="cc" width="340" height="360"></canvas>
+    <div class="infobar">
+      <div class="info-item">Damping: <span id="dType">—</span></div>
+      <div class="info-item">ω₀ = <span id="w0">—</span> rad/s</div>
+      <div class="info-item">α = <span id="al">—</span> s⁻¹</div>
+    </div>
+    <div class="infobar" style="margin-top:4px;border-top:none;padding-top:0">
+      <div class="info-item">i(t) = <span id="iDisp">0.0000</span> A</div>
+      <div class="info-item">Vc(t) = <span id="vDisp">0.0000</span> V</div>
+    </div>
+  </div>
+
+  <div class="graph-panel">
+    <h2>i(t) and Vc(t) vs Time</h2>
+    <div class="legend">
+      <div class="leg"><div class="leg-line" style="background:#4a90e2"></div>Current i(t)</div>
+      <div class="leg"><div class="leg-line" style="background:#f0a040"></div>Capacitor Vc(t)</div>
+      <div class="leg"><div class="leg-line" style="background:#50b870;height:1px;border-top:1px dashed #50b870"></div>Battery V</div>
+    </div>
+    <canvas id="gc" width="640" height="320"></canvas>
+    <div style="text-align:center;font-size:0.68rem;color:#3a4a6a;margin-top:3px">Time →</div>
+  </div>
+</div>
+
+<script>
+// ── Circuit parameters ──
+var R=30, L=0.1, C=200e-6, EMF=12;
+
+// ── Simulation state ──
+var swClosed = false;
+var iArr=[], vcArr=[], tArr=[];
+var animId = null;
+var lastTs = null;
+var playIdx = 0;
+var tWin = 1;
+var ePhase = 0;
+var liveI = 0, liveVc = 0;
+
+// ── Canvas contexts ──
+var cc = document.getElementById('cc');
+var cx = cc.getContext('2d');
+var gc = document.getElementById('gc');
+var gx = gc.getContext('2d');
+var CW=340, CH=360, GW=640, GH=320;
+
+// ── Wire corners ──
+var WL=45, WR=295, WT=45, WB=305;
+
+// ── Param sliders ──
+function onParam() {
+  R   = +document.getElementById('sR').value;
+  L   = +document.getElementById('sL').value / 1000;
+  C   = +document.getElementById('sC').value * 1e-6;
+  EMF = +document.getElementById('sV').value;
+  document.getElementById('vR').textContent = R + ' Ω';
+  document.getElementById('vL').textContent = (+document.getElementById('sL').value) + ' mH';
+  document.getElementById('vC').textContent = (+document.getElementById('sC').value) + ' μF';
+  document.getElementById('vV').textContent = EMF + ' V';
+  updateInfo();
+  if (!swClosed) { drawCircuit(0,0); drawGraph(0); }
+}
+
+function updateInfo() {
+  var a  = R / (2*L);
+  var w0 = 1 / Math.sqrt(L*C);
+  document.getElementById('w0').textContent = w0.toFixed(1);
+  document.getElementById('al').textContent = a.toFixed(1);
+  var el = document.getElementById('dType');
+  if      (a > w0+0.01) { el.textContent='Overdamped';        el.className='badge o'; }
+  else if (a < w0-0.01) { el.textContent='Underdamped';       el.className='badge u'; }
+  else                  { el.textContent='Critically damped'; el.className='badge c'; }
+}
+updateInfo();
+
+// ── Switch control ──
+function toggleSwitch() {
+  if (!swClosed) {
+    swClosed = true;
+    iArr=[]; vcArr=[]; tArr=[];
+    playIdx=0; liveI=0; liveVc=0; ePhase=0;
+    document.getElementById('swBtn').textContent = 'Open Switch';
+    document.getElementById('swBtn').classList.add('on');
+    doStart();
+  } else {
+    swClosed = false;
+    document.getElementById('swBtn').textContent = 'Close Switch';
+    document.getElementById('swBtn').classList.remove('on');
+    doStop();
+  }
+}
+
+function doReset() {
+  swClosed = false;
+  document.getElementById('swBtn').textContent = 'Close Switch';
+  document.getElementById('swBtn').classList.remove('on');
+  doStop();
+  iArr=[]; vcArr=[]; tArr=[];
+  playIdx=0; liveI=0; liveVc=0; ePhase=0; tWin=1;
+  updateInfo();
+  drawCircuit(0,0);
+  drawGraph(0);
+}
+
+// ── RK4 integrator ──
+function rk4(ii, vci, dt) {
+  var fi = function(a,b){ return (EMF - R*a - b) / L; };
+  var fv = function(a)  { return a / C; };
+  var k1i=fi(ii,vci),       k1v=fv(ii);
+  var k2i=fi(ii+dt/2*k1i, vci+dt/2*k1v), k2v=fv(ii+dt/2*k1i);
+  var k3i=fi(ii+dt/2*k2i, vci+dt/2*k2v), k3v=fv(ii+dt/2*k2i);
+  var k4i=fi(ii+dt*k3i,   vci+dt*k3v),   k4v=fv(ii+dt*k3i);
+  return {
+    ni: ii  + dt/6*(k1i+2*k2i+2*k3i+k4i),
+    nv: vci + dt/6*(k1v+2*k2v+2*k3v+k4v)
+  };
+}
+
+// ── Pre-simulate entire transient ──
+var DT=0.0001, NPTS=800;
+
+function computeWindow() {
+  var a  = R/(2*L);
+  var w0 = 1/Math.sqrt(L*C);
+  if (a >= w0) return Math.max(6/a, 0.005);
+  var wd = Math.sqrt(w0*w0 - a*a);
+  return Math.max(5/a, 3*(2*Math.PI/wd), 0.005);
+}
+
+function simulate() {
+  tWin = computeWindow();
+  var steps  = Math.ceil(tWin / DT);
+  var stride = Math.max(1, Math.floor(steps / NPTS));
+  iArr=[]; vcArr=[]; tArr=[];
+  var ci=0, cv=0;
+  for (var s=0; s<steps; s++) {
+    var n = rk4(ci, cv, DT);
+    ci=n.ni; cv=n.nv;
+    if (s % stride === 0) {
+      iArr.push(ci);
+      vcArr.push(cv);
+      tArr.push((s+1)*DT);
+    }
+  }
+}
+
+// ── Animation ──
+function doStart() {
+  doStop();
+  simulate();
+  lastTs = null;
+  animId = requestAnimationFrame(frame);
+}
+
+function doStop() {
+  if (animId) { cancelAnimationFrame(animId); animId=null; }
+}
+
+function frame(ts) {
+  if (!lastTs) lastTs = ts;
+  var dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+
+  var N = iArr.length;
+  // Reveal at pace: full transient shown in ~3 real seconds
+  var rate = N / 3;
+  playIdx = Math.min(N, playIdx + Math.max(1, Math.ceil(rate * dt)));
+
+  var idx = Math.max(0, playIdx - 1);
+  liveI  = iArr[idx]  || 0;
+  liveVc = vcArr[idx] || 0;
+  ePhase += dt * Math.abs(liveI) * 280 + 0.4;
+
+  document.getElementById('iDisp').textContent = liveI.toFixed(4);
+  document.getElementById('vDisp').textContent = liveVc.toFixed(4);
+
+  drawCircuit(liveI, liveVc);
+  drawGraph(playIdx);
+
+  if (playIdx < N) {
+    animId = requestAnimationFrame(frame);
+  } else {
+    animId = null;
+    drawCircuit(liveI, liveVc);
+    drawGraph(N);
+  }
+}
+
+// ════════════════════════════════════════════
+//  CIRCUIT DRAWING
+// ════════════════════════════════════════════
+function drawCircuit(ci, cvc) {
+  cx.clearRect(0, 0, CW, CH);
+  var flowing = swClosed && Math.abs(ci) > 0.0002;
+  var wCol = flowing ? '#3a78d5' : '#2a3a5a';
+
+  // Wires
+  cx.strokeStyle = wCol;
+  cx.lineWidth = 2.5;
+  if (flowing) { cx.shadowColor='#4a90e2'; cx.shadowBlur=7; }
+  else { cx.shadowBlur=0; }
+  drawWire(WL, WT, 132, WT);       // top-left to switch
+  drawWire(208, WT, WR, WT);       // switch to top-right
+  drawWire(WR, WT, WR, WB);        // right side
+  drawWire(WR, WB, WL, WB);        // bottom
+  drawWire(WL, WT, WL, 147);       // left top
+  drawWire(WL, 213, WL, WB);       // left bottom
+  cx.shadowBlur = 0;
+
+  // Electron dots
+  if (flowing) drawElectrons(ci);
+
+  // Components
+  drawSwitch(132, WT, 208, WT, swClosed);
+  drawInductor(WR, WT+15, WR, 178);
+  drawCapacitor(WR, 196, WR, WB-15, cvc);
+  drawResistor(WR-25, WB, WL+25, WB);
+  drawBattery(WL, 147, WL, 213);
+
+  // Labels
+  cx.shadowBlur = 0;
+
+  // Switch label
+  cx.textAlign='center'; cx.font='600 11px Segoe UI'; cx.fillStyle='#8ab0e0';
+  cx.fillText('SW', 170, WT-13);
+  cx.font='10px Segoe UI';
+  cx.fillStyle = swClosed ? '#50c870' : '#c05040';
+  cx.fillText(swClosed ? 'CLOSED' : 'OPEN', 170, WT-3);
+
+  // Inductor label
+  cx.textAlign='left'; cx.font='600 12px Segoe UI'; cx.fillStyle='#90b8f0';
+  cx.fillText('L', WR+14, 108);
+  cx.font='10px Segoe UI'; cx.fillStyle='#506080';
+  cx.fillText((L*1000).toFixed(0)+' mH', WR+14, 121);
+
+  // Capacitor label
+  cx.font='600 12px Segoe UI'; cx.fillStyle='#f0a040';
+  cx.fillText('C', WR+14, 238);
+  cx.font='10px Segoe UI'; cx.fillStyle='#506080';
+  cx.fillText((C*1e6).toFixed(0)+' μF', WR+14, 251);
+  cx.fillStyle='#e09030';
+  cx.fillText('Vc='+cvc.toFixed(2)+'V', WR+14, 264);
+
+  // Resistor label
+  cx.textAlign='center'; cx.font='600 12px Segoe UI'; cx.fillStyle='#e07070';
+  cx.fillText('R', 170, WB+22);
+  cx.font='10px Segoe UI'; cx.fillStyle='#506080';
+  cx.fillText(R+' Ω', 170, WB+34);
+
+  // Battery label
+  cx.textAlign='right'; cx.font='600 12px Segoe UI'; cx.fillStyle='#70d090';
+  cx.fillText('V', WL-12, 183);
+  cx.font='10px Segoe UI'; cx.fillStyle='#506080';
+  cx.fillText(EMF+' V', WL-12, 195);
+
+  // Current arrow and value on top wire
+  if (flowing) {
+    cx.textAlign='center'; cx.font='600 10px Segoe UI'; cx.fillStyle='#4a90e2';
+    cx.fillText('i='+ci.toFixed(3)+'A', 254, WT-13);
+    drawArrow(248, WT, 278, WT, '#4a90e2');
+  }
+
+  // Corner junction dots
+  var corners = [[WL,WT],[WR,WT],[WR,WB],[WL,WB]];
+  for (var k=0;k<corners.length;k++) {
+    cx.beginPath(); cx.arc(corners[k][0],corners[k][1],3,0,Math.PI*2);
+    cx.fillStyle='#2a3a58'; cx.fill();
+  }
+}
+
+function drawWire(x1,y1,x2,y2) {
+  cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+}
+
+// Electron path (clockwise loop)
+var EP = [[WL,WT],[WR,WT],[WR,WB],[WL,WB],[WL,WT]];
+var EP_LEN = (function(){
+  var l=0;
+  for(var i=1;i<EP.length;i++){var dx=EP[i][0]-EP[i-1][0],dy=EP[i][1]-EP[i-1][1];l+=Math.sqrt(dx*dx+dy*dy);}
+  return l;
+})();
+
+function ptOnPath(dist) {
+  var acc=0;
+  for(var i=1;i<EP.length;i++){
+    var dx=EP[i][0]-EP[i-1][0], dy=EP[i][1]-EP[i-1][1];
+    var seg=Math.sqrt(dx*dx+dy*dy);
+    if(acc+seg>=dist){ var t=(dist-acc)/seg; return {x:EP[i-1][0]+t*dx, y:EP[i-1][1]+t*dy}; }
+    acc+=seg;
+  }
+  return {x:EP[EP.length-1][0], y:EP[EP.length-1][1]};
+}
+
+function drawElectrons(ci) {
+  var NE=9;
+  var speed = Math.min(Math.abs(ci)*55, 22);
+  for(var k=0;k<NE;k++){
+    var d=((ePhase*speed + k*EP_LEN/NE) % EP_LEN + EP_LEN) % EP_LEN;
+    var p=ptOnPath(d);
+    cx.beginPath(); cx.arc(p.x, p.y, 2.2, 0, Math.PI*2);
+    cx.fillStyle='rgba(110,185,255,0.75)'; cx.fill();
+  }
+}
+
+function drawSwitch(x1,y1,x2,y2,closed) {
+  var mx=(x1+x2)/2;
+  cx.save();
+  cx.fillStyle='#3a5070';
+  cx.beginPath(); cx.arc(x1,y1,4,0,Math.PI*2); cx.fill();
+  cx.beginPath(); cx.arc(x2,y2,4,0,Math.PI*2); cx.fill();
+  cx.strokeStyle = closed ? '#50c870' : '#d06050';
+  cx.lineWidth=2.5;
+  cx.shadowColor = closed ? '#40b060' : '#c04030'; cx.shadowBlur=5;
+  cx.beginPath(); cx.moveTo(x1,y1);
+  if (closed) cx.lineTo(x2,y2);
+  else cx.lineTo(mx, y1-20);
+  cx.stroke();
+  cx.restore();
+}
+
+function drawInductor(x,y1,x2,y2) {
+  cx.save();
+  var top=y1, bot=y2, Nc=5, step=(bot-top)/Nc;
+  cx.strokeStyle='#90b4f0'; cx.lineWidth=2;
+  cx.beginPath(); cx.moveTo(x,y1-15); cx.lineTo(x,top); cx.stroke();
+  for(var k=0;k<Nc;k++){
+    var yc=top+k*step+step/2;
+    cx.beginPath(); cx.arc(x,yc,step/2,-Math.PI/2,Math.PI/2); cx.stroke();
+  }
+  cx.beginPath(); cx.moveTo(x,bot); cx.lineTo(x,y2+15); cx.stroke();
+  cx.restore();
+}
+
+function drawCapacitor(x,y1,x2,y2,cvc) {
+  cx.save();
+  var cy=(y1+y2)/2, gap=13, pw=20;
+  cx.strokeStyle='#90b4f0'; cx.lineWidth=2;
+  cx.beginPath(); cx.moveTo(x,y1-15); cx.lineTo(x,cy-gap/2); cx.stroke();
+  cx.beginPath(); cx.moveTo(x,cy+gap/2); cx.lineTo(x,y2+15); cx.stroke();
+  var q=Math.min(1,Math.max(0,cvc/EMF));
+  var r=Math.round(80+140*q), g2=Math.round(160-60*q), b2=Math.round(230-90*q);
+  cx.strokeStyle='rgb('+r+','+g2+','+b2+')'; cx.lineWidth=3.5;
+  cx.beginPath(); cx.moveTo(x-pw/2,cy-gap/2); cx.lineTo(x+pw/2,cy-gap/2); cx.stroke();
+  cx.beginPath(); cx.moveTo(x-pw/2,cy+gap/2); cx.lineTo(x+pw/2,cy+gap/2); cx.stroke();
+  if(q>0.02){
+    cx.fillStyle='rgba('+r+','+g2+','+b2+','+(0.12+0.18*q)+')';
+    cx.fillRect(x-pw/2, cy-gap/2+1, pw, gap-2);
+  }
+  cx.restore();
+}
+
+function drawResistor(x1,y,x2,y2) {
+  cx.save();
+  var mx=(x1+x2)/2, hw=55, Nz=8, step=hw*2/Nz;
+  cx.strokeStyle='#d06868'; cx.lineWidth=2;
+  cx.beginPath(); cx.moveTo(x1,y); cx.lineTo(mx-hw,y); cx.stroke();
+  cx.beginPath(); cx.moveTo(mx+hw,y); cx.lineTo(x2,y); cx.stroke();
+  cx.beginPath(); cx.moveTo(mx-hw,y);
+  for(var k=0;k<=Nz;k++){
+    cx.lineTo(mx-hw+k*step, y+(k%2===0?-9:9));
+  }
+  cx.lineTo(mx+hw,y); cx.stroke();
+  cx.restore();
+}
+
+function drawBattery(x,y1,x2,y2) {
+  cx.save();
+  var cy=(y1+y2)/2, gap=6;
+  cx.strokeStyle='#70c888'; cx.lineWidth=2;
+  cx.beginPath(); cx.moveTo(x,y1); cx.lineTo(x,cy-gap); cx.stroke();
+  cx.beginPath(); cx.moveTo(x,cy+gap); cx.lineTo(x,y2); cx.stroke();
+  cx.lineWidth=3.5; cx.strokeStyle='#58c078';
+  cx.beginPath(); cx.moveTo(x-13,cy-gap); cx.lineTo(x+13,cy-gap); cx.stroke();
+  cx.lineWidth=2; cx.strokeStyle='#407058';
+  cx.beginPath(); cx.moveTo(x-7,cy+gap); cx.lineTo(x+7,cy+gap); cx.stroke();
+  cx.fillStyle='#58c078'; cx.font='bold 11px Segoe UI'; cx.textAlign='center';
+  cx.fillText('+', x+19, cy-gap+4);
+  cx.fillStyle='#407058';
+  cx.fillText('\u2212', x+19, cy+gap+4);
+  cx.restore();
+}
+
+function drawArrow(x1,y1,x2,y2,col) {
+  var dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+  var ux=dx/len, uy=dy/len;
+  cx.save();
+  cx.strokeStyle=col; cx.fillStyle=col; cx.lineWidth=1.5;
+  cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2-ux*7,y2-uy*7); cx.stroke();
+  cx.beginPath();
+  cx.moveTo(x2,y2);
+  cx.lineTo(x2-ux*9+uy*4, y2-uy*9-ux*4);
+  cx.lineTo(x2-ux*9-uy*4, y2-uy*9+ux*4);
+  cx.closePath(); cx.fill();
+  cx.restore();
+}
+
+// ════════════════════════════════════════════
+//  GRAPH DRAWING  — fixed time-window x-axis
+// ════════════════════════════════════════════
+var PAD={l:58,r:52,t:18,b:32};
+var IW=GW-PAD.l-PAD.r, IH=GH-PAD.t-PAD.b;
+
+function gLine(x1,y1,x2,y2){ gx.beginPath(); gx.moveTo(x1,y1); gx.lineTo(x2,y2); gx.stroke(); }
+
+function drawGraph(revN) {
+  gx.clearRect(0,0,GW,GH);
+  gx.fillStyle='#0d1020'; gx.fillRect(0,0,GW,GH);
+
+  var N = Math.min(revN, iArr.length);
+  var total = iArr.length;
+
+  if (total === 0) {
+    gx.fillStyle='#3a4a6a'; gx.font='13px Segoe UI'; gx.textAlign='center';
+    gx.fillText('Close the switch to start simulation', GW/2, GH/2);
+    return;
+  }
+
+  // Stable y-scale from full dataset
+  var iAbsMax=1e-9, vcMax=0.01;
+  for(var k=0;k<total;k++){
+    if(Math.abs(iArr[k])>iAbsMax) iAbsMax=Math.abs(iArr[k]);
+    if(vcArr[k]>vcMax) vcMax=vcArr[k];
+  }
+  var iScale = iAbsMax * 1.35;
+  var vScale = Math.max(vcMax * 1.08, EMF * 1.08);
+
+  // Grid
+  gx.strokeStyle='#181f38'; gx.lineWidth=0.5;
+  for(var g=0;g<=5;g++){ var gy=PAD.t+IH*g/5; gLine(PAD.l,gy,PAD.l+IW,gy); }
+  for(var g=0;g<=6;g++){ var gxx=PAD.l+IW*g/6; gLine(gxx,PAD.t,gxx,PAD.t+IH); }
+
+  // EMF dashed reference line
+  var emfY = PAD.t + IH*(1 - EMF/vScale);
+  gx.setLineDash([5,4]); gx.strokeStyle='rgba(80,184,120,0.35)'; gx.lineWidth=1;
+  gLine(PAD.l, emfY, PAD.l+IW, emfY);
+  gx.setLineDash([]);
+
+  // Map functions — x-axis always spans full tWin
+  function tx(t) { return PAD.l + (t/tWin)*IW; }
+  function iy(v) { return PAD.t + IH/2 - (v/iScale)*IH/2; }
+  function vy(v) { return PAD.t + IH   - (v/vScale)*IH; }
+
+  // Current curve (blue) — only up to revN
+  if (N > 1) {
+    gx.beginPath();
+    for(var k=0;k<N;k++){
+      var px=tx(tArr[k]), py=iy(iArr[k]);
+      if(k===0) gx.moveTo(px,py); else gx.lineTo(px,py);
+    }
+    gx.strokeStyle='#4a90e2'; gx.lineWidth=2.2; gx.stroke();
+  }
+
+  // Voltage curve (orange)
+  if (N > 1) {
+    gx.beginPath();
+    for(var k=0;k<N;k++){
+      var px=tx(tArr[k]), py=vy(vcArr[k]);
+      if(k===0) gx.moveTo(px,py); else gx.lineTo(px,py);
+    }
+    gx.strokeStyle='#f0a040'; gx.lineWidth=2; gx.stroke();
+  }
+
+  // Playhead
+  if (N>0 && N<total) {
+    var phx = tx(tArr[N-1]);
+    gx.strokeStyle='rgba(180,200,255,0.18)'; gx.lineWidth=1;
+    gLine(phx, PAD.t, phx, PAD.t+IH);
+  }
+
+  // Zero-current line (useful when underdamped)
+  var alpha=R/(2*L), w0v=1/Math.sqrt(L*C);
+  if (alpha < w0v-0.01) {
+    gx.strokeStyle='rgba(74,144,226,0.12)'; gx.lineWidth=0.5;
+    gLine(PAD.l, PAD.t+IH/2, PAD.l+IW, PAD.t+IH/2);
+  }
+
+  // Axes
+  gx.strokeStyle='#2a3a58'; gx.lineWidth=1;
+  gLine(PAD.l, PAD.t, PAD.l, PAD.t+IH);
+  gLine(PAD.l, PAD.t+IH, PAD.l+IW, PAD.t+IH);
+
+  // Left Y axis — current labels
+  gx.fillStyle='#4a78b0'; gx.font='10px Segoe UI'; gx.textAlign='right';
+  var iTicks = [-1,-0.5,0,0.5,1];
+  for(var k=0;k<iTicks.length;k++){
+    var val=iScale*iTicks[k];
+    var yy=iy(val);
+    if(yy>=PAD.t-2 && yy<=PAD.t+IH+2) gx.fillText(val.toFixed(3), PAD.l-4, yy+3);
+  }
+  gx.save();
+  gx.translate(10, PAD.t+IH/2);
+  gx.rotate(-Math.PI/2);
+  gx.fillStyle='#4a90e2'; gx.font='10px Segoe UI'; gx.textAlign='center';
+  gx.fillText('i(t)  [A]', 0, 0);
+  gx.restore();
+
+  // Right Y axis — voltage labels
+  gx.fillStyle='#b07820'; gx.font='10px Segoe UI'; gx.textAlign='left';
+  var vFracs=[0,0.25,0.5,0.75,1];
+  for(var k=0;k<vFracs.length;k++){
+    var val=vScale*(1-vFracs[k]);
+    var yy=PAD.t+IH*vFracs[k];
+    gx.fillText(val.toFixed(1)+'V', PAD.l+IW+4, yy+3);
+  }
+  gx.save();
+  gx.translate(GW-6, PAD.t+IH/2);
+  gx.rotate(Math.PI/2);
+  gx.fillStyle='#f0a040'; gx.font='10px Segoe UI'; gx.textAlign='center';
+  gx.fillText('Vc(t) [V]', 0, 0);
+  gx.restore();
+
+  // X axis time labels
+  gx.fillStyle='#3a4a6a'; gx.font='10px Segoe UI'; gx.textAlign='center';
+  for(var g=0;g<=6;g++){
+    var t_=tWin*g/6;
+    var xx=PAD.l+IW*g/6;
+    var ms=t_*1000;
+    var lbl = ms<1 ? (t_*1e6).toFixed(0)+'\u03bcs' : ms.toFixed(1)+'ms';
+    gx.fillText(lbl, xx, PAD.t+IH+14);
+  }
+
+  // EMF label near dashed line
+  gx.fillStyle='rgba(80,184,120,0.6)'; gx.font='10px Segoe UI'; gx.textAlign='left';
+  gx.fillText('V='+EMF+'V', PAD.l+4, emfY-3);
+}
+
+// ── Initial render ──
+drawCircuit(0, 0);
+drawGraph(0);
+</script>
+</body>
+</html>

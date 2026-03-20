@@ -1,0 +1,377 @@
+
+<style>
+  .cm-root { padding: 1rem 1.25rem; background: #0a0c14; border-radius: 12px; font-family: var(--font-sans); }
+  .cm-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .cm-title { font-size: 22px; font-weight: 500; color: #e8e8e8; }
+  .cm-instructor { font-size: 13px; color: #8a8f9e; font-style: italic; }
+  canvas { width: 100%; display: block; border-radius: 8px; background: #0d1117; }
+  .cm-controls { display: flex; align-items: center; gap: 16px; margin-top: 1rem; flex-wrap: wrap; }
+  .cm-ctrl { display: flex; align-items: center; gap: 8px; }
+  .cm-label { font-size: 13px; color: #8a8f9e; }
+  .cm-val { font-size: 13px; font-weight: 500; color: #e8e8e8; min-width: 38px; }
+  .cm-cases { display: flex; gap: 6px; margin-top: 0.75rem; flex-wrap: wrap; }
+  .cm-case { font-size: 12px; color: #8a8f9e; background: #1c2030; border: 0.5px solid #2e3347; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  .cm-case:hover { background: #252b42; color: #e8e8e8; }
+  .cm-case.active { border-color: #85B7EB; color: #85B7EB; }
+  .cm-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0.75rem; }
+  .cm-card { background: #1c2030; border-radius: 8px; padding: 10px 14px; border: 0.5px solid #2e3347; }
+  .cm-card-label { font-size: 11px; color: #8a8f9e; margin-bottom: 3px; }
+  .cm-card-val { font-size: 13px; font-weight: 500; color: #e8e8e8; }
+  input[type=range] { accent-color: #85B7EB; }
+</style>
+
+<div class="cm-root">
+  <div class="cm-top">
+    <span class="cm-title">Concave mirror — image formation</span>
+    <span class="cm-instructor">Dr. S Karna</span>
+  </div>
+
+  <canvas id="cmCanvas" height="370"></canvas>
+
+  <div class="cm-controls">
+    <div class="cm-ctrl">
+      <span class="cm-label">Object distance (u)</span>
+      <input type="range" id="objDist" min="10" max="280" step="5" value="160" style="width:130px;">
+      <span class="cm-val" id="objDistVal">160</span>
+    </div>
+    <div class="cm-ctrl">
+      <span class="cm-label">Object height</span>
+      <input type="range" id="objH" min="15" max="70" step="5" value="50" style="width:90px;">
+      <span class="cm-val" id="objHVal">50</span>
+    </div>
+    <div class="cm-ctrl">
+      <span class="cm-label">Focal length (f)</span>
+      <input type="range" id="focalLen" min="40" max="120" step="5" value="80" style="width:100px;">
+      <span class="cm-val" id="focalVal">80</span>
+    </div>
+  </div>
+
+  <div class="cm-cases">
+    <span class="cm-case" data-key="beyondC">Beyond C</span>
+    <span class="cm-case active" data-key="atC">At C</span>
+    <span class="cm-case" data-key="betCF">Between C & F</span>
+    <span class="cm-case" data-key="atF">At F</span>
+    <span class="cm-case" data-key="betFP">Between F & P</span>
+  </div>
+
+  <div class="cm-info">
+    <div class="cm-card">
+      <div class="cm-card-label">Image distance (v)</div>
+      <div class="cm-card-val" id="infoV">—</div>
+    </div>
+    <div class="cm-card">
+      <div class="cm-card-label">Magnification (m)</div>
+      <div class="cm-card-val" id="infoM">—</div>
+    </div>
+    <div class="cm-card">
+      <div class="cm-card-label">Image nature</div>
+      <div class="cm-card-val" id="infoN">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('cmCanvas');
+  const ctx = canvas.getContext('2d');
+  const objDistSlider = document.getElementById('objDist');
+  const objHSlider    = document.getElementById('objH');
+  const focalSlider   = document.getElementById('focalLen');
+  const objDistVal    = document.getElementById('objDistVal');
+  const objHVal       = document.getElementById('objHVal');
+  const focalVal      = document.getElementById('focalVal');
+  const infoV = document.getElementById('infoV');
+  const infoM = document.getElementById('infoM');
+  const infoN = document.getElementById('infoN');
+
+  const DPR = window.devicePixelRatio || 1;
+
+  function initCanvas() {
+    const w = canvas.parentElement.clientWidth;
+    canvas.width  = w * DPR;
+    canvas.height = 370 * DPR;
+    canvas.style.height = '370px';
+    ctx.scale(DPR, DPR);
+  }
+
+  const W = () => canvas.width / DPR;
+  const H = () => canvas.height / DPR;
+
+  function getParams() {
+    return {
+      u:  parseFloat(objDistSlider.value),
+      oh: parseFloat(objHSlider.value),
+      f:  parseFloat(focalSlider.value)
+    };
+  }
+
+  function mirrorFormula(u, f) {
+    const uS = -u, fS = -f;
+    if (Math.abs(uS - fS) < 0.5) return { v: Infinity, m: Infinity };
+    const v = (uS * fS) / (uS - fS);
+    const m = -v / uS;
+    return { v, m };
+  }
+
+  function imageNature(v, m) {
+    if (!isFinite(v)) return 'At infinity';
+    const sz = Math.abs(m) > 1.05 ? 'enlarged' : Math.abs(m) < 0.95 ? 'diminished' : 'same size';
+    if (v < 0) return `Real, inverted, ${sz}`;
+    return `Virtual, erect, ${sz}`;
+  }
+
+  function arrowLine(x1, y1, x2, y2, color, dashed, noHead) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash(dashed ? [5,4] : []);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    if (!noHead) {
+      const a = Math.atan2(y2-y1, x2-x1);
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x2,y2);
+      ctx.lineTo(x2-9*Math.cos(a-0.4), y2-9*Math.sin(a-0.4));
+      ctx.lineTo(x2-9*Math.cos(a+0.4), y2-9*Math.sin(a+0.4));
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function txt(text, x, y, color, align, size) {
+    ctx.save();
+    ctx.fillStyle = color || '#8a8f9e';
+    ctx.font = `${size||12}px var(--font-sans)`;
+    ctx.textAlign = align || 'center';
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function tick(x, cy, color) {
+    ctx.save(); ctx.strokeStyle = color||'#3a4060'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(x,cy-7); ctx.lineTo(x,cy+7); ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    const { u, oh, f } = getParams();
+    const w = W(), h = H();
+    const cy = h / 2 - 10;
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0,0,w,h);
+
+    // Mirror placed at 70% of canvas width (shifted left from edge)
+    const mirrorX = Math.round(w * 0.68);
+
+    const { v, m } = mirrorFormula(u, f);
+
+    // ── Principal axis ──
+    ctx.setLineDash([4,5]); ctx.strokeStyle='#1e2535'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(w,cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── Concave mirror arc ──
+    const R = f * 2;
+    const arcH = Math.min(130, h*0.42);
+    const arcCX = mirrorX - R;
+    const arcAngle = Math.asin(Math.min(arcH/R, 0.99));
+    ctx.strokeStyle='#85B7EB'; ctx.lineWidth=3.5;
+    ctx.beginPath();
+    ctx.arc(arcCX, cy, R, -arcAngle, arcAngle);
+    ctx.stroke();
+
+    txt('P', mirrorX+12, cy+16, '#85B7EB');
+
+    const fX = mirrorX - f;
+    const cX = mirrorX - 2*f;
+
+    tick(fX, cy, '#9FE1CB'); txt('F', fX, cy+18, '#9FE1CB');
+    tick(cX, cy, '#9FE1CB'); txt('C', cX, cy+18, '#9FE1CB');
+    tick(mirrorX, cy, '#85B7EB');
+
+    // ── Object ──
+    const objX = mirrorX - u;
+    const objTipY = cy - oh;
+    if (objX > 14) {
+      arrowLine(objX, cy, objX, objTipY, '#F0997B', false, false);
+      txt('Object', objX, cy+18, '#F0997B');
+      txt('A', objX-8, objTipY-5, '#F0997B', 'right');
+    }
+
+    const atF    = Math.abs(u - f) < 6;
+    const virtual = isFinite(v) && v > 0;
+
+    if (atF) {
+      // Object at F → parallel reflected rays
+      const hitY1 = objTipY;
+      arrowLine(objX, objTipY, mirrorX, hitY1, '#EF9F27', false, false);
+      arrowLine(mirrorX, hitY1, 14, hitY1, '#EF9F27', false, false);
+      const s2 = (cy - objTipY)/(fX - objX);
+      const hY2 = objTipY + s2*(mirrorX - objX);
+      arrowLine(objX, objTipY, mirrorX, hY2, '#9FE1CB', false, false);
+      arrowLine(mirrorX, hY2, 14, hY2, '#9FE1CB', false, false);
+      infoV.textContent = '∞';
+      infoM.textContent = '∞';
+      infoN.textContent = 'Real, inverted, at infinity';
+      drawLegend(); drawRegime(u,f,w); return;
+    }
+
+    if (isFinite(v)) {
+      // imgX: v<0 real (in front), v>0 virtual (behind mirror, right of mirrorX)
+      const imgX = mirrorX - v;
+      const imgH = oh * m; // m<0 → inverted (imgH negative → tip above axis)
+
+      // clamp for display — but now mirrorX is shifted left so there's room
+      // ── Ray 1: parallel to axis → reflects through F ──
+      const hitY1 = objTipY;
+      arrowLine(objX, objTipY, mirrorX, hitY1, '#EF9F27', false, false);
+      if (!virtual) {
+        arrowLine(mirrorX, hitY1, imgX, cy - imgH, '#EF9F27', false, false);
+      } else {
+        const slope1 = (hitY1 - cy) / (mirrorX - fX);
+        const extY1  = hitY1 - slope1 * mirrorX;
+        arrowLine(mirrorX, hitY1, 14, extY1, '#EF9F27', false, false);
+        ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#EF9F2760'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(mirrorX,hitY1); ctx.lineTo(imgX, cy-imgH); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='#EF9F2740'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(mirrorX,hitY1); ctx.lineTo(fX,cy); ctx.stroke();
+      ctx.restore();
+
+      // ── Ray 2: through F → reflects parallel ──
+      const slope2 = (cy - objTipY)/(fX - objX);
+      const hitY2  = objTipY + slope2*(mirrorX - objX);
+      arrowLine(objX, objTipY, mirrorX, hitY2, '#9FE1CB', false, false);
+      if (!virtual) {
+        arrowLine(mirrorX, hitY2, imgX, cy - imgH, '#9FE1CB', false, false);
+      } else {
+        arrowLine(mirrorX, hitY2, 14, hitY2, '#9FE1CB', false, false);
+        ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#9FE1CB60'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(mirrorX,hitY2); ctx.lineTo(imgX, cy-imgH); ctx.stroke();
+        ctx.restore();
+      }
+
+      // ── Ray 3: through C → reflects back ──
+      const slope3 = (cy - objTipY)/(cX - objX);
+      const hitY3  = objTipY + slope3*(mirrorX - objX);
+      arrowLine(objX, objTipY, mirrorX, hitY3, '#AFA9EC', false, false);
+      if (!virtual) {
+        arrowLine(mirrorX, hitY3, imgX, cy - imgH, '#AFA9EC', false, false);
+      } else {
+        const slopeR3 = (hitY3 - cy)/(mirrorX - cX);
+        const extY3   = hitY3 - slopeR3 * mirrorX;
+        arrowLine(mirrorX, hitY3, 14, extY3, '#AFA9EC', false, false);
+        ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#AFA9EC60'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(mirrorX,hitY3); ctx.lineTo(imgX, cy-imgH); ctx.stroke();
+        ctx.restore();
+      }
+
+      // ── Draw image ──
+      const imgInView = imgX > 14 && imgX < w - 10;
+      if (imgInView) {
+        if (!virtual) {
+          // real image: solid arrow, inverted
+          arrowLine(imgX, cy, imgX, cy - imgH, '#5DCAA5', false, false);
+          txt("Image", imgX, cy+18, '#5DCAA5');
+          txt("B'", imgX+8, cy-imgH-5, '#5DCAA5', 'left');
+        } else {
+          // virtual image: dashed arrow, erect
+          ctx.save();
+          ctx.strokeStyle='#5DCAA5'; ctx.fillStyle='#5DCAA5';
+          ctx.lineWidth=1.8; ctx.setLineDash([4,3]);
+          ctx.beginPath(); ctx.moveTo(imgX,cy); ctx.lineTo(imgX, cy-imgH); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(imgX, cy-imgH);
+          ctx.lineTo(imgX-5, cy-imgH+9);
+          ctx.lineTo(imgX+5, cy-imgH+9);
+          ctx.closePath(); ctx.fill();
+          ctx.restore();
+          txt("Image (virtual)", imgX, cy+18, '#5DCAA5');
+          txt("B'", imgX+8, cy-imgH-5, '#5DCAA5', 'left');
+        }
+      } else {
+        txt("Image off-screen — reduce u or f", w/2, cy+38, '#8a8f9e');
+      }
+
+      // ── Distance annotations ──
+      const aY = cy + 52;
+      ctx.strokeStyle='#2a3555'; ctx.lineWidth=0.8; ctx.setLineDash([]);
+      if (objX > 14) {
+        tick(objX, aY); tick(mirrorX, aY);
+        ctx.beginPath(); ctx.moveTo(objX,aY); ctx.lineTo(mirrorX,aY); ctx.stroke();
+        txt(`u = ${u}`, (objX+mirrorX)/2, aY+14, '#8a8f9e');
+      }
+      if (imgInView) {
+        const v1 = Math.min(mirrorX,imgX), v2 = Math.max(mirrorX,imgX);
+        tick(v1, aY+24); tick(v2, aY+24);
+        ctx.beginPath(); ctx.moveTo(v1,aY+24); ctx.lineTo(v2,aY+24); ctx.stroke();
+        txt(`v = ${Math.abs(v).toFixed(1)}${virtual?' (virtual)':''}`, (v1+v2)/2, aY+38, virtual?'#5DCAA5':'#9FE1CB');
+      }
+
+      infoV.textContent = `${Math.abs(v).toFixed(1)} ${virtual?'(behind mirror)':'(in front)'}`;
+      infoM.textContent = `${m.toFixed(2)} (${Math.abs(m)>1.05?'enlarged':Math.abs(m)<0.95?'diminished':'same'})`;
+      infoN.textContent = imageNature(v, m);
+    }
+
+    drawLegend();
+    drawRegime(u, f, w);
+  }
+
+  function drawLegend() {
+    const items = [
+      { color:'#EF9F27', label:'Parallel to axis → through F' },
+      { color:'#9FE1CB', label:'Through F → parallel' },
+      { color:'#AFA9EC', label:'Through C → reflects back' },
+    ];
+    items.forEach((it,i) => {
+      ctx.fillStyle = it.color;
+      ctx.fillRect(14, 16+i*18, 18, 2);
+      txt(it.label, 36, 20+i*18, it.color, 'left', 11);
+    });
+  }
+
+  function drawRegime(u, f, w) {
+    const label = u > 2*f ? 'Beyond C' : Math.abs(u-2*f)<6 ? 'At C (2f)' : u > f ? 'Between C & F' : Math.abs(u-f)<6 ? 'At F' : 'Between F & P';
+    txt(label, w-14, 18, '#85B7EB', 'right', 12);
+  }
+
+  [objDistSlider, objHSlider, focalSlider].forEach(el => {
+    el.addEventListener('input', () => {
+      objDistVal.textContent = objDistSlider.value;
+      objHVal.textContent    = objHSlider.value;
+      focalVal.textContent   = focalSlider.value;
+      updateActiveCases();
+      draw();
+    });
+  });
+
+  document.querySelectorAll('.cm-case').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = parseFloat(focalSlider.value);
+      const map = { beyondC: f*2.8, atC: f*2, betCF: f*1.5, atF: f, betFP: f*0.6 };
+      let uVal = Math.round(map[btn.dataset.key] || f*2);
+      uVal = Math.max(10, Math.min(280, uVal));
+      objDistSlider.value = uVal;
+      objDistVal.textContent = uVal;
+      updateActiveCases();
+      draw();
+    });
+  });
+
+  function updateActiveCases() {
+    const u = parseFloat(objDistSlider.value);
+    const f = parseFloat(focalSlider.value);
+    document.querySelectorAll('.cm-case').forEach(btn => {
+      const map = { beyondC: f*2.8, atC: f*2, betCF: f*1.5, atF: f, betFP: f*0.6 };
+      btn.classList.toggle('active', Math.abs(u - map[btn.dataset.key]) < 8);
+    });
+  }
+
+  initCanvas();
+  updateActiveCases();
+  draw();
+})();
+</script>

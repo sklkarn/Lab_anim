@@ -1,0 +1,238 @@
+
+<style>
+  .beat-root { padding: 1rem 1.25rem; font-family: var(--font-sans); color: #e8e8e8; background: #111318; border-radius: 12px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .header-title { font-size: 22px; font-weight: 500; color: #e8e8e8; }
+  .instructor { font-size: 13px; color: #8a8f9e; font-style: italic; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .ctrl-card { background: #1c2030; border-radius: 8px; padding: 12px 16px; border: 0.5px solid #2e3347; }
+  .ctrl-label { font-size: 13px; color: #8a8f9e; margin-bottom: 6px; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl-val { font-size: 14px; font-weight: 500; min-width: 52px; text-align: right; color: #e8e8e8; }
+  .wave-panel { margin-bottom: 12px; }
+  .wave-label { font-size: 12px; color: #8a8f9e; margin-bottom: 4px; padding-left: 4px; }
+  canvas { width: 100%; display: block; border-radius: 6px; background: #1c2030; }
+  .beat-freq { font-size: 13px; color: #8a8f9e; text-align: center; margin-top: 8px; }
+  .beat-freq span { font-weight: 500; color: #e8e8e8; }
+  .btn-row { display: flex; justify-content: center; gap: 10px; margin-top: 1rem; }
+  .btn-row button { background: #1c2030; color: #e8e8e8; border: 0.5px solid #3a4060; border-radius: 8px; padding: 8px 24px; font-size: 14px; cursor: pointer; transition: background 0.15s; }
+  .btn-row button:hover { background: #252b42; }
+  .btn-row button:active { transform: scale(0.98); }
+  .vol-row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 0.75rem; }
+  .vol-label { font-size: 13px; color: #8a8f9e; }
+  input[type=range] { accent-color: #85B7EB; }
+</style>
+
+<div class="beat-root">
+  <div class="top-bar">
+    <span class="header-title">Beats</span>
+    <span class="instructor">Dr. S Karna</span>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-card">
+      <div class="ctrl-label">Wave 1 frequency</div>
+      <div class="ctrl-row">
+        <input type="range" id="f1" min="1" max="20" value="8" step="0.5" style="flex:1;">
+        <span class="ctrl-val" id="f1v">8.0 Hz</span>
+      </div>
+    </div>
+    <div class="ctrl-card">
+      <div class="ctrl-label">Wave 2 frequency</div>
+      <div class="ctrl-row">
+        <input type="range" id="f2" min="1" max="20" value="10" step="0.5" style="flex:1;">
+        <span class="ctrl-val" id="f2v">10.0 Hz</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wave-panel">
+    <div class="wave-label">Wave 1 — <span id="lbl1">8.0 Hz</span></div>
+    <canvas id="c1" height="80"></canvas>
+  </div>
+  <div class="wave-panel">
+    <div class="wave-label">Wave 2 — <span id="lbl2">10.0 Hz</span></div>
+    <canvas id="c2" height="80"></canvas>
+  </div>
+  <div class="wave-panel">
+    <div class="wave-label">Resultant (beat) wave — superposition of Wave 1 + Wave 2</div>
+    <canvas id="cr" height="130"></canvas>
+  </div>
+
+  <div class="beat-freq">Beat frequency: <span id="beatHz">2.0 Hz</span> &nbsp;|&nbsp; Beat period: <span id="beatPer">0.50 s</span></div>
+
+  <div class="btn-row">
+    <button id="btnPlay">▶ Play</button>
+  </div>
+  <div class="vol-row">
+    <span class="vol-label">Volume</span>
+    <input type="range" id="volCtrl" min="0" max="1" step="0.05" value="0.4" style="width:120px;">
+    <span class="vol-label" id="volVal">40%</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const f1El = document.getElementById('f1');
+  const f2El = document.getElementById('f2');
+  const f1vEl = document.getElementById('f1v');
+  const f2vEl = document.getElementById('f2v');
+  const lbl1 = document.getElementById('lbl1');
+  const lbl2 = document.getElementById('lbl2');
+  const beatHzEl = document.getElementById('beatHz');
+  const beatPerEl = document.getElementById('beatPer');
+  const c1 = document.getElementById('c1');
+  const c2 = document.getElementById('c2');
+  const cr = document.getElementById('cr');
+  const btnPlay = document.getElementById('btnPlay');
+  const volCtrl = document.getElementById('volCtrl');
+  const volVal = document.getElementById('volVal');
+
+  const DPR = window.devicePixelRatio || 1;
+  let running = false;
+  let t = 0;
+  const SPEED = 0.016;
+
+  let audioCtx = null, osc1 = null, osc2 = null, gainNode = null;
+  const BASE_FREQ = 200, SCALE = 10;
+
+  function getAudioFreqs() {
+    return [BASE_FREQ + parseFloat(f1El.value) * SCALE, BASE_FREQ + parseFloat(f2El.value) * SCALE];
+  }
+
+  function startAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = parseFloat(volCtrl.value) * 0.5;
+    gainNode.connect(audioCtx.destination);
+    const [af1, af2] = getAudioFreqs();
+    osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = af1;
+    osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = af2;
+    const g1 = audioCtx.createGain(); g1.gain.value = 0.5;
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.5;
+    osc1.connect(g1); g1.connect(gainNode);
+    osc2.connect(g2); g2.connect(gainNode);
+    osc1.start(); osc2.start();
+  }
+
+  function stopAudio() {
+    if (osc1) { try { osc1.stop(); } catch(e){} osc1 = null; }
+    if (osc2) { try { osc2.stop(); } catch(e){} osc2 = null; }
+    if (gainNode) { gainNode.disconnect(); gainNode = null; }
+  }
+
+  function updateAudioFreqs() {
+    if (!osc1 || !osc2 || !audioCtx) return;
+    const [af1, af2] = getAudioFreqs();
+    osc1.frequency.setTargetAtTime(af1, audioCtx.currentTime, 0.02);
+    osc2.frequency.setTargetAtTime(af2, audioCtx.currentTime, 0.02);
+  }
+
+  btnPlay.addEventListener('click', () => {
+    running = !running;
+    if (running) { startAudio(); btnPlay.textContent = '⏸ Pause'; }
+    else { stopAudio(); btnPlay.textContent = '▶ Play'; }
+  });
+
+  volCtrl.addEventListener('input', () => {
+    const v = parseFloat(volCtrl.value);
+    volVal.textContent = Math.round(v * 100) + '%';
+    if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(v * 0.5, audioCtx.currentTime, 0.01);
+  });
+
+  function initCanvas(canvas) {
+    const w = canvas.parentElement.clientWidth;
+    const h = parseInt(canvas.getAttribute('height'));
+    canvas.width = w * DPR;
+    canvas.height = h * DPR;
+    canvas.style.height = h + 'px';
+    canvas.getContext('2d').scale(DPR, DPR);
+  }
+
+  const COLORS = {
+    w1: '#85B7EB', w2: '#9FE1CB', wr: '#F0997B',
+    env: 'rgba(240,153,123,0.18)', axis: 'rgba(255,255,255,0.12)',
+  };
+
+  function drawWave(canvas, freq, amp, color, phase) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width / DPR, H = canvas.height / DPR;
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = COLORS.axis; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x++) {
+      const y = H/2 - amp * Math.sin(2 * Math.PI * freq * (phase + (x/W)*4));
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function drawResultant(canvas, f1, f2, phase) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width / DPR, H = canvas.height / DPR;
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = COLORS.axis; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    const amp = (H/2) * 0.4;
+    const fBeat = Math.abs(f1 - f2);
+    const windowSecs = 4;
+    const pts = [];
+    for (let x = 0; x <= W; x++) {
+      const tVal = phase + (x/W)*windowSecs;
+      pts.push({ x, y: Math.sin(2*Math.PI*f1*tVal) + Math.sin(2*Math.PI*f2*tVal) });
+    }
+    if (fBeat > 0.01) {
+      ctx.fillStyle = COLORS.env;
+      const envAmp = amp * 2;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x++) {
+        const env = envAmp * Math.abs(Math.cos(Math.PI * fBeat * (phase + (x/W)*windowSecs)));
+        x === 0 ? ctx.moveTo(x, H/2 - env) : ctx.lineTo(x, H/2 - env);
+      }
+      for (let x = W; x >= 0; x--) {
+        const env = envAmp * Math.abs(Math.cos(Math.PI * fBeat * (phase + (x/W)*windowSecs)));
+        ctx.lineTo(x, H/2 + env);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = COLORS.wr; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const py = H/2 - amp * p.y;
+      i === 0 ? ctx.moveTo(p.x, py) : ctx.lineTo(p.x, py);
+    });
+    ctx.stroke();
+  }
+
+  function render() {
+    const f1 = parseFloat(f1El.value), f2 = parseFloat(f2El.value);
+    const amp = (c1.height / DPR / 2) * 0.72;
+    drawWave(c1, f1, amp, COLORS.w1, t);
+    drawWave(c2, f2, amp, COLORS.w2, t);
+    drawResultant(cr, f1, f2, t);
+    if (running) t += SPEED;
+    requestAnimationFrame(render);
+  }
+
+  function updateLabels() {
+    const f1 = parseFloat(f1El.value), f2 = parseFloat(f2El.value);
+    f1vEl.textContent = f1.toFixed(1) + ' Hz';
+    f2vEl.textContent = f2.toFixed(1) + ' Hz';
+    lbl1.textContent = f1.toFixed(1) + ' Hz';
+    lbl2.textContent = f2.toFixed(1) + ' Hz';
+    const beat = Math.abs(f1 - f2);
+    beatHzEl.textContent = beat.toFixed(1) + ' Hz';
+    beatPerEl.textContent = beat > 0 ? (1/beat).toFixed(2) + ' s' : '∞';
+    updateAudioFreqs();
+  }
+
+  f1El.addEventListener('input', updateLabels);
+  f2El.addEventListener('input', updateLabels);
+  [c1, c2, cr].forEach(initCanvas);
+  updateLabels();
+  render();
+})();
+</script>

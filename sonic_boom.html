@@ -1,0 +1,387 @@
+
+<style>
+  .sb-root { padding: 1rem 1.25rem; background: #0a0c14; border-radius: 12px; font-family: var(--font-sans); }
+  .sb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .sb-title { font-size: 22px; font-weight: 500; color: #e8e8e8; }
+  .sb-instructor { font-size: 13px; color: #8a8f9e; font-style: italic; }
+  canvas { width: 100%; display: block; border-radius: 8px; background: #0d1117; }
+  .sb-controls { display: flex; align-items: center; gap: 16px; margin-top: 1rem; flex-wrap: wrap; }
+  .sb-ctrl { display: flex; align-items: center; gap: 8px; }
+  .sb-label { font-size: 13px; color: #8a8f9e; }
+  .sb-val { font-size: 13px; font-weight: 500; color: #e8e8e8; min-width: 36px; }
+  .sb-btn { background: #1c2030; color: #e8e8e8; border: 0.5px solid #3a4060; border-radius: 8px; padding: 7px 20px; font-size: 13px; cursor: pointer; }
+  .sb-btn:hover { background: #252b42; }
+  .sb-info { font-size: 12px; color: #8a8f9e; margin-top: 0.6rem; text-align: center; }
+  .sb-info span { color: #F0997B; font-weight: 500; }
+  input[type=range] { accent-color: #F0997B; }
+</style>
+
+<div class="sb-root">
+  <div class="sb-top">
+    <span class="sb-title">Sonic boom</span>
+    <span class="sb-instructor">Dr. S Karna</span>
+  </div>
+  <canvas id="sbCanvas" height="320"></canvas>
+  <div class="sb-controls">
+    <button class="sb-btn" id="btnPlay">▶ Play</button>
+    <div class="sb-ctrl">
+      <span class="sb-label">Mach</span>
+      <input type="range" id="machSlider" min="0.3" max="3.0" step="0.05" value="1.5" style="width:110px;">
+      <span class="sb-val" id="machVal">1.50</span>
+    </div>
+    <div class="sb-ctrl">
+      <span class="sb-label">Volume</span>
+      <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5" style="width:90px;">
+      <span class="sb-val" id="volVal">50%</span>
+    </div>
+  </div>
+  <div class="sb-info">Mach angle: <span id="machAngle">41.8°</span> &nbsp;|&nbsp; Cone half-angle: <span id="coneAngle">41.8°</span> &nbsp;|&nbsp; <span id="regime">Supersonic</span></div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('sbCanvas');
+  const ctx = canvas.getContext('2d');
+  const btnPlay = document.getElementById('btnPlay');
+  const machSlider = document.getElementById('machSlider');
+  const machVal = document.getElementById('machVal');
+  const volSlider = document.getElementById('volSlider');
+  const volVal = document.getElementById('volVal');
+  const machAngleEl = document.getElementById('machAngle');
+  const coneAngleEl = document.getElementById('coneAngle');
+  const regimeEl = document.getElementById('regime');
+
+  const DPR = window.devicePixelRatio || 1;
+  let running = false;
+  let animT = 0;
+  let lastTimestamp = null;
+
+  // ── Audio ──────────────────────────────────────────────
+  let AC = null;
+  let masterGain = null;
+  // Rumble: two detuned low oscillators
+  let rumble1 = null, rumble2 = null, rumbleGain = null;
+  // Boom: periodic sharp thud via sawtooth + low-pass
+  let boomOsc = null, boomFilter = null, boomGain = null;
+  let boomInterval = null;
+
+  function buildAudio() {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+
+    masterGain = AC.createGain();
+    masterGain.gain.value = parseFloat(volSlider.value);
+    masterGain.connect(AC.destination);
+
+    const mach = getMach();
+
+    // ── Rumble (always on when playing) ──
+    rumbleGain = AC.createGain();
+    rumbleGain.gain.value = mach >= 1 ? 0.35 : 0.12;
+    rumbleGain.connect(masterGain);
+
+    rumble1 = AC.createOscillator();
+    rumble1.type = 'sawtooth';
+    rumble1.frequency.value = 48;
+    const lp1 = AC.createBiquadFilter();
+    lp1.type = 'lowpass'; lp1.frequency.value = 90; lp1.Q.value = 3;
+    rumble1.connect(lp1); lp1.connect(rumbleGain);
+    rumble1.start();
+
+    rumble2 = AC.createOscillator();
+    rumble2.type = 'sine';
+    rumble2.frequency.value = 62;
+    const lp2 = AC.createBiquadFilter();
+    lp2.type = 'lowpass'; lp2.frequency.value = 110; lp2.Q.value = 2;
+    rumble2.connect(lp2); lp2.connect(rumbleGain);
+    rumble2.start();
+
+    // ── Boom thud (supersonic only) ──
+    if (mach >= 1) {
+      scheduleBoomLoop();
+    }
+  }
+
+  function scheduleBoomLoop() {
+    triggerBoom();
+    const period = 1800 / getMach(); // faster boom repeat at higher mach
+    boomInterval = setInterval(triggerBoom, Math.max(600, period));
+  }
+
+  function triggerBoom() {
+    if (!AC || !masterGain) return;
+    const now = AC.currentTime;
+
+    const env = AC.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.exponentialRampToValueAtTime(0.9, now + 0.015);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    env.connect(masterGain);
+
+    const osc = AC.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(85, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.55);
+    osc.connect(env);
+    osc.start(now);
+    osc.stop(now + 0.6);
+
+    // High crack layer
+    const crackEnv = AC.createGain();
+    crackEnv.gain.setValueAtTime(0.0001, now);
+    crackEnv.gain.exponentialRampToValueAtTime(0.5, now + 0.005);
+    crackEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+    crackEnv.connect(masterGain);
+
+    const crack = AC.createOscillator();
+    crack.type = 'sawtooth';
+    crack.frequency.setValueAtTime(320, now);
+    crack.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+    const cf = AC.createBiquadFilter();
+    cf.type = 'bandpass'; cf.frequency.value = 180; cf.Q.value = 1.5;
+    crack.connect(cf); cf.connect(crackEnv);
+    crack.start(now);
+    crack.stop(now + 0.15);
+  }
+
+  function teardownAudio() {
+    clearInterval(boomInterval); boomInterval = null;
+    [rumble1, rumble2].forEach(o => { if(o){ try{o.stop();}catch(e){} } });
+    rumble1 = rumble2 = null;
+    if (masterGain) { masterGain.disconnect(); masterGain = null; }
+    rumbleGain = boomGain = null;
+  }
+
+  function updateRumbleIntensity() {
+    if (!rumbleGain || !AC) return;
+    const mach = getMach();
+    rumbleGain.gain.setTargetAtTime(mach >= 1 ? 0.35 : 0.12, AC.currentTime, 0.1);
+  }
+
+  // ── Simulation ─────────────────────────────────────────
+  let wavefronts = [];
+  let planeX = 60;
+  const WAVE_SPEED = 55;
+  const EMIT_INTERVAL = 0.20;
+  let lastEmit = 0;
+
+  function getMach() { return parseFloat(machSlider.value); }
+
+  function resetSim() {
+    wavefronts = [];
+    planeX = 60;
+    lastEmit = 0;
+    animT = 0;
+    lastTimestamp = null;
+  }
+
+  function W() { return canvas.width / DPR; }
+  function H() { return canvas.height / DPR; }
+
+  function drawScene(dt) {
+    const mach = getMach();
+    const planeSpeed = WAVE_SPEED * mach;
+    const w = W(), h = H();
+    const cy = h / 2;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, w, h);
+
+    // Ground
+    ctx.strokeStyle = '#1a2030';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, cy + 85); ctx.lineTo(w, cy + 85); ctx.stroke();
+
+    if (running) {
+      planeX += planeSpeed * dt;
+      animT += dt;
+      if (planeX > w + 80) resetSim();
+      if (animT - lastEmit >= EMIT_INTERVAL) {
+        wavefronts.push({ ex: planeX, t: animT });
+        lastEmit = animT;
+      }
+    }
+
+    // Draw wavefronts
+    wavefronts.forEach(wf => {
+      const age = animT - wf.t;
+      const r = WAVE_SPEED * age;
+      const cx = wf.ex;
+
+      if (mach >= 1) {
+        const mu = Math.asin(Math.min(1, 1 / mach));
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, Math.PI + mu, -mu, false);
+        ctx.strokeStyle = 'rgba(56,138,221,0.20)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(56,138,221,0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // Mach cone
+    if (mach >= 1 && wavefronts.length > 1) {
+      const mu = Math.asin(Math.min(1, 1 / mach));
+      const lineAngle = Math.PI / 2 - mu;
+      const len = w;
+      const ux = -Math.cos(lineAngle) * len;
+      const uy = Math.sin(lineAngle) * len;
+
+      ctx.beginPath();
+      ctx.moveTo(planeX, cy);
+      ctx.lineTo(planeX + ux, cy + uy);
+      ctx.moveTo(planeX, cy);
+      ctx.lineTo(planeX + ux, cy - uy);
+      ctx.strokeStyle = '#F0997B';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([]);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(240,153,123,0.07)';
+      ctx.beginPath();
+      ctx.moveTo(planeX, cy);
+      ctx.lineTo(planeX + ux, cy - uy);
+      ctx.lineTo(planeX + ux, cy + uy);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#F0997B';
+      ctx.font = '11px var(--font-sans)';
+      ctx.fillText('shock front', planeX + ux * 0.28, cy - uy * 0.28 - 7);
+    }
+
+    drawPlane(planeX, cy, mach);
+
+    // Regime label
+    ctx.fillStyle = mach >= 1 ? '#F0997B' : '#85B7EB';
+    ctx.font = '500 12px var(--font-sans)';
+    const label = mach < 0.8 ? `Subsonic  M = ${mach.toFixed(2)}`
+                : mach < 1.0 ? `Transonic  M = ${mach.toFixed(2)}`
+                : `Supersonic  M = ${mach.toFixed(2)}`;
+    ctx.fillText(label, 14, 20);
+
+    ctx.fillStyle = '#3a4060';
+    ctx.font = '11px var(--font-sans)';
+    ctx.fillText('sound wavefronts', 14, h - 10);
+  }
+
+  function drawPlane(x, y, mach) {
+    ctx.save();
+    ctx.translate(x, y);
+    const col = mach >= 1 ? '#F0997B' : '#85B7EB';
+    ctx.fillStyle = col;
+
+    ctx.beginPath();
+    ctx.moveTo(20, 0);
+    ctx.lineTo(-10, -5);
+    ctx.lineTo(-15, 0);
+    ctx.lineTo(-10, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(2, 0);
+    ctx.lineTo(-9, -18);
+    ctx.lineTo(-15, -15);
+    ctx.lineTo(-13, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(2, 0);
+    ctx.lineTo(-9, 18);
+    ctx.lineTo(-15, 15);
+    ctx.lineTo(-13, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(-14, -10);
+    ctx.lineTo(-17, -8);
+    ctx.lineTo(-15, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    if (running) {
+      const flicker = 0.8 + Math.random() * 0.4;
+      ctx.fillStyle = `rgba(240,153,123,${0.55 * flicker})`;
+      ctx.beginPath();
+      ctx.ellipse(-18, 0, 7 * flicker, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function updateInfo() {
+    const mach = getMach();
+    machVal.textContent = mach.toFixed(2);
+    if (mach >= 1) {
+      const mu = (Math.asin(1 / mach) * 180 / Math.PI).toFixed(1);
+      machAngleEl.textContent = mu + '°';
+      coneAngleEl.textContent = mu + '°';
+      regimeEl.textContent = mach >= 1.3 ? 'Supersonic' : 'Transonic';
+      regimeEl.style.color = '#F0997B';
+    } else {
+      machAngleEl.textContent = '—';
+      coneAngleEl.textContent = '—';
+      regimeEl.textContent = 'Subsonic';
+      regimeEl.style.color = '#85B7EB';
+    }
+  }
+
+  btnPlay.addEventListener('click', () => {
+    running = !running;
+    if (running) {
+      buildAudio();
+      btnPlay.textContent = '⏸ Pause';
+      lastTimestamp = null;
+    } else {
+      teardownAudio();
+      btnPlay.textContent = '▶ Play';
+    }
+  });
+
+  machSlider.addEventListener('input', () => {
+    updateInfo();
+    resetSim();
+    if (running) {
+      teardownAudio();
+      buildAudio();
+    }
+  });
+
+  volSlider.addEventListener('input', () => {
+    const v = parseFloat(volSlider.value);
+    volVal.textContent = Math.round(v * 100) + '%';
+    if (masterGain && AC) masterGain.gain.setTargetAtTime(v, AC.currentTime, 0.02);
+  });
+
+  function initCanvas() {
+    const w = canvas.parentElement.clientWidth;
+    canvas.width = w * DPR;
+    canvas.height = 320 * DPR;
+    canvas.style.height = '320px';
+    ctx.scale(DPR, DPR);
+  }
+
+  function loop(ts) {
+    let dt = 0;
+    if (lastTimestamp !== null) dt = Math.min((ts - lastTimestamp) / 1000, 0.05);
+    lastTimestamp = ts;
+    drawScene(dt);
+    requestAnimationFrame(loop);
+  }
+
+  initCanvas();
+  resetSim();
+  updateInfo();
+  requestAnimationFrame(loop);
+})();
+</script>
