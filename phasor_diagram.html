@@ -1,45 +1,148 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHM & Wave — Phasor to Propagation</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--font-sans,sans-serif);background:transparent}
-  .wrap{padding:0.75rem 0 1.5rem}
-  canvas{display:block;border-radius:12px;width:100%}
-  .tab-bar{display:flex;gap:0;margin-bottom:1rem;border:0.5px solid var(--color-border-secondary,#aaa);border-radius:10px;overflow:hidden;width:fit-content}
-  .tbtn{padding:8px 22px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;border:none;border-right:0.5px solid var(--color-border-secondary,#aaa);color:var(--color-text-secondary,#666);transition:all .18s}
-  .tbtn:last-child{border-right:none}
-  .tbtn.on{background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff)}
-  .ctrl{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-text-secondary,#666);margin-bottom:7px}
-  .ctrl input[type=range]{flex:1}
-  .cv{min-width:44px;font-weight:500;color:var(--color-text-primary,#111)}
-  .stat-row{display:flex;gap:10px;margin:10px 0;flex-wrap:wrap}
-  .sc{background:var(--color-background-secondary,#f0f0ec);border-radius:8px;padding:7px 13px;flex:1;min-width:80px}
-  .sl{font-size:11px;color:var(--color-text-secondary,#888);margin-bottom:1px}
-  .sv{font-size:14px;font-weight:500;color:var(--color-text-primary,#111)}
-  .leg{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:12px;color:var(--color-text-secondary,#666)}
-  .li{display:flex;align-items:center;gap:5px}
-  .ls{width:22px;height:3px;border-radius:1px}
-  .ctrl-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
-  .pbtn{padding:7px 20px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary,#aaa);border-radius:20px;background:transparent;color:var(--color-text-secondary,#666);transition:all .18s}
-  .pbtn.on{background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff);border-color:transparent}
-</style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
 
-<div class="wrap">
+:root {
+  --bg: #07090f;
+  --panel: #0c0f1a;
+  --border: #151c30;
+  --purple: #8b7ef8;
+  --green: #3fc87a;
+  --orange: #f07840;
+  --blue: #4ab0e8;
+  --gold: #f5c842;
+  --red: #f04870;
+  --text: #8090b0;
+  --text-bright: #c8d8f0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Space Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+/* ── Header ── */
+.hdr {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hdr-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1rem,3vw,1.4rem); color: var(--text-bright); letter-spacing: 0.04em; }
+.hdr-sub { font-size: 0.65rem; color: var(--text); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
+.instructor { font-size: 0.7rem; color: var(--purple); letter-spacing: 0.08em; }
+
+/* ── Tab bar ── */
+.tab-bar { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: 100%; }
+.tbtn {
+  flex: 1; padding: 9px 8px; font-family: 'Space Mono', monospace; font-size: 0.68rem;
+  cursor: pointer; background: transparent; border: none; border-right: 1px solid var(--border);
+  color: var(--text); transition: all .2s; letter-spacing: 0.04em; text-align: center;
+}
+.tbtn:last-child { border-right: none; }
+.tbtn.on { background: var(--purple); color: #fff; }
+.tbtn:not(.on):hover { background: rgba(139,126,248,0.1); color: var(--text-bright); }
+
+/* ── Control bar ── */
+.ctrl-bar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+.pbtn {
+  padding: 7px 18px; font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700;
+  cursor: pointer; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--text); transition: all .2s; letter-spacing: 0.04em;
+}
+.pbtn.on { background: var(--purple); color: #fff; border-color: var(--purple); }
+.pbtn:not(.on):hover { border-color: var(--purple); color: var(--purple); }
+
+/* ── Panel ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Legend ── */
+.leg { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.65rem; color: var(--text); }
+.li { display: flex; align-items: center; gap: 5px; }
+.ls { width: 20px; height: 3px; border-radius: 1px; }
+
+/* ── Stats ── */
+.stat-row { display: flex; gap: 8px; margin: 10px 0 14px; flex-wrap: wrap; }
+.sc {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 12px; flex: 1; min-width: 80px;
+}
+.sl { font-size: 0.58rem; color: var(--text); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+.sv { font-size: 0.8rem; font-weight: 700; color: var(--text-bright); }
+
+/* ── Controls ── */
+.ctrl { display: flex; align-items: center; gap: 10px; font-size: 0.68rem; color: var(--text); margin-bottom: 8px; }
+.ctrl span:first-child { min-width: 76px; }
+.ctrl input[type=range] {
+  flex: 1; accent-color: var(--purple); height: 3px; cursor: pointer;
+}
+.cv { min-width: 52px; font-weight: 700; color: var(--text-bright); text-align: right; font-size: 0.7rem; }
+
+/* ── Canvas ── */
+canvas {
+  display: block; border-radius: 8px; width: 100%;
+  border: 1px solid var(--border);
+  background: #07090f;
+}
+
+/* ── Connection hint ── */
+.hint {
+  font-size: 0.62rem; color: var(--gold); letter-spacing: 0.08em;
+  padding: 6px 10px; border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 6px; background: rgba(245,200,66,0.05);
+  margin-bottom: 10px; display: inline-block;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">SHM · Phasor · Wave Propagation</div>
+      <div class="hdr-sub">Simple Harmonic Motion → Travelling Wave</div>
+    </div>
+    <div class="instructor">Dr. S Karna</div>
+  </div>
+
   <div class="ctrl-bar">
     <button class="pbtn on" id="pause-btn" onclick="togglePause()">⏸ Pause</button>
     <button class="pbtn" onclick="resetTime()">↺ Reset</button>
   </div>
+
   <div class="tab-bar">
     <button class="tbtn on" id="tb0" onclick="setTab(0)">Phasor + SHM</button>
     <button class="tbtn"    id="tb1" onclick="setTab(1)">Wave propagation</button>
     <button class="tbtn"    id="tb2" onclick="setTab(2)">All together</button>
   </div>
 
-  <div id="panel0">
+  <!-- ══ PANEL 0 ══ -->
+  <div class="panel active" id="panel0">
     <div class="leg">
-      <div class="li"><div class="ls" style="background:#7c6fcd"></div>Phasor (0° = +x axis)</div>
-      <div class="li"><div class="ls" style="background:#3fa97a"></div>x(t) = A sin(ωt)</div>
-      <div class="li"><div class="ls" style="background:#e87040"></div>v(t) = Aω cos(ωt)</div>
-      <div class="li"><div class="ls" style="background:#4a9fd4"></div>Vertical projection</div>
+      <div class="li"><div class="ls" style="background:#8b7ef8"></div>Phasor</div>
+      <div class="li"><div class="ls" style="background:#3fc87a"></div>x(t) = A sin(ωt)</div>
+      <div class="li"><div class="ls" style="background:#f07840"></div>v(t) = Aω cos(ωt)</div>
+      <div class="li"><div class="ls" style="background:#4ab0e8"></div>Projection</div>
     </div>
     <div class="stat-row">
       <div class="sc"><div class="sl">Phase φ = ωt</div><div class="sv" id="p0-phase">0.00 rad</div></div>
@@ -65,18 +168,19 @@
         oninput="document.getElementById('v-spd0').textContent=parseFloat(this.value).toFixed(1)+'×'">
       <span class="cv" id="v-spd0">1.0×</span>
     </div>
-    <canvas id="c0" height="340" style="background:#0a0a14"></canvas>
+    <canvas id="c0" height="340"></canvas>
   </div>
 
-  <div id="panel1" style="display:none">
+  <!-- ══ PANEL 1 ══ -->
+  <div class="panel" id="panel1">
     <div class="leg">
-      <div class="li"><div class="ls" style="background:#ffd54f"></div>Source at x=0 (left)</div>
-      <div class="li"><div class="ls" style="background:#4a9fd4"></div>Wave → right</div>
-      <div class="li"><div class="ls" style="background:#7c6fcd"></div>Particle SHM</div>
-      <div class="li"><div class="ls" style="background:#e87040"></div>Wavefront →</div>
+      <div class="li"><div class="ls" style="background:#f5c842"></div>Source x=0 (phasor)</div>
+      <div class="li"><div class="ls" style="background:#4ab0e8"></div>Wave → +x</div>
+      <div class="li"><div class="ls" style="background:#8b7ef8"></div>Particle SHM</div>
+      <div class="li"><div class="ls" style="background:#f07840"></div>Wavefront →</div>
     </div>
     <div class="stat-row">
-      <div class="sc"><div class="sl">Wave speed</div><div class="sv" id="p1-v">—</div></div>
+      <div class="sc"><div class="sl">Wave speed v</div><div class="sv" id="p1-v">—</div></div>
       <div class="sc"><div class="sl">Wavelength λ</div><div class="sv" id="p1-lam">—</div></div>
       <div class="sc"><div class="sl">Period T</div><div class="sv" id="p1-T">—</div></div>
       <div class="sc"><div class="sl">Wave number k</div><div class="sv" id="p1-k">—</div></div>
@@ -99,15 +203,18 @@
         oninput="document.getElementById('v-spd1').textContent=parseFloat(this.value).toFixed(1)+'×'">
       <span class="cv" id="v-spd1">1.0×</span>
     </div>
-    <canvas id="c1" height="320" style="background:#0a0a14"></canvas>
+    <canvas id="c1" height="320"></canvas>
   </div>
 
-  <div id="panel2" style="display:none">
+  <!-- ══ PANEL 2 ══ -->
+  <div class="panel" id="panel2">
+    <div class="hint">⚡ The phasor rotation → SHM at x=0 → generates wave travelling in +x direction</div>
     <div class="leg">
-      <div class="li"><div class="ls" style="background:#7c6fcd"></div>Phasor from 0°</div>
-      <div class="li"><div class="ls" style="background:#3fa97a"></div>x(t) = A sin(ωt)</div>
-      <div class="li"><div class="ls" style="background:#4a9fd4"></div>y(x,t) = A sin(ωt−kx) →</div>
-      <div class="li"><div class="ls" style="background:#ffd54f"></div>Source x=0</div>
+      <div class="li"><div class="ls" style="background:#8b7ef8"></div>Phasor (rotates)</div>
+      <div class="li"><div class="ls" style="background:#3fc87a"></div>SHM: x(t) = A sin(ωt)</div>
+      <div class="li"><div class="ls" style="background:#4ab0e8"></div>Wave: y(x,t) = A sin(ωt−kx) →+x</div>
+      <div class="li"><div class="ls" style="background:#f5c842"></div>Source x=0</div>
+      <div class="li"><div class="ls" style="background:#f07840"></div>→ wavefront</div>
     </div>
     <div class="ctrl">
       <span>Speed</span>
@@ -115,10 +222,10 @@
         oninput="document.getElementById('v-spd2').textContent=parseFloat(this.value).toFixed(1)+'×'">
       <span class="cv" id="v-spd2">1.0×</span>
     </div>
-    <canvas id="c2" height="460" style="background:#0a0a14"></canvas>
+    <canvas id="c2" height="500"></canvas>
   </div>
-</div>
 
+</div>
 <script>
 const TAU = Math.PI * 2;
 let tab = 0, t = 0, paused = false;
@@ -134,7 +241,7 @@ function resetTime() { t = 0; }
 function setTab(n) {
   [0,1,2].forEach(i => {
     document.getElementById('tb'+i).classList.toggle('on', i===n);
-    document.getElementById('panel'+i).style.display = i===n ? 'block' : 'none';
+    document.getElementById('panel'+i).classList.toggle('active', i===n);
   });
   tab = n; resizeAll();
 }
@@ -147,109 +254,200 @@ function resizeAll() {
 window.addEventListener('resize', resizeAll);
 resizeAll();
 
-/* ══════ TAB 0: Phasor + SHM ══════ */
+/* helpers */
+function arrow(ctx, x1,y1,x2,y2,col,lw,hs) {
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2) return;
+  const ux=dx/len,uy=dy/len;
+  ctx.strokeStyle=col; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*ux+hs*0.5*uy, y2-hs*uy-hs*0.5*ux);
+  ctx.lineTo(x2-hs*ux-hs*0.5*uy, y2-hs*uy+hs*0.5*ux);
+  ctx.closePath(); ctx.fill();
+}
+
+/* ══ TAB 0: Phasor + SHM ══ */
 function drawTab0() {
   const cv = document.getElementById('c0');
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);
 
   const A     = parseFloat(document.getElementById('s-amp').value);
   const fMult = parseFloat(document.getElementById('s-freq').value);
   const omega = fMult;
-  const phi   = (omega * t) % TAU;
+  // phi measured from +x axis (standard math convention)
+  // x(t) = A sin(ωt) = vertical projection of phasor
+  // At t=0: phi=0, phasor points along +x, vertical projection = sin(0) = 0  ✓
+  const phi = (omega * t) % TAU;
 
-  const pcx = Math.min(W * 0.26, 170), pcy = H / 2, R = A;
+  /* ── phasor circle ── */
+  const pcx = Math.min(W*0.26, 160), pcy = H/2, R = A;
+
+  // subtle grid
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.5;
+  for(let gy=H*0.1;gy<H;gy+=H*0.2){ ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke(); }
 
   // axes
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(pcx-R-20,pcy); ctx.lineTo(pcx+R+20,pcy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(pcx,pcy-R-20); ctx.lineTo(pcx,pcy+R+20); ctx.stroke();
+  arrow(ctx, pcx-R-22,pcy, pcx+R+22,pcy, 'rgba(255,255,255,0.25)', 1, 7);
+  arrow(ctx, pcx,pcy+R+22, pcx,pcy-R-22, 'rgba(255,255,255,0.25)', 1, 7);
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px Space Mono,monospace';
+  ctx.fillText('+x',pcx+R+14,pcy-4);
+  ctx.fillText('+y',pcx+5,pcy-R-12);
 
-  // 0° reference tick on +x axis
-  ctx.strokeStyle='rgba(255,200,80,0.7)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(pcx+R+3,pcy-7); ctx.lineTo(pcx+R+3,pcy+7); ctx.stroke();
-  ctx.fillStyle='rgba(255,200,80,0.9)'; ctx.font='bold 11px sans-serif';
-  ctx.fillText('0°',pcx+R+6,pcy-9);
+  // 0° tick on +x axis — phasor STARTS here (t=0)
+  ctx.strokeStyle='rgba(245,200,66,0.7)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pcx+R+2,pcy-7); ctx.lineTo(pcx+R+2,pcy+7); ctx.stroke();
+  ctx.fillStyle='rgba(245,200,66,0.9)'; ctx.font='bold 10px Space Mono,monospace';
+  ctx.fillText('0° (t=0)',pcx+R+5,pcy-9);
 
-  // dashed circle
+  // Initial phasor position ghost (dim line along +x showing t=0 start)
+  ctx.beginPath(); ctx.moveTo(pcx,pcy); ctx.lineTo(pcx+R,pcy);
+  ctx.strokeStyle='rgba(245,200,66,0.2)'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  // dashed reference circle
   ctx.beginPath(); ctx.arc(pcx,pcy,R,0,TAU);
-  ctx.strokeStyle='rgba(124,111,205,0.28)'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(139,126,248,0.2)'; ctx.lineWidth=1; ctx.setLineDash([4,5]); ctx.stroke(); ctx.setLineDash([]);
 
-  // phase arc
-  if (phi > 0.02) {
-    ctx.beginPath(); ctx.arc(pcx,pcy,26,0,-phi,true);
-    ctx.strokeStyle='rgba(255,200,80,0.55)'; ctx.lineWidth=1.2; ctx.stroke();
-    const midA = phi/2;
-    ctx.fillStyle='rgba(255,200,80,0.85)'; ctx.font='11px sans-serif';
-    ctx.fillText('φ',pcx+32*Math.cos(-midA)-4,pcy+32*Math.sin(-midA)+4);
+  // phase arc (sweeps from 0° CCW to current phi)
+  if(phi>0.02) {
+    ctx.beginPath(); ctx.arc(pcx,pcy,28,0,-phi,true);
+    ctx.strokeStyle='rgba(245,200,66,0.55)'; ctx.lineWidth=1.2; ctx.stroke();
+    const midA=phi/2;
+    ctx.fillStyle='rgba(245,200,66,0.85)'; ctx.font='11px Space Mono';
+    ctx.fillText('ωt',pcx+34*Math.cos(-midA)-5,pcy+34*Math.sin(-midA)+4);
   }
 
-  // phasor tip
-  const tipX = pcx + R*Math.cos(phi);
-  const tipY = pcy - R*Math.sin(phi);
-  ctx.beginPath(); ctx.moveTo(pcx,pcy); ctx.lineTo(tipX,tipY);
-  ctx.strokeStyle='#7c6fcd'; ctx.lineWidth=2.5; ctx.stroke();
-  ctx.beginPath(); ctx.arc(tipX,tipY,5,0,TAU); ctx.fillStyle='#7c6fcd'; ctx.fill();
+  // phasor vector (rotates CCW from 0°)
+  const tipX = pcx+R*Math.cos(phi), tipY = pcy-R*Math.sin(phi);
+  arrow(ctx, pcx,pcy, tipX,tipY, '#8b7ef8', 2.5, 9);
+  // glow + tip dot
+  ctx.beginPath(); ctx.arc(tipX,tipY,8,0,TAU); ctx.fillStyle='rgba(139,126,248,0.18)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(tipX,tipY,5,0,TAU); ctx.fillStyle='#8b7ef8'; ctx.fill();
 
-  // vertical projection → displacement = A·sin(φ)
-  const disp  = R * Math.sin(phi);
-  const projY = pcy - disp;
+  // VERTICAL projection → x(t) = A sin(ωt)
+  // This is the perpendicular drop from tip to the horizontal axis
+  const disp = R*Math.sin(phi);   // = A sin(ωt)
+  const projY = pcy - disp;       // screen y of projection on y-axis
+
+  // Drop line from tip straight down to x-axis (horizontal)
   ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(tipX,pcy);
-  ctx.strokeStyle='rgba(74,159,212,0.45)'; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.moveTo(tipX,pcy); ctx.lineTo(pcx,pcy);
-  ctx.strokeStyle='rgba(74,159,212,0.2)'; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(pcx,projY,5,0,TAU); ctx.fillStyle='#4a9fd4'; ctx.fill();
+  ctx.strokeStyle='rgba(74,176,232,0.5)'; ctx.lineWidth=1.2; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
 
-  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px sans-serif';
-  ctx.fillText('x →',pcx+R+8,pcy+4);
-  ctx.fillText('y ↑',pcx+4,pcy-R-6);
+  // Projection point on y-axis (vertical axis of phasor circle)
+  ctx.beginPath(); ctx.moveTo(pcx,projY); ctx.lineTo(tipX,projY);
+  ctx.strokeStyle='rgba(74,176,232,0.25)'; ctx.lineWidth=1; ctx.setLineDash([2,4]); ctx.stroke(); ctx.setLineDash([]);
 
-  // time-domain plot
-  const plotX0 = pcx+R+38, plotW = W-plotX0-16, plotCY = H/2;
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(plotX0,plotCY-R-16); ctx.lineTo(plotX0,plotCY+R+16); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(plotX0-4,plotCY); ctx.lineTo(plotX0+plotW,plotCY); ctx.stroke();
+  // Projection dot on y-axis — this equals x(t) = A sin(ωt)
+  ctx.beginPath(); ctx.arc(pcx,projY,6,0,TAU); ctx.fillStyle='rgba(74,176,232,0.2)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(pcx,projY,4,0,TAU); ctx.fillStyle='#4ab0e8'; ctx.fill();
 
-  ctx.strokeStyle='rgba(255,200,80,0.45)'; ctx.lineWidth=0.8; ctx.setLineDash([3,4]);
+  // Label the vertical projection = x(t)
+  ctx.fillStyle='rgba(74,176,232,0.85)'; ctx.font='bold 10px Space Mono';
+  ctx.fillText('x(t)',pcx-36,projY+4);
+
+  // At t=0 annotation: show x(0)=0 at center
+  if(phi < 0.15) {
+    ctx.fillStyle='rgba(63,200,122,0.9)'; ctx.font='bold 10px Space Mono';
+    ctx.fillText('x(0)=0 ✓',pcx-46,pcy+18);
+  }
+
+  /* ── time-domain plot: t=0 anchored at LEFT, time runs RIGHT ── */
+  const plotX0 = pcx+R+40, plotW = W-plotX0-16, plotCY = H/2;
+
+  // axes
+  arrow(ctx, plotX0-4,plotCY, plotX0+plotW+4,plotCY, 'rgba(255,255,255,0.2)', 0.8, 6);
+  arrow(ctx, plotX0,plotCY+R+16, plotX0,plotCY-R-16, 'rgba(255,255,255,0.2)', 0.8, 6);
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='10px Space Mono';
+  ctx.fillText('t →',plotX0+plotW-10,plotCY-5);
+  ctx.fillText('+y',plotX0+4,plotCY-R-8);
+  ctx.fillText('−y',plotX0+4,plotCY+R+4);
+
+  // t=0 is ALWAYS at the LEFT edge of the plot (plotX0)
+  ctx.strokeStyle='rgba(245,200,66,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
   ctx.beginPath(); ctx.moveTo(plotX0,plotCY-R-10); ctx.lineTo(plotX0,plotCY+R+10); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle='rgba(255,200,80,0.75)'; ctx.font='bold 10px sans-serif';
-  ctx.fillText('t=0',plotX0+2,plotCY+R+14);
-  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.font='11px sans-serif';
-  ctx.fillText('t →',plotX0+plotW-20,plotCY-6);
+  ctx.fillStyle='rgba(245,200,66,0.8)'; ctx.font='bold 10px Space Mono';
+  ctx.fillText('t=0',plotX0+2,plotCY+R+15);
+  // At t=0, sin(0)=0 → mark the origin point
+  ctx.beginPath(); ctx.arc(plotX0,plotCY,4,0,TAU);
+  ctx.fillStyle='rgba(245,200,66,0.5)'; ctx.fill();
 
-  const HIST=260, dtStep=0.03;
-  // displacement x(t) = A sin(ωt)
-  ctx.beginPath();
-  let s0=false;
-  for(let i=0;i<HIST;i++){
-    const ti=t-(HIST-1-i)*dtStep*omega;
-    if(ti<0) continue;
-    const xv=plotX0+(i/HIST)*plotW, yv=plotCY-R*Math.sin(ti%TAU);
+  // Total time window shown in the plot
+  // We always show from t=0 to t=tWindow (fixed window, 2 full periods)
+  const tWindow = TAU * 2 / omega;   // 2 full periods
+  const tNow    = t;
+
+  // x(t) = A sin(ωt) — plotted from t=0 to min(tNow, tWindow)
+  // Map: screen_x = plotX0 + (t_sample / tWindow) * plotW
+  ctx.beginPath(); let s0=false;
+  const steps=300;
+  for(let i=0;i<=steps;i++){
+    const ti = (i/steps) * Math.min(tNow, tWindow);
+    const xv  = plotX0 + (ti/tWindow)*plotW;
+    const yv  = plotCY - R*Math.sin(omega*ti);
     s0?(ctx.lineTo(xv,yv)):(ctx.moveTo(xv,yv),s0=true);
   }
-  ctx.strokeStyle='#3fa97a'; ctx.lineWidth=2; ctx.stroke();
+  // glow
+  ctx.strokeStyle='rgba(63,200,122,0.2)'; ctx.lineWidth=6; ctx.stroke();
+  ctx.strokeStyle='#3fc87a'; ctx.lineWidth=2.2; ctx.stroke();
 
-  // velocity v(t) = Aω cos(ωt)
-  ctx.beginPath();
-  let s1=false;
-  for(let i=0;i<HIST;i++){
-    const ti=t-(HIST-1-i)*dtStep*omega;
-    if(ti<0) continue;
-    const xv=plotX0+(i/HIST)*plotW, yv=plotCY-R*0.8*Math.cos(ti%TAU);
+  // v(t) = Aω cos(ωt) — same time window
+  ctx.beginPath(); let s1=false;
+  for(let i=0;i<=steps;i++){
+    const ti = (i/steps) * Math.min(tNow, tWindow);
+    const xv  = plotX0 + (ti/tWindow)*plotW;
+    const yv  = plotCY - R*0.75*Math.cos(omega*ti);
     s1?(ctx.lineTo(xv,yv)):(ctx.moveTo(xv,yv),s1=true);
   }
-  ctx.strokeStyle='#e87040'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(240,120,64,0.2)'; ctx.lineWidth=5; ctx.stroke();
+  ctx.strokeStyle='#f07840'; ctx.lineWidth=1.6; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
 
-  const curX=plotX0+((HIST-1)/HIST)*plotW, curY=plotCY-disp;
-  ctx.beginPath(); ctx.arc(curX,curY,5,0,TAU); ctx.fillStyle='#3fa97a'; ctx.fill();
+  // Current time dot on x(t) — moves rightward as t increases
+  const tClamped = Math.min(tNow, tWindow);
+  const curX = plotX0 + (tClamped/tWindow)*plotW;
+  const curY = plotCY - disp;
+  ctx.beginPath(); ctx.arc(curX,curY,7,0,TAU); ctx.fillStyle='rgba(63,200,122,0.2)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(curX,curY,4,0,TAU); ctx.fillStyle='#3fc87a'; ctx.fill();
 
+  // Current time on v(t)
+  const curVY = plotCY - R*0.75*Math.cos(omega*tClamped);
+  ctx.beginPath(); ctx.arc(curX,curVY,3,0,TAU); ctx.fillStyle='#f07840'; ctx.fill();
+
+  // Vertical "now" cursor line
+  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=0.8; ctx.setLineDash([2,4]);
+  ctx.beginPath(); ctx.moveTo(curX,plotCY-R-10); ctx.lineTo(curX,plotCY+R+10); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dashed horizontal link: phasor y-axis projection → time plot current dot
   ctx.beginPath(); ctx.moveTo(pcx,projY); ctx.lineTo(curX,curY);
-  ctx.strokeStyle='rgba(74,159,212,0.2)'; ctx.lineWidth=0.8; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(74,176,232,0.2)'; ctx.lineWidth=0.8; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
 
-  ctx.fillStyle='rgba(63,169,122,0.85)'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
-  ctx.fillText('x(t) = A sin(ωt)',plotX0+plotW/2,plotCY+R+16); ctx.textAlign='left';
+  // Equation labels
+  ctx.fillStyle='rgba(63,200,122,0.9)'; ctx.font='bold 11px Space Mono'; ctx.textAlign='center';
+  ctx.fillText('x(t) = A sin(ωt)',plotX0+plotW*0.35,plotCY+R+15); ctx.textAlign='left';
+  ctx.fillStyle='rgba(240,120,64,0.8)'; ctx.font='10px Space Mono';
+  ctx.fillText('v(t) = Aω cos(ωt)',plotX0+plotW*0.55,plotCY+R+15);
+
+  // Period markers
+  const T = TAU/omega;
+  for(let n=1; n*T <= tWindow+0.01; n++){
+    const tx = plotX0+(n*T/tWindow)*plotW;
+    ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.6;
+    ctx.beginPath(); ctx.moveTo(tx,plotCY-4); ctx.lineTo(tx,plotCY+4); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='9px Space Mono'; ctx.textAlign='center';
+    ctx.fillText('T',tx,plotCY+14); ctx.textAlign='left';
+  }
+
+  // Initial condition annotations (shown for first 2 seconds)
+  if(tNow < 2) {
+    ctx.fillStyle='rgba(245,200,66,0.7)'; ctx.font='9px Space Mono';
+    ctx.fillText('x(0)=0',plotX0+3,plotCY-6);
+    ctx.fillStyle='rgba(240,120,64,0.7)'; ctx.font='9px Space Mono';
+    ctx.fillText('v(0)=Aω',plotX0+3,plotCY-18);
+  }
 
   document.getElementById('p0-phase').textContent = phi.toFixed(2)+' rad';
   document.getElementById('p0-x').textContent     = Math.sin(phi).toFixed(2)+' A';
@@ -257,234 +455,439 @@ function drawTab0() {
   document.getElementById('p0-a').textContent     = (-Math.sin(phi)).toFixed(2)+' Aω²';
 }
 
-/* ══════ TAB 1: Wave propagation — source LEFT, wave travels RIGHT ══════ */
+/* ══ TAB 1: Wave propagation ══ */
 function drawTab1() {
   const cv = document.getElementById('c1');
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);
 
   const freq  = parseFloat(document.getElementById('s-wfreq').value);
   const vWave = parseFloat(document.getElementById('s-wspd').value);
   const omega = TAU * freq;
-  const k     = omega / vWave / 80;
+  const k     = omega / (vWave * 80);
   const lambda = TAU / k;
   const A = Math.min(H*0.28,70), oy = H/2;
 
-  // Source is at LEFT edge (srcPx), wave propagates to the RIGHT (+x direction)
-  const srcPx = 30;
-  // wavefront: distance = vWave * t (in px units matching k)
-  const wfPx = omega * t / k;
+  // Source is at LEFT (srcPx), wave travels RIGHT (+x direction)
+  const srcPx = 40;
+  const availW = W - srcPx - 20;
+  // wavefront pixel position (grows to the right)
+  const wfPx = Math.min(omega * t / k, availW);
 
-  // x-axis: from srcPx toward right
-  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(srcPx,oy); ctx.lineTo(W-10,oy); ctx.stroke();
-  // x-axis arrow at right
-  ctx.beginPath(); ctx.moveTo(W-10,oy); ctx.lineTo(W-18,oy-5); ctx.lineTo(W-18,oy+5); ctx.closePath();
-  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='11px sans-serif';
-  ctx.fillText('x →',W-26,oy-8);
-  ctx.fillText('y',srcPx+2,oy-A-8);
+  // subtle grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+  for(let gy=H*0.15;gy<H;gy+=H*0.2){ ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke(); }
 
-  // Wave y(x,t) = A sin(ωt − kx)
-  // x = 0 at source (srcPx). As x increases (to the right), wave propagates rightward.
-  // Only draw up to wavefront.
-  ctx.beginPath();
-  let wok=false;
-  for(let px=0; px<=W-srcPx; px++){
-    if(px > wfPx) break;
-    const y = oy - A * Math.sin(omega*t - k*px);
-    const sx = srcPx + px;   // source on left, x grows to the right
-    wok ? ctx.lineTo(sx,y) : (ctx.moveTo(sx,y), wok=true);
-  }
-  ctx.strokeStyle='#4a9fd4'; ctx.lineWidth=2.5; ctx.stroke();
+  // x-axis with +x arrow
+  arrow(ctx, srcPx-10,oy, W-8,oy, 'rgba(255,255,255,0.2)', 0.8, 7);
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px Space Mono';
+  ctx.fillText('+x',W-22,oy-8);
+  ctx.fillText('y ↑',srcPx+2,oy-A-10);
 
-  // Particles — spaced from source (left) to right
-  const nParts=13;
+  // Origin label
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='9px Space Mono';
+  ctx.fillText('0',srcPx-6,oy+14);
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.6;
+  ctx.beginPath(); ctx.moveTo(srcPx,oy-5); ctx.lineTo(srcPx,oy+5); ctx.stroke();
+
+  // Unexcited region (ahead of wavefront) — dim particles at rest
+  const nParts = 16;
   for(let i=0;i<=nParts;i++){
-    const xPhy = (W-srcPx-20)*i/nParts;
+    const xPhy = availW*i/nParts;
     const sx   = srcPx + xPhy;
-    if(xPhy > wfPx){
+    if(xPhy > wfPx) {
       ctx.beginPath(); ctx.arc(sx,oy,3,0,TAU);
-      ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fill();
-    } else {
-      const py = oy - A*Math.sin(omega*t - k*xPhy);
-      ctx.beginPath(); ctx.moveTo(sx,oy); ctx.lineTo(sx,py);
-      ctx.strokeStyle='rgba(124,111,205,0.5)'; ctx.lineWidth=1; ctx.stroke();
-      ctx.beginPath(); ctx.arc(sx,py,4,0,TAU); ctx.fillStyle='#7c6fcd'; ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fill();
+      // small horizontal line showing "at rest"
+      ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.7;
+      ctx.beginPath(); ctx.moveTo(sx-4,oy); ctx.lineTo(sx+4,oy); ctx.stroke();
     }
   }
 
-  // Source dot at LEFT (x=0)
-  const srcY = oy - A*Math.sin(omega*t);
-  ctx.beginPath(); ctx.arc(srcPx,srcY,7,0,TAU); ctx.fillStyle='#ffd54f'; ctx.fill();
-  ctx.fillStyle='rgba(255,213,79,0.85)'; ctx.font='bold 11px sans-serif';
-  ctx.fillText('source (x=0)',srcPx+10,srcY-12);
+  // Wave curve y(x,t) = A sin(ωt − kx) — from x=0 (source) toward +x
+  // Glow pass
+  ctx.beginPath(); let wok=false;
+  for(let px=0; px<=wfPx; px+=0.8){
+    const y = oy - A * Math.sin(omega*t - k*px);
+    const sx = srcPx + px;
+    wok ? ctx.lineTo(sx,y) : (ctx.moveTo(sx,y), wok=true);
+  }
+  ctx.strokeStyle='rgba(74,176,232,0.25)'; ctx.lineWidth=7; ctx.stroke();
+  // Main wave
+  ctx.beginPath(); wok=false;
+  for(let px=0; px<=wfPx; px+=0.8){
+    const y = oy - A * Math.sin(omega*t - k*px);
+    const sx = srcPx + px;
+    wok ? ctx.lineTo(sx,y) : (ctx.moveTo(sx,y), wok=true);
+  }
+  ctx.strokeStyle='#4ab0e8'; ctx.lineWidth=2.5; ctx.stroke();
 
-  // Wavefront marker (moves to the RIGHT)
-  const wfScreen = srcPx + Math.min(wfPx, W-srcPx-12);
-  ctx.strokeStyle='#e87040'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.moveTo(wfScreen,oy-A-12); ctx.lineTo(wfScreen,oy+A+8); ctx.stroke();
-  ctx.setLineDash([]);
-  // wavefront arrow pointing RIGHT
-  ctx.save(); ctx.translate(wfScreen,oy-A-20);
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(18,0);
-  ctx.strokeStyle='#e87040'; ctx.lineWidth=2; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(10,-5); ctx.lineTo(10,5); ctx.closePath();
-  ctx.fillStyle='#e87040'; ctx.fill(); ctx.restore();
-  ctx.fillStyle='#e87040'; ctx.font='bold 10px sans-serif';
-  ctx.fillText('wavefront →',wfScreen+4,oy-A-22);
-
-  // λ annotation
-  const x1=srcPx+10, x2=x1+lambda;
-  if(x2 < wfScreen-10 && x2 < W-20){
-    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(x1,oy+A+14); ctx.lineTo(x2,oy+A+14); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x1,oy+A+8); ctx.lineTo(x1,oy+A+20); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x2,oy+A+8); ctx.lineTo(x2,oy+A+20); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='12px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('λ',(x1+x2)/2,oy+A+28); ctx.textAlign='left';
+  // Particle oscillations (within wavefront)
+  for(let i=0;i<=nParts;i++){
+    const xPhy = availW*i/nParts, sx = srcPx + xPhy;
+    if(xPhy <= wfPx) {
+      const py = oy - A*Math.sin(omega*t - k*xPhy);
+      // vertical displacement line
+      ctx.strokeStyle='rgba(139,126,248,0.4)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(sx,oy); ctx.lineTo(sx,py); ctx.stroke();
+      // particle dot with glow
+      ctx.beginPath(); ctx.arc(sx,py,5,0,TAU);
+      ctx.fillStyle='rgba(139,126,248,0.25)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(sx,py,3.5,0,TAU);
+      ctx.fillStyle='#8b7ef8'; ctx.fill();
+    }
   }
 
-  ctx.fillStyle='rgba(74,159,212,0.8)'; ctx.font='bold 11px sans-serif';
-  ctx.fillText('y(x,t) = A sin(ωt − kx)',srcPx,oy+A+32);
+  // Source dot at x=0 (LEFT) — glowing yellow
+  const srcY = oy - A*Math.sin(omega*t);
+  ctx.beginPath(); ctx.arc(srcPx,srcY,10,0,TAU);
+  ctx.fillStyle='rgba(245,200,66,0.15)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(srcPx,srcY,6,0,TAU);
+  ctx.fillStyle='rgba(245,200,66,0.5)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(srcPx,srcY,4,0,TAU);
+  ctx.fillStyle='#f5c842'; ctx.fill();
+  ctx.fillStyle='rgba(245,200,66,0.9)'; ctx.font='bold 10px Space Mono';
+  ctx.fillText('source (x=0)',srcPx+10,srcY < oy-A*0.5 ? srcY+18 : srcY-12);
 
-  document.getElementById('p1-v').textContent   = vWave.toFixed(2)+' m/s';
-  document.getElementById('p1-lam').textContent = (lambda/40).toFixed(2)+' m';
+  // Wavefront vertical dashed line
+  const wfScreen = srcPx + wfPx;
+  ctx.strokeStyle='rgba(240,120,64,0.6)'; ctx.lineWidth=1.5; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(wfScreen,oy-A-14); ctx.lineTo(wfScreen,oy+A+8); ctx.stroke();
+  ctx.setLineDash([]);
+  // wavefront arrow pointing RIGHT (+x)
+  arrow(ctx, wfScreen,oy-A-26, wfScreen+22,oy-A-26, '#f07840', 2, 8);
+  ctx.fillStyle='#f07840'; ctx.font='bold 10px Space Mono';
+  ctx.fillText('wavefront',wfScreen+4,oy-A-12);
+
+  // λ annotation
+  const x1 = srcPx+5, x2 = x1+lambda;
+  if(x2 < wfScreen-8 && x2 < W-20) {
+    const annotY = oy+A+18;
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x1,annotY); ctx.lineTo(x2,annotY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1,annotY-5); ctx.lineTo(x1,annotY+5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2,annotY-5); ctx.lineTo(x2,annotY+5); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='12px Space Mono'; ctx.textAlign='center';
+    ctx.fillText('λ',(x1+x2)/2,annotY+14); ctx.textAlign='left';
+  }
+
+  // Equation
+  ctx.fillStyle='rgba(74,176,232,0.9)'; ctx.font='bold 11px Space Mono';
+  ctx.fillText('y(x,t) = A sin(ωt − kx)',srcPx,oy+A+36);
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='10px Space Mono';
+  ctx.fillText('wave travels in +x direction →',srcPx,oy+A+52);
+
+  document.getElementById('p1-v').textContent   = vWave.toFixed(2)+' u/s';
+  document.getElementById('p1-lam').textContent = (lambda/40).toFixed(2)+' u';
   document.getElementById('p1-T').textContent   = (1/freq).toFixed(2)+' s';
-  document.getElementById('p1-k').textContent   = (k*40).toFixed(2)+' rad/m';
+  document.getElementById('p1-k').textContent   = (k*40).toFixed(2)+' rad/u';
 }
 
-/* ══════ TAB 2: All together ══════ */
+/* ══ TAB 2: All together — Phasor → SHM → Wave ══ */
 function drawTab2() {
   const cv = document.getElementById('c2');
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);
 
-  const omega=1.0, phi=(omega*t)%TAU;
-  const A=Math.min(W*0.095,62), k=0.022;
+  const omega = 1.0;
+  const phi   = (omega * t) % TAU;
+  const A     = Math.min(W * 0.09, 58);
+  const k     = 0.020;
 
-  // ── Phasor ──
-  const pc1x=W*0.18, pc1y=H*0.25, pR=A;
-  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.6;
-  ctx.beginPath(); ctx.moveTo(pc1x-pR-14,pc1y); ctx.lineTo(pc1x+pR+14,pc1y); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(pc1x,pc1y-pR-14); ctx.lineTo(pc1x,pc1y+pR+14); ctx.stroke();
-  ctx.strokeStyle='rgba(255,200,80,0.65)'; ctx.lineWidth=1.2;
-  ctx.beginPath(); ctx.moveTo(pc1x+pR+3,pc1y-6); ctx.lineTo(pc1x+pR+3,pc1y+6); ctx.stroke();
-  ctx.fillStyle='rgba(255,200,80,0.8)'; ctx.font='bold 10px sans-serif';
-  ctx.fillText('0°',pc1x+pR+5,pc1y-7);
-  ctx.beginPath(); ctx.arc(pc1x,pc1y,pR,0,TAU);
-  ctx.strokeStyle='rgba(124,111,205,0.22)'; ctx.lineWidth=1; ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+  // Declare time-window vars up front (used in multiple sections)
+  const tWindow = TAU * 2 / omega;   // 2 full periods
+  const tNow    = t;
+  const tClamp  = Math.min(tNow, tWindow);
 
-  const tipX2=pc1x+pR*Math.cos(phi), tipY2=pc1y-pR*Math.sin(phi);
-  ctx.beginPath(); ctx.moveTo(pc1x,pc1y); ctx.lineTo(tipX2,tipY2);
-  ctx.strokeStyle='#7c6fcd'; ctx.lineWidth=2.5; ctx.stroke();
-  ctx.beginPath(); ctx.arc(tipX2,tipY2,5,0,TAU); ctx.fillStyle='#7c6fcd'; ctx.fill();
+  /* ─── layout rows ─── */
+  const row1CY = H * 0.20;   // phasor centre
+  const row2CY = H * 0.52;   // SHM plot centre
+  const row3CY = H * 0.82;   // wave plot centre
 
-  const disp2=pR*Math.sin(phi), projY2=pc1y-disp2;
-  ctx.beginPath(); ctx.moveTo(tipX2,tipY2); ctx.lineTo(tipX2,pc1y);
-  ctx.strokeStyle='rgba(74,159,212,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.moveTo(tipX2,pc1y); ctx.lineTo(pc1x,pc1y);
-  ctx.strokeStyle='rgba(74,159,212,0.2)'; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(pc1x,projY2,5,0,TAU); ctx.fillStyle='#4a9fd4'; ctx.fill();
-  ctx.fillStyle='rgba(124,111,205,0.8)'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
-  ctx.fillText('Phasor',pc1x,pc1y+pR+18); ctx.textAlign='left';
-
-  // ── SHM time plot ──
-  const tp0x=pc1x+pR+34, tp0W=W-tp0x-18, tpCY=H*0.25, HIST2=250, dtS=0.025;
-  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.6;
-  ctx.beginPath(); ctx.moveTo(tp0x-4,tpCY); ctx.lineTo(tp0x+tp0W,tpCY); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tp0x,tpCY-pR-12); ctx.lineTo(tp0x,tpCY+pR+12); ctx.stroke();
-  ctx.strokeStyle='rgba(255,200,80,0.4)'; ctx.lineWidth=0.8; ctx.setLineDash([3,4]);
-  ctx.beginPath(); ctx.moveTo(tp0x,tpCY-pR-8); ctx.lineTo(tp0x,tpCY+pR+8); ctx.stroke();
+  // subtle section dividers
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth   = 0.5;
+  ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.moveTo(0, H*0.38); ctx.lineTo(W, H*0.38); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, H*0.66); ctx.lineTo(W, H*0.66); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle='rgba(255,200,80,0.7)'; ctx.font='10px sans-serif';
-  ctx.fillText('t=0',tp0x+2,tpCY+pR+14);
 
-  ctx.beginPath();
-  let sOk=false;
-  for(let i=0;i<HIST2;i++){
-    const ti=t-(HIST2-1-i)*dtS*omega;
-    if(ti<0) continue;
-    const xv=tp0x+(i/HIST2)*tp0W, yv=tpCY-pR*Math.sin(ti%TAU);
-    sOk?(ctx.lineTo(xv,yv)):(ctx.moveTo(xv,yv),sOk=true);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.font      = '9px Space Mono';
+  ctx.fillText('① PHASOR', 8, H*0.38 - 6);
+  ctx.fillText('② SHM — time domain', 8, H*0.66 - 6);
+  ctx.fillText('③ TRAVELLING WAVE — +x direction', 8, H - 6);
+
+  /* ════ ① PHASOR ════ */
+  const pcx = Math.min(W * 0.20, 130);
+  const pcy = row1CY;
+  const pR  = A;
+
+  // axes
+  arrow(ctx, pcx-pR-18, pcy, pcx+pR+18, pcy, 'rgba(255,255,255,0.2)', 0.8, 6);
+  arrow(ctx, pcx, pcy+pR+18, pcx, pcy-pR-18, 'rgba(255,255,255,0.2)', 0.8, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font      = '10px Space Mono';
+  ctx.fillText('+x', pcx+pR+10, pcy-2);
+  ctx.fillText('+y', pcx+4,     pcy-pR-9);
+
+  // 0° tick (phasor starts here at t=0)
+  ctx.strokeStyle = 'rgba(245,200,66,0.6)';
+  ctx.lineWidth   = 1.2;
+  ctx.beginPath(); ctx.moveTo(pcx+pR+2, pcy-6); ctx.lineTo(pcx+pR+2, pcy+6); ctx.stroke();
+  ctx.fillStyle = 'rgba(245,200,66,0.8)';
+  ctx.font      = 'bold 9px Space Mono';
+  ctx.fillText('0°(t=0)', pcx+pR+4, pcy-7);
+
+  // ghost initial phasor along +x
+  ctx.beginPath(); ctx.moveTo(pcx, pcy); ctx.lineTo(pcx+pR, pcy);
+  ctx.strokeStyle = 'rgba(245,200,66,0.18)';
+  ctx.lineWidth   = 1.5;
+  ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  // reference circle
+  ctx.beginPath(); ctx.arc(pcx, pcy, pR, 0, TAU);
+  ctx.strokeStyle = 'rgba(139,126,248,0.18)';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+
+  // phase arc
+  if (phi > 0.04) {
+    ctx.beginPath(); ctx.arc(pcx, pcy, 24, 0, -phi, true);
+    ctx.strokeStyle = 'rgba(245,200,66,0.5)';
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(245,200,66,0.8)';
+    ctx.font      = '10px Space Mono';
+    ctx.fillText('ωt', pcx + 30*Math.cos(-phi/2) - 5, pcy + 30*Math.sin(-phi/2) + 4);
   }
-  ctx.strokeStyle='#3fa97a'; ctx.lineWidth=2.2; ctx.stroke();
-  const curTX=tp0x+((HIST2-1)/HIST2)*tp0W, curTY=tpCY-disp2;
-  ctx.beginPath(); ctx.arc(curTX,curTY,5,0,TAU); ctx.fillStyle='#3fa97a'; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(pc1x,projY2); ctx.lineTo(curTX,curTY);
-  ctx.strokeStyle='rgba(74,159,212,0.18)'; ctx.lineWidth=0.8; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle='rgba(63,169,122,0.8)'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
-  ctx.fillText('x(t) = A sin(ωt)',tp0x+tp0W/2,tpCY+pR+18); ctx.textAlign='left';
 
-  // ── Wave plot: source at LEFT, travels RIGHT ──
-  const wY0=H*0.57, wH=H*0.25, wCY=wY0+wH/2, Aw=Math.min(wH*0.38,40);
-  const srcPx2=22;
-  const wfPx2=omega*t/k;
+  // phasor vector
+  const tipX = pcx + pR * Math.cos(phi);
+  const tipY = pcy - pR * Math.sin(phi);
+  arrow(ctx, pcx, pcy, tipX, tipY, '#8b7ef8', 2.5, 9);
+  ctx.beginPath(); ctx.arc(tipX, tipY, 8, 0, TAU);
+  ctx.fillStyle = 'rgba(139,126,248,0.2)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(tipX, tipY, 5, 0, TAU);
+  ctx.fillStyle = '#8b7ef8'; ctx.fill();
 
-  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
-  ctx.beginPath(); ctx.moveTo(16,wY0-6); ctx.lineTo(W-16,wY0-6); ctx.stroke();
+  // vertical projection → x(t) = A sin(ωt)
+  const pDisp = pR * Math.sin(phi);
+  const projY = pcy - pDisp;
 
-  // x axis, source at left, arrow pointing right
-  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.6;
-  ctx.beginPath(); ctx.moveTo(srcPx2,wCY); ctx.lineTo(W-12,wCY); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(W-12,wCY); ctx.lineTo(W-20,wCY-5); ctx.lineTo(W-20,wCY+5); ctx.closePath();
-  ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='11px sans-serif';
-  ctx.fillText('x →',W-24,wCY-7);
+  ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX, pcy);
+  ctx.strokeStyle = 'rgba(74,176,232,0.45)';
+  ctx.lineWidth   = 1.2;
+  ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
 
-  // Wave rightward from source
-  ctx.beginPath();
-  let wok2=false;
-  for(let px=0; px<=W-srcPx2; px++){
-    if(px>wfPx2) break;
-    const y=wCY-Aw*Math.sin(omega*t - k*px);
-    const sx=srcPx2+px;
-    wok2?(ctx.lineTo(sx,y)):(ctx.moveTo(sx,y),wok2=true);
+  ctx.beginPath(); ctx.moveTo(pcx, projY); ctx.lineTo(tipX, projY);
+  ctx.strokeStyle = 'rgba(74,176,232,0.2)';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([2,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  ctx.beginPath(); ctx.arc(pcx, projY, 5, 0, TAU);
+  ctx.fillStyle = 'rgba(74,176,232,0.2)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(pcx, projY, 3.5, 0, TAU);
+  ctx.fillStyle = '#4ab0e8'; ctx.fill();
+
+  // x(t) label on y-axis
+  ctx.fillStyle = 'rgba(74,176,232,0.85)';
+  ctx.font      = 'bold 10px Space Mono';
+  ctx.fillText('x(t)', pcx-38, projY+4);
+
+  ctx.fillStyle    = 'rgba(139,126,248,0.7)';
+  ctx.font         = 'bold 10px Space Mono';
+  ctx.textAlign    = 'center';
+  ctx.fillText('Phasor', pcx, pcy+pR+16);
+  ctx.textAlign = 'left';
+
+  /* ════ ② SHM TIME PLOT ════ */
+  const shmPlotX0 = pcx + pR + 36;
+  const shmPlotW  = W - shmPlotX0 - 14;
+  const shmCY     = row2CY;
+
+  // axes
+  arrow(ctx, shmPlotX0-6, shmCY, shmPlotX0+shmPlotW+4, shmCY, 'rgba(255,255,255,0.2)', 0.8, 6);
+  arrow(ctx, shmPlotX0, shmCY+pR+16, shmPlotX0, shmCY-pR-16, 'rgba(255,255,255,0.2)', 0.8, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font      = '10px Space Mono';
+  ctx.fillText('t →', shmPlotX0+shmPlotW-12, shmCY-5);
+  ctx.fillText('+y',  shmPlotX0+4,            shmCY-pR-8);
+
+  // t=0 anchor line at LEFT — x(0) = sin(0) = 0
+  ctx.strokeStyle = 'rgba(245,200,66,0.5)';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(shmPlotX0, shmCY-pR-10); ctx.lineTo(shmPlotX0, shmCY+pR+10); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(245,200,66,0.8)';
+  ctx.font      = 'bold 9px Space Mono';
+  ctx.fillText('t=0', shmPlotX0+2, shmCY+pR+14);
+
+  // dot at origin: x(0)=0
+  ctx.beginPath(); ctx.arc(shmPlotX0, shmCY, 4, 0, TAU);
+  ctx.fillStyle = 'rgba(245,200,66,0.6)'; ctx.fill();
+  if (tNow < 2) {
+    ctx.fillStyle = 'rgba(245,200,66,0.7)';
+    ctx.font      = '9px Space Mono';
+    ctx.fillText('x(0)=0', shmPlotX0+3, shmCY-8);
+    ctx.fillStyle = 'rgba(240,120,64,0.7)';
+    ctx.fillText('v(0)=Aω', shmPlotX0+3, shmCY-20);
   }
-  ctx.strokeStyle='#4a9fd4'; ctx.lineWidth=2.5; ctx.stroke();
 
-  // Particles
-  const nP2=14;
-  for(let i=0;i<=nP2;i++){
-    const xPhy=(W-srcPx2-20)*i/nP2, sx=srcPx2+xPhy;
-    if(xPhy>wfPx2){
-      ctx.beginPath(); ctx.arc(sx,wCY,3,0,TAU);
-      ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fill();
-    } else {
-      const py=wCY-Aw*Math.sin(omega*t-k*xPhy);
-      ctx.beginPath(); ctx.moveTo(sx,wCY); ctx.lineTo(sx,py);
-      ctx.strokeStyle='rgba(124,111,205,0.4)'; ctx.lineWidth=1; ctx.stroke();
-      ctx.beginPath(); ctx.arc(sx,py,3.5,0,TAU); ctx.fillStyle='#7c6fcd'; ctx.fill();
+  // x(t) = A sin(ωt) — grows from left (t=0) rightward
+  ctx.beginPath();
+  let sOk = false;
+  const stps = 300;
+  for (let i = 0; i <= stps; i++) {
+    const ti = (i / stps) * tClamp;
+    const xv = shmPlotX0 + (ti / tWindow) * shmPlotW;
+    const yv = shmCY - pR * Math.sin(omega * ti);
+    sOk ? ctx.lineTo(xv, yv) : (ctx.moveTo(xv, yv), sOk = true);
+  }
+  ctx.strokeStyle = 'rgba(63,200,122,0.2)'; ctx.lineWidth = 6; ctx.stroke();
+  ctx.strokeStyle = '#3fc87a';              ctx.lineWidth = 2.2; ctx.stroke();
+
+  // v(t) = Aω cos(ωt)
+  ctx.beginPath();
+  let vOk = false;
+  for (let i = 0; i <= stps; i++) {
+    const ti = (i / stps) * tClamp;
+    const xv = shmPlotX0 + (ti / tWindow) * shmPlotW;
+    const yv = shmCY - pR * 0.75 * Math.cos(omega * ti);
+    vOk ? ctx.lineTo(xv, yv) : (ctx.moveTo(xv, yv), vOk = true);
+  }
+  ctx.strokeStyle = 'rgba(240,120,64,0.2)'; ctx.lineWidth = 5; ctx.stroke();
+  ctx.strokeStyle = '#f07840'; ctx.lineWidth = 1.6;
+  ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+
+  // current dot (moves rightward)
+  const curSX = shmPlotX0 + (tClamp / tWindow) * shmPlotW;
+  const curSY = shmCY - pDisp;
+  ctx.beginPath(); ctx.arc(curSX, curSY, 7, 0, TAU);
+  ctx.fillStyle = 'rgba(63,200,122,0.2)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(curSX, curSY, 4, 0, TAU);
+  ctx.fillStyle = '#3fc87a'; ctx.fill();
+
+  // period markers
+  const T = TAU / omega;
+  for (let n = 1; n * T <= tWindow + 0.01; n++) {
+    const tx = shmPlotX0 + (n * T / tWindow) * shmPlotW;
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(tx, shmCY-4); ctx.lineTo(tx, shmCY+4); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '9px Space Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(n === 1 ? 'T' : '2T', tx, shmCY+14);
+    ctx.textAlign = 'left';
+  }
+
+  // dashed link: phasor y-projection → SHM current dot
+  ctx.beginPath(); ctx.moveTo(pcx, projY); ctx.lineTo(curSX, curSY);
+  ctx.strokeStyle = 'rgba(74,176,232,0.18)';
+  ctx.lineWidth   = 0.8;
+  ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
+
+  // equation labels
+  ctx.fillStyle = 'rgba(63,200,122,0.9)'; ctx.font = 'bold 10px Space Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('x(t) = A sin(ωt)', shmPlotX0 + shmPlotW*0.32, shmCY+pR+15);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(240,120,64,0.8)'; ctx.font = '10px Space Mono';
+  ctx.fillText('v(t) = Aω cos(ωt)', shmPlotX0 + shmPlotW*0.55, shmCY+pR+15);
+
+  /* ════ ③ WAVE PLOT — source at x=0 (left), travels +x ════ */
+  const wCY    = row3CY;
+  const Aw     = Math.min(A * 0.85, 40);
+  const wSrcPx = 40;
+  const wAvailW = W - wSrcPx - 18;
+  const wfPx   = Math.min(omega * t / k, wAvailW);
+
+  // x-axis
+  arrow(ctx, wSrcPx-8, wCY, W-8, wCY, 'rgba(255,255,255,0.2)', 0.8, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '10px Space Mono';
+  ctx.fillText('+x', W-22, wCY-7);
+  ctx.fillText('y ↑', wSrcPx+2, wCY-Aw-10);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '9px Space Mono';
+  ctx.fillText('0', wSrcPx-6, wCY+13);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.moveTo(wSrcPx, wCY-4); ctx.lineTo(wSrcPx, wCY+4); ctx.stroke();
+
+  // undisturbed particles ahead of wavefront
+  const nWP = 15;
+  for (let i = 0; i <= nWP; i++) {
+    const xPhy = wAvailW * i / nWP;
+    if (xPhy > wfPx) {
+      ctx.beginPath(); ctx.arc(wSrcPx+xPhy, wCY, 2.5, 0, TAU);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
     }
   }
 
-  // Source at LEFT
-  const srcY2=wCY-Aw*Math.sin(omega*t);
-  ctx.beginPath(); ctx.arc(srcPx2,srcY2,6,0,TAU); ctx.fillStyle='#ffd54f'; ctx.fill();
+  // wave curve y(x,t) = A sin(ωt − kx), glow + line
+  ctx.beginPath();
+  let wok = false;
+  for (let px = 0; px <= wfPx; px += 0.7) {
+    const y  = wCY - Aw * Math.sin(omega*t - k*px);
+    const sx = wSrcPx + px;
+    wok ? ctx.lineTo(sx, y) : (ctx.moveTo(sx, y), wok = true);
+  }
+  ctx.strokeStyle = 'rgba(74,176,232,0.2)'; ctx.lineWidth = 8; ctx.stroke();
+  ctx.beginPath(); wok = false;
+  for (let px = 0; px <= wfPx; px += 0.7) {
+    const y  = wCY - Aw * Math.sin(omega*t - k*px);
+    const sx = wSrcPx + px;
+    wok ? ctx.lineTo(sx, y) : (ctx.moveTo(sx, y), wok = true);
+  }
+  ctx.strokeStyle = '#4ab0e8'; ctx.lineWidth = 2.5; ctx.stroke();
 
-  // Wavefront marker moving RIGHT
-  const wfS2=srcPx2+Math.min(wfPx2,W-srcPx2-12);
-  ctx.strokeStyle='#e87040'; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.moveTo(wfS2,wCY-Aw-10); ctx.lineTo(wfS2,wCY+Aw+6); ctx.stroke();
+  // particle oscillations within wavefront
+  for (let i = 0; i <= nWP; i++) {
+    const xPhy = wAvailW * i / nWP;
+    const sx   = wSrcPx + xPhy;
+    if (xPhy <= wfPx) {
+      const py = wCY - Aw * Math.sin(omega*t - k*xPhy);
+      ctx.strokeStyle = 'rgba(139,126,248,0.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx, wCY); ctx.lineTo(sx, py); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sx, py, 4, 0, TAU);
+      ctx.fillStyle = 'rgba(139,126,248,0.2)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, py, 2.5, 0, TAU);
+      ctx.fillStyle = '#8b7ef8'; ctx.fill();
+    }
+  }
+
+  // source dot at x=0 — in phase with phasor/SHM
+  const wSrcY = wCY - Aw * Math.sin(omega * t);
+  ctx.beginPath(); ctx.arc(wSrcPx, wSrcY, 12, 0, TAU);
+  ctx.fillStyle = 'rgba(245,200,66,0.08)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(wSrcPx, wSrcY, 7, 0, TAU);
+  ctx.fillStyle = 'rgba(245,200,66,0.3)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(wSrcPx, wSrcY, 4, 0, TAU);
+  ctx.fillStyle = '#f5c842'; ctx.fill();
+  ctx.fillStyle = 'rgba(245,200,66,0.9)'; ctx.font = 'bold 9px Space Mono';
+  ctx.fillText('x=0 source', wSrcPx+10, wSrcY < wCY-Aw*0.5 ? wSrcY+16 : wSrcY-10);
+
+  // wavefront marker
+  const wfScrn = wSrcPx + wfPx;
+  ctx.strokeStyle = 'rgba(240,120,64,0.65)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(wfScrn, wCY-Aw-14); ctx.lineTo(wfScrn, wCY+Aw+6); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.save(); ctx.translate(wfS2,wCY-Aw-18);
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(16,0);
-  ctx.strokeStyle='#e87040'; ctx.lineWidth=2; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(8,-5); ctx.lineTo(8,5); ctx.closePath();
-  ctx.fillStyle='#e87040'; ctx.fill(); ctx.restore();
-  ctx.fillStyle='#e87040'; ctx.font='bold 10px sans-serif';
-  ctx.fillText('→ front',wfS2+4,wCY-Aw-20);
+  arrow(ctx, wfScrn, wCY-Aw-24, wfScrn+22, wCY-Aw-24, '#f07840', 2, 7);
+  ctx.fillStyle = '#f07840'; ctx.font = 'bold 9px Space Mono';
+  ctx.fillText('+x front', wfScrn+4, wCY-Aw-10);
 
-  // Sync line source → SHM dot
-  ctx.beginPath(); ctx.moveTo(srcPx2,srcY2); ctx.lineTo(curTX,curTY);
-  ctx.strokeStyle='rgba(255,213,79,0.12)'; ctx.lineWidth=0.8; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
+  // connection: SHM current dot → wave source (same displacement)
+  ctx.beginPath(); ctx.moveTo(curSX, curSY); ctx.lineTo(wSrcPx, wSrcY);
+  ctx.strokeStyle = 'rgba(245,200,66,0.25)';
+  ctx.lineWidth   = 1.2;
+  ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
 
-  ctx.fillStyle='rgba(74,159,212,0.8)'; ctx.font='bold 11px sans-serif';
-  ctx.fillText('y(x,t) = A sin(ωt − kx)',srcPx2,wCY+Aw+20);
-  ctx.fillStyle='rgba(255,213,79,0.8)'; ctx.font='10px sans-serif';
-  ctx.fillText('● source x=0  in phase with phasor',srcPx2+12,wCY-Aw-24);
+  // equation
+  ctx.fillStyle = 'rgba(74,176,232,0.9)'; ctx.font = 'bold 10px Space Mono';
+  ctx.fillText('y(x,t) = A sin(ωt − kx)', wSrcPx, wCY+Aw+20);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '9px Space Mono';
+  ctx.fillText('→ travels in +x direction', wSrcPx, wCY+Aw+34);
 }
 
 /* ─── RAF loop ─── */
@@ -495,8 +898,10 @@ function loop() {
   if(tab===0) drawTab0();
   else if(tab===1) drawTab1();
   else drawTab2();
-  if(!paused) t+=0.018*spd;
+  if(!paused) t += 0.018*spd;
   requestAnimationFrame(loop);
 }
 loop();
 </script>
+</body>
+</html>

@@ -34,7 +34,6 @@ body {
   align-items: center;
 }
 
-/* scanline */
 body::after {
   content:''; position:fixed; inset:0; z-index:999; pointer-events:none;
   background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px);
@@ -55,7 +54,6 @@ header h1 {
 }
 header p { font-size:0.78rem; color:#4a7aaa; letter-spacing:0.1em; margin-top:0.3rem; }
 
-/* main canvas wrapper */
 .canvas-wrap {
   position:relative; z-index:10;
   width:min(980px,98vw); margin:0.8rem auto 0;
@@ -65,7 +63,135 @@ canvas#reactor {
   border:1px solid var(--border); border-radius:4px;
 }
 
-/* info strip */
+/* ── STEP EXPLANATIONS PANEL ── */
+.steps-panel {
+  position:relative; z-index:10;
+  width:min(980px,98vw); margin:0.6rem auto;
+  background: var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  overflow:hidden;
+}
+
+.steps-header {
+  display:flex; align-items:center; gap:0.6rem;
+  padding:0.6rem 1rem;
+  border-bottom:1px solid var(--border);
+  background: rgba(0,180,255,0.05);
+}
+.steps-header h2 {
+  font-family:'Exo 2',sans-serif; font-size:0.65rem;
+  letter-spacing:0.2em; color:var(--blue); text-transform:uppercase;
+}
+.step-dot-row {
+  display:flex; gap:0.4rem; margin-left:auto;
+}
+.step-dot {
+  width:10px; height:10px; border-radius:50%;
+  background:#0e2040; border:1px solid #1e3060;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.step-dot.active {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.step-dot.done {
+  background: #1a4a30;
+  border-color: #2a8050;
+}
+
+.steps-grid {
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:0;
+}
+
+.step-card {
+  padding:0.85rem 0.7rem;
+  border-right:1px solid var(--border);
+  position:relative;
+  transition: background 0.5s, border-color 0.5s;
+  cursor:default;
+}
+.step-card:last-child { border-right:none; }
+
+.step-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0;
+  height:2px;
+  background: transparent;
+  transition: background 0.5s;
+}
+
+.step-card.active::before { background: var(--cyan); }
+.step-card.done::before { background: #2a8050; }
+
+.step-card.active {
+  background: rgba(0,255,229,0.04);
+}
+.step-card.done {
+  background: rgba(0,120,60,0.03);
+}
+
+.step-num {
+  font-family:'Exo 2',sans-serif; font-weight:800;
+  font-size:1.4rem; line-height:1;
+  color:#0e2040;
+  transition: color 0.5s, text-shadow 0.5s;
+  margin-bottom:0.3rem;
+}
+.step-card.active .step-num {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0,255,229,0.5);
+}
+.step-card.done .step-num { color:#2a7050; }
+
+.step-icon {
+  font-size:1.3rem; margin-bottom:0.3rem; display:block;
+  filter: grayscale(1) opacity(0.25);
+  transition: filter 0.5s;
+}
+.step-card.active .step-icon,
+.step-card.done .step-icon { filter: grayscale(0) opacity(1); }
+
+.step-title {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:0.6rem; letter-spacing:0.12em;
+  color:#1e3a5a; text-transform:uppercase;
+  margin-bottom:0.4rem;
+  transition: color 0.5s;
+}
+.step-card.active .step-title { color: var(--cyan); }
+.step-card.done .step-title { color:#4a9a70; }
+
+.step-desc {
+  font-size:0.62rem; line-height:1.5;
+  color:#1e3a5a;
+  transition: color 0.5s;
+}
+.step-card.active .step-desc { color:#7aaac8; }
+.step-card.done .step-desc { color:#3a6a50; }
+
+.step-detail {
+  margin-top:0.4rem; padding-top:0.4rem;
+  border-top:1px solid transparent;
+  font-size:0.58rem; line-height:1.4;
+  color:transparent;
+  transition: all 0.5s;
+}
+.step-card.active .step-detail {
+  color: rgba(0,255,229,0.6);
+  border-color: rgba(0,255,229,0.1);
+}
+
+/* pulse animation on active card */
+@keyframes cardPulse {
+  0%,100% { box-shadow: inset 0 0 0 rgba(0,255,229,0); }
+  50%      { box-shadow: inset 0 0 20px rgba(0,255,229,0.05); }
+}
+.step-card.active { animation: cardPulse 2s ease-in-out infinite; }
+
+/* ── INFO + CONTROLS ── */
 .info-strip {
   position:relative; z-index:10;
   width:min(980px,98vw); margin:0.6rem auto;
@@ -82,7 +208,6 @@ canvas#reactor {
 .info-box p { font-size:0.74rem; line-height:1.6; color:#7aaac8; }
 .big-val { font-family:'Exo 2',sans-serif; font-weight:700; font-size:1.5rem; color:var(--yellow); display:block; }
 
-/* controls */
 .controls {
   position:relative; z-index:10;
   display:flex; gap:0.6rem; margin:0.6rem auto 1.5rem;
@@ -98,9 +223,13 @@ canvas#reactor {
 .ctrl:hover { background:rgba(0,180,255,0.16); border-color:var(--blue); box-shadow:0 0 12px rgba(0,180,255,0.2); }
 .ctrl.active { background:rgba(0,180,255,0.22); border-color:var(--cyan); color:var(--cyan); }
 
+@media(max-width:760px){
+  .steps-grid { grid-template-columns: repeat(4,1fr); }
+}
 @media(max-width:560px){
   .info-strip { grid-template-columns:1fr 1fr; }
   .info-strip .info-box:first-child { grid-column:1/-1; }
+  .steps-grid { grid-template-columns: repeat(2,1fr); }
 }
 </style>
 </head>
@@ -115,9 +244,18 @@ canvas#reactor {
   <canvas id="reactor"></canvas>
 </div>
 
+<!-- STEP-BY-STEP EXPLANATION PANEL -->
+<div class="steps-panel">
+  <div class="steps-header">
+    <h2>⚛ Process Steps — Live Explanation</h2>
+    <div class="step-dot-row" id="dotRow"></div>
+  </div>
+  <div class="steps-grid" id="stepsGrid"></div>
+</div>
+
 <div class="info-strip">
   <div class="info-box">
-    <h3>Process Description</h3>
+    <h3>Current Phase</h3>
     <p id="procDesc">Press POWER ON to start the animated nuclear power generation cycle.</p>
   </div>
   <div class="info-box">
@@ -138,10 +276,85 @@ canvas#reactor {
 </div>
 
 <script>
+// ─── Step Definitions ─────────────────────────────────────────
+var STEPS = [
+  {
+    icon: '☢️',
+    title: 'Nuclear Fission',
+    desc: 'Control rods withdraw from the reactor core, allowing neutrons to split Uranium-235 atoms.',
+    detail: 'Each fission releases ~200 MeV of energy and 2–3 new neutrons, sustaining a chain reaction.',
+    phase: 1
+  },
+  {
+    icon: '🔥',
+    title: 'Heat Generation',
+    desc: 'Fission energy heats the reactor core to ~315 °C under 155 bar pressure.',
+    detail: 'Pressurized water (primary coolant) cannot boil even at this temperature due to high pressure.',
+    phase: 2
+  },
+  {
+    icon: '💧',
+    title: 'Primary Loop',
+    desc: 'Superheated pressurized water circulates from the reactor to the steam generator via pumps.',
+    detail: 'This closed loop never contacts the turbine—preventing radioactive contamination of the steam side.',
+    phase: 3
+  },
+  {
+    icon: '💨',
+    title: 'Steam Production',
+    desc: 'Inside the steam generator, primary-loop heat boils secondary-loop water into high-pressure steam.',
+    detail: 'U-tube heat exchangers transfer thermal energy across a barrier—keeping radioactive and clean water separate.',
+    phase: 3
+  },
+  {
+    icon: '⚙️',
+    title: 'Turbine Spin',
+    desc: 'High-pressure steam strikes turbine blades, spinning the rotor at 1500–3000 RPM.',
+    detail: 'Multi-stage turbines (HP + LP) extract maximum energy as steam expands and cools through each stage.',
+    phase: 4
+  },
+  {
+    icon: '⚡',
+    title: 'Electricity Generation',
+    desc: 'The turbine shaft drives an electromagnetic generator, inducing AC current at ~20 kV.',
+    detail: 'Faraday\'s law: rotating magnetic field through copper coils generates alternating current at 50/60 Hz.',
+    phase: 5
+  },
+  {
+    icon: '🔌',
+    title: 'Grid Transmission',
+    desc: 'A step-up transformer raises voltage to ~400 kV for efficient long-distance transmission.',
+    detail: 'Higher voltage = lower current = less resistive heat loss (P=I²R) over hundreds of kilometres of cable.',
+    phase: 6
+  }
+];
+
+// Build step cards
+var stepsGrid = document.getElementById('stepsGrid');
+var dotRow    = document.getElementById('dotRow');
+
+STEPS.forEach(function(s, i) {
+  var card = document.createElement('div');
+  card.className = 'step-card';
+  card.id = 'step-' + i;
+  card.innerHTML =
+    '<div class="step-num">' + (i+1) + '</div>' +
+    '<span class="step-icon">' + s.icon + '</span>' +
+    '<div class="step-title">' + s.title + '</div>' +
+    '<div class="step-desc">' + s.desc + '</div>' +
+    '<div class="step-detail">' + s.detail + '</div>';
+  stepsGrid.appendChild(card);
+
+  var dot = document.createElement('div');
+  dot.className = 'step-dot';
+  dot.id = 'dot-' + i;
+  dotRow.appendChild(dot);
+});
+
 // ─── Canvas ───────────────────────────────────────────────────
 var canvas = document.getElementById('reactor');
 var ctx    = canvas.getContext('2d');
-var CW = 980, CH = 500; // logical size
+var CW = 980, CH = 500;
 
 function resize() {
   var wrap = canvas.parentElement.getBoundingClientRect();
@@ -156,318 +369,123 @@ window.addEventListener('resize', function(){ resize(); if(!running) drawFrame(g
 // ─── State ────────────────────────────────────────────────────
 var running   = false;
 var slowMode  = false;
-var globalT   = 0;          // ever-increasing time (seconds at 1x)
+var globalT   = 0;
 var rafId     = null;
 var lastTs    = null;
-var SPEED     = 1/60;       // seconds per frame at 60fps
 
-// animated value targets
-var reactorHeat  = 0;   // 0..1
-var turbineSpeed = 0;   // 0..1
-var generatorRPM = 0;   // 0..1
-var gridPower    = 0;   // 0..1
-var coolantFlow  = 0;   // 0..1
+var reactorHeat  = 0;
+var turbineSpeed = 0;
+var generatorRPM = 0;
+var gridPower    = 0;
+var coolantFlow  = 0;
 
 var procDescEl  = document.getElementById('procDesc');
 var mwDisplayEl = document.getElementById('mwDisplay');
 var effDisplayEl= document.getElementById('effDisplay');
 
-// phase: 0=idle 1=fission-start 2=heat-up 3=steam 4=turbine 5=generator 6=grid 7=full
 var phase = 0;
+var lastActiveStep = -1;
 
 var PHASE_DESC = [
   'Press POWER ON to start the animated nuclear power generation cycle.',
-  'Control rods are withdrawing… Uranium-235 fission chain reaction beginning in the reactor core.',
-  'Reactor core heating up. Pressurized water (primary coolant loop) absorbing thermal energy at ~315 °C.',
-  'Steam generator producing high-pressure steam via heat exchanger. Secondary loop pressurized.',
-  'High-pressure steam entering turbine blades — rotor begins spinning at up to 1500–3000 RPM.',
-  'Turbine shaft drives the electromagnetic generator. Magnetic field rotation induces AC current.',
-  'Electricity produced at ~20 kV, stepped up by transformer to 400 kV for national grid transmission.',
-  'Full operation: 1000 MW thermal → ~330 MW electrical. Condenser returns steam to water. Cycle repeats.'
+  'STEP 1 — Control rods are withdrawing… Uranium-235 fission chain reaction beginning in the reactor core.',
+  'STEP 2 & 3 — Reactor core heating up. Pressurized water (primary coolant loop) absorbing thermal energy at ~315 °C.',
+  'STEP 4 — Steam generator producing high-pressure steam via heat exchanger. Secondary loop pressurized.',
+  'STEP 5 — High-pressure steam entering turbine blades — rotor spinning at up to 1500–3000 RPM.',
+  'STEP 6 — Turbine shaft drives the electromagnetic generator. Magnetic field rotation induces AC current.',
+  'STEP 7 — Electricity stepped up by transformer to 400 kV for national grid transmission.',
+  'ALL STEPS ACTIVE — Full operation: 1000 MW thermal → ~330 MW electrical. Cycle repeats continuously.'
 ];
 
 // ─── Layout constants ─────────────────────────────────────────
 var L = {
-  // Reactor vessel
   RX:50, RY:80, RW:160, RH:300,
-  // Steam generator
   SGX:270, SGY:100, SGW:100, SGH:260,
-  // Turbine
   TX:450, TY:150, TW:130, TH:160,
-  // Generator
   GX:640, GY:155, GW:120, GH:150,
-  // Transformer
   TRX:820, TRY:170, TRW:60, TRH:120,
-  // Condenser
   CX:450, CY:360, CW:130, CH:100,
-  // Cooling tower
   CTOX:840, CTOY:300, CTOYR:40, CTOYW:60, CTOH:160,
-  // Ground line
   GROUND: 460,
 };
 
-// ─── Particle systems ─────────────────────────────────────────
-var neutrons   = [];   // inside reactor
-var steamParts = [];   // primary loop + steam
-var turbParts  = [];   // turbine steam
-var elecParts  = [];   // electricity sparks
-var condParts  = [];   // condenser droplets
-var coolTower  = [];   // cooling tower steam
+// ─── Particles ────────────────────────────────────────────────
+var neutrons=[], primaryFlow=[], secondaryFlow=[], elecParts=[], coolTower=[];
 
 function spawnNeutron() {
-  var rx = L.RX + L.RW*0.5, ry = L.RY + L.RH*0.5;
-  neutrons.push({
-    x: rx + (Math.random()-0.5)*60,
-    y: ry + (Math.random()-0.5)*80,
-    vx:(Math.random()-0.5)*120,
-    vy:(Math.random()-0.5)*120,
-    life:1, maxLife:0.5+Math.random()*0.5,
-    age:0
-  });
+  var rx=L.RX+L.RW*0.5, ry=L.RY+L.RH*0.5;
+  neutrons.push({x:rx+(Math.random()-0.5)*60,y:ry+(Math.random()-0.5)*80,vx:(Math.random()-0.5)*120,vy:(Math.random()-0.5)*120,life:1,maxLife:0.5+Math.random()*0.5,age:0});
 }
-
-function spawnSteam(x,y,vx,vy,col,size) {
-  steamParts.push({x:x,y:y,vx:vx,vy:vy,col:col,r:size||4,life:1,age:0,maxLife:1.2+Math.random()*0.8});
-}
-
-function spawnElec(x,y) {
-  elecParts.push({
-    x:x, y:y,
-    vx:(Math.random()-0.5)*80,
-    vy:(Math.random()-0.5)*40-20,
-    life:1, age:0, maxLife:0.3+Math.random()*0.3
-  });
-}
-
-function spawnCooling() {
-  var cx2 = L.CTOX + L.CTOYW*0.5;
-  coolTower.push({
-    x: cx2 + (Math.random()-0.5)*L.CTOYW*0.5,
-    y: L.CTOY - 10,
-    vy: -(40+Math.random()*30),
-    vx: (Math.random()-0.5)*15,
-    life:1, age:0, maxLife:1.5+Math.random()
-  });
-}
-
-// flow particles along pipes
-var primaryFlow  = [];  // hot water reactor→SG
-var secondaryFlow= [];  // steam SG→turbine
-var returnFlow   = [];  // cold water back
-
-function spawnFlow(arr, x, y, vx, vy, col) {
-  arr.push({x:x,y:y,vx:vx,vy:vy,col:col,life:1,age:0,maxLife:2+Math.random()});
-}
+function spawnFlow(arr,x,y,vx,vy,col){arr.push({x:x,y:y,vx:vx,vy:vy,col:col,life:1,age:0,maxLife:2+Math.random()});}
+function spawnElec(x,y){elecParts.push({x:x,y:y,vx:(Math.random()-0.5)*80,vy:(Math.random()-0.5)*40-20,life:1,age:0,maxLife:0.3+Math.random()*0.3});}
+function spawnCooling(){var cx2=L.CTOX+L.CTOYW*0.5;coolTower.push({x:cx2+(Math.random()-0.5)*L.CTOYW*0.5,y:L.CTOY-10,vy:-(40+Math.random()*30),vx:(Math.random()-0.5)*15,life:1,age:0,maxLife:1.5+Math.random()});}
 
 // ─── Drawing helpers ──────────────────────────────────────────
 function fillRoundRect(x,y,w,h,r,fill,stroke,lw) {
   ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
   if(fill){ctx.fillStyle=fill;ctx.fill();}
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1.5;ctx.stroke();}
 }
-
-function glowText(x,y,text,col,size,align) {
-  ctx.save();
-  ctx.font=(size||11)+'px Exo 2,sans-serif';
-  ctx.textAlign=align||'center'; ctx.textBaseline='middle';
-  ctx.shadowColor=col; ctx.shadowBlur=8;
-  ctx.fillStyle=col; ctx.fillText(text,x,y);
-  ctx.restore();
-}
-
-function drawPipe(pts, col, lw, dash) {
-  ctx.save();
-  ctx.strokeStyle=col; ctx.lineWidth=lw||6;
-  if(dash) ctx.setLineDash(dash);
-  ctx.lineJoin='round'; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(pts[0],pts[1]);
-  for(var i=2;i<pts.length;i+=2) ctx.lineTo(pts[i],pts[i+1]);
-  ctx.stroke();
-  ctx.restore();
-}
-
+function glowText(x,y,text,col,size,align){ctx.save();ctx.font=(size||11)+'px Exo 2,sans-serif';ctx.textAlign=align||'center';ctx.textBaseline='middle';ctx.shadowColor=col;ctx.shadowBlur=8;ctx.fillStyle=col;ctx.fillText(text,x,y);ctx.restore();}
+function drawPipe(pts,col,lw,dash){ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw||6;if(dash)ctx.setLineDash(dash);ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();ctx.moveTo(pts[0],pts[1]);for(var i=2;i<pts.length;i+=2)ctx.lineTo(pts[i],pts[i+1]);ctx.stroke();ctx.restore();}
 function lerp(a,b,t){return a+(b-a)*t;}
 function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
-function easeIn(t){return t*t*t;}
 
-// ─── Component drawers ────────────────────────────────────────
+// ─── Components ───────────────────────────────────────────────
 function drawReactor(heat) {
   var x=L.RX,y=L.RY,w=L.RW,h=L.RH;
-  // containment dome (top half ellipse)
-  var cx2=x+w/2, cy2=y;
-  ctx.save();
-  ctx.beginPath(); ctx.ellipse(cx2,cy2,w/2,40,0,Math.PI,0);
-  var dg = ctx.createLinearGradient(x,y-40,x,y);
-  dg.addColorStop(0,'#1a3060'); dg.addColorStop(1,'#0e1e40');
-  ctx.fillStyle=dg; ctx.fill();
-  ctx.strokeStyle='#1e4080'; ctx.lineWidth=2; ctx.stroke();
-  ctx.restore();
-
-  // vessel body
-  var vg = ctx.createLinearGradient(x,y,x+w,y);
-  vg.addColorStop(0,'#0a1a30'); vg.addColorStop(0.4,'#0e2244'); vg.addColorStop(1,'#0a1a30');
-  fillRoundRect(x,y,w,h,10,null,null);
-  ctx.fillStyle=vg; ctx.fill();
-  ctx.strokeStyle='#1e4080'; ctx.lineWidth=2; ctx.stroke();
-
-  // core glow (heat-dependent)
-  if(heat>0) {
-    var coreGrad = ctx.createRadialGradient(cx2,y+h*0.5,0,cx2,y+h*0.5,w*0.45);
-    var r255=Math.round(lerp(0,255,Math.min(1,heat*1.5)));
-    var g255=Math.round(lerp(100,200,heat));
-    coreGrad.addColorStop(0,'rgba('+r255+','+g255+',20,'+heat*0.9+')');
-    coreGrad.addColorStop(0.5,'rgba('+r255+','+Math.round(g255*0.5)+',0,'+heat*0.4+')');
-    coreGrad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h);
-    ctx.fillStyle=coreGrad; ctx.fill(); ctx.restore();
-  }
-
-  // fuel rods
-  for(var i=0;i<7;i++) {
-    var fx=x+25+i*17, rodHeat=heat;
-    var rc='rgba('+Math.round(lerp(60,255,rodHeat))+','+Math.round(lerp(180,100,rodHeat))+',40,0.9)';
-    fillRoundRect(fx,y+60,8,h-120,3,rc,'rgba(255,255,255,0.2)',0.5);
-  }
-
-  // control rods (withdrawn when running)
-  var rodY = heat>0 ? y+10 : y+80;
-  for(var j=0;j<6;j++) {
-    var crx = x+30+j*19;
-    fillRoundRect(crx,rodY,6,heat>0?30:100,2,'#334466','#4466aa',0.8);
-  }
-
-  // pressure vessel label
+  var cx2=x+w/2;
+  ctx.save();ctx.beginPath();ctx.ellipse(cx2,y,w/2,40,0,Math.PI,0);
+  var dg=ctx.createLinearGradient(x,y-40,x,y);dg.addColorStop(0,'#1a3060');dg.addColorStop(1,'#0e1e40');
+  ctx.fillStyle=dg;ctx.fill();ctx.strokeStyle='#1e4080';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+  var vg=ctx.createLinearGradient(x,y,x+w,y);vg.addColorStop(0,'#0a1a30');vg.addColorStop(0.4,'#0e2244');vg.addColorStop(1,'#0a1a30');
+  fillRoundRect(x,y,w,h,10,null,null);ctx.fillStyle=vg;ctx.fill();ctx.strokeStyle='#1e4080';ctx.lineWidth=2;ctx.stroke();
+  if(heat>0){var coreGrad=ctx.createRadialGradient(cx2,y+h*0.5,0,cx2,y+h*0.5,w*0.45);var r255=Math.round(lerp(0,255,Math.min(1,heat*1.5)));var g255=Math.round(lerp(100,200,heat));coreGrad.addColorStop(0,'rgba('+r255+','+g255+',20,'+heat*0.9+')');coreGrad.addColorStop(0.5,'rgba('+r255+','+Math.round(g255*0.5)+',0,'+heat*0.4+')');coreGrad.addColorStop(1,'rgba(0,0,0,0)');ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.fillStyle=coreGrad;ctx.fill();ctx.restore();}
+  for(var i=0;i<7;i++){var fx=x+25+i*17,rodHeat=heat;var rc='rgba('+Math.round(lerp(60,255,rodHeat))+','+Math.round(lerp(180,100,rodHeat))+',40,0.9)';fillRoundRect(fx,y+60,8,h-120,3,rc,'rgba(255,255,255,0.2)',0.5);}
+  var rodY=heat>0?y+10:y+80;
+  for(var j=0;j<6;j++){var crx=x+30+j*19;fillRoundRect(crx,rodY,6,heat>0?30:100,2,'#334466','#4466aa',0.8);}
   glowText(cx2,y+h+16,'REACTOR VESSEL',heat>0?'#00b4ff':'#334466',9);
   glowText(cx2,y+h+28,'(PWR Core)',heat>0?'#4488aa':'#223344',8);
-
-  // water level indicator
-  ctx.save();
-  ctx.strokeStyle='rgba(0,180,255,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(x+8,y+h-60); ctx.lineTo(x+w-8,y+h-60); ctx.stroke();
-  ctx.restore();
+  ctx.save();ctx.strokeStyle='rgba(0,180,255,0.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x+8,y+h-60);ctx.lineTo(x+w-8,y+h-60);ctx.stroke();ctx.restore();
 }
 
 function drawSteamGenerator(heat) {
   var x=L.SGX,y=L.SGY,w=L.SGW,h=L.SGH;
-  var cg = ctx.createLinearGradient(x,y,x+w,y);
-  cg.addColorStop(0,'#0a1828'); cg.addColorStop(0.5,'#0d2038'); cg.addColorStop(1,'#0a1828');
-  fillRoundRect(x,y,w,h,8,null,null);
-  ctx.fillStyle=cg; ctx.fill();
-  ctx.strokeStyle='#1a3a60'; ctx.lineWidth=2; ctx.stroke();
-
-  // U-tube heat exchanger pattern
-  if(heat>0.2) {
-    ctx.save(); ctx.strokeStyle='rgba(255,123,0,'+(heat*0.6)+')'; ctx.lineWidth=2;
-    for(var ti=0;ti<5;ti++) {
-      var ty2=y+60+ti*30;
-      ctx.beginPath(); ctx.moveTo(x+15,ty2); ctx.lineTo(x+w-15,ty2); ctx.stroke();
-      if(ti<4){
-        var side=ti%2===0?x+w-15:x+15;
-        ctx.beginPath(); ctx.arc(side,ty2+15,15,ti%2===0?-Math.PI/2:Math.PI/2*3,ti%2===0?Math.PI/2:Math.PI/2,ti%2===0); ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-
-  // steam top
-  if(heat>0.4) {
-    var sg2=ctx.createLinearGradient(x,y,x,y+40);
-    sg2.addColorStop(0,'rgba(160,210,255,'+heat*0.3+')');
-    sg2.addColorStop(1,'rgba(160,210,255,0)');
-    fillRoundRect(x,y,w,40,8,null,null); ctx.fillStyle=sg2; ctx.fill();
-  }
-
+  var cg=ctx.createLinearGradient(x,y,x+w,y);cg.addColorStop(0,'#0a1828');cg.addColorStop(0.5,'#0d2038');cg.addColorStop(1,'#0a1828');
+  fillRoundRect(x,y,w,h,8,null,null);ctx.fillStyle=cg;ctx.fill();ctx.strokeStyle='#1a3a60';ctx.lineWidth=2;ctx.stroke();
+  if(heat>0.2){ctx.save();ctx.strokeStyle='rgba(255,123,0,'+(heat*0.6)+')';ctx.lineWidth=2;for(var ti=0;ti<5;ti++){var ty2=y+60+ti*30;ctx.beginPath();ctx.moveTo(x+15,ty2);ctx.lineTo(x+w-15,ty2);ctx.stroke();if(ti<4){var side=ti%2===0?x+w-15:x+15;ctx.beginPath();ctx.arc(side,ty2+15,15,ti%2===0?-Math.PI/2:Math.PI/2*3,ti%2===0?Math.PI/2:Math.PI/2,ti%2===0);ctx.stroke();}}ctx.restore();}
+  if(heat>0.4){var sg2=ctx.createLinearGradient(x,y,x,y+40);sg2.addColorStop(0,'rgba(160,210,255,'+(heat*0.3)+')');sg2.addColorStop(1,'rgba(160,210,255,0)');fillRoundRect(x,y,w,40,8,null,null);ctx.fillStyle=sg2;ctx.fill();}
   glowText(x+w/2,y+h+16,'STEAM',heat>0.3?'#aaddff':'#334466',9);
   glowText(x+w/2,y+h+28,'GENERATOR',heat>0.3?'#7aacc0':'#223344',8);
 }
 
 function drawTurbine(speed) {
   var x=L.TX,y=L.TY,w=L.TW,h=L.TH;
-  // casing
-  var tg=ctx.createLinearGradient(x,y,x,y+h);
-  tg.addColorStop(0,'#0d1e2e'); tg.addColorStop(1,'#0a1520');
-  fillRoundRect(x,y,w,h,6,null,null); ctx.fillStyle=tg; ctx.fill();
-  ctx.strokeStyle='#1e3a5a'; ctx.lineWidth=2; ctx.stroke();
-
-  // turbine blades (rotating disc)
-  var cx2=x+w*0.45, cy2=y+h*0.5;
-  var ang = globalT*speed*(speed>0?8:0);
-  ctx.save();
-  ctx.translate(cx2,cy2);
-  for(var b=0;b<8;b++) {
-    ctx.save();
-    ctx.rotate(ang+b*Math.PI/4);
-    var bladeGrad=ctx.createLinearGradient(0,0,35,0);
-    bladeGrad.addColorStop(0,'#2244aa');
-    bladeGrad.addColorStop(1,'rgba(50,100,200,0.2)');
-    ctx.fillStyle=speed>0?bladeGrad:'#1a2840';
-    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(35,-5); ctx.lineTo(38,0); ctx.lineTo(35,5); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-  // hub
-  ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2);
-  ctx.fillStyle=speed>0?'#4488ff':'#223344'; ctx.fill();
-  ctx.strokeStyle='#6699ff'; ctx.lineWidth=1; ctx.stroke();
-  ctx.restore();
-
-  // shaft line
-  ctx.save(); ctx.strokeStyle=speed>0?'rgba(68,136,255,0.6)':'rgba(34,68,120,0.4)'; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(x+w*0.45,cy2); ctx.lineTo(x+w,cy2); ctx.stroke();
-  ctx.restore();
-
+  var tg=ctx.createLinearGradient(x,y,x,y+h);tg.addColorStop(0,'#0d1e2e');tg.addColorStop(1,'#0a1520');
+  fillRoundRect(x,y,w,h,6,null,null);ctx.fillStyle=tg;ctx.fill();ctx.strokeStyle='#1e3a5a';ctx.lineWidth=2;ctx.stroke();
+  var cx2=x+w*0.45,cy2=y+h*0.5,ang=globalT*speed*(speed>0?8:0);
+  ctx.save();ctx.translate(cx2,cy2);
+  for(var b=0;b<8;b++){ctx.save();ctx.rotate(ang+b*Math.PI/4);var bladeGrad=ctx.createLinearGradient(0,0,35,0);bladeGrad.addColorStop(0,'#2244aa');bladeGrad.addColorStop(1,'rgba(50,100,200,0.2)');ctx.fillStyle=speed>0?bladeGrad:'#1a2840';ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(35,-5);ctx.lineTo(38,0);ctx.lineTo(35,5);ctx.closePath();ctx.fill();ctx.restore();}
+  ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fillStyle=speed>0?'#4488ff':'#223344';ctx.fill();ctx.strokeStyle='#6699ff';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  ctx.save();ctx.strokeStyle=speed>0?'rgba(68,136,255,0.6)':'rgba(34,68,120,0.4)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x+w*0.45,cy2);ctx.lineTo(x+w,cy2);ctx.stroke();ctx.restore();
   glowText(x+w/2,y+h+16,'STEAM',speed>0?'#4488ff':'#334466',9);
   glowText(x+w/2,y+h+28,'TURBINE',speed>0?'#3366cc':'#223344',8);
 }
 
 function drawGenerator(rpm) {
   var x=L.GX,y=L.GY,w=L.GW,h=L.GH;
-  // body
-  var gg=ctx.createLinearGradient(x,y,x+w,y+h);
-  gg.addColorStop(0,'#0d1a2a'); gg.addColorStop(1,'#081218');
-  fillRoundRect(x,y,w,h,6,null,null); ctx.fillStyle=gg; ctx.fill();
-  ctx.strokeStyle=rpm>0?'rgba(255,228,77,0.5)':'#1a2a3a'; ctx.lineWidth=2; ctx.stroke();
-
-  // rotor spinning
-  var cx2=x+w*0.4, cy2=y+h*0.5;
-  var ang2=globalT*rpm*(rpm>0?6:0);
-  ctx.save(); ctx.translate(cx2,cy2);
-  for(var m=0;m<6;m++) {
-    ctx.save(); ctx.rotate(ang2+m*Math.PI/3);
-    ctx.fillStyle=rpm>0?'rgba(255,220,50,'+(0.3+0.4*rpm)+')':'#1e2e3e';
-    ctx.beginPath(); ctx.rect(6,-3,22,6); ctx.fill();
-    ctx.restore();
-  }
-  ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2);
-  ctx.fillStyle=rpm>0?'#ffcc00':'#1e3040'; ctx.fill();
-  ctx.restore();
-
-  // magnetic field lines
-  if(rpm>0.3) {
-    ctx.save(); ctx.strokeStyle='rgba(255,228,77,'+(rpm*0.4)+')'; ctx.lineWidth=1;
-    for(var fl=0;fl<5;fl++) {
-      var fy=y+20+fl*(h-40)/4;
-      ctx.beginPath();
-      ctx.moveTo(x+5,fy);
-      ctx.bezierCurveTo(x+w*0.3,fy-15*Math.sin(globalT*2+fl),x+w*0.7,fy+15*Math.sin(globalT*2+fl),x+w-5,fy);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  // output terminals
-  ctx.save();
-  ctx.fillStyle=rpm>0?'#ffcc00':'#334455';
-  ctx.beginPath(); ctx.arc(x+w-5,cy2-20,5,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+w-5,cy2+20,5,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-
+  var gg=ctx.createLinearGradient(x,y,x+w,y+h);gg.addColorStop(0,'#0d1a2a');gg.addColorStop(1,'#081218');
+  fillRoundRect(x,y,w,h,6,null,null);ctx.fillStyle=gg;ctx.fill();ctx.strokeStyle=rpm>0?'rgba(255,228,77,0.5)':'#1a2a3a';ctx.lineWidth=2;ctx.stroke();
+  var cx2=x+w*0.4,cy2=y+h*0.5,ang2=globalT*rpm*(rpm>0?6:0);
+  ctx.save();ctx.translate(cx2,cy2);
+  for(var m=0;m<6;m++){ctx.save();ctx.rotate(ang2+m*Math.PI/3);ctx.fillStyle=rpm>0?'rgba(255,220,50,'+(0.3+0.4*rpm)+')':'#1e2e3e';ctx.beginPath();ctx.rect(6,-3,22,6);ctx.fill();ctx.restore();}
+  ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fillStyle=rpm>0?'#ffcc00':'#1e3040';ctx.fill();ctx.restore();
+  if(rpm>0.3){ctx.save();ctx.strokeStyle='rgba(255,228,77,'+(rpm*0.4)+')';ctx.lineWidth=1;for(var fl=0;fl<5;fl++){var fy=y+20+fl*(h-40)/4;ctx.beginPath();ctx.moveTo(x+5,fy);ctx.bezierCurveTo(x+w*0.3,fy-15*Math.sin(globalT*2+fl),x+w*0.7,fy+15*Math.sin(globalT*2+fl),x+w-5,fy);ctx.stroke();}ctx.restore();}
+  ctx.save();ctx.fillStyle=rpm>0?'#ffcc00':'#334455';ctx.beginPath();ctx.arc(x+w-5,cy2-20,5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+w-5,cy2+20,5,0,Math.PI*2);ctx.fill();ctx.restore();
   glowText(x+w/2,y+h+16,'GENERATOR',rpm>0?'#ffe44d':'#334466',9);
   glowText(x+w/2,y+h+28,'(AC ~20kV)',rpm>0?'#ccaa30':'#223344',8);
 }
@@ -475,37 +493,15 @@ function drawGenerator(rpm) {
 function drawTransformer(power) {
   var x=L.TRX,y=L.TRY,w=L.TRW,h=L.TRH;
   fillRoundRect(x,y,w,h,4,'#080e18','#0e2040',2);
-  if(power>0) {
-    var tg2=ctx.createLinearGradient(x,y,x,y+h);
-    tg2.addColorStop(0,'rgba(255,228,77,'+(power*0.3)+')');
-    tg2.addColorStop(1,'rgba(255,100,0,'+(power*0.2)+')');
-    fillRoundRect(x+2,y+2,w-4,h-4,3,null,null); ctx.fillStyle=tg2; ctx.fill();
-  }
-  // coil symbol
-  for(var ci=0;ci<5;ci++) {
-    var cy2b=y+20+ci*16;
-    ctx.save(); ctx.strokeStyle=power>0?'rgba(255,220,100,0.7)':'rgba(30,60,80,0.7)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(x+w/2,cy2b,8,Math.PI,0); ctx.stroke();
-    ctx.restore();
-  }
+  if(power>0){var tg2=ctx.createLinearGradient(x,y,x,y+h);tg2.addColorStop(0,'rgba(255,228,77,'+(power*0.3)+')');tg2.addColorStop(1,'rgba(255,100,0,'+(power*0.2)+')');fillRoundRect(x+2,y+2,w-4,h-4,3,null,null);ctx.fillStyle=tg2;ctx.fill();}
+  for(var ci=0;ci<5;ci++){var cy2b=y+20+ci*16;ctx.save();ctx.strokeStyle=power>0?'rgba(255,220,100,0.7)':'rgba(30,60,80,0.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+w/2,cy2b,8,Math.PI,0);ctx.stroke();ctx.restore();}
   glowText(x+w/2,y+h+16,'STEP-UP',power>0?'#ffe44d':'#334466',9);
   glowText(x+w/2,y+h+28,'XFMR 400kV',power>0?'#ccaa30':'#223344',8);
 }
 
 function drawCoolingTower(heat) {
-  var x=L.CTOX, y=L.CTOY;
-  var bw=L.CTOYW, th=L.CTOH;
-  // hyperboloid silhouette
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(x,y+th);
-  ctx.bezierCurveTo(x+bw*0.15,y+th*0.5, x+bw*0.3,y+th*0.3, x+bw*0.35,y+10);
-  ctx.lineTo(x+bw*0.65,y+10);
-  ctx.bezierCurveTo(x+bw*0.7,y+th*0.3, x+bw*0.85,y+th*0.5, x+bw,y+th);
-  ctx.closePath();
-  ctx.fillStyle='#0a1520'; ctx.fill();
-  ctx.strokeStyle=heat>0?'#1e3a5a':'#0e1e30'; ctx.lineWidth=2; ctx.stroke();
-  ctx.restore();
+  var x=L.CTOX,y=L.CTOY,bw=L.CTOYW,th=L.CTOH;
+  ctx.save();ctx.beginPath();ctx.moveTo(x,y+th);ctx.bezierCurveTo(x+bw*0.15,y+th*0.5,x+bw*0.3,y+th*0.3,x+bw*0.35,y+10);ctx.lineTo(x+bw*0.65,y+10);ctx.bezierCurveTo(x+bw*0.7,y+th*0.3,x+bw*0.85,y+th*0.5,x+bw,y+th);ctx.closePath();ctx.fillStyle='#0a1520';ctx.fill();ctx.strokeStyle=heat>0?'#1e3a5a':'#0e1e30';ctx.lineWidth=2;ctx.stroke();ctx.restore();
   glowText(x+bw*0.5,y+th+16,'COOLING',heat>0?'#aaddff':'#334466',9);
   glowText(x+bw*0.5,y+th+28,'TOWER',heat>0?'#7aacc0':'#223344',8);
 }
@@ -513,264 +509,140 @@ function drawCoolingTower(heat) {
 function drawCondenser(flow) {
   var x=L.CX,y=L.CY,w=L.CW,h=L.CH;
   fillRoundRect(x,y,w,h,5,'#080e18','#0e2040',1.5);
-  if(flow>0) {
-    // water lines inside
-    for(var wi=0;wi<4;wi++) {
-      var wy2=y+15+wi*18;
-      ctx.save(); ctx.strokeStyle='rgba(0,180,255,'+(flow*0.5)+')'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(x+10,wy2); ctx.lineTo(x+w-10,wy2); ctx.stroke();
-      ctx.restore();
-    }
-  }
+  if(flow>0){for(var wi=0;wi<4;wi++){var wy2=y+15+wi*18;ctx.save();ctx.strokeStyle='rgba(0,180,255,'+(flow*0.5)+')';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+10,wy2);ctx.lineTo(x+w-10,wy2);ctx.stroke();ctx.restore();}}
   glowText(x+w/2,y+h+16,'CONDENSER',flow>0?'#4488cc':'#334466',9);
   glowText(x+w/2,y+h+28,'(Steam→Water)',flow>0?'#3366aa':'#223344',8);
 }
 
-// ─── Pipe network ─────────────────────────────────────────────
+// ─── Pipes ────────────────────────────────────────────────────
 function drawPipes(heat,turbSpd,gen) {
-  // PRIMARY LOOP: reactor → steam generator (hot, orange)
   var alpha1=clamp(heat,0,1);
-  // hot leg: reactor right → SG left (at mid height)
-  var rRight=L.RX+L.RW, rMid=L.RY+L.RH*0.4;
-  var sgLeft=L.SGX, sgMid=L.SGY+L.SGH*0.3;
-  drawPipe([rRight,rMid, rRight+15,rMid, rRight+15,sgMid, sgLeft,sgMid],
-    'rgba(255,123,0,'+alpha1*0.8+')',6);
-  // cold leg: SG bottom → reactor bottom
-  var sgBot=L.SGX+L.SGW*0.5, sgBotY=L.SGY+L.SGH;
-  var rxBot=L.RX+L.RW*0.5, rxBotY=L.RY+L.RH;
-  drawPipe([sgBot,sgBotY, sgBot,sgBotY+30, rxBot,sgBotY+30, rxBot,rxBotY],
-    'rgba(0,180,255,'+alpha1*0.6+')',6);
-
-  // SECONDARY LOOP: SG top → turbine (steam, light blue)
+  var rRight=L.RX+L.RW,rMid=L.RY+L.RH*0.4,sgLeft=L.SGX,sgMid=L.SGY+L.SGH*0.3;
+  drawPipe([rRight,rMid,rRight+15,rMid,rRight+15,sgMid,sgLeft,sgMid],'rgba(255,123,0,'+alpha1*0.8+')',6);
+  var sgBot=L.SGX+L.SGW*0.5,sgBotY=L.SGY+L.SGH,rxBot=L.RX+L.RW*0.5,rxBotY=L.RY+L.RH;
+  drawPipe([sgBot,sgBotY,sgBot,sgBotY+30,rxBot,sgBotY+30,rxBot,rxBotY],'rgba(0,180,255,'+alpha1*0.6+')',6);
   var alpha2=clamp((heat-0.3)/0.7,0,1);
-  var sgTop=L.SGX+L.SGW*0.5, sgTopY=L.SGY;
-  var tLeft=L.TX, tMid=L.TY+L.TH*0.5;
-  drawPipe([sgTop,sgTopY, sgTop,sgTopY-30, tLeft-5,sgTopY-30, tLeft-5,tMid, tLeft,tMid],
-    'rgba(160,220,255,'+alpha2*0.8+')',5);
-
-  // turbine → condenser (exhaust steam)
+  var sgTop=L.SGX+L.SGW*0.5,sgTopY=L.SGY,tLeft=L.TX,tMid=L.TY+L.TH*0.5;
+  drawPipe([sgTop,sgTopY,sgTop,sgTopY-30,tLeft-5,sgTopY-30,tLeft-5,tMid,tLeft,tMid],'rgba(160,220,255,'+alpha2*0.8+')',5);
   var alpha3=clamp((turbSpd-0.2)/0.8,0,1);
-  var tBot=L.TX+L.TW*0.5, tBotY=L.TY+L.TH;
-  var condTop=L.CX+L.CW*0.5, condTopY=L.CY;
-  drawPipe([tBot,tBotY, tBot,condTopY, condTop,condTopY],
-    'rgba(100,180,220,'+alpha3*0.6+')',4);
-
-  // condenser → SG (feedwater return)
-  var condBot=L.CX+L.CW*0.3, condBotY=L.CY+L.CH;
-  drawPipe([condBot,condBotY, condBot,condBotY+25, sgBot-20,condBotY+25, sgBot-20,sgBotY],
-    'rgba(0,140,220,'+alpha3*0.5+')',4);
-
-  // turbine shaft → generator
+  var tBot=L.TX+L.TW*0.5,tBotY=L.TY+L.TH,condTop=L.CX+L.CW*0.5,condTopY=L.CY;
+  drawPipe([tBot,tBotY,tBot,condTopY,condTop,condTopY],'rgba(100,180,220,'+alpha3*0.6+')',4);
+  var condBot=L.CX+L.CW*0.3,condBotY=L.CY+L.CH;
+  drawPipe([condBot,condBotY,condBot,condBotY+25,sgBot-20,condBotY+25,sgBot-20,sgBotY],'rgba(0,140,220,'+alpha3*0.5+')',4);
   var alpha4=clamp((gen-0.1)/0.9,0,1);
-  var tRight=L.TX+L.TW, tShaft=L.TY+L.TH*0.5;
-  var gLeft=L.GX, gShaft=L.GY+L.GH*0.5;
-  drawPipe([tRight,tShaft, gLeft,gShaft],
-    'rgba(68,136,255,'+alpha4*0.9+')',8);
-
-  // generator → transformer (electric line)
+  var tRight=L.TX+L.TW,tShaft=L.TY+L.TH*0.5,gLeft=L.GX,gShaft=L.GY+L.GH*0.5;
+  drawPipe([tRight,tShaft,gLeft,gShaft],'rgba(68,136,255,'+alpha4*0.9+')',8);
   var alpha5=clamp((gen-0.3)/0.7,0,1);
-  var gRight=L.GX+L.GW, gElec=L.GY+L.GH*0.5;
-  var trLeft=L.TRX, trMid=L.TRY+L.TRH*0.5;
-  drawPipe([gRight,gElec, gRight+10,gElec, gRight+10,trMid, trLeft,trMid],
-    'rgba(255,228,77,'+alpha5*0.9+')',4);
-
-  // transformer → grid (high voltage line)
-  if(alpha5>0.3) {
-    var trRight=L.TRX+L.TRW;
-    ctx.save();
-    ctx.strokeStyle='rgba(255,200,50,'+alpha5+')';
-    ctx.lineWidth=2; ctx.setLineDash([8,4]);
-    ctx.beginPath(); ctx.moveTo(trRight,trMid); ctx.lineTo(trRight+40,trMid);
-    ctx.stroke(); ctx.setLineDash([]);
-    // lightning bolt icon
-    glowText(trRight+50,trMid,'⚡ GRID','#ffe44d',14);
-    ctx.restore();
-  }
-
-  // cooling tower water pipes
+  var gRight=L.GX+L.GW,gElec=L.GY+L.GH*0.5,trLeft=L.TRX,trMid=L.TRY+L.TRH*0.5;
+  drawPipe([gRight,gElec,gRight+10,gElec,gRight+10,trMid,trLeft,trMid],'rgba(255,228,77,'+alpha5*0.9+')',4);
+  if(alpha5>0.3){var trRight=L.TRX+L.TRW;ctx.save();ctx.strokeStyle='rgba(255,200,50,'+alpha5+')';ctx.lineWidth=2;ctx.setLineDash([8,4]);ctx.beginPath();ctx.moveTo(trRight,trMid);ctx.lineTo(trRight+40,trMid);ctx.stroke();ctx.setLineDash([]);glowText(trRight+50,trMid,'⚡ GRID','#ffe44d',14);ctx.restore();}
   var alpha6=clamp((heat-0.4)/0.6,0,1);
-  var ctBot=L.CTOX+L.CTOYW*0.5, ctBotY=L.CTOY+L.CTOH;
-  var condRight=L.CX+L.CW, condMid=L.CY+L.CH*0.5;
-  drawPipe([condRight,condMid, condRight+20,condMid, condRight+20,ctBotY+10, ctBot,ctBotY+10, ctBot,ctBotY],
-    'rgba(0,200,220,'+alpha6*0.5+')',3);
+  var ctBot=L.CTOX+L.CTOYW*0.5,ctBotY=L.CTOY+L.CTOH,condRight=L.CX+L.CW,condMid=L.CY+L.CH*0.5;
+  drawPipe([condRight,condMid,condRight+20,condMid,condRight+20,ctBotY+10,ctBot,ctBotY+10,ctBot,ctBotY],'rgba(0,200,220,'+alpha6*0.5+')',3);
 }
 
-// ─── Update particles ─────────────────────────────────────────
+// ─── Particles ────────────────────────────────────────────────
 function updateParticles(dt) {
-  // neutrons inside reactor
-  if(reactorHeat>0.1 && Math.random()<reactorHeat*0.4) spawnNeutron();
-  neutrons = neutrons.filter(function(p){
-    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    // bounce inside reactor
-    var rx=L.RX,ry=L.RY,rw=L.RW,rh=L.RH;
-    if(p.x<rx+10||p.x>rx+rw-10) p.vx*=-1;
-    if(p.y<ry+40||p.y>ry+rh-20) p.vy*=-1;
-    return p.age < p.maxLife;
-  });
-
-  // primary loop hot water flow (orange dots)
-  if(reactorHeat>0.2 && Math.random()<reactorHeat*0.3) {
-    var rRight=L.RX+L.RW, rMid=L.RY+L.RH*0.4;
-    spawnFlow(primaryFlow, rRight, rMid, 80, 0, 'rgba(255,140,0,0.9)');
-  }
-  primaryFlow = primaryFlow.filter(function(p){
-    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    // crude waypoint: steer toward SG
-    var sgMid=L.SGY+L.SGH*0.3;
-    if(p.x > L.RX+L.RW+15) { p.vx=0; p.vy=(sgMid>p.y?1:-1)*60; }
-    if(Math.abs(p.y-sgMid)<5 && p.x < L.SGX) p.vy=0;
-    return p.age<p.maxLife && p.x<L.SGX+5;
-  });
-
-  // steam flow SG→turbine
-  if(coolantFlow>0.3 && Math.random()<coolantFlow*0.25) {
-    var sgTopY=L.SGY-30, sgTopX=L.SGX+L.SGW*0.5;
-    spawnFlow(secondaryFlow, sgTopX, sgTopY, 0,-1,'rgba(180,230,255,0.8)');
-  }
-  secondaryFlow = secondaryFlow.filter(function(p){
-    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    var tMid=L.TY+L.TH*0.5;
-    if(p.y < L.SGY-30) { p.vy=0; p.vx=80; }
-    if(p.x > L.TX-10) p.vx=0;
-    return p.age<p.maxLife && !(p.x>=L.TX && p.vx===0);
-  });
-
-  // electricity sparks on generator wires
-  if(generatorRPM>0.4 && Math.random()<generatorRPM*0.3) {
-    var gRight=L.GX+L.GW, gElec=L.GY+L.GH*0.5;
-    spawnElec(gRight+Math.random()*((L.TRX-gRight)), gElec+(Math.random()-0.5)*10);
-  }
-  elecParts = elecParts.filter(function(p){
-    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; return p.age<p.maxLife;
-  });
-
-  // cooling tower vapour
-  if(coolantFlow>0.5 && Math.random()<coolantFlow*0.2) spawnCooling();
-  coolTower = coolTower.filter(function(p){
-    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    p.vy*=0.99; p.vx+=(Math.random()-0.5)*5*dt;
-    return p.age<p.maxLife;
-  });
+  if(reactorHeat>0.1&&Math.random()<reactorHeat*0.4) spawnNeutron();
+  neutrons=neutrons.filter(function(p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;var rx=L.RX,ry=L.RY,rw=L.RW,rh=L.RH;if(p.x<rx+10||p.x>rx+rw-10)p.vx*=-1;if(p.y<ry+40||p.y>ry+rh-20)p.vy*=-1;return p.age<p.maxLife;});
+  if(reactorHeat>0.2&&Math.random()<reactorHeat*0.3){var rRight=L.RX+L.RW,rMid=L.RY+L.RH*0.4;spawnFlow(primaryFlow,rRight,rMid,80,0,'rgba(255,140,0,0.9)');}
+  primaryFlow=primaryFlow.filter(function(p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;var sgMid=L.SGY+L.SGH*0.3;if(p.x>L.RX+L.RW+15){p.vx=0;p.vy=(sgMid>p.y?1:-1)*60;}if(Math.abs(p.y-sgMid)<5&&p.x<L.SGX)p.vy=0;return p.age<p.maxLife&&p.x<L.SGX+5;});
+  if(coolantFlow>0.3&&Math.random()<coolantFlow*0.25){var sgTopY=L.SGY-30,sgTopX=L.SGX+L.SGW*0.5;spawnFlow(secondaryFlow,sgTopX,sgTopY,0,-1,'rgba(180,230,255,0.8)');}
+  secondaryFlow=secondaryFlow.filter(function(p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.y<L.SGY-30){p.vy=0;p.vx=80;}if(p.x>L.TX-10)p.vx=0;return p.age<p.maxLife&&!(p.x>=L.TX&&p.vx===0);});
+  if(generatorRPM>0.4&&Math.random()<generatorRPM*0.3){var gRight=L.GX+L.GW,gElec=L.GY+L.GH*0.5;spawnElec(gRight+Math.random()*((L.TRX-gRight)),gElec+(Math.random()-0.5)*10);}
+  elecParts=elecParts.filter(function(p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.age<p.maxLife;});
+  if(coolantFlow>0.5&&Math.random()<coolantFlow*0.2) spawnCooling();
+  coolTower=coolTower.filter(function(p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy*=0.99;p.vx+=(Math.random()-0.5)*5*dt;return p.age<p.maxLife;});
 }
 
-// ─── Draw particles ───────────────────────────────────────────
 function drawParticles() {
-  // neutrons
-  neutrons.forEach(function(p) {
-    var a=1-p.age/p.maxLife;
-    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
-    ctx.fillStyle='rgba(200,245,160,'+a+')'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2);
-    ctx.fillStyle='rgba(100,200,80,'+(a*0.3)+')'; ctx.fill();
-  });
+  neutrons.forEach(function(p){var a=1-p.age/p.maxLife;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='rgba(200,245,160,'+a+')';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fillStyle='rgba(100,200,80,'+(a*0.3)+')';ctx.fill();});
+  primaryFlow.forEach(function(p){var a=Math.min(1,(1-p.age/p.maxLife)*3);ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle='rgba(255,140,0,'+a+')';ctx.fill();});
+  secondaryFlow.forEach(function(p){var a=Math.min(1,(1-p.age/p.maxLife)*3);ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='rgba(160,220,255,'+a+')';ctx.fill();});
+  elecParts.forEach(function(p){var a=1-p.age/p.maxLife;ctx.save();ctx.strokeStyle='rgba(255,230,80,'+a+')';ctx.lineWidth=1.5;ctx.shadowColor='#ffe44d';ctx.shadowBlur=6;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+(Math.random()-0.5)*12,p.y+(Math.random()-0.5)*12);ctx.stroke();ctx.restore();});
+  coolTower.forEach(function(p){var a=(1-p.age/p.maxLife)*0.5;var r=3+p.age*8;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle='rgba(180,220,240,'+a+')';ctx.fill();});
+}
 
-  // primary flow (orange)
-  primaryFlow.forEach(function(p) {
-    var a=Math.min(1,(1-p.age/p.maxLife)*3);
-    ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,140,0,'+a+')'; ctx.fill();
-  });
+// ─── Step Panel Update ────────────────────────────────────────
+function updateStepPanel() {
+  // Determine which steps are active based on animated values
+  // Step 0: fission (phase>=1)
+  // Step 1: heat generation (reactorHeat>0.15)
+  // Step 2: primary loop (reactorHeat>0.25)
+  // Step 3: steam production (coolantFlow>0.2)
+  // Step 4: turbine (turbineSpeed>0.1)
+  // Step 5: generator (generatorRPM>0.1)
+  // Step 6: grid (gridPower>0.1)
 
-  // secondary flow (steam blue)
-  secondaryFlow.forEach(function(p) {
-    var a=Math.min(1,(1-p.age/p.maxLife)*3);
-    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
-    ctx.fillStyle='rgba(160,220,255,'+a+')'; ctx.fill();
-  });
+  var thresholds = [
+    running && phase>=1,
+    reactorHeat>0.15,
+    reactorHeat>0.25,
+    coolantFlow>0.2,
+    turbineSpeed>0.1,
+    generatorRPM>0.1,
+    gridPower>0.1
+  ];
 
-  // electricity sparks
-  elecParts.forEach(function(p) {
-    var a=1-p.age/p.maxLife;
-    ctx.save(); ctx.strokeStyle='rgba(255,230,80,'+a+')'; ctx.lineWidth=1.5;
-    ctx.shadowColor='#ffe44d'; ctx.shadowBlur=6;
-    ctx.beginPath();
-    ctx.moveTo(p.x,p.y);
-    ctx.lineTo(p.x+(Math.random()-0.5)*12,p.y+(Math.random()-0.5)*12);
-    ctx.stroke(); ctx.restore();
-  });
+  // find the LAST true step = currently "active"
+  var activeStep = -1;
+  for(var i=0;i<thresholds.length;i++){if(thresholds[i])activeStep=i;}
 
-  // cooling tower vapour
-  coolTower.forEach(function(p) {
-    var a=(1-p.age/p.maxLife)*0.5;
-    var r=3+p.age*8;
-    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
-    ctx.fillStyle='rgba(180,220,240,'+a+')'; ctx.fill();
+  STEPS.forEach(function(s,i){
+    var card = document.getElementById('step-'+i);
+    var dot  = document.getElementById('dot-'+i);
+    if(!card||!dot) return;
+    if(i<activeStep){
+      card.className='step-card done';
+      dot.className='step-dot done';
+    } else if(i===activeStep){
+      card.className='step-card active';
+      dot.className='step-dot active';
+    } else {
+      card.className='step-card';
+      dot.className='step-dot';
+    }
   });
 }
 
 // ─── UI update ────────────────────────────────────────────────
 function updatePhaseAndUI() {
-  var oldPhase = phase;
   if(!running) return;
-
-  // phase transitions based on animated values
-  if(reactorHeat  <0.05) phase=1;
-  else if(reactorHeat <0.5)  phase=2;
-  else if(coolantFlow <0.4)  phase=3;
-  else if(turbineSpeed<0.4)  phase=4;
-  else if(generatorRPM<0.4)  phase=5;
-  else if(gridPower   <0.5)  phase=6;
-  else                       phase=7;
-
+  var oldPhase=phase;
+  if(reactorHeat<0.05) phase=1;
+  else if(reactorHeat<0.5) phase=2;
+  else if(coolantFlow<0.4) phase=3;
+  else if(turbineSpeed<0.4) phase=4;
+  else if(generatorRPM<0.4) phase=5;
+  else if(gridPower<0.5) phase=6;
+  else phase=7;
   if(phase!==oldPhase) procDescEl.textContent=PHASE_DESC[phase];
-
-  var mw  = Math.round(gridPower*1000);
-  var eff = gridPower>0 ? Math.round(33*gridPower) : 0;
-  mwDisplayEl.textContent  = mw  + ' MW';
-  effDisplayEl.textContent = eff + '%';
+  var mw=Math.round(gridPower*1000);
+  var eff=gridPower>0?Math.round(33*gridPower):0;
+  mwDisplayEl.textContent=mw+' MW';
+  effDisplayEl.textContent=eff+'%';
+  updateStepPanel();
 }
 
-// ─── Labels overlay ───────────────────────────────────────────
+// ─── Labels ───────────────────────────────────────────────────
 function drawLabels() {
-  // component arrows/labels handled in individual draw fns
-  // process flow labels
-  if(reactorHeat>0.15) {
-    glowText(L.RX+L.RW+8, L.RY+L.RH*0.4-12,'HOT','rgba(255,140,0,0.8)',8,'left');
-    glowText(L.RX+L.RW+8, L.RY+L.RH*0.4   ,'PRIMARY','rgba(255,140,0,0.6)',7,'left');
-    glowText(L.RX+L.RW+8, L.RY+L.RH*0.4+10,'LOOP','rgba(255,140,0,0.6)',7,'left');
-  }
-  if(coolantFlow>0.3) {
-    glowText(L.SGX+L.SGW*0.5, L.SGY-44,'STEAM','rgba(160,220,255,0.8)',8);
-    glowText(L.SGX+L.SGW*0.5, L.SGY-32,'(secondary)','rgba(100,180,220,0.6)',7);
-  }
-  if(turbineSpeed>0.3) {
-    glowText(L.TX+L.TW+14, L.TY+L.TH*0.5-8,'SHAFT','rgba(68,136,255,0.8)',8,'left');
-    glowText(L.TX+L.TW+14, L.TY+L.TH*0.5+6,'DRIVE','rgba(68,136,255,0.6)',7,'left');
-  }
-  if(generatorRPM>0.3) {
-    glowText(L.GX+L.GW*0.5, L.GY-14,'AC OUTPUT','rgba(255,228,77,0.8)',8);
-  }
-
-  // instructor name – top right corner
-  ctx.save();
-  ctx.font='bold 13px Share Tech Mono,monospace';
-  ctx.textAlign='right'; ctx.textBaseline='top';
-  ctx.fillStyle='rgba(0,180,255,0.85)';
-  ctx.fillText('Dr. S Karna', CW-14, 12);
-  ctx.restore();
+  if(reactorHeat>0.15){glowText(L.RX+L.RW+8,L.RY+L.RH*0.4-12,'HOT','rgba(255,140,0,0.8)',8,'left');glowText(L.RX+L.RW+8,L.RY+L.RH*0.4,'PRIMARY','rgba(255,140,0,0.6)',7,'left');glowText(L.RX+L.RW+8,L.RY+L.RH*0.4+10,'LOOP','rgba(255,140,0,0.6)',7,'left');}
+  if(coolantFlow>0.3){glowText(L.SGX+L.SGW*0.5,L.SGY-44,'STEAM','rgba(160,220,255,0.8)',8);glowText(L.SGX+L.SGW*0.5,L.SGY-32,'(secondary)','rgba(100,180,220,0.6)',7);}
+  if(turbineSpeed>0.3){glowText(L.TX+L.TW+14,L.TY+L.TH*0.5-8,'SHAFT','rgba(68,136,255,0.8)',8,'left');glowText(L.TX+L.TW+14,L.TY+L.TH*0.5+6,'DRIVE','rgba(68,136,255,0.6)',7,'left');}
+  if(generatorRPM>0.3){glowText(L.GX+L.GW*0.5,L.GY-14,'AC OUTPUT','rgba(255,228,77,0.8)',8);}
+  ctx.save();ctx.font='bold 13px Share Tech Mono,monospace';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillStyle='rgba(0,180,255,0.85)';ctx.fillText('Dr. S Karna',CW-14,12);ctx.restore();
 }
 
-// ─── Main render ──────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────
 function drawFrame(t) {
-  ctx.clearRect(0, 0, CW, CH);
-
-  // background
-  ctx.fillStyle='#05080f'; ctx.fillRect(0,0,CW,CH);
-  // subtle grid
-  ctx.strokeStyle='rgba(0,60,120,0.15)'; ctx.lineWidth=1;
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle='#05080f';ctx.fillRect(0,0,CW,CH);
+  ctx.strokeStyle='rgba(0,60,120,0.15)';ctx.lineWidth=1;
   for(var gx=0;gx<CW;gx+=50){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,CH);ctx.stroke();}
   for(var gy=0;gy<CH;gy+=50){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(CW,gy);ctx.stroke();}
-
-  // ground
-  ctx.fillStyle='rgba(0,40,80,0.4)';
-  ctx.fillRect(0, L.GROUND, CW, CH-L.GROUND);
-  ctx.strokeStyle='rgba(0,100,180,0.3)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0,L.GROUND); ctx.lineTo(CW,L.GROUND); ctx.stroke();
-
-  // draw pipes first (behind components)
-  drawPipes(reactorHeat, turbineSpeed, generatorRPM);
-
-  // components
+  ctx.fillStyle='rgba(0,40,80,0.4)';ctx.fillRect(0,L.GROUND,CW,CH-L.GROUND);
+  ctx.strokeStyle='rgba(0,100,180,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,L.GROUND);ctx.lineTo(CW,L.GROUND);ctx.stroke();
+  drawPipes(reactorHeat,turbineSpeed,generatorRPM);
   drawReactor(reactorHeat);
   drawSteamGenerator(reactorHeat);
   drawTurbine(turbineSpeed);
@@ -778,94 +650,56 @@ function drawFrame(t) {
   drawTransformer(gridPower);
   drawCoolingTower(coolantFlow);
   drawCondenser(coolantFlow);
-
-  // particles
   drawParticles();
-
-  // labels
   drawLabels();
 }
 
-// ─── Animate values toward targets ────────────────────────────
+// ─── Animate ─────────────────────────────────────────────────
 function animateValues(dt) {
-  if(!running) return;
-  var speed = slowMode ? 0.3 : 1.0;
-  var s = dt * speed;
-
-  reactorHeat  = Math.min(1, reactorHeat  + s*0.18);
-  coolantFlow  = Math.min(1, coolantFlow  + s * clamp((reactorHeat-0.2)/0.8,0,1) * 0.15);
-  turbineSpeed = Math.min(1, turbineSpeed + s * clamp((coolantFlow-0.3)/0.7,0,1) * 0.12);
-  generatorRPM = Math.min(1, generatorRPM + s * clamp((turbineSpeed-0.2)/0.8,0,1) * 0.12);
-  gridPower    = Math.min(1, gridPower    + s * clamp((generatorRPM-0.2)/0.8,0,1) * 0.10);
+  if(!running)return;
+  var speed=slowMode?0.3:1.0,s=dt*speed;
+  reactorHeat=Math.min(1,reactorHeat+s*0.18);
+  coolantFlow=Math.min(1,coolantFlow+s*clamp((reactorHeat-0.2)/0.8,0,1)*0.15);
+  turbineSpeed=Math.min(1,turbineSpeed+s*clamp((coolantFlow-0.3)/0.7,0,1)*0.12);
+  generatorRPM=Math.min(1,generatorRPM+s*clamp((turbineSpeed-0.2)/0.8,0,1)*0.12);
+  gridPower=Math.min(1,gridPower+s*clamp((generatorRPM-0.2)/0.8,0,1)*0.10);
 }
 
-// ─── Animation loop ───────────────────────────────────────────
 function tick(ts) {
-  if(!running) { rafId=null; return; }
-  if(lastTs===null) lastTs=ts;
-  var dt=(ts-lastTs)/1000;  // seconds
-  lastTs=ts;
-
-  if(dt>0.1) dt=0.1; // cap
-
-  globalT += dt * (slowMode?0.35:1);
+  if(!running){rafId=null;return;}
+  if(lastTs===null)lastTs=ts;
+  var dt=(ts-lastTs)/1000;lastTs=ts;
+  if(dt>0.1)dt=0.1;
+  globalT+=dt*(slowMode?0.35:1);
   animateValues(dt);
   updateParticles(dt);
   updatePhaseAndUI();
   drawFrame(globalT);
-
   rafId=requestAnimationFrame(tick);
 }
 
-function startLoop() {
-  if(rafId) cancelAnimationFrame(rafId);
-  lastTs=null;
-  rafId=requestAnimationFrame(tick);
-}
+function startLoop(){if(rafId)cancelAnimationFrame(rafId);lastTs=null;rafId=requestAnimationFrame(tick);}
 
 // ─── Controls ─────────────────────────────────────────────────
-var btnPower = document.getElementById('btnPower');
-var btnPause = document.getElementById('btnPause');
-var btnReset = document.getElementById('btnReset');
-var btnSlow  = document.getElementById('btnSlow');
-
-btnPower.onclick = function() {
-  running = true;
-  phase   = 1;
-  procDescEl.textContent = PHASE_DESC[1];
-  btnPower.classList.add('active');
-  btnPause.classList.remove('active');
-  startLoop();
-};
-
-btnPause.onclick = function() {
-  running = !running;
-  btnPause.textContent = running ? '⏸ PAUSE' : '▶ RESUME';
-  btnPause.classList.toggle('active', !running);
-  if(running) startLoop();
-};
-
-btnReset.onclick = function() {
-  running=false;
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+document.getElementById('btnPower').onclick=function(){running=true;phase=1;procDescEl.textContent=PHASE_DESC[1];this.classList.add('active');document.getElementById('btnPause').classList.remove('active');startLoop();};
+document.getElementById('btnPause').onclick=function(){running=!running;this.textContent=running?'⏸ PAUSE':'▶ RESUME';this.classList.toggle('active',!running);if(running)startLoop();};
+document.getElementById('btnReset').onclick=function(){
+  running=false;if(rafId){cancelAnimationFrame(rafId);rafId=null;}
   reactorHeat=turbineSpeed=generatorRPM=gridPower=coolantFlow=0;
-  globalT=0; lastTs=null; phase=0;
-  neutrons=[]; primaryFlow=[]; secondaryFlow=[]; elecParts=[]; coolTower=[];
-  procDescEl.textContent=PHASE_DESC[0];
-  mwDisplayEl.textContent='0 MW'; effDisplayEl.textContent='0%';
-  btnPower.classList.remove('active');
-  btnPause.classList.remove('active');
-  btnPause.textContent='⏸ PAUSE';
+  globalT=0;lastTs=null;phase=0;
+  neutrons=[];primaryFlow=[];secondaryFlow=[];elecParts=[];coolTower=[];
+  procDescEl.textContent=PHASE_DESC[0];mwDisplayEl.textContent='0 MW';effDisplayEl.textContent='0%';
+  document.getElementById('btnPower').classList.remove('active');
+  var bp=document.getElementById('btnPause');bp.classList.remove('active');bp.textContent='⏸ PAUSE';
+  // reset step cards
+  STEPS.forEach(function(s,i){
+    var c=document.getElementById('step-'+i);var d=document.getElementById('dot-'+i);
+    if(c)c.className='step-card';if(d)d.className='step-dot';
+  });
   drawFrame(0);
 };
+document.getElementById('btnSlow').onclick=function(){slowMode=!slowMode;this.textContent=slowMode?'▶▶ NORMAL':'◐ SLOW';this.classList.toggle('active',slowMode);};
 
-btnSlow.onclick = function() {
-  slowMode=!slowMode;
-  this.textContent = slowMode ? '▶▶ NORMAL' : '◐ SLOW';
-  this.classList.toggle('active',slowMode);
-};
-
-// ─── Initial draw ─────────────────────────────────────────────
 drawFrame(0);
 </script>
 </body>

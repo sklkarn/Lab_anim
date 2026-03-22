@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sonometer Lab — Fundamental Frequency</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --panel: #111827;
+    --panel2: #0f1923;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --gold: #ffd700;
+    --text: #c8d8e8;
+    --muted: #4a6580;
+    --wire: #c8860a;
+    --wood: #8B5E3C;
+    --wood-light: #a8714a;
+    --string-col: #e8d58a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px 20px 12px;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .header-center { flex: 1; text-align: center; }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1rem, 3vw, 1.8rem);
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.82rem;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .instructor-badge {
+    background: rgba(0,212,255,0.07);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: right;
+    min-width: 160px;
+  }
+
+  .instructor-badge .inst-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .instructor-badge .inst-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.82rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-top: 2px;
+    text-shadow: 0 0 10px rgba(255,215,0,0.4);
+  }
+
+  .header-spacer { min-width: 160px; }
+
+  #soundBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--accent);
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #soundBtn:hover { background: rgba(0,212,255,0.18); box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+  #soundBtn.playing { border-color: var(--accent3); color: var(--accent3); background: rgba(57,255,20,0.1); animation: pulse 0.8s infinite alternate; }
+  @keyframes pulse { from { box-shadow: 0 0 4px rgba(57,255,20,0.3); } to { box-shadow: 0 0 14px rgba(57,255,20,0.7); } }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 18px;
+  }
+
+  .apparatus-wrap {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .apparatus-wrap::before {
+    content: 'APPARATUS';
+    position: absolute;
+    top: 10px; left: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.63rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+  }
+
+  canvas#apparatus {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .control-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .control-panel h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .slider-row { margin-bottom: 14px; }
+
+  .slider-row .val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    float: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin-top: 6px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .fork-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .fork-btn {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+  }
+
+  .fork-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .fork-btn.active {
+    background: rgba(0,212,255,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(0,212,255,0.2);
+  }
+
+  .fork-hz { font-size: 0.63rem; color: var(--muted); display: block; }
+
+  .resonance-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+
+  .resonance-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+
+  .resonance-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
+
+  .resonance-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.3s;
+    margin-top: 8px;
+  }
+
+  .formula-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    text-align: center;
+    letter-spacing: 1px;
+    margin-top: 10px;
+  }
+
+  .formula-box span { color: var(--muted); font-size: 0.68rem; display: block; margin-top: 3px; }
+
+  .results-panel, .obs-panel, .wave-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .results-panel h3, .obs-panel h3, .wave-wrap h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .results-panel h3 { color: var(--accent2); }
+  .obs-panel h3 { color: var(--gold); }
+  .wave-wrap h3 { color: var(--accent); }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .metric {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .metric .label { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; }
+  .metric .value { font-family: 'Share Tech Mono', monospace; font-size: 1.2rem; color: var(--accent3); margin-top: 2px; }
+  .metric .unit { font-size: 0.68rem; color: var(--muted); }
+
+  canvas#wave { width: 100%; display: block; border-radius: 6px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  th {
+    background: var(--panel2);
+    color: var(--accent);
+    padding: 8px 5px;
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+  }
+
+  td {
+    padding: 7px 5px;
+    text-align: center;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  tr.resonant td { color: var(--accent3); background: rgba(57,255,20,0.05) !important; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+  button {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-size: 0.83rem;
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
+  .btn-primary:hover { background: rgba(0,212,255,0.2); box-shadow: 0 0 12px rgba(0,212,255,0.3); }
+  .btn-danger { background: rgba(255,80,50,0.1); border-color: #ff5032; color: #ff5032; }
+  .btn-danger:hover { background: rgba(255,80,50,0.2); }
+  .btn-gold { background: rgba(255,215,0,0.1); border-color: var(--gold); color: var(--gold); }
+  .btn-gold:hover { background: rgba(255,215,0,0.2); }
+
+  .tip {
+    font-size: 0.73rem;
+    color: var(--muted);
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--accent2);
+    background: rgba(255,107,53,0.05);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .theory-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .theory-box h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  .theory-box p {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .eq-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .eq {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  .eq small { display: block; color: var(--muted); font-size: 0.65rem; margin-top: 3px; }
+
+  @media (max-width: 600px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    th, td { font-size: 0.6rem; padding: 5px 2px; }
+    .fork-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-spacer"></div>
+  <div class="header-center">
+    <h1>⟩ SONOMETER LAB ⟨</h1>
+    <p>FUNDAMENTAL FREQUENCY · MERSENNE'S LAW · TRANSVERSE STANDING WAVES</p>
+    <button id="soundBtn" onclick="toggleForkSound()">🔔 Sound Fork</button>
+  </div>
+  <div class="instructor-badge">
+    <div class="inst-label">Instructor</div>
+    <div class="inst-name">Dr. S Karna</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- APPARATUS -->
+  <div class="apparatus-wrap">
+    <canvas id="apparatus" height="230"></canvas>
+    <p class="tip">💡 Use the sliders below to adjust the vibrating length (L) between knife edges, hanging mass (M), and wire linear density (μ). Achieve resonance when computed frequency matches the tuning fork frequency.</p>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-grid">
+
+    <div class="control-panel">
+      <h3>🔔 TUNING FORK SELECTION</h3>
+      <label>Select Standard Fork</label>
+      <div class="fork-grid" id="forkGrid"></div>
+      <div class="formula-box" style="margin-top:12px;">
+        f₀ = <span id="forkLabel" style="color:var(--gold);font-size:1.1rem;">256</span> Hz
+        <span>Standard tuning fork frequency</span>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <h3>⚖️ MASS HANGER &amp; WIRE</h3>
+      <div class="slider-row">
+        <label>Hanging Mass (M) <span class="val" id="massVal">200 g</span></label>
+        <input type="range" id="massSlider" min="50" max="1000" step="50" value="200">
+      </div>
+      <div class="slider-row">
+        <label>Linear Density (μ) <span class="val" id="muVal">0.50 g/m</span></label>
+        <input type="range" id="muSlider" min="1" max="20" step="1" value="5">
+      </div>
+      <div class="formula-box">
+        T = Mg = <span id="tensionVal" style="color:var(--gold);">1.96 N</span>
+        <span>Tension in sonometer wire</span>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <h3>📏 KNIFE EDGE POSITION</h3>
+      <div class="slider-row">
+        <label>Vibrating Length (L) <span class="val" id="lengthVal">50.0 cm</span></label>
+        <input type="range" id="lengthSlider" min="5" max="100" step="0.5" value="50">
+      </div>
+      <div class="resonance-label">Resonance Proximity</div>
+      <div class="resonance-bar">
+        <div class="resonance-fill" id="resonanceFill"></div>
+      </div>
+      <div class="resonance-status" id="resonanceStatus">Searching for resonance...</div>
+      <div class="formula-box" style="margin-top:10px;">
+        f = 1/(2L) · √(T/μ)
+        <span>Fundamental frequency formula</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WAVE ANIMATION -->
+  <div class="wave-wrap">
+    <h3>〰 STRING VIBRATION PATTERN — FUNDAMENTAL MODE (n=1)</h3>
+    <canvas id="wave" height="110"></canvas>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-panel">
+    <h3>📊 REAL-TIME COMPUTED RESULTS</h3>
+    <div class="metrics">
+      <div class="metric">
+        <div class="label">TENSION (T)</div>
+        <div class="value" id="rTension">—</div>
+        <div class="unit">Newtons</div>
+      </div>
+      <div class="metric">
+        <div class="label">LINEAR DENSITY (μ)</div>
+        <div class="value" id="rMu">—</div>
+        <div class="unit">kg/m</div>
+      </div>
+      <div class="metric">
+        <div class="label">WAVE VELOCITY (v)</div>
+        <div class="value" id="rVelocity">—</div>
+        <div class="unit">m/s</div>
+      </div>
+      <div class="metric">
+        <div class="label">WAVELENGTH (λ = 2L)</div>
+        <div class="value" id="rLambda">—</div>
+        <div class="unit">metres</div>
+      </div>
+      <div class="metric">
+        <div class="label">COMPUTED FREQ. (f)</div>
+        <div class="value" id="rFreq">—</div>
+        <div class="unit">Hz</div>
+      </div>
+      <div class="metric">
+        <div class="label">FORK FREQ. (f₀)</div>
+        <div class="value" id="rFork">—</div>
+        <div class="unit">Hz</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBSERVATION TABLE -->
+  <div class="obs-panel">
+    <h3>📋 OBSERVATION TABLE</h3>
+    <div style="overflow-x:auto;">
+      <table id="obsTable">
+        <thead>
+          <tr>
+            <th>S.No.</th>
+            <th>Fork f₀ (Hz)</th>
+            <th>Mass M (g)</th>
+            <th>Tension T (N)</th>
+            <th>μ (g/m)</th>
+            <th>Length L (cm)</th>
+            <th>Computed f (Hz)</th>
+            <th>|Δf| (Hz)</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="obsBody">
+          <tr><td colspan="9" style="color:var(--muted);font-size:0.75rem;padding:16px;">No observations recorded yet. Set parameters and click "Record Reading".</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="recordObservation()">+ Record Reading</button>
+      <button class="btn-danger" onclick="clearTable()">✕ Clear All</button>
+      <button class="btn-gold" onclick="exportResults()">↓ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="theory-box">
+    <h3>📖 THEORY &amp; FORMULAE</h3>
+    <p>A sonometer consists of a wire stretched over a wooden resonance board. When a tuning fork of known frequency is sounded and held over the wire, the wire can be made to resonate by adjusting the vibrating length L between the two movable knife edges.</p>
+    <p>At resonance, the frequency of the wire equals the frequency of the tuning fork. For the fundamental mode, a single antinode forms at the centre with nodes at both knife edges — the vibrating length L equals half the wavelength (λ/2).</p>
+    <div class="eq-list">
+      <div class="eq">T = Mg<small>Tension from hanging mass</small></div>
+      <div class="eq">v = √(T/μ)<small>Wave velocity in wire</small></div>
+      <div class="eq">λ = 2L<small>Wavelength (fundamental mode)</small></div>
+      <div class="eq">f = v/(2L)<small>Fundamental frequency</small></div>
+      <div class="eq">f = (1/2L)√(T/μ)<small>Mersenne's Law</small></div>
+      <div class="eq">f ∝ 1/L · √T · 1/√μ<small>Proportionality relations</small></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FORKS = [
+  { note:'C4',   hz: 256 },
+  { note:'D4',   hz: 288 },
+  { note:'E4',   hz: 320 },
+  { note:'F4',   hz: 341.3 },
+  { note:'G4',   hz: 384 },
+  { note:'A4',   hz: 426.7 },
+  { note:'B4',   hz: 480 },
+  { note:'C5',   hz: 512 },
+  { note:'A440', hz: 440 },
+];
+
+const G = 9.81;
+let selectedFork = 256;
+let massG = 200;
+let muGm = 5;
+let lengthCm = 50;
+let observations = [];
+let animT = 0;
+let resonant = false;
+
+// Build fork buttons
+const forkGrid = document.getElementById('forkGrid');
+FORKS.forEach(f => {
+  const btn = document.createElement('div');
+  btn.className = 'fork-btn' + (f.hz === 256 ? ' active' : '');
+  btn.innerHTML = `${f.note}<span class="fork-hz">${Number.isInteger(f.hz) ? f.hz : f.hz.toFixed(1)} Hz</span>`;
+  btn.onclick = () => {
+    document.querySelectorAll('.fork-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedFork = f.hz;
+    document.getElementById('forkLabel').textContent = Number.isInteger(f.hz) ? f.hz : f.hz.toFixed(1);
+    animateToResonantLength();   // SMOOTHLY SLIDE knife edges to new resonant L
+    update();
+    playForkSound(f.hz);
+  };
+  forkGrid.appendChild(btn);
+});
+
+// Sliders
+const massSlider   = document.getElementById('massSlider');
+const muSlider     = document.getElementById('muSlider');
+const lengthSlider = document.getElementById('lengthSlider');
+
+massSlider.addEventListener('input',  () => { massG = +massSlider.value; update(); });
+muSlider.addEventListener('input',    () => { muGm  = +muSlider.value;   update(); });
+lengthSlider.addEventListener('input',() => { lengthCm = +lengthSlider.value; update(); });
+
+// Animate knife edges sliding to new resonant length
+let animLStart = null, animLTarget = null, animLT0 = null;
+const ANIM_DURATION = 900; // ms
+
+function computeResonantLength() {
+  const M  = massG / 1000;
+  const mu = muGm  / 1000;
+  const T  = M * 9.81;
+  const v  = Math.sqrt(T / mu);
+  const Lcm = (v / (2 * selectedFork)) * 100;
+  return Math.max(5, Math.min(100, +Lcm.toFixed(2)));
+}
+
+function animateToResonantLength() {
+  animLStart  = lengthCm;
+  animLTarget = computeResonantLength();
+  animLT0     = performance.now();
+}
+
+function tickLengthAnimation(now) {
+  if (animLTarget === null) return;
+  const elapsed  = now - animLT0;
+  const progress = Math.min(elapsed / ANIM_DURATION, 1);
+  // Ease in-out cubic
+  const t = progress < 0.5 ? 4*progress*progress*progress : 1 - Math.pow(-2*progress+2,3)/2;
+  lengthCm = animLStart + (animLTarget - animLStart) * t;
+  lengthSlider.value = lengthCm.toFixed(1);
+  document.getElementById('lengthVal').textContent = lengthCm.toFixed(1) + ' cm';
+  if (progress >= 1) {
+    lengthCm   = animLTarget;
+    animLTarget = null;
+    update();   // final sync of all displays
+  }
+}
+
+function compute() {
+  const M   = massG / 1000;
+  const mu  = muGm / 1000;
+  const L   = lengthCm / 100;
+  const T   = M * G;
+  const v   = Math.sqrt(T / mu);
+  const f   = v / (2 * L);
+  const lambda = 2 * L;
+  return { M, mu, L, T, v, f, lambda };
+}
+
+function forkStr(hz) { return Number.isInteger(hz) ? hz : hz.toFixed(1); }
+
+function update() {
+  const { M, mu, L, T, v, f, lambda } = compute();
+
+  document.getElementById('massVal').textContent    = massG + ' g';
+  document.getElementById('muVal').textContent      = muGm.toFixed(2) + ' g/m';
+  document.getElementById('lengthVal').textContent  = lengthCm.toFixed(1) + ' cm';
+  document.getElementById('tensionVal').textContent = T.toFixed(3) + ' N';
+
+  document.getElementById('rTension').textContent   = T.toFixed(3);
+  document.getElementById('rMu').textContent        = mu.toFixed(5);
+  document.getElementById('rVelocity').textContent  = v.toFixed(2);
+  document.getElementById('rLambda').textContent    = lambda.toFixed(3);
+  document.getElementById('rFreq').textContent      = f.toFixed(2);
+  document.getElementById('rFork').textContent      = forkStr(selectedFork);
+
+  const diff  = Math.abs(f - selectedFork);
+  const match = Math.max(0, 1 - diff / (selectedFork * 0.3));
+  const pct   = (match * 100).toFixed(0);
+  const fill   = document.getElementById('resonanceFill');
+  const status = document.getElementById('resonanceStatus');
+
+  fill.style.width = pct + '%';
+
+  if (match > 0.97) {
+    fill.style.background    = 'var(--accent3)';
+    status.style.color       = 'var(--accent3)';
+    status.style.background  = 'rgba(57,255,20,0.1)';
+    status.textContent       = '🎯 RESONANCE ACHIEVED!  f = ' + f.toFixed(1) + ' Hz';
+    resonant = true;
+  } else if (match > 0.8) {
+    fill.style.background    = 'var(--gold)';
+    status.style.color       = 'var(--gold)';
+    status.style.background  = 'rgba(255,215,0,0.08)';
+    status.textContent       = '⚡ Near resonance — fine-tune Length L';
+    resonant = false;
+  } else {
+    fill.style.background    = 'var(--accent2)';
+    status.style.color       = 'var(--muted)';
+    status.style.background  = 'transparent';
+    status.textContent       = `Computed: ${f.toFixed(1)} Hz  |  Fork: ${forkStr(selectedFork)} Hz  |  Δ = ${diff.toFixed(1)} Hz`;
+    resonant = false;
+  }
+}
+
+// ---- APPARATUS CANVAS ----
+const appCanvas = document.getElementById('apparatus');
+const appCtx    = appCanvas.getContext('2d');
+
+function drawApparatus() {
+  const W = appCanvas.offsetWidth || 860;
+  appCanvas.width = W;
+  const H = 230;
+  const ctx = appCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  const { T, f } = compute();
+  const match = Math.max(0, 1 - Math.abs(f - selectedFork) / (selectedFork * 0.3));
+
+  // ---- Wooden board ----
+  const bx = 40, by = 95, bw = W - 90, bh = 28;
+  const gWood = ctx.createLinearGradient(bx, by, bx, by + bh);
+  gWood.addColorStop(0, '#b07848');
+  gWood.addColorStop(1, '#6b3d1a');
+  ctx.fillStyle = gWood;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+  ctx.strokeStyle = '#3d2009'; ctx.lineWidth = 1; ctx.stroke();
+
+  // grain
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i < bw; i += 14) {
+    ctx.beginPath();
+    ctx.moveTo(bx + i, by + 2);
+    ctx.lineTo(bx + i + 7, by + bh - 2);
+    ctx.stroke();
+  }
+
+  // ---- End bridges / saddles ----
+  const bridgeH = 22;
+  const leftB   = bx + 18;
+  const rightB  = bx + bw - 18;
+  [leftB, rightB].forEach(bx2 => {
+    const gBridge = ctx.createLinearGradient(bx2 - 6, 0, bx2 + 6, 0);
+    gBridge.addColorStop(0, '#777'); gBridge.addColorStop(1, '#bbb');
+    ctx.fillStyle = gBridge;
+    ctx.fillRect(bx2 - 5, by - bridgeH, 10, bridgeH);
+    ctx.fillStyle = '#ccc';
+    ctx.beginPath();
+    ctx.ellipse(bx2, by - bridgeH, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // ---- Wire (full) ----
+  const strY = by - bridgeH - 1;
+  ctx.strokeStyle = '#c8b46a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(leftB, strY); ctx.lineTo(rightB, strY); ctx.stroke();
+
+  // ---- Knife edges ----
+  const usable = rightB - leftB - 60;
+  const kL     = leftB  + 30 + usable * ((1 - lengthCm / 100) * 0.5);
+  const kR     = kL + usable * (lengthCm / 100);
+  const kY     = by - bridgeH;
+
+  [kL, kR].forEach((kx, i) => {
+    ctx.fillStyle = '#999';
+    ctx.beginPath();
+    ctx.moveTo(kx - 7, kY - 16);
+    ctx.lineTo(kx + 7, kY - 16);
+    ctx.lineTo(kx + 3, kY);
+    ctx.lineTo(kx - 3, kY);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.stroke();
+    // label
+    ctx.fillStyle = 'rgba(200,216,232,0.6)';
+    ctx.font = '9px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(i === 0 ? 'K₁' : 'K₂', kx, kY - 20);
+  });
+
+  // ---- Vibrating string segment ----
+  const amp     = resonant ? 22 : Math.min(18, 2 + match * 18);
+  const vibLen  = kR - kL;
+  const segs    = 140;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(kL - 1, strY - 45, vibLen + 2, 90); ctx.clip();
+
+  if (match > 0.15) {
+    ctx.beginPath();
+    for (let i = 0; i <= segs; i++) {
+      const x    = kL + vibLen * i / segs;
+      const frac = i / segs;
+      const y    = strY - amp * Math.sin(Math.PI * frac) * Math.sin(animT);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    const gr = ctx.createLinearGradient(kL, 0, kR, 0);
+    gr.addColorStop(0,   '#c8b46a');
+    gr.addColorStop(0.5, resonant ? '#39ff14' : match > 0.8 ? '#ffd700' : '#00d4ff');
+    gr.addColorStop(1,   '#c8b46a');
+    ctx.strokeStyle = gr;
+    ctx.lineWidth   = 2.2;
+    ctx.shadowColor = resonant ? '#39ff14' : '#00d4ff';
+    ctx.shadowBlur  = resonant ? 14 : 5;
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
+  }
+  ctx.restore();
+
+  // Node dots
+  ctx.fillStyle = '#ff6b35';
+  [[kL, strY], [kR, strY]].forEach(([nx, ny]) => {
+    ctx.beginPath(); ctx.arc(nx, ny, 4, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // L arrow
+  ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+  ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(kL, strY + 30); ctx.lineTo(kR, strY + 30); ctx.stroke();
+  ctx.setLineDash([]);
+  [[kL, 1], [kR, -1]].forEach(([ax, d]) => {
+    ctx.beginPath();
+    ctx.moveTo(ax, strY + 30);
+    ctx.lineTo(ax + d * 8, strY + 26);
+    ctx.lineTo(ax + d * 8, strY + 34);
+    ctx.fillStyle = 'rgba(0,212,255,0.7)'; ctx.fill();
+  });
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 11px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('L = ' + lengthCm.toFixed(1) + ' cm', (kL + kR) / 2, strY + 52);
+
+  // ---- Pulley & Mass ----
+  const pX = rightB + 16, pY = by - bridgeH;
+  ctx.beginPath(); ctx.arc(pX, pY, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#666'; ctx.fill();
+  ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Vertical wire
+  ctx.strokeStyle = '#c8860a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pX, pY + 9); ctx.lineTo(pX, pY + 65); ctx.stroke();
+  // Mass block
+  const mh = Math.min(55, 12 + massG / 18);
+  const mw = 30;
+  const gM = ctx.createLinearGradient(pX - mw/2, 0, pX + mw/2, 0);
+  gM.addColorStop(0, '#444'); gM.addColorStop(0.5, '#888'); gM.addColorStop(1, '#444');
+  ctx.fillStyle = gM;
+  ctx.beginPath(); ctx.roundRect(pX - mw/2, pY + 65, mw, mh, 3); ctx.fill();
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#ddd';
+  ctx.font = 'bold 9px Share Tech Mono'; ctx.textAlign = 'center';
+  ctx.fillText(massG + 'g', pX, pY + 65 + mh/2 + 3);
+
+  // ---- Tuning Fork ----
+  drawTuningFork(ctx, bx - 20, by - 55, match);
+
+  // ---- Scale on board ----
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5;
+  const scaleY = by + 14;
+  for (let cm = 0; cm <= 100; cm += 10) {
+    const sx = leftB + (rightB - leftB) * cm / 100;
+    ctx.beginPath(); ctx.moveTo(sx, scaleY - 6); ctx.lineTo(sx, scaleY + 6); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '7px Share Tech Mono'; ctx.textAlign = 'center';
+    ctx.fillText(cm, sx, scaleY + 14);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '7px Share Tech Mono'; ctx.textAlign = 'right';
+  ctx.fillText('cm', rightB + 16, scaleY + 14);
+}
+
+function drawTuningFork(ctx, x, y, match) {
+  ctx.save(); ctx.translate(x, y);
+  const col = match > 0.97 ? '#39ff14' : match > 0.7 ? '#ffd700' : '#aaa';
+  // Handle
+  ctx.fillStyle = '#888'; ctx.fillRect(-4, 22, 8, 38);
+  // Prongs
+  ctx.strokeStyle = col; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  ctx.shadowColor = col; ctx.shadowBlur = match > 0.7 ? 12 : 0;
+  // Left prong
+  const wobble = match > 0.4 ? Math.sin(animT * 2) * match * 4 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-4, 22); ctx.lineTo(-9 + wobble, -8); ctx.lineTo(-9 + wobble, -22);
+  ctx.stroke();
+  // Right prong
+  ctx.beginPath();
+  ctx.moveTo(4, 22); ctx.lineTo(9 - wobble, -8); ctx.lineTo(9 - wobble, -22);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  // Frequency label
+  ctx.font = '9px Share Tech Mono'; ctx.textAlign = 'center';
+  ctx.fillStyle = col;
+  ctx.fillText(forkStr(selectedFork) + 'Hz', 0, -28);
+  ctx.restore();
+}
+
+// ---- WAVE CANVAS ----
+const waveCanvas = document.getElementById('wave');
+const waveCtx    = waveCanvas.getContext('2d');
+
+function drawWave() {
+  const W = waveCanvas.offsetWidth || 860;
+  waveCanvas.width = W;
+  const H = 110;
+  const cx = H / 2;
+  const ctx = waveCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  const { f } = compute();
+  const match = Math.max(0, 1 - Math.abs(f - selectedFork) / (selectedFork * 0.3));
+  const amp   = 20 + match * 20;
+  const color = resonant ? '#39ff14' : match > 0.7 ? '#ffd700' : '#00d4ff';
+  const segs  = 300;
+
+  // bg
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
+
+  // Envelope
+  ctx.strokeStyle = 'rgba(0,212,255,0.12)'; ctx.lineWidth = 1; ctx.setLineDash([4, 6]);
+  for (const sign of [-1, 1]) {
+    ctx.beginPath();
+    for (let i = 0; i <= segs; i++) {
+      const x   = W * i / segs;
+      const env = amp * Math.sin(Math.PI * i / segs);
+      i === 0 ? ctx.moveTo(x, cx - sign * env) : ctx.lineTo(x, cx - sign * env);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Standing wave
+  ctx.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const x = W * i / segs;
+    const y = cx - amp * Math.sin(Math.PI * i / segs) * Math.sin(animT);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.shadowColor = color; ctx.shadowBlur = resonant ? 14 : 4;
+  ctx.stroke(); ctx.shadowBlur = 0;
+
+  // Centre line
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, cx); ctx.lineTo(W, cx); ctx.stroke();
+
+  // Node / antinode labels
+  ctx.font = '9px Share Tech Mono'; ctx.textAlign = 'center';
+  [[0, 'N (node)'], [W / 2, 'A (antinode)'], [W, 'N (node)']].forEach(([nx, lbl]) => {
+    ctx.beginPath(); ctx.arc(nx, cx, 4, 0, Math.PI * 2);
+    ctx.fillStyle = nx === W / 2 ? color : '#ff6b35'; ctx.fill();
+    ctx.fillStyle = ctx.fillStyle;
+    ctx.fillText(lbl, nx === 0 ? 20 : nx === W ? W - 20 : nx, cx + 16);
+  });
+
+  // λ/2 annotation
+  ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(0, 11); ctx.lineTo(W, 11); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,215,0,0.65)'; ctx.font = '9px Share Tech Mono'; ctx.textAlign = 'center';
+  ctx.fillText('λ/2 = L = ' + lengthCm.toFixed(1) + ' cm', W / 2, 9);
+}
+
+// ---- ANIMATION LOOP ----
+let lastTime = 0;
+function animate(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  const { f } = compute();
+  animT += (resonant ? f * 0.09 : f * 0.04) * Math.PI * dt * 30;
+  tickLengthAnimation(ts);   // slide knife edges if animating
+  drawApparatus();
+  drawWave();
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// ---- WEB AUDIO — TUNING FORK SOUND ----
+let audioCtx = null;
+let forkNodes = null;   // { osc, gain }
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playForkSound(hz) {
+  stopForkSound();
+  const ctx  = getAudioCtx();
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.015);  // sharp attack
+
+  // Primary tone
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'sine';
+  osc1.frequency.value = hz;
+  osc1.connect(gain);
+
+  // Slight 2nd harmonic for realism
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = hz * 2;
+  const gain2 = ctx.createGain();
+  gain2.gain.value = 0.04;
+  osc2.connect(gain2); gain2.connect(gain);
+
+  // Natural decay like a real fork (~3 s sustain)
+  gain.gain.setTargetAtTime(0, ctx.currentTime + 0.3, 1.4);
+  gain.connect(ctx.destination);
+
+  osc1.start(); osc2.start();
+  forkNodes = { osc1, osc2, gain, ctx };
+
+  // Auto-stop after 5 s
+  setTimeout(() => { stopForkSound(); updateSoundBtn(false); }, 5000);
+  updateSoundBtn(true);
+}
+
+function stopForkSound() {
+  if (!forkNodes) return;
+  try {
+    const { osc1, osc2, gain, ctx } = forkNodes;
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    setTimeout(() => { try { osc1.stop(); osc2.stop(); } catch(e){} }, 200);
+  } catch(e) {}
+  forkNodes = null;
+}
+
+function updateSoundBtn(playing) {
+  const btn = document.getElementById('soundBtn');
+  if (playing) { btn.textContent = '🔕 Stop Sound'; btn.classList.add('playing'); }
+  else         { btn.textContent = '🔔 Sound Fork'; btn.classList.remove('playing'); }
+}
+
+function toggleForkSound() {
+  if (forkNodes) { stopForkSound(); updateSoundBtn(false); }
+  else            { playForkSound(selectedFork); }
+}
+
+
+function recordObservation() {
+  const { mu, L, T, f } = compute();
+  const row = {
+    n: observations.length + 1,
+    fork: selectedFork,
+    mass: massG,
+    T: T.toFixed(3),
+    mu: muGm.toFixed(2),
+    L: lengthCm.toFixed(1),
+    f: f.toFixed(2),
+    df: Math.abs(f - selectedFork).toFixed(2),
+    resonant: Math.abs(f - selectedFork) < selectedFork * 0.03
+  };
+  observations.push(row);
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('obsBody');
+  tbody.innerHTML = '';
+  if (observations.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--muted);font-size:0.75rem;padding:16px;">No observations recorded yet.</td></tr>';
+    return;
+  }
+  observations.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.resonant) tr.classList.add('resonant');
+    tr.innerHTML = `
+      <td>${r.n}</td>
+      <td>${forkStr(r.fork)}</td>
+      <td>${r.mass}</td>
+      <td>${r.T}</td>
+      <td>${r.mu}</td>
+      <td>${r.L}</td>
+      <td>${r.f}</td>
+      <td>${r.df}</td>
+      <td>${r.resonant ? '✅ RESONANCE' : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function clearTable() {
+  if (confirm('Clear all observations?')) { observations = []; renderTable(); }
+}
+
+function exportResults() {
+  if (observations.length === 0) { alert('No observations to export.'); return; }
+  let csv = 'S.No,Fork f0 (Hz),Mass M (g),T (N),mu (g/m),L (cm),f (Hz),|Df| (Hz),Resonant\n';
+  observations.forEach(r => {
+    csv += `${r.n},${r.fork},${r.mass},${r.T},${r.mu},${r.L},${r.f},${r.df},${r.resonant}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'sonometer_lab_observations.csv';
+  a.click();
+}
+
+// Init
+animateToResonantLength();
+update();
+</script>
+</body>
+</html>
