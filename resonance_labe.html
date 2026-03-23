@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velocity of Sound — Resonance Tube Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #2a3550;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #a8ff3e;
+    --text: #e8edf8;
+    --text2: #7a8aaa;
+    --water: #1565c0;
+    --water-light: #42a5f5;
+    --hot: #ff6b35;
+    --node-col: #ff3366;
+    --anti-col: #00e5ff;
+    --grid: rgba(0,229,255,0.04);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb {
+    position: fixed; border-radius: 50%;
+    pointer-events: none; z-index: 0; filter: blur(80px);
+  }
+  .orb1 { width:400px;height:400px;background:rgba(0,229,255,.06);top:-100px;left:-100px; }
+  .orb2 { width:300px;height:300px;background:rgba(255,107,53,.05);bottom:100px;right:-80px; }
+  .orb3 { width:250px;height:250px;background:rgba(168,255,62,.04);top:50%;left:60%; }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 0 24px 60px;
+  }
+
+  /* Header */
+  header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .title-block {}
+  .lab-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: .2em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+  }
+  .lab-tag::before {
+    content: ''; display: inline-block;
+    width: 20px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-size: clamp(22px, 4vw, 36px); font-weight: 800;
+    letter-spacing: -.02em; line-height: 1.1;
+    background: linear-gradient(120deg, #e8edf8 30%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  h1 span { color: var(--accent2); -webkit-text-fill-color: var(--accent2); }
+
+  .instructor-block {
+    text-align: right; flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .instructor-block::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .inst-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: .18em;
+    color: var(--text2); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .inst-name {
+    font-size: 15px; font-weight: 700;
+    color: var(--accent); letter-spacing: .01em;
+  }
+  .inst-dept {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; color: var(--text2); margin-top: 2px;
+  }
+
+  /* Main grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media(max-width:720px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: .3;
+  }
+  .panel-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: .18em;
+    color: var(--accent2); text-transform: uppercase;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent2); flex-shrink: 0;
+  }
+
+  /* Fork selector */
+  .fork-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+  .fork-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 8px; cursor: pointer;
+    text-align: center; transition: all .2s; position: relative; overflow: hidden;
+  }
+  .fork-btn:hover { border-color: var(--accent); background: rgba(0,229,255,.06); }
+  .fork-btn.active {
+    border-color: var(--accent);
+    background: rgba(0,229,255,.12);
+    box-shadow: 0 0 12px rgba(0,229,255,.15);
+  }
+  .fork-btn .fhz {
+    font-size: 14px; font-weight: 700; color: var(--accent);
+    font-family: 'Space Mono', monospace;
+  }
+  .fork-btn .fnote { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .fork-btn.active .fnote { color: var(--accent); opacity: .7; }
+
+  /* Sliders */
+  .slider-block { margin-bottom: 14px; }
+  .slider-label-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .slider-label {
+    font-size: 13px; color: var(--text2);
+  }
+  .slider-label strong { color: var(--text); font-weight: 600; }
+  .slider-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700;
+  }
+  .slider-val.l1c { color: var(--accent); }
+  .slider-val.l2c { color: var(--accent2); }
+
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range].r1 {
+    background: linear-gradient(90deg, var(--accent) var(--pct,50%), var(--border) var(--pct,50%));
+  }
+  input[type=range].r2 {
+    background: linear-gradient(90deg, var(--accent2) var(--pct,50%), var(--border) var(--pct,50%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; border: 2px solid var(--bg); cursor: pointer;
+  }
+  input[type=range].r1::-webkit-slider-thumb { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  input[type=range].r2::-webkit-slider-thumb { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+  /* Resonance status */
+  #status-bar {
+    margin-top: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; line-height: 1.5;
+    min-height: 48px;
+    transition: border-color .3s, background .3s;
+  }
+  #status-bar.good {
+    border-color: var(--accent3);
+    background: rgba(168,255,62,.07);
+    color: var(--accent3);
+  }
+  #status-bar.partial {
+    border-color: var(--accent);
+    background: rgba(0,229,255,.06);
+    color: var(--accent);
+  }
+  #status-bar.none { color: var(--text2); }
+
+  /* Results */
+  .results-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 14px;
+  }
+  .metric {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    position: relative; overflow: hidden;
+  }
+  .metric.highlight {
+    border-color: var(--accent3);
+    background: rgba(168,255,62,.07);
+  }
+  .metric.highlight .mval { color: var(--accent3); }
+  .metric .mlabel {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: .1em; color: var(--text2);
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .metric .mval {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    font-family: 'Space Mono', monospace; line-height: 1;
+  }
+  .metric .munit { font-size: 11px; color: var(--text2); margin-left: 3px; }
+
+  /* Formula */
+  .formula-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .formula-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px; color: var(--text);
+  }
+  .formula-chip em { color: var(--accent); font-style: normal; }
+
+  /* Audio controls */
+  #audio-controls {
+    margin-bottom: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .audio-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  #strike-btn, #sustain-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    border-radius: 7px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid; transition: all .15s; white-space: nowrap;
+  }
+  #strike-btn {
+    background: rgba(0,229,255,.12); border-color: var(--accent);
+    color: var(--accent);
+  }
+  #strike-btn:hover { background: rgba(0,229,255,.22); box-shadow: 0 0 10px rgba(0,229,255,.2); }
+  #strike-btn:active { transform: scale(.96); }
+  #strike-btn.ringing { background: rgba(0,229,255,.25); box-shadow: 0 0 16px rgba(0,229,255,.35); }
+  #sustain-btn {
+    background: var(--surface); border-color: var(--border); color: var(--text2);
+  }
+  #sustain-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  #sustain-btn.on { background: rgba(255,107,53,.12); border-color: var(--accent2); color: var(--accent2); }
+  .vol-wrap {
+    display: flex; align-items: center; gap: 6px; flex: 1; min-width: 100px;
+  }
+  .vol-icon { font-size: 10px; color: var(--text2); }
+  #vol-slider { flex: 1; }
+  #audio-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; color: var(--text2); line-height: 1.4;
+    transition: color .3s;
+  }
+  #audio-status.playing { color: var(--accent); }
+  #audio-status.resonating { color: var(--accent3); }
+  .strike-icon { letter-spacing: -.05em; }
+
+  /* Temperature & end correction */
+  .cond-row { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; }
+  .thermo-wrap { flex-shrink: 0; }
+  .cond-controls { flex: 1; }
+  .cond-info-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cond-chip {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .cond-lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: .08em;
+    color: var(--text2); text-transform: uppercase;
+  }
+  .cond-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700; color: var(--accent);
+  }
+  .ec-note {
+    margin-top: 10px;
+    font-size: 11px; color: var(--text2); line-height: 1.6;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px;
+  }
+  .ec-note em { color: var(--accent3); font-style: normal; }
+  input[type=range].r-temp::-webkit-slider-thumb { background: #ff6b35; box-shadow: 0 0 8px #ff6b35; }
+  input[type=range].r-temp {
+    background: linear-gradient(90deg, #ff6b35 var(--pct,44%), var(--border) var(--pct,44%));
+  }
+  input[type=range].r-ec::-webkit-slider-thumb { background: #a8ff3e; box-shadow: 0 0 8px #a8ff3e; }
+  input[type=range].r-ec {
+    background: linear-gradient(90deg, #a8ff3e var(--pct,29%), var(--border) var(--pct,29%));
+  }
+
+  /* Canvas tube */
+  #tube-canvas {
+    display: block; width: 100%; border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  /* Steps */
+  .steps { margin-top: 18px; }
+  .step {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-n {
+    min-width: 24px; height: 24px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--accent);
+    color: var(--accent); font-family: 'Space Mono', monospace;
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-t { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .step-t strong { color: var(--text); }
+
+  /* Bottom full-width diagram panel */
+  .wave-panel {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .wave-panel::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+    opacity: .4;
+  }
+  #wave-canvas { display: block; width: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="title-block">
+      <div class="lab-tag">Physics Laboratory</div>
+      <h1>Velocity of <span>Sound</span><br>Resonance Tube</h1>
+    </div>
+    <div class="instructor-block">
+      <div class="inst-label">Instructor</div>
+      <div class="inst-name">Dr. S Karna</div>
+      <div class="inst-dept">Department of Physics</div>
+    </div>
+  </header>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- LEFT: controls -->
+    <div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot"></span>Tuning Fork Selection</div>
+        <div class="fork-grid" id="fork-grid"></div>
+
+        <!-- Audio Controls -->
+        <div id="audio-controls">
+          <div class="audio-row">
+            <button id="strike-btn" onclick="strikeFork()">
+              <span class="strike-icon">⟩⟩</span> Strike Fork
+            </button>
+            <button id="sustain-btn" onclick="toggleSustain()">
+              <span id="sustain-label">Hold</span>
+            </button>
+            <div class="vol-wrap">
+              <span class="vol-icon">◁</span>
+              <input type="range" id="vol-slider" min="0" max="100" value="60" oninput="setVolume(this.value)">
+              <span class="vol-icon">▷</span>
+            </div>
+          </div>
+          <div id="audio-status">Click <strong>Strike Fork</strong> to hear the tuning fork</div>
+        </div>
+
+        <div class="panel-title" style="margin-top:4px;"><span class="dot" style="background:var(--accent)"></span>Resonant Lengths</div>
+
+        <div class="slider-block">
+          <div class="slider-label-row">
+            <span class="slider-label"><strong>L₁</strong> — 1st resonance</span>
+            <span class="slider-val l1c" id="v1">20.0 cm</span>
+          </div>
+          <input type="range" id="sl1" class="r1" min="2" max="65" step="0.1" value="20">
+        </div>
+
+        <div class="slider-block">
+          <div class="slider-label-row">
+            <span class="slider-label"><strong>L₂</strong> — 2nd resonance</span>
+            <span class="slider-val l2c" id="v2">60.0 cm</span>
+          </div>
+          <input type="range" id="sl2" class="r2" min="20" max="130" step="0.1" value="60">
+        </div>
+
+        <div id="status-bar" class="none">Adjust lengths to find resonance positions…</div>
+      </div>
+
+      <!-- Temperature & End Correction Panel -->
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-title"><span class="dot" style="background:#ff6b35"></span>Lab Conditions</div>
+
+        <!-- Temperature -->
+        <div class="cond-row">
+          <div class="thermo-wrap">
+            <canvas id="thermo-canvas" width="32" height="110"></canvas>
+          </div>
+          <div class="cond-controls">
+            <div class="slider-block" style="margin-bottom:10px;">
+              <div class="slider-label-row">
+                <span class="slider-label"><strong>Temperature</strong> (air)</span>
+                <span class="slider-val" id="temp-val" style="color:#ff6b35;">20.0 °C</span>
+              </div>
+              <input type="range" id="temp-slider" class="r-temp" min="0" max="45" step="0.5" value="20">
+            </div>
+            <div class="cond-info-row">
+              <div class="cond-chip">
+                <span class="cond-lbl">v<sub>theoretical</sub></span>
+                <span class="cond-val" id="v-theoretical">343.4 m/s</span>
+              </div>
+              <div class="cond-chip">
+                <span class="cond-lbl">formula</span>
+                <span class="cond-val" style="font-size:10px;">331.4 + 0.6T</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- End Correction -->
+        <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+        <div class="slider-block" style="margin-bottom:10px;">
+          <div class="slider-label-row">
+            <span class="slider-label"><strong>Tube inner diameter</strong></span>
+            <span class="slider-val" id="diam-val" style="color:#a8ff3e;">3.0 cm</span>
+          </div>
+          <input type="range" id="diam-slider" class="r-ec" min="1" max="8" step="0.1" value="3">
+        </div>
+        <div class="cond-info-row">
+          <div class="cond-chip">
+            <span class="cond-lbl">end correction e = 0.3d</span>
+            <span class="cond-val" id="ec-val" style="color:#a8ff3e;">0.9 cm</span>
+          </div>
+          <div class="cond-chip">
+            <span class="cond-lbl">corrected L₁′</span>
+            <span class="cond-val" id="l1-corr">— cm</span>
+          </div>
+          <div class="cond-chip">
+            <span class="cond-lbl">corrected L₂′</span>
+            <span class="cond-val" id="l2-corr">— cm</span>
+          </div>
+        </div>
+        <div class="ec-note">
+          End correction accounts for the antinode forming slightly <em>above</em> the open end of the tube. Corrected lengths: L₁′ = L₁ + e, L₂′ = L₂ + e. Since e cancels in L₂′ − L₁′, λ is unaffected — but individual corrected lengths are shown for accuracy.
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-title"><span class="dot" style="background:var(--accent3)"></span>Calculation</div>
+        <div class="formula-row" id="formula-row">
+          <div class="formula-chip"><em>λ</em> = 2(L₂ − L₁)</div>
+          <div class="formula-chip"><em>v</em> = f × λ</div>
+          <div class="formula-chip"><em>v<sub>th</sub></em> = 331.4 + 0.6T</div>
+        </div>
+        <div class="results-grid" id="results-grid"></div>
+      </div>
+
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-title"><span class="dot" style="background:var(--accent2)"></span>Procedure</div>
+        <div class="steps">
+          <div class="step"><span class="step-n">1</span><p class="step-t">Strike the tuning fork and hold it above the open end. It vibrates at a known frequency <strong>f</strong>.</p></div>
+          <div class="step"><span class="step-n">2</span><p class="step-t">Lower the water. At <strong>L₁</strong>, the air column = ¼λ — a standing wave forms. Sound is loudest. Note: the antinode forms slightly above the tube — add end correction <strong>e = 0.3d</strong>.</p></div>
+          <div class="step"><span class="step-n">3</span><p class="step-t">Lower further. At <strong>L₂</strong>, the column = ¾λ (2nd resonance). Difference L₂ − L₁ = ½λ. End correction <em>cancels</em> in this difference.</p></div>
+          <div class="step"><span class="step-n">4</span><p class="step-t">Compute <strong>λ = 2(L₂−L₁)</strong> then <strong>v = fλ</strong>. Compare to <strong>v = 331.4 + 0.6T</strong> at your lab temperature.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: animated tube -->
+    <div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot"></span>Animated Tube Diagram</div>
+        <canvas id="tube-canvas" width="360" height="520"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-width wave diagram -->
+  <div class="wave-panel">
+    <div class="panel-title"><span class="dot" style="background:var(--accent2)"></span>Standing Wave Patterns — 1st &amp; 2nd Resonance</div>
+    <canvas id="wave-canvas" width="1000" height="200"></canvas>
+  </div>
+
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────
+const forks = [
+  {f:256,note:'C₄'},
+  {f:320,note:'E₄'},
+  {f:384,note:'G₄'},
+  {f:512,note:'C₅'},
+  {f:640,note:'E₅'},
+  {f:1024,note:'C₆'},
+];
+let selFork = 1;
+let animFrame = 0;
+let t = 0; // time for wave animation
+
+// ── DOM refs ──────────────────────────────────────────────────────────
+const tubeCanvas = document.getElementById('tube-canvas');
+const waveCanvas = document.getElementById('wave-canvas');
+const tc = tubeCanvas.getContext('2d');
+const wc = waveCanvas.getContext('2d');
+
+// ── Build fork buttons ────────────────────────────────────────────────
+function buildForks() {
+  const g = document.getElementById('fork-grid');
+  g.innerHTML = '';
+  forks.forEach((f, i) => {
+    const b = document.createElement('button');
+    b.className = 'fork-btn' + (i === selFork ? ' active' : '');
+    b.innerHTML = `<div class="fhz">${f.f} Hz</div><div class="fnote">${f.note}</div>`;
+    b.onclick = () => { selFork = i; buildForks(); updateAll(); updateSustainFreq(); };
+    g.appendChild(b);
+  });
+}
+
+// ── Slider helpers ────────────────────────────────────────────────────
+function getL1() { return parseFloat(document.getElementById('sl1').value); }
+function getL2() { return parseFloat(document.getElementById('sl2').value); }
+function getTemp() { return parseFloat(document.getElementById('temp-slider').value); }
+function getDiam() { return parseFloat(document.getElementById('diam-slider').value); }
+function vTheoretical(T) { return 331.4 + 0.6 * T; }
+
+function updateSliderBg(el) {
+  const min = +el.min, max = +el.max, val = +el.value;
+  const pct = ((val - min) / (max - min) * 100).toFixed(1);
+  el.style.setProperty('--pct', pct + '%');
+}
+
+// ── Core update ───────────────────────────────────────────────────────
+function updateAll() {
+  const f = forks[selFork].f;
+  const L1 = getL1(), L2 = getL2();
+  const T = getTemp();
+  const d = getDiam();
+  const e = 0.3 * d;            // end correction (cm)
+  const vTh = vTheoretical(T);  // theoretical speed at temperature T
+
+  document.getElementById('v1').textContent = L1.toFixed(1) + ' cm';
+  document.getElementById('v2').textContent = L2.toFixed(1) + ' cm';
+  updateSliderBg(document.getElementById('sl1'));
+  updateSliderBg(document.getElementById('sl2'));
+
+  // Temperature display
+  document.getElementById('temp-val').textContent = T.toFixed(1) + ' °C';
+  document.getElementById('v-theoretical').textContent = vTh.toFixed(1) + ' m/s';
+  updateSliderBg(document.getElementById('temp-slider'));
+
+  // End correction display
+  document.getElementById('diam-val').textContent = d.toFixed(1) + ' cm';
+  document.getElementById('ec-val').textContent = e.toFixed(2) + ' cm';
+  document.getElementById('l1-corr').textContent = (L1 + e).toFixed(2) + ' cm';
+  document.getElementById('l2-corr').textContent = (L2 + e).toFixed(2) + ' cm';
+  updateSliderBg(document.getElementById('diam-slider'));
+
+  // Draw thermometer
+  drawThermometer(T);
+
+  // Resonance check uses temperature-based theoretical speed
+  const idealLam = vTh / f;       // metres
+  const idealL1 = idealLam / 4 * 100;  // cm
+  const idealL2 = 3 * idealLam / 4 * 100;
+  const tol = 2.0;
+  const res1 = Math.abs(L1 - idealL1) < tol;
+  const res2 = Math.abs(L2 - idealL2) < tol;
+
+  // Status
+  const sb = document.getElementById('status-bar');
+  if (res1 && res2) {
+    sb.className = 'good';
+    sb.innerHTML = '✓ BOTH RESONANCES FOUND<br>Maximum sound amplitude at L₁ and L₂. Standing waves established.';
+  } else if (res1) {
+    sb.className = 'partial';
+    sb.innerHTML = '✓ 1st resonance found at L₁<br>Continue lowering water to find 2nd resonance…';
+  } else if (res2) {
+    sb.className = 'partial';
+    sb.innerHTML = '✓ 2nd resonance found at L₂<br>Adjust L₁ to find the first resonance position…';
+  } else {
+    sb.className = 'none';
+    sb.innerHTML = 'Adjust L₁ and L₂ — listen for maximum loudness at each position.';
+  }
+
+  // Calculation — λ from measured lengths (end correction cancels in L₂-L₁)
+  const lam = 2 * (L2 - L1) / 100;   // metres
+  const vMeas = f * lam;
+  const errPct = Math.abs((vMeas - vTh) / vTh * 100);
+
+  const g = document.getElementById('results-grid');
+  g.innerHTML = `
+    <div class="metric"><div class="mlabel">End correction e</div><div class="mval">${e.toFixed(2)}<span class="munit">cm</span></div></div>
+    <div class="metric"><div class="mlabel">L₂ − L₁</div><div class="mval">${(L2-L1).toFixed(1)}<span class="munit">cm</span></div></div>
+    <div class="metric"><div class="mlabel">Wavelength λ</div><div class="mval">${(lam*100).toFixed(1)}<span class="munit">cm</span></div></div>
+    <div class="metric"><div class="mlabel">Frequency f</div><div class="mval">${f}<span class="munit">Hz</span></div></div>
+    <div class="metric highlight"><div class="mlabel">v measured</div><div class="mval">${Math.round(vMeas)}<span class="munit">m/s</span></div></div>
+    <div class="metric" style="border-color:rgba(255,107,53,0.4);background:rgba(255,107,53,0.06)"><div class="mlabel">v theoretical (${T.toFixed(0)}°C)</div><div class="mval" style="color:#ff6b35;">${vTh.toFixed(1)}<span class="munit">m/s</span></div></div>
+    <div class="metric"><div class="mlabel">% Error</div><div class="mval">${errPct.toFixed(1)}<span class="munit">%</span></div></div>
+    <div class="metric"><div class="mlabel">Temperature</div><div class="mval" style="color:#ff6b35;">${T.toFixed(1)}<span class="munit">°C</span></div></div>
+  `;
+}
+
+// ── Tube animation ────────────────────────────────────────────────────
+function drawTube(timestamp) {
+  t = timestamp * 0.001;
+  const W = tubeCanvas.width;
+  const H = tubeCanvas.height;
+  tc.clearRect(0, 0, W, H);
+
+  const f = forks[selFork].f;
+  const L1 = getL1(), L2 = getL2();
+  const idealLam = vTheoretical(getTemp()) / f;
+  const idealL1 = idealLam / 4 * 100;
+  const idealL2 = 3 * idealLam / 4 * 100;
+  const tol = 2.0;
+  const res1 = Math.abs(L1 - idealL1) < tol;
+  const res2 = Math.abs(L2 - idealL2) < tol;
+
+  // Tube geometry
+  const tx = 100, tw = 120, ty = 40, th = 400;
+  const maxCm = 140;
+  const scale = th / maxCm;
+  function yCm(cm) { return ty + th - cm * scale; }
+
+  // Background tube glow if resonating
+  if (res1 || res2) {
+    const glow = tc.createRadialGradient(tx+tw/2, ty+th/2, 0, tx+tw/2, ty+th/2, 120);
+    const alpha = 0.08 + 0.06 * Math.sin(t * 8);
+    glow.addColorStop(0, `rgba(0,229,255,${alpha})`);
+    glow.addColorStop(1, 'transparent');
+    tc.fillStyle = glow;
+    tc.fillRect(0, 0, W, H);
+  }
+
+  // Water column
+  const waterY = yCm(L2);
+  const grad = tc.createLinearGradient(tx, waterY, tx, ty+th);
+  grad.addColorStop(0, 'rgba(21,101,192,0.7)');
+  grad.addColorStop(1, 'rgba(21,101,192,0.92)');
+  tc.fillStyle = grad;
+  tc.beginPath();
+  tc.roundRect(tx+3, waterY, tw-6, (ty+th) - waterY, [0,0,6,6]);
+  tc.fill();
+
+  // Water surface ripple animation
+  if (res1 || res2) {
+    const rippleAmp = 3 * Math.sin(t * 12);
+    tc.strokeStyle = 'rgba(66,165,245,0.8)';
+    tc.lineWidth = 1.5;
+    tc.beginPath();
+    for (let x = tx+3; x < tx+tw-3; x++) {
+      const wave = rippleAmp * Math.sin((x - tx) * 0.3 + t * 15);
+      if (x === tx+3) tc.moveTo(x, waterY + wave);
+      else tc.lineTo(x, waterY + wave);
+    }
+    tc.stroke();
+  }
+
+  // Air column (above water)
+  tc.fillStyle = 'rgba(0,229,255,0.03)';
+  tc.fillRect(tx+3, ty, tw-6, waterY - ty);
+
+  // Standing wave in air column — animated
+  if (res1 || res2) {
+    const ampMax = 24;
+    const amp = ampMax * (0.7 + 0.3 * Math.sin(t * (res1 && res2 ? 10 : 8)));
+
+    // For L2 view (showing 3/4 wave)
+    const resonL = L2;
+    const nHalfWaves = 1.5; // 3/4 of a full wave = 1.5 half-waves from node at bottom
+
+    tc.save();
+    tc.strokeStyle = res1 && res2 ? 'rgba(168,255,62,0.85)' : 'rgba(0,229,255,0.7)';
+    tc.lineWidth = 2;
+    tc.shadowColor = res1 && res2 ? '#a8ff3e' : '#00e5ff';
+    tc.shadowBlur = 8;
+    tc.beginPath();
+    const steps = 80;
+    for (let i = 0; i <= steps; i++) {
+      const frac = i / steps;
+      const yp = waterY + (ty - waterY) * frac; // bottom=waterY, top=ty
+      // standing wave: node at bottom (water), antinode at open top
+      const phase = frac * Math.PI * nHalfWaves;
+      const xOff = amp * Math.sin(phase) * Math.sin(t * (f > 400 ? 14 : 10));
+      if (i === 0) tc.moveTo(tx + tw/2 + xOff, yp);
+      else tc.lineTo(tx + tw/2 + xOff, yp);
+    }
+    tc.stroke();
+    tc.restore();
+  }
+
+  // L2 dashed line
+  const yL2 = yCm(L2);
+  tc.save();
+  tc.setLineDash([4, 3]);
+  tc.strokeStyle = 'rgba(255,107,53,0.6)';
+  tc.lineWidth = 1;
+  tc.beginPath();
+  tc.moveTo(tx - 6, yL2); tc.lineTo(tx + tw + 6, yL2);
+  tc.stroke();
+  tc.restore();
+
+  // L1 dashed line
+  const yL1 = yCm(L1);
+  tc.save();
+  tc.setLineDash([4, 3]);
+  tc.strokeStyle = 'rgba(0,229,255,0.6)';
+  tc.lineWidth = 1;
+  tc.beginPath();
+  tc.moveTo(tx - 6, yL1); tc.lineTo(tx + tw + 6, yL1);
+  tc.stroke();
+  tc.restore();
+
+  // Tube walls
+  tc.strokeStyle = '#3a4a6a';
+  tc.lineWidth = 3;
+  tc.strokeRect(tx, ty, tw, th);
+  // Open end indicator (dashed top)
+  tc.save();
+  tc.setLineDash([6, 4]);
+  tc.strokeStyle = 'rgba(0,229,255,0.5)';
+  tc.lineWidth = 1.5;
+  tc.beginPath(); tc.moveTo(tx, ty); tc.lineTo(tx+tw, ty);
+  tc.stroke();
+  tc.restore();
+
+  // Tube bottom (closed/water)
+  tc.fillStyle = '#2a3a5a';
+  tc.fillRect(tx-2, ty+th, tw+4, 6);
+
+  // Labels
+  tc.font = '500 11px Syne';
+  tc.textAlign = 'right';
+  // L1 label
+  tc.fillStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.45)';
+  tc.fillText(`L₁ = ${L1.toFixed(1)} cm`, tx - 10, yL1 + 4);
+  // L2 label
+  tc.fillStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.45)';
+  tc.fillText(`L₂ = ${L2.toFixed(1)} cm`, tx - 10, yL2 + 4);
+
+  // Bracket arrow for L1
+  tc.strokeStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.3)';
+  tc.lineWidth = 1.2;
+  tc.beginPath();
+  tc.moveTo(tx - 38, ty);
+  tc.lineTo(tx - 38, yL1);
+  tc.stroke();
+  // arrowheads
+  tc.fillStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.3)';
+  drawArrow(tc, tx-38, ty+4, 'up');
+  drawArrow(tc, tx-38, yL1-4, 'down');
+
+  // Bracket arrow for L2
+  tc.strokeStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.3)';
+  tc.lineWidth = 1.2;
+  tc.beginPath();
+  tc.moveTo(tx - 60, ty);
+  tc.lineTo(tx - 60, yL2);
+  tc.stroke();
+  tc.fillStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.3)';
+  drawArrow(tc, tx-60, ty+4, 'up');
+  drawArrow(tc, tx-60, yL2-4, 'down');
+
+  // Tuning fork icon
+  drawFork(tc, tx + tw/2, ty - 16, f, res1 || res2, t);
+
+  // Open / Closed labels
+  tc.fillStyle = 'rgba(0,229,255,0.6)';
+  tc.font = '400 10px Space Mono';
+  tc.textAlign = 'center';
+  tc.fillText('open end', tx + tw/2, ty - 42);
+  tc.fillStyle = 'rgba(100,140,200,0.5)';
+  tc.fillText('closed end (water)', tx + tw/2, ty + th + 20);
+
+  // Right side: node/antinode labels
+  tc.fillStyle = res1 && res2 ? '#a8ff3e' : 'rgba(0,229,255,0.45)';
+  tc.font = '400 10px Space Mono';
+  tc.textAlign = 'left';
+  if (res1 || res2) {
+    tc.fillText('antinode', tx + tw + 12, ty + 6);
+    tc.fillText('node', tx + tw + 12, yCm(0) - 4);
+    if (res2) tc.fillText('antinode', tx + tw + 12, yL2 + 4);
+  }
+
+  // Frequency + temperature + end-correction info strip
+  const T = getTemp();
+  const d = getDiam();
+  const e = 0.3 * d;
+  const vTh = vTheoretical(T);
+
+  tc.font = '400 11px Space Mono';
+  tc.textAlign = 'center';
+  tc.fillStyle = '#7a8aaa';
+  tc.fillText(`f = ${f} Hz`, tx + tw/2, ty + th + 36);
+
+  // Temperature badge top-left of canvas
+  const tempFrac = Math.max(0, Math.min(1, T / 45));
+  const tr = Math.round(30 + tempFrac * 225);
+  const tg2 = Math.round(100 - tempFrac * 50);
+  const tb2 = Math.round(220 - tempFrac * 200);
+  const tempCol = `rgb(${tr},${tg2},${tb2})`;
+
+  tc.fillStyle = 'rgba(0,0,0,0.35)';
+  tc.beginPath(); tc.roundRect(6, 6, 84, 38, 5); tc.fill();
+  tc.strokeStyle = tempCol; tc.lineWidth = 1;
+  tc.beginPath(); tc.roundRect(6, 6, 84, 38, 5); tc.stroke();
+
+  tc.fillStyle = tempCol;
+  tc.font = '700 13px Space Mono';
+  tc.textAlign = 'left';
+  tc.fillText(`${T.toFixed(1)} °C`, 12, 22);
+  tc.font = '400 9px Space Mono';
+  tc.fillStyle = '#7a8aaa';
+  tc.fillText(`v = ${vTh.toFixed(1)} m/s`, 12, 36);
+
+  // End correction badge top-right
+  tc.fillStyle = 'rgba(0,0,0,0.35)';
+  tc.beginPath(); tc.roundRect(W - 88, 6, 82, 38, 5); tc.fill();
+  tc.strokeStyle = 'rgba(168,255,62,0.5)'; tc.lineWidth = 1;
+  tc.beginPath(); tc.roundRect(W - 88, 6, 82, 38, 5); tc.stroke();
+
+  tc.fillStyle = '#a8ff3e';
+  tc.font = '700 13px Space Mono';
+  tc.textAlign = 'left';
+  tc.fillText(`e=${e.toFixed(2)}cm`, W - 82, 22);
+  tc.font = '400 9px Space Mono';
+  tc.fillStyle = '#7a8aaa';
+  tc.fillText(`d=${d.toFixed(1)}cm`, W - 82, 36);
+
+  animFrame = requestAnimationFrame(drawTube);
+}
+
+function drawArrow(ctx, x, y, dir) {
+  ctx.beginPath();
+  if (dir === 'up') {
+    ctx.moveTo(x, y); ctx.lineTo(x-4, y+7); ctx.lineTo(x+4, y+7);
+  } else {
+    ctx.moveTo(x, y); ctx.lineTo(x-4, y-7); ctx.lineTo(x+4, y-7);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+function drawFork(ctx, cx, y, freq, ringing, t) {
+  const vy = y - 4;
+  // tines
+  const tw2 = 10;
+  const tineH = 22;
+  // vibrate when ringing
+  const vib = ringing ? 2.5 * Math.sin(t * freq * 0.05) : 0;
+  ctx.strokeStyle = ringing ? '#00e5ff' : '#4a5a7a';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  // left tine
+  ctx.beginPath();
+  ctx.moveTo(cx - tw2, vy - tineH);
+  ctx.lineTo(cx - tw2 + vib, vy);
+  ctx.stroke();
+  // right tine
+  ctx.beginPath();
+  ctx.moveTo(cx + tw2, vy - tineH);
+  ctx.lineTo(cx + tw2 - vib, vy);
+  ctx.stroke();
+  // top curve
+  ctx.beginPath();
+  ctx.moveTo(cx - tw2, vy - tineH);
+  ctx.quadraticCurveTo(cx, vy - tineH - 14, cx + tw2, vy - tineH);
+  ctx.stroke();
+  // handle
+  ctx.beginPath();
+  ctx.moveTo(cx, vy);
+  ctx.lineTo(cx, vy + 14);
+  ctx.stroke();
+
+  // Sound waves if ringing
+  if (ringing) {
+    for (let r = 1; r <= 3; r++) {
+      const a = (0.5 - r * 0.12) * Math.abs(Math.sin(t * 10 - r));
+      ctx.strokeStyle = `rgba(0,229,255,${a})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, vy - tineH/2, r * 14, -Math.PI * 0.7, -Math.PI * 0.3);
+      ctx.stroke();
+    }
+  }
+}
+
+// ── Standing wave diagram ─────────────────────────────────────────────
+function drawWaveDiagram(timestamp) {
+  const t2 = timestamp * 0.001;
+  const W = waveCanvas.width;
+  const H = waveCanvas.height;
+  wc.clearRect(0, 0, W, H);
+
+  const f = forks[selFork].f;
+  const L1 = getL1(), L2 = getL2();
+  const idealLam = vTheoretical(getTemp()) / f;
+  const idealL1 = idealLam / 4 * 100;
+  const idealL2 = 3 * idealLam / 4 * 100;
+  const tol = 2.0;
+  const res1 = Math.abs(L1 - idealL1) < tol;
+  const res2 = Math.abs(L2 - idealL2) < tol;
+
+  const margin = 30;
+  const half = W / 2;
+
+  // --- Left: 1st resonance (quarter wave) ---
+  const lx = margin, lw = half - margin * 1.5;
+  const lh = H - 60; const ly = 30;
+
+  wc.strokeStyle = '#2a3550'; wc.lineWidth = 1;
+  wc.strokeRect(lx, ly, lw, lh);
+
+  // Labels
+  wc.fillStyle = res1 ? '#00e5ff' : '#4a6080';
+  wc.font = '400 11px Space Mono';
+  wc.textAlign = 'center';
+  wc.fillText('1st Resonance — L₁ = ¼λ', lx + lw/2, ly - 10);
+
+  // Water block
+  wc.fillStyle = 'rgba(21,101,192,0.45)';
+  wc.fillRect(lx+2, ly + lh * 0.75, lw-4, lh * 0.25 - 2);
+
+  // Wave for quarter resonance
+  const amp1 = 22;
+  const baseX = lx + lw/2;
+  const anim1 = Math.sin(t2 * 10);
+  wc.strokeStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.35)';
+  wc.lineWidth = 2;
+  wc.shadowColor = '#00e5ff';
+  wc.shadowBlur = res1 ? 6 : 0;
+  // Draw standing wave (quarter wave = 1/4 of full cycle from bottom node to top antinode)
+  wc.beginPath();
+  const steps = 80;
+  for (let i = 0; i <= steps; i++) {
+    const frac = i / steps; // 0=bottom node, 1=top antinode
+    const yy = (ly + lh * 0.75) - frac * (lh * 0.75); // bottom to open end
+    const xOff = amp1 * Math.sin(frac * Math.PI * 0.5) * anim1;
+    if (i === 0) wc.moveTo(baseX + xOff, yy);
+    else wc.lineTo(baseX + xOff, yy);
+  }
+  wc.stroke();
+  wc.shadowBlur = 0;
+
+  // Node/antinode markers
+  wc.fillStyle = res1 ? '#ff3366' : 'rgba(255,51,102,0.4)';
+  wc.font = '400 10px Space Mono';
+  wc.textAlign = 'left';
+  wc.fillText('N', lx + lw + 4, ly + lh * 0.75 + 4);
+  wc.fillStyle = res1 ? '#a8ff3e' : 'rgba(168,255,62,0.4)';
+  wc.fillText('A', lx + lw + 4, ly + 4);
+
+  // L1 label
+  wc.strokeStyle = res1 ? 'rgba(0,229,255,0.6)' : 'rgba(0,229,255,0.2)';
+  wc.lineWidth = 1;
+  wc.setLineDash([3,2]);
+  wc.beginPath();
+  wc.moveTo(lx - 14, ly); wc.lineTo(lx - 14, ly + lh * 0.75);
+  wc.stroke();
+  wc.setLineDash([]);
+  wc.fillStyle = res1 ? '#00e5ff' : '#4a6080';
+  wc.textAlign = 'right';
+  wc.fillText('L₁', lx - 18, ly + lh * 0.375 + 4);
+
+  // --- Right: 2nd resonance (3/4 wave) ---
+  const rx = half + margin * 0.5, rw = half - margin * 1.5;
+  const rh = lh; const ry = ly;
+  const baseRX = rx + rw/2;
+
+  wc.strokeStyle = '#2a3550'; wc.lineWidth = 1;
+  wc.strokeRect(rx, ry, rw, rh);
+
+  wc.fillStyle = res2 ? '#ff6b35' : '#4a6080';
+  wc.font = '400 11px Space Mono';
+  wc.textAlign = 'center';
+  wc.fillText('2nd Resonance — L₂ = ¾λ', rx + rw/2, ry - 10);
+
+  // Water block (shorter for L2)
+  wc.fillStyle = 'rgba(21,101,192,0.45)';
+  wc.fillRect(rx+2, ry + rh * 0.83, rw-4, rh * 0.17 - 2);
+
+  // Wave for 3/4 resonance
+  const amp2 = 22;
+  const anim2 = Math.sin(t2 * 10);
+  wc.strokeStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.35)';
+  wc.lineWidth = 2;
+  wc.shadowColor = '#ff6b35';
+  wc.shadowBlur = res2 ? 6 : 0;
+  wc.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const frac = i / steps;
+    const yy = (ry + rh * 0.83) - frac * (rh * 0.83);
+    const xOff = amp2 * Math.sin(frac * Math.PI * 1.5) * anim2;
+    if (i === 0) wc.moveTo(baseRX + xOff, yy);
+    else wc.lineTo(baseRX + xOff, yy);
+  }
+  wc.stroke();
+  wc.shadowBlur = 0;
+
+  // Node labels for 3/4 wave: N at bottom, node in middle, antinode at top
+  const nMidY = ry + rh * 0.83 - (rh * 0.83) * (1/3);
+  wc.fillStyle = res2 ? '#ff3366' : 'rgba(255,51,102,0.4)';
+  wc.font = '400 10px Space Mono';
+  wc.textAlign = 'left';
+  wc.fillText('N', rx + rw + 4, ry + rh * 0.83 + 4);
+  wc.fillText('N', rx + rw + 4, nMidY + 4);
+  wc.fillStyle = res2 ? '#a8ff3e' : 'rgba(168,255,62,0.4)';
+  wc.fillText('A', rx + rw + 4, ry + 4);
+  wc.fillStyle = res2 ? '#a8ff3e' : 'rgba(168,255,62,0.4)';
+  wc.fillText('A', rx + rw + 4, ry + rh * 0.83 - (rh * 0.83) * (2/3) + 4);
+
+  // L2 bracket
+  wc.strokeStyle = res2 ? 'rgba(255,107,53,0.6)' : 'rgba(255,107,53,0.2)';
+  wc.lineWidth = 1;
+  wc.setLineDash([3,2]);
+  wc.beginPath();
+  wc.moveTo(rx - 14, ry); wc.lineTo(rx - 14, ry + rh * 0.83);
+  wc.stroke();
+  wc.setLineDash([]);
+  wc.fillStyle = res2 ? '#ff6b35' : '#4a6080';
+  wc.textAlign = 'right';
+  wc.fillText('L₂', rx - 18, ry + rh * 0.415 + 4);
+
+  // Legend: N = node, A = antinode
+  wc.font = '400 10px Space Mono';
+  wc.textAlign = 'center';
+  wc.fillStyle = '#4a6080';
+  wc.fillText('N = node   A = antinode', W/2, H - 6);
+
+  requestAnimationFrame(drawWaveDiagram);
+}
+
+// ── Web Audio Engine ──────────────────────────────────────────────────
+let audioCtx = null;
+let masterGain = null;
+let sustainOsc = null;
+let sustainGain = null;
+let isSustaining = false;
+let strikeTimeout = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.6;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function getVolume() {
+  return parseFloat(document.getElementById('vol-slider').value) / 100;
+}
+
+function setVolume(v) {
+  if (masterGain) masterGain.gain.setTargetAtTime(v / 100, audioCtx.currentTime, 0.05);
+}
+
+// Realistic tuning fork: fundamental + slight 2nd harmonic, natural decay envelope
+function strikeFork() {
+  const ctx = getAudioCtx();
+  const freq = forks[selFork].f;
+  const now = ctx.currentTime;
+
+  // Stop any existing strike
+  if (strikeTimeout) clearTimeout(strikeTimeout);
+
+  // Strike envelope: instant attack, exponential decay over ~3 seconds
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(0.9, now + 0.003);   // sharp strike
+  env.gain.exponentialRampToValueAtTime(0.4, now + 0.15);
+  env.gain.exponentialRampToValueAtTime(0.08, now + 1.2);
+  env.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+  env.connect(masterGain);
+
+  // Fundamental oscillator
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'sine';
+  osc1.frequency.value = freq;
+  osc1.connect(env);
+  osc1.start(now);
+  osc1.stop(now + 3.2);
+
+  // Slight 2nd harmonic for realism (tuning forks have small overtone)
+  const harmGain = ctx.createGain();
+  harmGain.gain.value = 0.08;
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 6.267; // typical fork clang partial
+  const harmEnv = ctx.createGain();
+  harmEnv.gain.setValueAtTime(1, now);
+  harmEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc2.connect(harmEnv);
+  harmEnv.connect(harmGain);
+  harmGain.connect(masterGain);
+  osc2.start(now);
+  osc2.stop(now + 0.35);
+
+  // UI feedback
+  const btn = document.getElementById('strike-btn');
+  btn.classList.add('ringing');
+  updateAudioStatus('playing');
+  strikeTimeout = setTimeout(() => {
+    btn.classList.remove('ringing');
+    if (!isSustaining) updateAudioStatus('idle');
+  }, 3200);
+}
+
+// Sustained continuous tone (for holding over tube)
+function toggleSustain() {
+  const ctx = getAudioCtx();
+  const btn = document.getElementById('sustain-btn');
+  const lbl = document.getElementById('sustain-label');
+
+  if (isSustaining) {
+    // Fade out
+    const now = ctx.currentTime;
+    sustainGain.gain.setTargetAtTime(0, now, 0.1);
+    setTimeout(() => {
+      try { sustainOsc.stop(); } catch(e){}
+      sustainOsc = null; sustainGain = null;
+    }, 400);
+    isSustaining = false;
+    btn.classList.remove('on');
+    lbl.textContent = 'Hold';
+    updateAudioStatus('idle');
+  } else {
+    // Start continuous tone
+    const freq = forks[selFork].f;
+    sustainOsc = ctx.createOscillator();
+    sustainOsc.type = 'sine';
+    sustainOsc.frequency.value = freq;
+    sustainGain = ctx.createGain();
+    sustainGain.gain.setValueAtTime(0, ctx.currentTime);
+    sustainGain.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 0.08);
+    sustainOsc.connect(sustainGain);
+    sustainGain.connect(masterGain);
+    sustainOsc.start();
+    isSustaining = true;
+    btn.classList.add('on');
+    lbl.textContent = 'Stop';
+    updateAudioStatus('playing');
+  }
+}
+
+// When fork changes, update sustain frequency if running
+function updateSustainFreq() {
+  if (isSustaining && sustainOsc) {
+    const freq = forks[selFork].f;
+    sustainOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.04);
+  }
+}
+
+// Update audio status text with resonance awareness
+function updateAudioStatus(state) {
+  const el = document.getElementById('audio-status');
+  const f = forks[selFork].f;
+  const L1 = getL1(), L2 = getL2();
+  const idealLam = vTheoretical(getTemp()) / f;
+  const idealL1 = idealLam / 4 * 100;
+  const idealL2 = 3 * idealLam / 4 * 100;
+  const tol = 2.0;
+  const res1 = Math.abs(L1 - idealL1) < tol;
+  const res2 = Math.abs(L2 - idealL2) < tol;
+
+  if (state === 'idle') {
+    el.className = '';
+    el.innerHTML = 'Click <strong>Strike Fork</strong> to hear the tuning fork';
+  } else if (res1 && res2) {
+    el.className = 'resonating';
+    el.innerHTML = '🔊 RESONANCE — Maximum amplitude! Air column tuned to ' + f + ' Hz';
+  } else if (res1 || res2) {
+    el.className = 'playing';
+    el.innerHTML = '🔈 Partial resonance — adjust length for full resonance at ' + f + ' Hz';
+  } else {
+    el.className = 'playing';
+    el.innerHTML = '🔉 Tone playing at ' + f + ' Hz — move sliders to find resonance';
+  }
+}
+
+// Hook updateAll to also refresh audio status
+const _origUpdateAll = updateAll;
+
+document.getElementById('sl1').addEventListener('input', function() {
+  const v = parseFloat(this.value);
+  const sl2 = document.getElementById('sl2');
+  if (parseFloat(sl2.value) <= v + 10) sl2.value = v + 25;
+  updateAll();
+  if (isSustaining || document.getElementById('strike-btn').classList.contains('ringing')) {
+    updateAudioStatus('playing');
+  }
+});
+document.getElementById('sl2').addEventListener('input', function() {
+  const v = parseFloat(this.value);
+  const sl1 = document.getElementById('sl1');
+  if (parseFloat(sl1.value) >= v - 10) sl1.value = Math.max(2, v - 25);
+  updateAll();
+  if (isSustaining || document.getElementById('strike-btn').classList.contains('ringing')) {
+    updateAudioStatus('playing');
+  }
+});
+
+// ── Thermometer Canvas ────────────────────────────────────────────────
+function drawThermometer(T) {
+  const canvas = document.getElementById('thermo-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const tubeTop = 8, tubeBot = H - 18;
+  const tubeH = tubeBot - tubeTop;
+  const tubeW = 6;
+  const bulbR = 9;
+  const bulbCY = tubeBot + bulbR - 2;
+
+  // Temperature range 0–45°C → fill fraction
+  const frac = Math.max(0, Math.min(1, T / 45));
+  const fillTop = tubeBot - frac * tubeH;
+
+  // Color: cold blue → warm orange/red
+  const r = Math.round(30 + frac * 225);
+  const g2 = Math.round(100 - frac * 50);
+  const b = Math.round(220 - frac * 200);
+  const fillColor = `rgb(${r},${g2},${b})`;
+
+  // Tube background
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.beginPath();
+  ctx.roundRect(cx - tubeW/2, tubeTop, tubeW, tubeH, 3);
+  ctx.fill();
+
+  // Tube fill (mercury)
+  ctx.fillStyle = fillColor;
+  ctx.beginPath();
+  ctx.roundRect(cx - tubeW/2 + 1, fillTop, tubeW - 2, tubeBot - fillTop, 2);
+  ctx.fill();
+
+  // Tube border
+  ctx.strokeStyle = '#3a4a6a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(cx - tubeW/2, tubeTop, tubeW, tubeH, 3);
+  ctx.stroke();
+
+  // Bulb
+  ctx.fillStyle = fillColor;
+  ctx.beginPath();
+  ctx.arc(cx, bulbCY, bulbR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#3a4a6a';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Tick marks
+  ctx.strokeStyle = '#3a4a6a';
+  ctx.lineWidth = 0.8;
+  for (let tick = 0; tick <= 45; tick += 5) {
+    const ty2 = tubeBot - (tick / 45) * tubeH;
+    const tickLen = tick % 10 === 0 ? 5 : 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + tubeW/2, ty2);
+    ctx.lineTo(cx + tubeW/2 + tickLen, ty2);
+    ctx.stroke();
+  }
+
+  // °C label
+  ctx.fillStyle = '#7a8aaa';
+  ctx.font = '7px Space Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('°C', cx, tubeTop - 1);
+}
+
+// ── New slider events ─────────────────────────────────────────────────
+document.getElementById('temp-slider').addEventListener('input', function() {
+  updateAll();
+  if (isSustaining || document.getElementById('strike-btn').classList.contains('ringing')) {
+    updateAudioStatus('playing');
+  }
+});
+document.getElementById('diam-slider').addEventListener('input', function() {
+  updateAll();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────
+buildForks();
+updateAll();
+requestAnimationFrame(drawTube);
+requestAnimationFrame(drawWaveDiagram);
+
+// Resize canvas to actual display size for sharpness
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  [tubeCanvas, waveCanvas].forEach(c => {
+    const rect = c.getBoundingClientRect();
+    if (rect.width > 0) {
+      c.width = rect.width * dpr;
+      c.height = rect.height * dpr;
+      const ctx = c.getContext('2d');
+      ctx.scale(dpr, dpr);
+    }
+  });
+}
+window.addEventListener('resize', resizeCanvases);
+setTimeout(resizeCanvases, 100);
+</script>
+</body>
+</html>
