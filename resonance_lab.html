@@ -442,18 +442,18 @@
 
         <div class="slider-block">
           <div class="slider-label-row">
-            <span class="slider-label"><strong>L₁</strong> — 1st resonance</span>
+            <span class="slider-label"><strong>L₁</strong> — air column, 1st resonance</span>
             <span class="slider-val l1c" id="v1">20.0 cm</span>
           </div>
-          <input type="range" id="sl1" class="r1" min="2" max="65" step="0.1" value="20">
+          <input type="range" id="sl1" class="r1" min="2" max="60" step="0.1" value="20">
         </div>
 
         <div class="slider-block">
           <div class="slider-label-row">
-            <span class="slider-label"><strong>L₂</strong> — 2nd resonance</span>
+            <span class="slider-label"><strong>L₂</strong> — air column, 2nd resonance</span>
             <span class="slider-val l2c" id="v2">60.0 cm</span>
           </div>
-          <input type="range" id="sl2" class="r2" min="20" max="130" step="0.1" value="60">
+          <input type="range" id="sl2" class="r2" min="10" max="110" step="0.1" value="60">
         </div>
 
         <div id="status-bar" class="none">Adjust lengths to find resonance positions…</div>
@@ -513,7 +513,7 @@
           </div>
         </div>
         <div class="ec-note">
-          End correction accounts for the antinode forming slightly <em>above</em> the open end of the tube. Corrected lengths: L₁′ = L₁ + e, L₂′ = L₂ + e. Since e cancels in L₂′ − L₁′, λ is unaffected — but individual corrected lengths are shown for accuracy.
+          L₁ and L₂ are measured from the <em>open top</em> of the tube to the water surface. The antinode forms slightly <em>above</em> the open end, so the effective air column is L + e. Corrected lengths: L₁′ = L₁ + e, L₂′ = L₂ + e. Since e cancels in L₂′ − L₁′, λ is unaffected — but individual corrected lengths more accurately represent the true acoustic length.
         </div>
       </div>
 
@@ -542,7 +542,7 @@
     <div>
       <div class="panel">
         <div class="panel-title"><span class="dot"></span>Animated Tube Diagram</div>
-        <canvas id="tube-canvas" width="360" height="520"></canvas>
+        <canvas id="tube-canvas" width="420" height="500"></canvas>
       </div>
     </div>
   </div>
@@ -672,232 +672,224 @@ function updateAll() {
   `;
 }
 
-// ── Tube animation ────────────────────────────────────────────────────
+// ── Tube animation — two side-by-side tubes ───────────────────────────
+// Left tube:  water sits AT L1 — only L1 measurement visible
+// Right tube: water sits AT L2 — only L2 measurement visible
 function drawTube(timestamp) {
   t = timestamp * 0.001;
   const W = tubeCanvas.width;
   const H = tubeCanvas.height;
   tc.clearRect(0, 0, W, H);
 
-  const f = forks[selFork].f;
+  const f  = forks[selFork].f;
   const L1 = getL1(), L2 = getL2();
-  const idealLam = vTheoretical(getTemp()) / f;
-  const idealL1 = idealLam / 4 * 100;
-  const idealL2 = 3 * idealLam / 4 * 100;
-  const tol = 2.0;
-  const res1 = Math.abs(L1 - idealL1) < tol;
-  const res2 = Math.abs(L2 - idealL2) < tol;
+  const T  = getTemp(), d = getDiam(), e = 0.3 * d;
+  const vTh    = vTheoretical(T);
+  const idLam  = vTh / f;
+  const idL1   = idLam / 4 * 100;   // ideal 1st resonance length (cm)
+  const idL2   = 3 * idLam / 4 * 100;
+  const tol    = 2.0;
+  const res1   = Math.abs(L1 - idL1) < tol;
+  const res2   = Math.abs(L2 - idL2) < tol;
 
-  // Tube geometry
-  const tx = 100, tw = 120, ty = 40, th = 400;
-  const maxCm = 140;
-  const scale = th / maxCm;
-  function yCm(cm) { return ty + th - cm * scale; }
+  // ── Layout: two tubes side by side ─────────────────────────────
+  const tubeMaxCm = 110;
+  const th = 340, ty = 68, tw = 88;
+  const gap = 50;
+  const totalW = tw * 2 + gap;
+  const tx1 = Math.floor((W - totalW) / 2);
+  const tx2 = tx1 + tw + gap;
+  const scale = th / tubeMaxCm;
 
-  // Background tube glow if resonating
-  if (res1 || res2) {
-    const glow = tc.createRadialGradient(tx+tw/2, ty+th/2, 0, tx+tw/2, ty+th/2, 120);
-    const alpha = 0.08 + 0.06 * Math.sin(t * 8);
-    glow.addColorStop(0, `rgba(0,229,255,${alpha})`);
-    glow.addColorStop(1, 'transparent');
-    tc.fillStyle = glow;
-    tc.fillRect(0, 0, W, H);
-  }
+  function yTop(cm) { return ty + cm * scale; }
 
-  // Water column
-  const waterY = yCm(L2);
-  const grad = tc.createLinearGradient(tx, waterY, tx, ty+th);
-  grad.addColorStop(0, 'rgba(21,101,192,0.7)');
-  grad.addColorStop(1, 'rgba(21,101,192,0.92)');
-  tc.fillStyle = grad;
-  tc.beginPath();
-  tc.roundRect(tx+3, waterY, tw-6, (ty+th) - waterY, [0,0,6,6]);
-  tc.fill();
+  const wY1 = yTop(L1);   // water surface in left tube  (at L1)
+  const wY2 = yTop(L2);   // water surface in right tube (at L2)
 
-  // Water surface ripple animation
-  if (res1 || res2) {
-    const rippleAmp = 3 * Math.sin(t * 12);
-    tc.strokeStyle = 'rgba(66,165,245,0.8)';
-    tc.lineWidth = 1.5;
-    tc.beginPath();
-    for (let x = tx+3; x < tx+tw-3; x++) {
-      const wave = rippleAmp * Math.sin((x - tx) * 0.3 + t * 15);
-      if (x === tx+3) tc.moveTo(x, waterY + wave);
-      else tc.lineTo(x, waterY + wave);
+  const waveAmp  = 18 * (0.7 + 0.3 * Math.sin(t * 10));
+  const waveTick = Math.sin(t * (f > 400 ? 14 : 10));
+  const steps    = 80;
+
+  // ── drawSingleTube(txn, waterY, L, isRes, halfWaves, col, lLabel) ──
+  // Each tube shows only its own water level — no cross-markers from the other.
+  function drawSingleTube(txn, waterY, L, isRes, halfWaves, col, lLabel) {
+    const cx = txn + tw / 2;
+
+    // Soft glow when resonating
+    if (isRes) {
+      const a = 0.07 + 0.05 * Math.sin(t * 8);
+      const gl = tc.createRadialGradient(cx, ty + th/2, 0, cx, ty + th/2, 85);
+      gl.addColorStop(0, col.replace('1)', `${a})`));
+      gl.addColorStop(1, 'transparent');
+      tc.fillStyle = gl;
+      tc.fillRect(txn - 18, ty - 18, tw + 36, th + 36);
     }
-    tc.stroke();
-  }
 
-  // Air column (above water)
-  tc.fillStyle = 'rgba(0,229,255,0.03)';
-  tc.fillRect(tx+3, ty, tw-6, waterY - ty);
+    // ── Water fill: from waterY down to tube bottom ───────────────
+    const wg = tc.createLinearGradient(txn, waterY, txn, ty + th);
+    wg.addColorStop(0, 'rgba(21,101,192,0.72)');
+    wg.addColorStop(1, 'rgba(13,71,161,0.93)');
+    tc.fillStyle = wg;
+    tc.beginPath();
+    tc.roundRect(txn + 2, waterY, tw - 4, (ty + th) - waterY, [0,0,5,5]);
+    tc.fill();
 
-  // Standing wave in air column — animated
-  if (res1 || res2) {
-    const ampMax = 24;
-    const amp = ampMax * (0.7 + 0.3 * Math.sin(t * (res1 && res2 ? 10 : 8)));
+    // Water surface ripple when resonating
+    if (isRes) {
+      const rA = 2.5 * Math.sin(t * 14);
+      tc.strokeStyle = 'rgba(66,165,245,0.75)';
+      tc.lineWidth = 1.5;
+      tc.beginPath();
+      for (let x = txn+3; x < txn+tw-3; x++) {
+        const wy = waterY + rA * Math.sin((x-txn)*0.35 + t*16);
+        x === txn+3 ? tc.moveTo(x, wy) : tc.lineTo(x, wy);
+      }
+      tc.stroke();
+    }
 
-    // For L2 view (showing 3/4 wave)
-    const resonL = L2;
-    const nHalfWaves = 1.5; // 3/4 of a full wave = 1.5 half-waves from node at bottom
+    // ── Air column tint: from open top down to water surface ──────
+    tc.fillStyle = 'rgba(0,229,255,0.04)';
+    tc.fillRect(txn+2, ty, tw-4, waterY - ty);
 
+    // ── Standing wave (only when resonating) ─────────────────────
+    if (isRes) {
+      tc.save();
+      tc.strokeStyle = col;
+      tc.lineWidth = 2.5;
+      tc.shadowColor = col;
+      tc.shadowBlur = 10;
+      tc.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const frac = i / steps;
+        const yp   = ty + frac * (waterY - ty);
+        // antinode at open top (frac=0), node at water (frac=1)
+        const phase = (1 - frac) * Math.PI * halfWaves;
+        const xOff  = waveAmp * Math.sin(phase) * waveTick;
+        i === 0 ? tc.moveTo(cx + xOff, yp) : tc.lineTo(cx + xOff, yp);
+      }
+      tc.stroke();
+      tc.restore();
+    }
+
+    // ── Tube walls (drawn after water so border sits on top) ──────
+    tc.strokeStyle = '#4a5a7a';
+    tc.lineWidth = 2.5;
+    tc.strokeRect(txn, ty, tw, th);
+
+    // Open top dashed line
     tc.save();
-    tc.strokeStyle = res1 && res2 ? 'rgba(168,255,62,0.85)' : 'rgba(0,229,255,0.7)';
-    tc.lineWidth = 2;
-    tc.shadowColor = res1 && res2 ? '#a8ff3e' : '#00e5ff';
-    tc.shadowBlur = 8;
-    tc.beginPath();
-    const steps = 80;
-    for (let i = 0; i <= steps; i++) {
-      const frac = i / steps;
-      const yp = waterY + (ty - waterY) * frac; // bottom=waterY, top=ty
-      // standing wave: node at bottom (water), antinode at open top
-      const phase = frac * Math.PI * nHalfWaves;
-      const xOff = amp * Math.sin(phase) * Math.sin(t * (f > 400 ? 14 : 10));
-      if (i === 0) tc.moveTo(tx + tw/2 + xOff, yp);
-      else tc.lineTo(tx + tw/2 + xOff, yp);
-    }
+    tc.setLineDash([5,4]);
+    tc.strokeStyle = 'rgba(0,229,255,0.5)';
+    tc.lineWidth = 1.5;
+    tc.beginPath(); tc.moveTo(txn, ty); tc.lineTo(txn+tw, ty);
     tc.stroke();
     tc.restore();
+
+    // Tube bottom cap
+    tc.fillStyle = '#2a3a5a';
+    tc.fillRect(txn-2, ty+th, tw+4, 5);
+
+    // ── Water surface dashed marker line ──────────────────────────
+    tc.save();
+    tc.setLineDash([4,3]);
+    tc.strokeStyle = col;
+    tc.lineWidth = 1.2;
+    tc.beginPath();
+    tc.moveTo(txn - 28, waterY); tc.lineTo(txn + tw + 8, waterY);
+    tc.stroke();
+    tc.restore();
+
+    // ── Bracket arrow: open top → water surface (= air column L) ─
+    const bx = txn - 20;
+    tc.strokeStyle = col;
+    tc.lineWidth = 1.2;
+    tc.beginPath(); tc.moveTo(bx, ty); tc.lineTo(bx, waterY); tc.stroke();
+    tc.fillStyle = col;
+    drawArrow(tc, bx, ty+4,       'up');
+    drawArrow(tc, bx, waterY-4,   'down');
+
+    // ── L label at bracket midpoint ───────────────────────────────
+    tc.font = '700 12px Space Mono';
+    tc.textAlign = 'right';
+    tc.fillStyle = col;
+    tc.fillText(`${lLabel} = ${L.toFixed(1)} cm`, txn - 26, (ty + waterY)/2 + 4);
+
+    // ── "open end" and "water" text labels ────────────────────────
+    tc.font = '400 9px Space Mono';
+    tc.textAlign = 'center';
+    tc.fillStyle = 'rgba(0,229,255,0.6)';
+    tc.fillText('open end', cx, ty - 6);
+    tc.fillStyle = 'rgba(80,130,210,0.75)';
+    tc.fillText('water', cx, waterY + 13);
+
+    // ── Node / antinode labels (right side, only when resonating) ─
+    if (isRes) {
+      const rx = txn + tw + 5;
+      tc.font = '400 9px Space Mono';
+      tc.textAlign = 'left';
+      tc.fillStyle = '#a8ff3e';
+      tc.fillText('A', rx, ty + 8);           // antinode at open top
+      tc.fillStyle = '#ff3366';
+      tc.fillText('N', rx, waterY + 4);       // node at water surface
+      if (halfWaves > 1) {
+        // 3/4 wave: one extra node and one extra antinode in column
+        const mA = ty + (waterY - ty) * (2/3);
+        const mN = ty + (waterY - ty) * (1/3);
+        tc.fillStyle = '#a8ff3e';
+        tc.fillText('A', rx, mA + 4);
+        tc.fillStyle = '#ff3366';
+        tc.fillText('N', rx, mN + 4);
+      }
+    }
+
+    // ── Tuning fork above the tube ────────────────────────────────
+    drawFork(tc, cx, ty - 14, f, isRes, t);
   }
 
-  // L2 dashed line
-  const yL2 = yCm(L2);
-  tc.save();
-  tc.setLineDash([4, 3]);
-  tc.strokeStyle = 'rgba(255,107,53,0.6)';
-  tc.lineWidth = 1;
-  tc.beginPath();
-  tc.moveTo(tx - 6, yL2); tc.lineTo(tx + tw + 6, yL2);
-  tc.stroke();
-  tc.restore();
+  // ── Draw left tube  → L1 only (water at L1, ¼λ) ─────────────────
+  drawSingleTube(tx1, wY1, L1, res1, 0.5,  'rgba(0,229,255,0.85)',  'L₁');
 
-  // L1 dashed line
-  const yL1 = yCm(L1);
-  tc.save();
-  tc.setLineDash([4, 3]);
-  tc.strokeStyle = 'rgba(0,229,255,0.6)';
-  tc.lineWidth = 1;
-  tc.beginPath();
-  tc.moveTo(tx - 6, yL1); tc.lineTo(tx + tw + 6, yL1);
-  tc.stroke();
-  tc.restore();
+  // ── Draw right tube → L2 only (water at L2, ¾λ) ─────────────────
+  drawSingleTube(tx2, wY2, L2, res2, 1.5,  'rgba(255,107,53,0.85)', 'L₂');
 
-  // Tube walls
-  tc.strokeStyle = '#3a4a6a';
-  tc.lineWidth = 3;
-  tc.strokeRect(tx, ty, tw, th);
-  // Open end indicator (dashed top)
-  tc.save();
-  tc.setLineDash([6, 4]);
-  tc.strokeStyle = 'rgba(0,229,255,0.5)';
-  tc.lineWidth = 1.5;
-  tc.beginPath(); tc.moveTo(tx, ty); tc.lineTo(tx+tw, ty);
-  tc.stroke();
-  tc.restore();
-
-  // Tube bottom (closed/water)
-  tc.fillStyle = '#2a3a5a';
-  tc.fillRect(tx-2, ty+th, tw+4, 6);
-
-  // Labels
-  tc.font = '500 11px Syne';
-  tc.textAlign = 'right';
-  // L1 label
-  tc.fillStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.45)';
-  tc.fillText(`L₁ = ${L1.toFixed(1)} cm`, tx - 10, yL1 + 4);
-  // L2 label
-  tc.fillStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.45)';
-  tc.fillText(`L₂ = ${L2.toFixed(1)} cm`, tx - 10, yL2 + 4);
-
-  // Bracket arrow for L1
-  tc.strokeStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.3)';
-  tc.lineWidth = 1.2;
-  tc.beginPath();
-  tc.moveTo(tx - 38, ty);
-  tc.lineTo(tx - 38, yL1);
-  tc.stroke();
-  // arrowheads
-  tc.fillStyle = res1 ? '#00e5ff' : 'rgba(0,229,255,0.3)';
-  drawArrow(tc, tx-38, ty+4, 'up');
-  drawArrow(tc, tx-38, yL1-4, 'down');
-
-  // Bracket arrow for L2
-  tc.strokeStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.3)';
-  tc.lineWidth = 1.2;
-  tc.beginPath();
-  tc.moveTo(tx - 60, ty);
-  tc.lineTo(tx - 60, yL2);
-  tc.stroke();
-  tc.fillStyle = res2 ? '#ff6b35' : 'rgba(255,107,53,0.3)';
-  drawArrow(tc, tx-60, ty+4, 'up');
-  drawArrow(tc, tx-60, yL2-4, 'down');
-
-  // Tuning fork icon
-  drawFork(tc, tx + tw/2, ty - 16, f, res1 || res2, t);
-
-  // Open / Closed labels
-  tc.fillStyle = 'rgba(0,229,255,0.6)';
-  tc.font = '400 10px Space Mono';
+  // ── Labels below each tube ────────────────────────────────────────
+  tc.font = '500 11px Space Mono';
   tc.textAlign = 'center';
-  tc.fillText('open end', tx + tw/2, ty - 42);
-  tc.fillStyle = 'rgba(100,140,200,0.5)';
-  tc.fillText('closed end (water)', tx + tw/2, ty + th + 20);
+  tc.fillStyle = res1 ? '#00e5ff' : '#4a6080';
+  tc.fillText('1st resonance  ¼λ', tx1 + tw/2, ty + th + 22);
+  tc.fillStyle = res2 ? '#ff6b35' : '#4a6080';
+  tc.fillText('2nd resonance  ¾λ', tx2 + tw/2, ty + th + 22);
 
-  // Right side: node/antinode labels
-  tc.fillStyle = res1 && res2 ? '#a8ff3e' : 'rgba(0,229,255,0.45)';
-  tc.font = '400 10px Space Mono';
-  tc.textAlign = 'left';
-  if (res1 || res2) {
-    tc.fillText('antinode', tx + tw + 12, ty + 6);
-    tc.fillText('node', tx + tw + 12, yCm(0) - 4);
-    if (res2) tc.fillText('antinode', tx + tw + 12, yL2 + 4);
-  }
-
-  // Frequency + temperature + end-correction info strip
-  const T = getTemp();
-  const d = getDiam();
-  const e = 0.3 * d;
-  const vTh = vTheoretical(T);
-
+  // frequency centred between tubes
+  tc.fillStyle = '#7a8aaa';
   tc.font = '400 11px Space Mono';
   tc.textAlign = 'center';
-  tc.fillStyle = '#7a8aaa';
-  tc.fillText(`f = ${f} Hz`, tx + tw/2, ty + th + 36);
+  tc.fillText(`f = ${f} Hz`, W/2, ty + th + 40);
 
-  // Temperature badge top-left of canvas
-  const tempFrac = Math.max(0, Math.min(1, T / 45));
-  const tr = Math.round(30 + tempFrac * 225);
-  const tg2 = Math.round(100 - tempFrac * 50);
-  const tb2 = Math.round(220 - tempFrac * 200);
-  const tempCol = `rgb(${tr},${tg2},${tb2})`;
+  // ── Temperature badge (top-left) ──────────────────────────────────
+  const tFrac = Math.max(0, Math.min(1, T/45));
+  const tr2 = Math.round(30 + tFrac*225);
+  const tg2 = Math.round(100 - tFrac*50);
+  const tb2 = Math.round(220 - tFrac*200);
+  const tCol = `rgb(${tr2},${tg2},${tb2})`;
+  tc.fillStyle = 'rgba(0,0,0,0.4)';
+  tc.beginPath(); tc.roundRect(6,6,92,40,5); tc.fill();
+  tc.strokeStyle = tCol; tc.lineWidth = 1;
+  tc.beginPath(); tc.roundRect(6,6,92,40,5); tc.stroke();
+  tc.fillStyle = tCol; tc.font = '700 13px Space Mono'; tc.textAlign = 'left';
+  tc.fillText(`${T.toFixed(1)} °C`, 13, 23);
+  tc.fillStyle = '#7a8aaa'; tc.font = '400 9px Space Mono';
+  tc.fillText(`v = ${vTh.toFixed(1)} m/s`, 13, 38);
 
-  tc.fillStyle = 'rgba(0,0,0,0.35)';
-  tc.beginPath(); tc.roundRect(6, 6, 84, 38, 5); tc.fill();
-  tc.strokeStyle = tempCol; tc.lineWidth = 1;
-  tc.beginPath(); tc.roundRect(6, 6, 84, 38, 5); tc.stroke();
-
-  tc.fillStyle = tempCol;
-  tc.font = '700 13px Space Mono';
-  tc.textAlign = 'left';
-  tc.fillText(`${T.toFixed(1)} °C`, 12, 22);
-  tc.font = '400 9px Space Mono';
-  tc.fillStyle = '#7a8aaa';
-  tc.fillText(`v = ${vTh.toFixed(1)} m/s`, 12, 36);
-
-  // End correction badge top-right
-  tc.fillStyle = 'rgba(0,0,0,0.35)';
-  tc.beginPath(); tc.roundRect(W - 88, 6, 82, 38, 5); tc.fill();
+  // ── End correction badge (top-right) ─────────────────────────────
+  tc.fillStyle = 'rgba(0,0,0,0.4)';
+  tc.beginPath(); tc.roundRect(W-96,6,90,40,5); tc.fill();
   tc.strokeStyle = 'rgba(168,255,62,0.5)'; tc.lineWidth = 1;
-  tc.beginPath(); tc.roundRect(W - 88, 6, 82, 38, 5); tc.stroke();
-
-  tc.fillStyle = '#a8ff3e';
-  tc.font = '700 13px Space Mono';
-  tc.textAlign = 'left';
-  tc.fillText(`e=${e.toFixed(2)}cm`, W - 82, 22);
-  tc.font = '400 9px Space Mono';
-  tc.fillStyle = '#7a8aaa';
-  tc.fillText(`d=${d.toFixed(1)}cm`, W - 82, 36);
+  tc.beginPath(); tc.roundRect(W-96,6,90,40,5); tc.stroke();
+  tc.fillStyle = '#a8ff3e'; tc.font = '700 13px Space Mono'; tc.textAlign = 'left';
+  tc.fillText(`e=${e.toFixed(2)}cm`, W-90, 23);
+  tc.fillStyle = '#7a8aaa'; tc.font = '400 9px Space Mono';
+  tc.fillText(`d=${d.toFixed(1)}cm`, W-90, 38);
 
   animFrame = requestAnimationFrame(drawTube);
 }
@@ -982,6 +974,14 @@ function drawWaveDiagram(timestamp) {
   wc.strokeStyle = '#2a3550'; wc.lineWidth = 1;
   wc.strokeRect(lx, ly, lw, lh);
 
+  // Open end label top, water label bottom
+  wc.fillStyle = 'rgba(0,229,255,0.55)';
+  wc.font = '400 9px Space Mono';
+  wc.textAlign = 'center';
+  wc.fillText('open end', lx + lw/2, ly + 9);
+  wc.fillStyle = 'rgba(66,120,200,0.6)';
+  wc.fillText('water (node)', lx + lw/2, ly + lh * 0.75 - 4);
+
   // Labels
   wc.fillStyle = res1 ? '#00e5ff' : '#4a6080';
   wc.font = '400 11px Space Mono';
@@ -1041,6 +1041,14 @@ function drawWaveDiagram(timestamp) {
   wc.strokeStyle = '#2a3550'; wc.lineWidth = 1;
   wc.strokeRect(rx, ry, rw, rh);
 
+  // Open end / water labels
+  wc.fillStyle = 'rgba(0,229,255,0.55)';
+  wc.font = '400 9px Space Mono';
+  wc.textAlign = 'center';
+  wc.fillText('open end', rx + rw/2, ry + 9);
+  wc.fillStyle = 'rgba(66,120,200,0.6)';
+  wc.fillText('water (node)', rx + rw/2, ry + rh * 0.83 - 4);
+
   wc.fillStyle = res2 ? '#ff6b35' : '#4a6080';
   wc.font = '400 11px Space Mono';
   wc.textAlign = 'center';
@@ -1092,11 +1100,11 @@ function drawWaveDiagram(timestamp) {
   wc.textAlign = 'right';
   wc.fillText('L₂', rx - 18, ry + rh * 0.415 + 4);
 
-  // Legend: N = node, A = antinode
+  // Legend
   wc.font = '400 10px Space Mono';
   wc.textAlign = 'center';
   wc.fillStyle = '#4a6080';
-  wc.fillText('N = node   A = antinode', W/2, H - 6);
+  wc.fillText('N = node   A = antinode   |   L₁, L₂ measured from open top ↓ to water surface', W/2, H - 6);
 
   requestAnimationFrame(drawWaveDiagram);
 }
@@ -1257,7 +1265,7 @@ const _origUpdateAll = updateAll;
 document.getElementById('sl1').addEventListener('input', function() {
   const v = parseFloat(this.value);
   const sl2 = document.getElementById('sl2');
-  if (parseFloat(sl2.value) <= v + 10) sl2.value = v + 25;
+  if (parseFloat(sl2.value) <= v + 10) sl2.value = Math.min(110, v + 25);
   updateAll();
   if (isSustaining || document.getElementById('strike-btn').classList.contains('ringing')) {
     updateAudioStatus('playing');
