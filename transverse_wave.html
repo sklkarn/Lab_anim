@@ -1,0 +1,163 @@
+
+<style>
+  * { box-sizing: border-box; }
+  .wrap { background: #0f1117; border-radius: 12px; padding: 1.2rem 1.4rem; position: relative; min-height: 380px; }
+  .instructor { position: absolute; top: 1rem; right: 1.4rem; font-size: 12px; color: #7a8aaa; font-family: var(--font-sans, sans-serif); letter-spacing: 0.03em; }
+  .instructor span { color: #a8bcdd; font-weight: 500; }
+  .btn-group { display:flex; gap:8px; margin-bottom:1rem; margin-top:0.2rem; }
+  .btn { padding:6px 18px; border-radius:6px; border:1.5px solid transparent; background:transparent; cursor:pointer; font-size:13px; font-weight:500; transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.1s; }
+  .btn:active { transform: scale(0.96); }
+  .btn-fixed { color:#5ab4f5; border-color:#2a5a8c; }
+  .btn-fixed:hover { background:#0e2a45; }
+  .btn-fixed.active { background: linear-gradient(135deg,#1a4a7a,#0e3060); color:#7dd4ff; border-color:#4a9edd; box-shadow: 0 0 10px rgba(74,158,221,0.35); }
+  .btn-open { color:#f07ab0; border-color:#7a3060; }
+  .btn-open:hover { background:#3a1030; }
+  .btn-open.active { background: linear-gradient(135deg,#6a1a40,#4a0f2e); color:#ffaad4; border-color:#d4537e; box-shadow: 0 0 10px rgba(212,83,126,0.35); }
+  .ctrl { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:0.6rem; }
+  .ctrl label { font-size:12px; color:#5a6a85; min-width:78px; }
+  .ctrl span { font-size:12px; font-weight:500; color:#8a9bb8; min-width:28px; }
+  input[type=range] { flex:1; accent-color:#378ADD; }
+  canvas { width:100%; border-radius:8px; border:0.5px solid #1e2a3a; display:block; margin-top:0.5rem; }
+  .legend { display:flex; gap:18px; margin-top:8px; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:#5a6a85; }
+  .legend-dot { width:22px; height:2.5px; border-radius:2px; }
+</style>
+
+<div class="wrap">
+  <div class="instructor">Instructor: <span>Dr. S Karna</span></div>
+
+  <div class="btn-group">
+    <button class="btn btn-fixed active" id="btn-fixed" onclick="setEnd('fixed')">Fixed end</button>
+    <button class="btn btn-open" id="btn-open" onclick="setEnd('open')">Open end</button>
+  </div>
+
+  <div class="ctrl">
+    <label>Frequency</label>
+    <input type="range" min="0.5" max="3" step="0.1" value="1" oninput="freq=+this.value;document.getElementById('fv').textContent=(+this.value).toFixed(1)">
+    <span id="fv">1.0</span>
+  </div>
+  <div class="ctrl">
+    <label>Amplitude</label>
+    <input type="range" min="10" max="80" step="1" value="50" oninput="amp=+this.value;document.getElementById('av').textContent=this.value">
+    <span id="av">50</span>
+  </div>
+  <div class="ctrl">
+    <label>Speed</label>
+    <input type="range" min="0.2" max="3" step="0.1" value="1" oninput="speed=+this.value;document.getElementById('sv').textContent=(+this.value).toFixed(1)">
+    <span id="sv">1.0</span>
+  </div>
+
+  <canvas id="wc" height="200"></canvas>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#4a9edd;"></div>Incident wave</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d4537e;"></div>Reflected wave</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1dbb80;"></div>Resultant (standing wave)</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('wc');
+const ctx = canvas.getContext('2d');
+let endType = 'fixed', freq = 1, amp = 50, speed = 1, t = 0;
+
+function setEnd(type) {
+  endType = type;
+  document.getElementById('btn-fixed').classList.toggle('active', type === 'fixed');
+  document.getElementById('btn-open').classList.toggle('active', type === 'open');
+}
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = 200 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+}
+resize();
+window.addEventListener('resize', resize);
+
+function draw() {
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  const cy = H / 2;
+  const x0 = 44, L = W - 88;
+  const k = (2 * Math.PI * freq) / L;
+  const omega = 2 * Math.PI * freq * 0.8 * speed;
+  const N = 500;
+  const wallX = x0 + L;
+
+  ctx.fillStyle = '#0a0d14';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let gx = x0; gx <= wallX; gx += L / 8) {
+    ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+    ctx.moveTo(gx, 20); ctx.lineTo(gx, H - 20); ctx.stroke();
+  }
+  for (let gy = cy - amp - 10; gy <= cy + amp + 10; gy += (amp + 10) / 2) {
+    ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+    ctx.moveTo(x0, gy); ctx.lineTo(wallX, gy); ctx.stroke();
+  }
+
+  function yi(x) { return amp * Math.sin(k * (x - x0) - omega * t); }
+  function yr(x) {
+    return endType === 'fixed'
+      ? -amp * Math.sin(k * (x - x0) + omega * t - 2 * k * L)
+      :  amp * Math.sin(k * (x - x0) + omega * t - 2 * k * L);
+  }
+  function ys(x) { return yi(x) + yr(x); }
+
+  function drawWave(fn, color, alpha, dash) {
+    dash = dash || [];
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.globalAlpha = alpha;
+    ctx.lineWidth = 1.5; ctx.setLineDash(dash);
+    for (let i = 0; i <= N; i++) {
+      const x = x0 + (i / N) * L;
+      const y = cy + fn(x);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  drawWave(yi, '#4a9edd', 0.5, [6, 4]);
+  drawWave(yr, '#d4537e', 0.5, [4, 6]);
+  drawWave(ys, '#1dbb80', 1.0);
+
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.5;
+  ctx.moveTo(x0, cy); ctx.lineTo(wallX, cy); ctx.stroke();
+
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+  ctx.moveTo(x0, cy - 65); ctx.lineTo(x0, cy + 65); ctx.stroke();
+
+  ctx.fillStyle = '#4a5a75'; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText('source', x0, cy + 80);
+
+  if (endType === 'fixed') {
+    ctx.beginPath(); ctx.strokeStyle = '#8899bb'; ctx.lineWidth = 3;
+    ctx.moveTo(wallX, cy - 62); ctx.lineTo(wallX, cy + 62); ctx.stroke();
+    for (let y = cy - 58; y < cy + 62; y += 10) {
+      ctx.beginPath(); ctx.strokeStyle = '#556677'; ctx.lineWidth = 1;
+      ctx.moveTo(wallX, y); ctx.lineTo(wallX + 11, y + 9); ctx.stroke();
+    }
+    const lyF = cy + ys(wallX);
+    ctx.beginPath(); ctx.arc(wallX, lyF, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#E24B4A'; ctx.fill();
+    ctx.fillStyle = '#4a5a75'; ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('fixed end', wallX, cy + 80);
+  } else {
+    ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 5]);
+    ctx.moveTo(wallX, cy - 70); ctx.lineTo(wallX, cy + 70); ctx.stroke();
+    ctx.setLineDash([]);
+    const lyO = cy + ys(wallX);
+    ctx.beginPath(); ctx.arc(wallX, lyO, 7, 0, Math.PI * 2);
+    ctx.strokeStyle = '#1dbb80'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = '#0a0d14'; ctx.fill();
+    ctx.fillStyle = '#4a5a75'; ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('open end', wallX, cy + 80);
+  }
+
+  t += 0.016 * speed;
+  requestAnimationFrame(draw);
+}
+draw();
+</script>

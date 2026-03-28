@@ -789,8 +789,8 @@ function drawApparatus() {
   ctx.beginPath(); ctx.moveTo(leftB, strY); ctx.lineTo(rightB, strY); ctx.stroke();
 
   // ---- Knife edges ----
-  const usable = rightB - leftB - 60;
-  const kL     = leftB  + 30 + usable * ((1 - lengthCm / 100) * 0.5);
+  const usable = rightB - leftB - 20;   // nearly full board width
+  const kL     = leftB  + 10 + usable * ((1 - lengthCm / 100) * 0.5);
   const kR     = kL + usable * (lengthCm / 100);
   const kY     = by - bridgeH;
 

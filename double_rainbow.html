@@ -54,10 +54,11 @@
   }
   .info span { display:block; font-size:.68em; opacity:.6; font-style:normal; margin-top:3px; }
 
+  /* ── Droplet diagrams ── */
   .droplets-row {
     position: absolute;
     bottom: 19%;
-    left: 50%; transform: translateX(-50%);
+    left: 55%; transform: translateX(-50%);
     display: flex; gap: 50px;
     align-items: flex-end;
   }
@@ -71,6 +72,17 @@
     color: rgba(255,255,255,.72); font-size: 11px;
     letter-spacing: .13em; text-transform: uppercase;
   }
+
+  /* ── Observer angle panel ── */
+  #angle-panel {
+    position: absolute;
+    bottom: 10px;
+    left: 16px;
+    width: 220px;
+    opacity: 0;
+    animation: fadeIn 1s ease 2.8s forwards;
+  }
+  #angle-panel svg { display: block; }
 </style>
 </head>
 <body>
@@ -79,7 +91,9 @@
 <div class="ground"></div>
 <div class="rain-layer" id="rain"></div>
 
-<!-- Main rainbow SVG -->
+<!-- ════════════════════════════════════
+     Main rainbow SVG
+     ════════════════════════════════════ -->
 <svg id="scene" viewBox="0 0 1000 580" preserveAspectRatio="xMidYMax meet">
   <defs>
     <filter id="glow1">
@@ -91,33 +105,193 @@
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- Alexander's dark band -->
-  <path d="M-60 580 A 540 540 0 0 1 1060 580"
-        fill="none" stroke="rgba(0,0,25,.3)" stroke-width="100" filter="url(#glow2)"/>
-  <!-- PRIMARY (42°) violet inner → red outer -->
+
+
+
+  <!--
+    PRIMARY (42°): violet INNER → red OUTER
+    Arcs centred at (500,580). Smaller radius = higher up = inner edge.
+    violet R=396 (innermost/highest), red R=482 (outermost/lowest).
+  -->
   <g class="arc-group primary" filter="url(#glow1)">
-    <path class="arc" d="M 18 580 A 482 482 0 0 1 982 580" stroke="rgba(148,0,211,.52)" stroke-width="13"/>
-    <path class="arc" d="M 36 580 A 464 464 0 0 1 964 580" stroke="rgba(0,80,255,.50)"  stroke-width="12"/>
-    <path class="arc" d="M 54 580 A 446 446 0 0 1 946 580" stroke="rgba(0,200,60,.48)"  stroke-width="12"/>
-    <path class="arc" d="M 72 580 A 428 428 0 0 1 928 580" stroke="rgba(255,240,0,.50)" stroke-width="11"/>
-    <path class="arc" d="M 88 580 A 412 412 0 0 1 912 580" stroke="rgba(255,127,0,.50)" stroke-width="12"/>
-    <path class="arc" d="M104 580 A 396 396 0 0 1 896 580" stroke="rgba(255,0,0,.55)"   stroke-width="14"/>
+    <path class="arc" d="M104 580 A 396 396 0 0 1 896 580" stroke="rgba(148,0,211,.80)" stroke-width="16"/>
+    <path class="arc" d="M 88 580 A 412 412 0 0 1 912 580" stroke="rgba(0,80,255,.75)"  stroke-width="15"/>
+    <path class="arc" d="M 72 580 A 428 428 0 0 1 928 580" stroke="rgba(0,210,60,.72)"  stroke-width="15"/>
+    <path class="arc" d="M 54 580 A 446 446 0 0 1 946 580" stroke="rgba(255,230,0,.78)" stroke-width="14"/>
+    <path class="arc" d="M 36 580 A 464 464 0 0 1 964 580" stroke="rgba(255,120,0,.78)" stroke-width="15"/>
+    <path class="arc" d="M 18 580 A 482 482 0 0 1 982 580" stroke="rgba(255,0,0,.85)"   stroke-width="17"/>
   </g>
-  <!-- SECONDARY (51°) red inner → violet outer -->
+
+  <!--
+    SECONDARY (51°): red INNER → violet OUTER  ← ORDER IS REVERSED vs primary
+    Red sits at the smaller radius (innermost = R=474), violet at larger (outermost = R=544).
+    This is the key visual difference from the primary rainbow.
+  -->
   <g class="arc-group secondary" filter="url(#glow2)">
-    <path class="arc" d="M -44 580 A 544 544 0 0 1 1044 580" stroke="rgba(148,0,211,.28)" stroke-width="10"/>
-    <path class="arc" d="M -30 580 A 530 530 0 0 1 1030 580" stroke="rgba(0,80,255,.26)"  stroke-width="9"/>
-    <path class="arc" d="M -16 580 A 516 516 0 0 1 1016 580" stroke="rgba(0,200,60,.26)"  stroke-width="9"/>
-    <path class="arc" d="M  -2 580 A 502 502 0 0 1 1002 580" stroke="rgba(255,240,0,.27)" stroke-width="9"/>
-    <path class="arc" d="M  12 580 A 488 488 0 0 1  988 580" stroke="rgba(255,127,0,.28)" stroke-width="9"/>
-    <path class="arc" d="M  26 580 A 474 474 0 0 1  974 580" stroke="rgba(255,0,0,.30)"   stroke-width="10"/>
+    <path class="arc" d="M 26 580 A 474 474 0 0 1  974 580" stroke="rgba(255,0,0,.55)"   stroke-width="12"/>
+    <path class="arc" d="M 12 580 A 488 488 0 0 1  988 580" stroke="rgba(255,120,0,.50)" stroke-width="11"/>
+    <path class="arc" d="M  -2 580 A 502 502 0 0 1 1002 580" stroke="rgba(255,230,0,.50)" stroke-width="11"/>
+    <path class="arc" d="M -16 580 A 516 516 0 0 1 1016 580" stroke="rgba(0,210,60,.46)"  stroke-width="11"/>
+    <path class="arc" d="M -30 580 A 530 530 0 0 1 1030 580" stroke="rgba(0,80,255,.44)"  stroke-width="11"/>
+    <path class="arc" d="M -44 580 A 544 544 0 0 1 1044 580" stroke="rgba(148,0,211,.48)" stroke-width="12"/>
   </g>
 </svg>
 
-<!-- Droplet diagrams -->
+<!-- ════════════════════════════════════
+     Observer angle diagram (bottom-right)
+     Shows the 42° / 51° angles from the
+     observer's eye to each rainbow arc.
+     ════════════════════════════════════ -->
+<div id="angle-panel">
+  <svg width="220" height="178" viewBox="0 0 260 210">
+
+    <!-- Sky backdrop -->
+    <rect x="0" y="0" width="260" height="210" rx="10"
+          fill="rgba(8,12,34,.72)" stroke="rgba(255,255,255,.12)" stroke-width="0.8"/>
+
+    <!-- Horizon line -->
+    <line x1="10" y1="158" x2="250" y2="158"
+          stroke="rgba(255,255,255,.18)" stroke-width="0.7" stroke-dasharray="5 3"/>
+    <text x="218" y="154" fill="rgba(255,255,255,.30)"
+          font-size="8" font-family="Cormorant Garamond,serif">horizon</text>
+
+    <!-- Ground -->
+    <rect x="0" y="158" width="260" height="52" rx="0"
+          fill="rgba(13,58,26,.55)"/>
+    <rect x="0" y="198" width="260" height="12" rx="0"
+          fill="rgba(8,12,34,.72)"/>
+
+    <!-- Sun (behind observer, left side) -->
+    <circle cx="18" cy="126" r="10" fill="#f2a623" opacity=".85"/>
+    <text x="18" y="130" fill="#633806" font-size="7"
+          font-family="Cormorant Garamond,serif" text-anchor="middle">SUN</text>
+
+    <!-- Anti-solar axis (horizontal from eye to right) -->
+    <line x1="46" y1="126" x2="248" y2="126"
+          stroke="rgba(255,255,255,.22)" stroke-width="0.8" stroke-dasharray="6 3"/>
+    <text x="186" y="122" fill="rgba(255,255,255,.22)"
+          font-size="7" font-family="Cormorant Garamond,serif">anti-solar axis</text>
+
+    <!-- Observer stick figure (eye at 46,126) -->
+    <!-- head -->
+    <circle cx="46" cy="116" r="6" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.3"/>
+    <!-- body -->
+    <line x1="46" y1="122" x2="46" y2="144" stroke="rgba(255,255,255,.55)" stroke-width="1.3" stroke-linecap="round"/>
+    <!-- arms -->
+    <line x1="46" y1="130" x2="36" y2="138" stroke="rgba(255,255,255,.50)" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="46" y1="130" x2="56" y2="138" stroke="rgba(255,255,255,.50)" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- legs -->
+    <line x1="46" y1="144" x2="39" y2="158" stroke="rgba(255,255,255,.50)" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="46" y1="144" x2="53" y2="158" stroke="rgba(255,255,255,.50)" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- Eye dot -->
+    <circle cx="46" cy="126" r="2.5" fill="#ff7744"/>
+
+    <!-- Anti-solar point on horizon (directly below eye) -->
+    <circle cx="46" cy="158" r="2" fill="rgba(255,255,255,.35)"/>
+    <line x1="46" y1="128" x2="46" y2="156"
+          stroke="rgba(255,255,255,.18)" stroke-width="0.7" stroke-dasharray="3 2"/>
+
+    <!-- ── PRIMARY rainbow arc at 42° ── -->
+    <!--
+      Eye = (46, 126). Anti-solar axis goes RIGHT (+x).
+      42° above axis → direction (cos42°, −sin42°) = (0.7431, −0.6691).
+      Arc center placed at (46, 168) [below eye]. Radius chosen so
+      the arc apex sits nicely in frame: R_primary = 116.
+      Arc swept from x=−70 to x=162 at y=168 (clamped by viewBox).
+    -->
+    <!-- Alexander's dark band fill -->
+    <path d="M -70 168 A 135 135 0 0 1 162 168
+             L 152 168 A 125 125 0 0 0 -60 168 Z"
+          fill="rgba(0,0,20,.35)"/>
+
+    <!-- Primary colours: violet INNER (smallest R) → red OUTER (largest R) -->
+    <path d="M -79 168 A 125 125 0 0 1 171 168"
+          fill="none" stroke="rgba(148,0,211,.85)" stroke-width="4.5"/>
+    <path d="M -76 168 A 122 122 0 0 1 168 168"
+          fill="none" stroke="rgba(0,80,255,.80)"  stroke-width="4"/>
+    <path d="M -73 168 A 119 119 0 0 1 165 168"
+          fill="none" stroke="rgba(0,210,60,.78)"  stroke-width="4"/>
+    <path d="M -70 168 A 116 116 0 0 1 162 168"
+          fill="none" stroke="rgba(255,230,0,.82)" stroke-width="4"/>
+    <path d="M -67 168 A 113 113 0 0 1 159 168"
+          fill="none" stroke="rgba(255,120,0,.82)" stroke-width="4.5"/>
+    <path d="M -64 168 A 110 110 0 0 1 156 168"
+          fill="none" stroke="rgba(255,0,0,.90)"   stroke-width="5.5"/>
+
+    <!-- Secondary colours: red INNER (smallest R) → violet OUTER (largest R) — reversed! -->
+    <path d="M -86 168 A 132 132 0 0 1 178 168"
+          fill="none" stroke="rgba(255,0,0,.55)"   stroke-width="3.5"/>
+    <path d="M -89 168 A 135 135 0 0 1 181 168"
+          fill="none" stroke="rgba(255,120,0,.50)" stroke-width="3"/>
+    <path d="M -92 168 A 138 138 0 0 1 184 168"
+          fill="none" stroke="rgba(255,230,0,.50)" stroke-width="3"/>
+    <path d="M -95 168 A 141 141 0 0 1 187 168"
+          fill="none" stroke="rgba(0,210,60,.46)"  stroke-width="3"/>
+    <path d="M -98 168 A 144 144 0 0 1 190 168"
+          fill="none" stroke="rgba(0,80,255,.44)"  stroke-width="3"/>
+    <path d="M-101 168 A 147 147 0 0 1 193 168"
+          fill="none" stroke="rgba(148,0,211,.50)" stroke-width="3.5"/>
+
+    <!-- ── 42° angle ray from eye ── -->
+    <!--
+      Direction from (46,126): (cos42°,−sin42°) = (0.7431,−0.6691).
+      Extend to t≈100 → endpoint (46+74.3, 126−66.9) = (120.3, 59.1).
+    -->
+    <line x1="46" y1="126" x2="120" y2="59"
+          stroke="#ff7744" stroke-width="1.4" stroke-dasharray="5 3" opacity=".9"/>
+    <!-- arrowhead manual -->
+    <polygon points="120,59 112,63 114,55" fill="#ff7744" opacity=".9"/>
+
+    <!-- ── 51° angle ray from eye ── -->
+    <!--
+      Direction: (cos51°,−sin51°) = (0.6293,−0.7771).
+      Extend to t≈106 → (46+66.7, 126−82.4) = (112.7, 43.6).
+    -->
+    <line x1="46" y1="126" x2="112" y2="44"
+          stroke="#cc66ff" stroke-width="1.4" stroke-dasharray="5 3" opacity=".9"/>
+    <polygon points="112,44 106,51 104,43" fill="#cc66ff" opacity=".9"/>
+
+    <!-- ── Angle arcs at eye ── -->
+    <!-- 42° arc: from (46+42,126)=(88,126) sweeping to (46+42*0.7431, 126−42*0.6691)=(77.2,97.9) -->
+    <path d="M 88 126 A 42 42 0 0 0 77.2 97.9"
+          fill="none" stroke="#ff7744" stroke-width="1.2" opacity=".85"/>
+    <!-- 51° arc: from (88,126) sweeping to (46+42*0.6293, 126−42*0.7771)=(72.4,93.4) -->
+    <path d="M 88 126 A 42 42 0 0 0 72.4 93.4"
+          fill="none" stroke="#cc66ff" stroke-width="1.2" opacity=".85"/>
+
+    <!-- Angle labels -->
+    <text x="91" y="115" fill="#ff7744"
+          font-size="11" font-family="Cormorant Garamond,serif" font-weight="bold">42°</text>
+    <text x="74"  y="92" fill="#cc66ff"
+          font-size="11" font-family="Cormorant Garamond,serif" font-weight="bold">51°</text>
+
+    <!-- Rainbow labels -->
+    <text x="134" y="54" fill="rgba(255,120,60,.90)"
+          font-size="8.5" font-family="Cormorant Garamond,serif" font-style="italic">Primary</text>
+    <text x="128" y="38" fill="rgba(180,80,255,.85)"
+          font-size="8.5" font-family="Cormorant Garamond,serif" font-style="italic">Secondary</text>
+
+    <!-- Alexander's dark band label -->
+    <text x="148" y="150" fill="rgba(255,255,255,.30)"
+          font-size="7.5" font-family="Cormorant Garamond,serif" font-style="italic"
+          text-anchor="middle">Alexander's dark band</text>
+
+    <!-- Panel title -->
+    <text x="130" y="194" fill="rgba(255,255,255,.50)"
+          font-size="8" font-family="Cormorant Garamond,serif"
+          font-style="italic" letter-spacing=".08em" text-anchor="middle">
+      Observer angle geometry
+    </text>
+  </svg>
+</div>
+
+<!-- ════════════════════════════════════
+     Droplet diagrams
+     ════════════════════════════════════ -->
 <div class="droplets-row">
 
-  <!-- ══ DROP 1: Primary — 1 internal reflection ══ -->
+  <!-- DROP 1: Primary — 1 internal reflection -->
   <div class="drop-card">
     <svg width="230" height="250" viewBox="-20 -10 270 270">
       <defs>
@@ -131,51 +305,39 @@
         </filter>
       </defs>
 
-      <!-- Sun label -->
-      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9" font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
+      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9"
+            font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
 
-      <!-- ── Incident beam 1 (hits upper part of sphere) ── -->
+      <!-- Incident beams -->
       <line x1="-18" y1="44" x2="52" y2="64"
             stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
         <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
       </line>
       <polygon points="52,64 38,57 41,68" fill="white" opacity=".85"/>
 
-      <!-- ── Incident beam 2 (hits lower part of sphere) ── -->
       <line x1="-18" y1="106" x2="30" y2="101"
             stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
         <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
       </line>
       <polygon points="30,101 15,95 17,106" fill="white" opacity=".85"/>
 
-      <!-- ── Sphere (perfectly circular) ── -->
+      <!-- Sphere -->
       <circle cx="110" cy="110" r="92" fill="url(#g1)" filter="url(#ds1)"/>
-      <!-- interior volume hint -->
       <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(200,240,255,.18)" stroke-width="1"/>
-      <!-- specular highlights -->
       <ellipse cx="80" cy="68" rx="26" ry="13" fill="white" opacity=".22" transform="rotate(-30,80,68)"/>
       <ellipse cx="72" cy="60" rx="11" ry="5"  fill="white" opacity=".44" transform="rotate(-30,72,60)"/>
 
-      <!-- ── Ray path inside sphere — beam 1 ── -->
-      <!-- refraction at entry point (upper left ~52°) -->
-      <line x1="52"  y1="64"  x2="148" y2="152"
-            stroke="rgba(255,255,255,.55)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <!-- single internal reflection at back wall -->
-      <line x1="148" y1="152" x2="66"  y2="174"
-            stroke="rgba(255,255,255,.50)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <!-- refraction at exit (right side) -->
-      <line x1="66"  y1="174" x2="198" y2="146"
-            stroke="rgba(255,255,255,.40)" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <!-- Ray paths inside — beam 1 (1 reflection) -->
+      <line x1="52"  y1="64"  x2="148" y2="152" stroke="rgba(255,255,255,.55)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="148" y1="152" x2="66"  y2="174" stroke="rgba(255,255,255,.50)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="66"  y1="174" x2="198" y2="146" stroke="rgba(255,255,255,.40)" stroke-width="1.6" stroke-dasharray="5 3"/>
 
-      <!-- ── Ray path inside sphere — beam 2 ── -->
-      <line x1="30"  y1="101" x2="160" y2="140"
-            stroke="rgba(255,255,255,.45)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <line x1="160" y1="140" x2="76"  y2="194"
-            stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <line x1="76"  y1="194" x2="200" y2="176"
-            stroke="rgba(255,255,255,.35)" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <!-- Ray paths inside — beam 2 -->
+      <line x1="30"  y1="101" x2="160" y2="140" stroke="rgba(255,255,255,.45)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="160" y1="140" x2="76"  y2="194" stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="76"  y1="194" x2="200" y2="176" stroke="rgba(255,255,255,.35)" stroke-width="1.6" stroke-dasharray="5 3"/>
 
-      <!-- ── Dispersed exit colours — beam 1 (fan, red at top = smaller angle) ── -->
+      <!-- Exit colours — beam 1 (red outer = larger angle) -->
       <g opacity=".92">
         <line x1="198" y1="146" x2="238" y2="117" stroke="#ff0000" stroke-width="3.2"/>
         <line x1="198" y1="146" x2="239" y2="126" stroke="#ff8000" stroke-width="2.8"/>
@@ -185,7 +347,7 @@
         <line x1="198" y1="146" x2="230" y2="163" stroke="#8800cc" stroke-width="3"/>
       </g>
 
-      <!-- ── Dispersed exit colours — beam 2 ── -->
+      <!-- Exit colours — beam 2 -->
       <g opacity=".72">
         <line x1="200" y1="176" x2="238" y2="148" stroke="#ff0000" stroke-width="2.5"/>
         <line x1="200" y1="176" x2="239" y2="157" stroke="#ff8000" stroke-width="2.2"/>
@@ -195,11 +357,11 @@
         <line x1="200" y1="176" x2="228" y2="196" stroke="#8800cc" stroke-width="2.5"/>
       </g>
 
-      <!-- angle arc & label at exit -->
+      <!-- Angle arc & label -->
       <path d="M216 140 A18 18 0 0 1 227 157" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
       <text x="218" y="136" fill="rgba(255,255,255,.8)" font-size="10.5" font-family="Cormorant Garamond,serif">42°</text>
 
-      <!-- badge -->
+      <!-- Badge -->
       <rect x="52" y="216" width="116" height="19" rx="5" fill="rgba(0,0,0,.42)"/>
       <text x="110" y="229" fill="rgba(255,255,255,.75)" font-size="9.5"
             font-family="Cormorant Garamond,serif" text-anchor="middle">1 internal reflection</text>
@@ -207,7 +369,7 @@
     <label>Primary Rainbow · 42°</label>
   </div>
 
-  <!-- ══ DROP 2: Secondary — 2 internal reflections ══ -->
+  <!-- DROP 2: Secondary — 2 internal reflections -->
   <div class="drop-card">
     <svg width="230" height="250" viewBox="-20 -10 270 270">
       <defs>
@@ -221,54 +383,41 @@
         </filter>
       </defs>
 
-      <!-- Sun label -->
-      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9" font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
+      <text x="-15" y="14" fill="rgba(255,230,100,.8)" font-size="9"
+            font-family="Cormorant Garamond,serif" font-style="italic">sunlight</text>
 
-      <!-- ── Incident beam 1 ── -->
+      <!-- Incident beams -->
       <line x1="-18" y1="48" x2="52" y2="62"
             stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
         <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
       </line>
       <polygon points="52,62 38,55 41,66" fill="white" opacity=".85"/>
 
-      <!-- ── Incident beam 2 ── -->
       <line x1="-18" y1="100" x2="30" y2="97"
             stroke="white" stroke-width="2.8" stroke-dasharray="6 3" opacity=".9">
         <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
       </line>
       <polygon points="30,97 15,91 17,102" fill="white" opacity=".85"/>
 
-      <!-- ── Sphere ── -->
+      <!-- Sphere -->
       <circle cx="110" cy="110" r="92" fill="url(#g2)" filter="url(#ds2)"/>
       <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(200,240,255,.18)" stroke-width="1"/>
       <ellipse cx="80" cy="68" rx="26" ry="13" fill="white" opacity=".20" transform="rotate(-30,80,68)"/>
       <ellipse cx="72" cy="60" rx="11" ry="5"  fill="white" opacity=".40" transform="rotate(-30,72,60)"/>
 
-      <!-- ── Ray inside — beam 1 — TWO internal reflections ── -->
-      <!-- entry refraction -->
-      <line x1="52"  y1="62"  x2="164" y2="86"
-            stroke="rgba(255,255,255,.52)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <!-- 1st reflection (back-right) -->
-      <line x1="164" y1="86"  x2="142" y2="192"
-            stroke="rgba(255,255,255,.47)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <!-- 2nd reflection (bottom) -->
-      <line x1="142" y1="192" x2="44"  y2="178"
-            stroke="rgba(255,255,255,.42)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <!-- exit refraction — LEFT side -->
-      <line x1="44"  y1="178" x2="-20" y2="148"
-            stroke="rgba(255,255,255,.38)" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <!-- Ray inside — beam 1 — TWO internal reflections -->
+      <line x1="52"  y1="62"  x2="164" y2="86"  stroke="rgba(255,255,255,.52)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="164" y1="86"  x2="142" y2="192" stroke="rgba(255,255,255,.47)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="142" y1="192" x2="44"  y2="178" stroke="rgba(255,255,255,.42)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="44"  y1="178" x2="-20" y2="148" stroke="rgba(255,255,255,.38)" stroke-width="1.6" stroke-dasharray="5 3"/>
 
-      <!-- ── Ray inside — beam 2 ── -->
-      <line x1="30"  y1="97"  x2="158" y2="130"
-            stroke="rgba(255,255,255,.44)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <line x1="158" y1="130" x2="122" y2="200"
-            stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <line x1="122" y1="200" x2="40"  y2="162"
-            stroke="rgba(255,255,255,.36)" stroke-width="1.8" stroke-dasharray="5 3"/>
-      <line x1="40"  y1="162" x2="-20" y2="178"
-            stroke="rgba(255,255,255,.32)" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <!-- Ray inside — beam 2 -->
+      <line x1="30"  y1="97"  x2="158" y2="130" stroke="rgba(255,255,255,.44)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="158" y1="130" x2="122" y2="200" stroke="rgba(255,255,255,.40)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="122" y1="200" x2="40"  y2="162" stroke="rgba(255,255,255,.36)" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <line x1="40"  y1="162" x2="-20" y2="178" stroke="rgba(255,255,255,.32)" stroke-width="1.6" stroke-dasharray="5 3"/>
 
-      <!-- ── Exit spectrum — beam 1 (exits left, ORDER REVERSED: violet top, red bottom) ── -->
+      <!-- Exit spectrum — beam 1 (exits left, reversed: violet top → red bottom) -->
       <g opacity=".90">
         <line x1="-20" y1="148" x2="-57" y2="124" stroke="#8800cc" stroke-width="3.2"/>
         <line x1="-20" y1="148" x2="-57" y2="134" stroke="#0055ff" stroke-width="2.8"/>
@@ -278,7 +427,7 @@
         <line x1="-20" y1="148" x2="-52" y2="172" stroke="#ff0000" stroke-width="3.2"/>
       </g>
 
-      <!-- ── Exit spectrum — beam 2 ── -->
+      <!-- Exit spectrum — beam 2 -->
       <g opacity=".70">
         <line x1="-20" y1="178" x2="-56" y2="154" stroke="#8800cc" stroke-width="2.5"/>
         <line x1="-20" y1="178" x2="-57" y2="164" stroke="#0055ff" stroke-width="2.2"/>
@@ -288,11 +437,11 @@
         <line x1="-20" y1="178" x2="-50" y2="203" stroke="#ff0000" stroke-width="2.5"/>
       </g>
 
-      <!-- angle arc & label -->
+      <!-- Angle arc & label -->
       <path d="M-33 143 A18 18 0 0 0 -44 160" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
       <text x="-62" y="141" fill="rgba(255,255,255,.8)" font-size="10.5" font-family="Cormorant Garamond,serif">51°</text>
 
-      <!-- badge -->
+      <!-- Badge -->
       <rect x="52" y="216" width="116" height="19" rx="5" fill="rgba(0,0,0,.42)"/>
       <text x="110" y="229" fill="rgba(255,255,255,.75)" font-size="9.5"
             font-family="Cormorant Garamond,serif" text-anchor="middle">2 internal reflections</text>
@@ -302,39 +451,39 @@
 
 </div>
 
-<!-- Info -->
+<!-- Page title -->
 <div class="info">
   Double Rainbow
   <span>Light dispersed by spherical water droplets &nbsp;·&nbsp; 42° primary &nbsp;·&nbsp; 51° secondary</span>
 </div>
 
 <script>
-  // Stars
+  // ── Stars ──
   const starsEl = document.getElementById('stars');
   for (let i = 0; i < 80; i++) {
     const s = document.createElement('div');
     s.className = 'star';
     s.style.left = Math.random()*100+'%';
     s.style.top  = Math.random()*52+'%';
-    s.style.animationDelay = Math.random()*4+'s';
+    s.style.animationDelay    = Math.random()*4+'s';
     s.style.animationDuration = (2+Math.random()*3)+'s';
     starsEl.appendChild(s);
   }
 
-  // Rain
+  // ── Rain ──
   const rainEl = document.getElementById('rain');
   for (let i = 0; i < 110; i++) {
     const r = document.createElement('div');
     r.className = 'raindrop';
-    r.style.left = Math.random()*100+'%';
+    r.style.left             = Math.random()*100+'%';
     r.style.animationDuration = (.55+Math.random()*.75)+'s';
     r.style.animationDelay   = -(Math.random()*3)+'s';
-    r.style.height = (10+Math.random()*14)+'px';
-    r.style.opacity = .2+Math.random()*.4;
+    r.style.height           = (10+Math.random()*14)+'px';
+    r.style.opacity          = .2+Math.random()*.4;
     rainEl.appendChild(r);
   }
 
-  // Arc draw animation
+  // ── Arc draw-on animation ──
   document.querySelectorAll('.arc').forEach(arc => {
     try {
       const len = arc.getTotalLength();
