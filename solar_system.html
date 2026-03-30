@@ -92,6 +92,8 @@
     display: none;
     z-index: 20;
     box-shadow: 0 0 20px #7af7ff22;
+    max-width: 260px;
+    line-height: 1.6;
   }
 
   #legend {
@@ -123,7 +125,7 @@
 <div id="legend">
   <div><span class="label-dot" style="background:#c2a85a"></span>ASTEROID BELT</div>
   <div><span class="label-dot" style="background:#6a8fa8"></span>KUIPER BELT</div>
-  <div><span class="label-dot" style="background:#2a4a6a88"></span>OORT CLOUD</div>
+  <div><span class="label-dot" style="background:#6aaad4"></span>OORT CLOUD</div>
 </div>
 
 <div id="tooltip"></div>
@@ -186,8 +188,8 @@ function generateBelts() {
     asteroids.push({
       r, a,
       speed: (0.0003 + Math.random() * 0.0002) * (Math.random() < 0.5 ? 1 : -1),
-      size: 0.5 + Math.random() * 1.2,
-      brightness: 0.3 + Math.random() * 0.6
+      size: 0.7 + Math.random() * 1.4,
+      brightness: 0.55 + Math.random() * 0.45
     });
   }
 
@@ -198,8 +200,8 @@ function generateBelts() {
     kuiper.push({
       r, a,
       speed: (0.00008 + Math.random() * 0.00005) * (Math.random() < 0.5 ? 1 : -1),
-      size: 0.6 + Math.random() * 1.4,
-      brightness: 0.25 + Math.random() * 0.5
+      size: 0.8 + Math.random() * 1.6,
+      brightness: 0.5 + Math.random() * 0.5
     });
   }
 
@@ -210,8 +212,8 @@ function generateBelts() {
     oort.push({
       r, a,
       speed: (0.00002 + Math.random() * 0.00001) * (Math.random() < 0.5 ? 1 : -1),
-      size: 0.4 + Math.random() * 0.8,
-      brightness: 0.08 + Math.random() * 0.2
+      size: 0.7 + Math.random() * 1.2,
+      brightness: 0.35 + Math.random() * 0.5
     });
   }
 }
@@ -234,6 +236,22 @@ planets.forEach(p => {
 });
 
 let hoveredPlanet = null;
+
+// Belt info data
+const beltInfo = {
+  ASTEROID: {
+    name: 'ASTEROID BELT',
+    info: 'Located between Mars & Jupiter (2.2–3.2 AU). Contains millions of rocky bodies — remnants from the solar system\'s formation. Ceres is the largest, a dwarf planet ~940 km wide.'
+  },
+  KUIPER: {
+    name: 'KUIPER BELT',
+    info: 'Extends from Neptune (30 AU) to ~50 AU. A vast disc of icy bodies including Pluto, Eris & Makemake. Source of short-period comets. ~20× wider than the asteroid belt.'
+  },
+  OORT: {
+    name: 'OORT CLOUD',
+    info: 'Spherical shell of icy bodies ~2,000–100,000 AU from the Sun. Reservoir for long-period comets. So distant, it takes objects millions of years to orbit the Sun once.'
+  }
+};
 
 canvas.addEventListener('mousemove', e => {
   mouse.x = e.clientX;
@@ -328,8 +346,8 @@ function draw() {
     p.a += p.speed * speedMult;
     const x = cx + Math.cos(p.a) * p.r;
     const y = cy + Math.sin(p.a) * p.r;
-    ctx.globalAlpha = p.brightness * 0.6;
-    ctx.fillStyle = '#4a7aaa';
+    ctx.globalAlpha = p.brightness;
+    ctx.fillStyle = '#7ab8e8';
     ctx.beginPath();
     ctx.arc(x, y, p.size * scale, 0, Math.PI * 2);
     ctx.fill();
@@ -339,7 +357,7 @@ function draw() {
   // --- OORT LABEL ---
   const oortR = 870 * scale;
   ctx.font = `${Math.max(8, 9 * scale)}px 'Share Tech Mono'`;
-  ctx.fillStyle = '#2a4a6a88';
+  ctx.fillStyle = '#6aaad4cc';
   ctx.letterSpacing = '0.1em';
   ctx.fillText('OORT CLOUD', cx + oortR * 0.68, cy - oortR * 0.72);
 
@@ -359,22 +377,22 @@ function draw() {
   // Kuiper belt orbit ring (subtle)
   ctx.beginPath();
   ctx.arc(cx, cy, 612 * scale, 0, Math.PI * 2);
-  ctx.strokeStyle = '#6a8fa822';
-  ctx.lineWidth = 20 * scale;
+  ctx.strokeStyle = '#6a8fa855';
+  ctx.lineWidth = 22 * scale;
   ctx.stroke();
 
   // --- KUIPER LABEL ---
   const kR = 620 * scale;
   ctx.font = `${Math.max(8, 9 * scale)}px 'Share Tech Mono'`;
-  ctx.fillStyle = '#6a8fa899';
+  ctx.fillStyle = '#8ab8cccc';
   ctx.fillText('KUIPER BELT', cx + kR * 0.68, cy - kR * 0.72);
 
   // --- ASTEROID BELT ---
   // Belt haze
   ctx.beginPath();
   ctx.arc(cx, cy, 233 * scale, 0, Math.PI * 2);
-  ctx.strokeStyle = '#c2a85a18';
-  ctx.lineWidth = 28 * scale;
+  ctx.strokeStyle = '#c2a85a44';
+  ctx.lineWidth = 30 * scale;
   ctx.stroke();
 
   for (const p of asteroids) {
@@ -392,7 +410,7 @@ function draw() {
   // Asteroid belt label
   const abR = 248 * scale;
   ctx.font = `${Math.max(7, 8 * scale)}px 'Share Tech Mono'`;
-  ctx.fillStyle = '#c2a85a88';
+  ctx.fillStyle = '#c2a85acc';
   ctx.fillText('ASTEROID BELT', cx + abR * 0.62, cy - abR * 0.77);
 
   // --- ORBIT RINGS ---
@@ -440,6 +458,20 @@ function draw() {
   // --- PLANETS ---
   hoveredPlanet = null;
   let tooltipContent = null;
+
+  // Belt hover detection (annular zones, checked before planets)
+  const distFromCenter = Math.sqrt((mouse.x - cx) ** 2 + (mouse.y - cy) ** 2);
+  const asteroidInner = 195 * scale, asteroidOuter = 275 * scale;
+  const kuiperInner   = 575 * scale, kuiperOuter  = 660 * scale;
+  const oortInner     = 745 * scale, oortOuter    = 975 * scale;
+
+  if (distFromCenter >= asteroidInner && distFromCenter <= asteroidOuter) {
+    tooltipContent = `<strong>${beltInfo.ASTEROID.name}</strong><br>${beltInfo.ASTEROID.info}`;
+  } else if (distFromCenter >= kuiperInner && distFromCenter <= kuiperOuter) {
+    tooltipContent = `<strong>${beltInfo.KUIPER.name}</strong><br>${beltInfo.KUIPER.info}`;
+  } else if (distFromCenter >= oortInner && distFromCenter <= oortOuter) {
+    tooltipContent = `<strong>${beltInfo.OORT.name}</strong><br>${beltInfo.OORT.info}`;
+  }
 
   for (const p of planets) {
     // Update angle
@@ -539,7 +571,7 @@ function draw() {
   }
 
   // Tooltip
-  if (hoveredPlanet && tooltipContent) {
+  if (tooltipContent) {
     tooltip.style.display = 'block';
     tooltip.innerHTML = tooltipContent;
     tooltip.style.left = (mouse.x + 16) + 'px';

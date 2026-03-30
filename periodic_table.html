@@ -324,7 +324,7 @@ function showInfo(el) {
       <div id="info-weight">Atomic Weight: <span>${el.wt}</span></div>
       <div style="margin-top:4px">
         <span id="info-cat" style="background:${c.bg}44;color:${c.bg};border:1px solid ${c.bg}66">${catLabels[el.cat]}</span>
-        <span id="info-period-group">Period ${el.period > 7 ? el.period-1 : el.period} &middot; Group ${el.group}</span>
+        <span id="info-period-group">Period ${el.period > 7 ? el.period-1 : el.period} &middot; Group ${el.group} (${abLabels[el.group]})</span>
       </div>
     </div>`;
 }
@@ -372,7 +372,26 @@ catKeys.forEach((cat, i) => {
 // Build table
 const tableInner = document.getElementById('table-inner');
 
-// Group number row
+// A-B group designations (traditional American system)
+const abLabels = {
+  1:'1A', 2:'2A', 3:'3B', 4:'4B', 5:'5B', 6:'6B', 7:'7B',
+  8:'8B', 9:'8B', 10:'8B', 11:'1B', 12:'2B',
+  13:'3A', 14:'4A', 15:'5A', 16:'6A', 17:'7A', 18:'8A'
+};
+
+// A-B label row
+const abRow = document.createElement('div');
+abRow.className = 'grid-row';
+for (let i = 1; i <= 18; i++) {
+  const d = document.createElement('div');
+  d.className = 'group-num';
+  d.style.cssText = 'font-size:8px;color:#6868aa;letter-spacing:0;';
+  d.textContent = abLabels[i];
+  abRow.appendChild(d);
+}
+tableInner.appendChild(abRow);
+
+// Group number row (IUPAC)
 const gnRow = document.createElement('div');
 gnRow.className = 'grid-row';
 for (let i = 1; i <= 18; i++) {

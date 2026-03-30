@@ -1,0 +1,391 @@
+
+<canvas id="mw" style="display:block;width:100%;background:#00000e;border-radius:8px;cursor:crosshair"></canvas>
+<div id="tt" style="position:absolute;display:none;background:rgba(4,10,30,0.97);border:0.5px solid rgba(100,150,255,0.4);border-radius:8px;padding:10px 16px;font-family:var(--font-sans);font-size:13px;color:#ccdeff;max-width:230px;line-height:1.55;pointer-events:none;z-index:9">
+  <div id="ttt" style="font-size:14px;font-weight:500;color:#fff;margin-bottom:3px"></div>
+  <div id="ttb" style="font-size:12px"></div>
+  <div id="tts" style="color:#44ffdd;font-size:11px;margin-top:3px"></div>
+</div>
+<script>
+const cv = document.getElementById('mw');
+const ctx = cv.getContext('2d');
+const tt = document.getElementById('tt');
+const ttt = document.getElementById('ttt');
+const ttb = document.getElementById('ttb');
+const tts = document.getElementById('tts');
+
+function resize(){
+  const w = cv.parentElement.clientWidth || 680;
+  cv.width = w;
+  cv.height = Math.round(w * 0.82);
+}
+resize();
+window.addEventListener('resize', resize);
+
+let _s = 0;
+function sr(s){ _s = s >>> 0; }
+function rn(){ _s = (_s * 1664525 + 1013904223) >>> 0; return _s / 4294967295; }
+function rr(a, b){ return a + rn() * (b - a); }
+
+function lhex(a, b, t){
+  const p = s => parseInt(s, 16);
+  const r = Math.round(p(a.slice(1,3)) + (p(b.slice(1,3)) - p(a.slice(1,3))) * t);
+  const g = Math.round(p(a.slice(3,5)) + (p(b.slice(3,5)) - p(a.slice(3,5))) * t);
+  const bl= Math.round(p(a.slice(5,7)) + (p(b.slice(5,7)) - p(a.slice(5,7))) * t);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${bl.toString(16).padStart(2,'0')}`;
+}
+
+function rotPt(x, y, a){
+  return [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+}
+
+function spiralPts(startDeg, r0, r1, pitch, steps = 260){
+  const sa = startDeg * Math.PI / 180;
+  const cot = 1 / Math.tan(pitch * Math.PI / 180);
+  const pts = [];
+  for(let i = 0; i <= steps; i++){
+    const r = r0 + (r1 - r0) * (i / steps);
+    const a = sa + cot * Math.log(r / r0);
+    pts.push([r * Math.cos(a), r * Math.sin(a)]);
+  }
+  return pts;
+}
+
+function drawArm(pts, w0, w1, c0, c1, alpha, tp){
+  if(pts.length < 2) return;
+  ctx.save(); ctx.globalAlpha = alpha * 0.50;
+  for(let i = 1; i < pts.length; i++){
+    const t = i / pts.length;
+    const [x0,y0] = tp(pts[i-1][0], pts[i-1][1]);
+    const [x1,y1] = tp(pts[i][0],   pts[i][1]);
+    const w = (w0 + (w1 - w0) * t) * 3.2;
+    const dx = x1-x0, dy = y1-y0, len = Math.sqrt(dx*dx+dy*dy)||1;
+    const nx = -dy/len, ny = dx/len;
+    const mid = lhex(c0, c1, t);
+    const gr = ctx.createLinearGradient(x0-nx*w, y0-ny*w, x0+nx*w, y0+ny*w);
+    gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(0.28,mid+'2a');
+    gr.addColorStop(0.5,mid+'99');      gr.addColorStop(0.72,mid+'2a');
+    gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.strokeStyle = gr; ctx.lineWidth = w * 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = alpha * 0.88;
+  for(let i = 1; i < pts.length; i++){
+    const t = i / pts.length;
+    const [x0,y0] = tp(pts[i-1][0], pts[i-1][1]);
+    const [x1,y1] = tp(pts[i][0],   pts[i][1]);
+    const w = (w0 + (w1 - w0) * t) * 1.0;
+    const dx = x1-x0, dy = y1-y0, len = Math.sqrt(dx*dx+dy*dy)||1;
+    const nx = -dy/len, ny = dx/len;
+    const mid = lhex(c0, c1, t);
+    const gr = ctx.createLinearGradient(x0-nx*w, y0-ny*w, x0+nx*w, y0+ny*w);
+    gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(0.35,mid+'70');
+    gr.addColorStop(0.5,mid+'dd');      gr.addColorStop(0.65,mid+'70');
+    gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.strokeStyle = gr; ctx.lineWidth = w * 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = alpha * 0.20;
+  for(let i = 1; i < pts.length; i++){
+    const t = i / pts.length;
+    const [x0,y0] = tp(pts[i-1][0], pts[i-1][1]);
+    const [x1,y1] = tp(pts[i][0],   pts[i][1]);
+    const w = (w0 + (w1 - w0) * t) * 0.32;
+    const dx = x1-x0, dy = y1-y0, len = Math.sqrt(dx*dx+dy*dy)||1;
+    const nx = -dy/len, ny = dx/len;
+    ctx.strokeStyle = 'rgba(0,2,12,0.75)'; ctx.lineWidth = w * 0.9; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0+nx*w*0.5, y0+ny*w*0.5); ctx.lineTo(x1+nx*w*0.5, y1+ny*w*0.5); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function scatterStars(pts, density, spread, colFn, alphaFn, szFn, tp, S){
+  for(let i = 0; i < pts.length; i++){
+    const t = i / pts.length;
+    const [bx,by] = tp(pts[i][0], pts[i][1]);
+    const n = Math.floor(density(t));
+    for(let k = 0; k < n; k++){
+      const ang = rr(0, Math.PI*2), d = rr(0, spread(t));
+      ctx.save(); ctx.globalAlpha = alphaFn(t);
+      ctx.fillStyle = colFn(t);
+      const sz = Math.max(0.5, szFn(t));
+      ctx.beginPath(); ctx.arc(bx + Math.cos(ang)*d, by + Math.sin(ang)*d, sz, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+const SOL_R   = 0.26;
+const SOL_ANG = 240 * Math.PI / 180;
+const SOL_KX  = SOL_R * Math.cos(SOL_ANG);
+const SOL_KY  = SOL_R * Math.sin(SOL_ANG);
+
+const AND_KX = 0.82, AND_KY = 0.35;
+
+const HOTSPOTS = [
+  { kx:0,       ky:0,       rk:0.06, title:'Galactic centre — Sgr A*',      body:'Supermassive black hole, 4 million solar masses. Stars close to it orbit at thousands of km/s.',  sub:'Centre of the Milky Way' },
+  { kx:SOL_KX,  ky:SOL_KY, rk:0.05, title:'Our Solar System',               body:'Located on the Orion Spur, a minor arm bridging Sagittarius and Perseus. One orbit takes ~225 Myr.', sub:'~26,000 ly from galactic centre' },
+  { kx:0.28,    ky:0.38,   rk:0.06, title:'Scutum-Centaurus arm',           body:'One of the two major stellar arms. Rich in old red giant stars and young OB clusters.',              sub:'Starts at near end of the galactic bar' },
+  { kx:-0.22,   ky:-0.38,  rk:0.06, title:'Perseus arm',                    body:'The second major arm, outer and rich in young blue-white OB stars. Our Solar System lies just inside it.', sub:'Outer major arm' },
+  { kx:0.05,    ky:0.22,   rk:0.05, title:'Orion Spur',                     body:'A short inter-arm bridge where our Solar System sits. Not a full spiral arm but a significant gas and star concentration.', sub:'Our home — minor spur' },
+  { kx:AND_KX,  ky:AND_KY, rk:0.05, title:'Andromeda Galaxy (M31)',         body:'~1 trillion stars. The largest galaxy in the Local Group, on a direct collision course with us.',   sub:'2.537 million ly away · closing at 110 km/s' },
+  { kx:-0.10,   ky:-0.52,  rk:0.04, title:'Large Magellanic Cloud',         body:'A satellite dwarf galaxy of the Milky Way. Home to the Tarantula Nebula, the most active star-forming region nearby.', sub:'~160,000 ly away' },
+  { kx:0.02,    ky:-0.62,  rk:0.03, title:'Small Magellanic Cloud',         body:'Companion dwarf galaxy to the LMC, connected by the Magellanic Stream of hydrogen gas.',            sub:'~200,000 ly away' },
+];
+
+let rotation = 0;
+let frame = 0;
+let lastTs = null;
+const INNER_ROT_RATE = 0.00022;
+
+function draw(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min(ts - lastTs, 50);
+  lastTs = ts;
+
+  const W = cv.width, H = cv.height;
+  const cx = W * 0.42, cy = H * 0.50;
+  const S  = Math.min(W, H) * 0.44;
+
+  function tp(kx, ky){
+    return [cx + kx * S, cy - ky * S];
+  }
+  function tpRot(kx, ky, extraRot){
+    const [rx, ry] = rotPt(kx * S, -ky * S, rotation + (extraRot || 0));
+    return [cx + rx, cy + ry];
+  }
+
+  ctx.fillStyle = '#00000e';
+  ctx.fillRect(0, 0, W, H);
+
+  sr(77);
+  for(let i = 0; i < 750; i++){
+    ctx.save(); ctx.globalAlpha = rr(0.1, 0.88);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(rr(0,W), rr(0,H), rr(0.15,1.0), 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  sr(312);
+  const sc2 = ['#aaccff','#ffddaa','#ffccdd','#ccffee'];
+  for(let i = 0; i < 90; i++){
+    ctx.save(); ctx.globalAlpha = rr(0.08,0.42);
+    ctx.fillStyle = sc2[Math.floor(rr(0,4))];
+    ctx.beginPath(); ctx.arc(rr(0,W), rr(0,H), rr(0.2,0.9), 0, Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(rotation); ctx.translate(-cx, -cy);
+
+  const [mcx, mcy] = tp(0, 0);
+
+  const halo = ctx.createRadialGradient(mcx,mcy,0,mcx,mcy,S*0.72);
+  halo.addColorStop(0,'rgba(130,110,210,0)'); halo.addColorStop(0.5,'rgba(75,85,185,0.04)'); halo.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(mcx,mcy,S*0.72,0,Math.PI*2); ctx.fill();
+
+  const disk = ctx.createRadialGradient(mcx,mcy,0,mcx,mcy,S*0.62);
+  disk.addColorStop(0,'rgba(255,220,140,0)'); disk.addColorStop(0.08,'rgba(175,148,80,0.10)');
+  disk.addColorStop(0.28,'rgba(95,90,155,0.07)'); disk.addColorStop(0.55,'rgba(45,55,120,0.05)'); disk.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = disk; ctx.beginPath(); ctx.ellipse(mcx,mcy,S*0.62,S*0.60,0,0,Math.PI*2); ctx.fill();
+
+  const sc1pts = spiralPts(20,  0.04, 0.54, 12, 280);
+  const sc2pts = spiralPts(200, 0.04, 0.54, 12, 280);
+  drawArm(sc1pts, S*0.050, S*0.016, '#ffe090','#b86010', 0.95, tp);
+  drawArm(sc2pts, S*0.050, S*0.016, '#ffe090','#b86010', 0.95, tp);
+  sr(1001); scatterStars(sc1pts, t=>Math.floor(rr(0,t<0.08?0:2.0)), t=>(7+t*10)*S*0.012, t=>{const v=200+Math.floor(rr(-20,30)); return `rgb(${v},${Math.floor(v*0.88)},${Math.floor(v*0.56)})`;}, t=>rr(0.08,0.40), t=>Math.max(0.5,rr(0.3,1.1)*S*0.003), tp, S);
+  sr(1002); scatterStars(sc2pts, t=>Math.floor(rr(0,t<0.08?0:2.0)), t=>(7+t*10)*S*0.012, t=>{const v=200+Math.floor(rr(-20,30)); return `rgb(${v},${Math.floor(v*0.87)},${Math.floor(v*0.55)})`;}, t=>rr(0.08,0.40), t=>Math.max(0.5,rr(0.3,1.1)*S*0.003), tp, S);
+
+  const pe1pts = spiralPts(110, 0.05, 0.56, 12, 280);
+  const pe2pts = spiralPts(290, 0.05, 0.56, 12, 280);
+  drawArm(pe1pts, S*0.046, S*0.014, '#90c8ff','#0c2855', 0.92, tp);
+  drawArm(pe2pts, S*0.046, S*0.014, '#90c8ff','#0c2855', 0.92, tp);
+  sr(2001); scatterStars(pe1pts, t=>Math.floor(rr(0,t<0.08?0:2.0)), t=>(7+t*9)*S*0.012, t=>{const b=220+Math.floor(rr(-15,25)); return `rgb(${Math.floor(b*0.55)},${Math.floor(b*0.80)},${b})`;}, t=>rr(0.10,0.42), t=>Math.max(0.5,rr(0.3,1.2)*S*0.003), tp, S);
+  sr(2002); scatterStars(pe2pts, t=>Math.floor(rr(0,t<0.08?0:2.0)), t=>(7+t*9)*S*0.012, t=>{const b=220+Math.floor(rr(-15,25)); return `rgb(${Math.floor(b*0.55)},${Math.floor(b*0.80)},${b})`;}, t=>rr(0.10,0.42), t=>Math.max(0.5,rr(0.3,1.2)*S*0.003), tp, S);
+
+  drawArm(spiralPts(65,  0.10, 0.42, 12, 130), S*0.012, S*0.004, '#4488aa','#0a1820', 0.18, tp);
+  drawArm(spiralPts(245, 0.10, 0.42, 12, 130), S*0.012, S*0.004, '#4488aa','#0a1820', 0.18, tp);
+  drawArm(spiralPts(155, 0.07, 0.32, 13, 90),  S*0.010, S*0.003, '#336677','#07101a', 0.14, tp);
+  drawArm(spiralPts(335, 0.07, 0.32, 13, 90),  S*0.010, S*0.003, '#336677','#07101a', 0.14, tp);
+  drawArm(spiralPts(158, 0.44, 0.62, 11, 75),  S*0.008, S*0.002, '#2a3d55','#030810', 0.11, tp);
+  drawArm(spiralPts(338, 0.44, 0.62, 11, 75),  S*0.008, S*0.002, '#2a3d55','#030810', 0.11, tp);
+
+  const orPts = spiralPts(215, 0.20, 0.31, 14, 55);
+  drawArm(orPts, S*0.016, S*0.009, '#55ffee','#0a3330', 0.80, tp);
+  sr(3001); scatterStars(orPts, t=>Math.floor(rr(0,1.3)), t=>5*S*0.012, ()=>`rgb(${Math.floor(rr(180,255))},${Math.floor(rr(235,255))},${Math.floor(rr(210,255))})`, t=>rr(0.15,0.55), t=>Math.max(0.5,rr(0.4,1.0)*S*0.003), tp, S);
+
+  ctx.save(); ctx.translate(mcx,mcy); ctx.rotate(-0.50);
+  const bar = ctx.createLinearGradient(-S*0.22,0,S*0.22,0);
+  bar.addColorStop(0,'rgba(255,190,70,0)'); bar.addColorStop(0.15,'rgba(255,200,90,0.50)');
+  bar.addColorStop(0.5,'rgba(255,240,160,0.86)'); bar.addColorStop(0.85,'rgba(255,200,90,0.50)'); bar.addColorStop(1,'rgba(255,190,70,0)');
+  ctx.fillStyle = bar; ctx.beginPath(); ctx.ellipse(0,0,S*0.22,S*0.050,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  sr(9988);
+  for(let i = 0; i < 160; i++){
+    const a = rr(0,Math.PI*2), r = rr(0.02,0.21)*S;
+    const bx = mcx+Math.cos(a+0.50)*r, by = mcy-Math.sin(a+0.50)*r*0.32;
+    if(Math.hypot(bx-mcx,by-mcy) > S*0.23) continue;
+    ctx.save(); ctx.globalAlpha = rr(0.12,0.62);
+    const w = Math.floor(rr(200,255));
+    ctx.fillStyle = `rgb(${w},${Math.floor(w*0.84)},${Math.floor(w*0.54)})`;
+    ctx.beginPath(); ctx.arc(bx,by,Math.max(0.5,rr(0.25,1.4)*S*0.003),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  const bulge = ctx.createRadialGradient(mcx,mcy,0,mcx,mcy,S*0.17);
+  bulge.addColorStop(0,'rgba(255,248,195,1)'); bulge.addColorStop(0.16,'rgba(255,222,138,0.98)');
+  bulge.addColorStop(0.38,'rgba(228,178,80,0.74)'); bulge.addColorStop(0.65,'rgba(155,110,45,0.38)'); bulge.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = bulge; ctx.beginPath(); ctx.arc(mcx,mcy,S*0.17,0,Math.PI*2); ctx.fill();
+
+  const core = ctx.createRadialGradient(mcx,mcy,0,mcx,mcy,S*0.046);
+  core.addColorStop(0,'rgba(255,255,255,1)'); core.addColorStop(0.28,'rgba(255,250,210,0.97)');
+  core.addColorStop(0.65,'rgba(255,208,96,0.60)'); core.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = core; ctx.beginPath(); ctx.arc(mcx,mcy,S*0.046,0,Math.PI*2); ctx.fill();
+
+  sr(4242);
+  for(let i = 0; i < 300; i++){
+    const a = rr(0,Math.PI*2), r = rr(0.06,0.14)*S;
+    const px = mcx+Math.cos(a)*r, py = mcy+Math.sin(a)*r;
+    ctx.save(); ctx.globalAlpha = rr(0.15,0.72);
+    ctx.fillStyle = ['#ffffff','#ccddff','#ffeebb','#aaccff','#ffe8cc'][Math.floor(rr(0,5))];
+    ctx.beginPath(); ctx.arc(px,py,Math.max(0.5,rr(0.25,1.6)*S*0.003),0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  sr(8888);
+  const ncs = ['rgba(255,100,160,','rgba(180,110,255,','rgba(60,160,255,','rgba(255,140,60,','rgba(90,220,180,'];
+  for(let i = 0; i < 28; i++){
+    const a = rr(0,Math.PI*2), r = rr(0.10,0.52)*S;
+    const px = mcx+Math.cos(a)*r, py = mcy+Math.sin(a)*r;
+    const nr = rr(3,12)*S*0.012;
+    const ng = ctx.createRadialGradient(px,py,0,px,py,nr);
+    const nc = ncs[Math.floor(rr(0,5))];
+    ng.addColorStop(0,nc+'0.28)'); ng.addColorStop(0.5,nc+'0.10)'); ng.addColorStop(1,nc+'0)');
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(px,py,nr,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore();
+
+  const [asx, asy] = tpRot(AND_KX, AND_KY, 0);
+  drawAndromeda(asx, asy, S);
+
+  const [lmcx, lmcy] = tpRot(-0.10, -0.52, 0);
+  drawDwarf(lmcx, lmcy, S*0.038, 'rgba(255,220,160,', 'Large MC', S);
+  const [smcx, smcy] = tpRot(0.02, -0.62, 0);
+  drawDwarf(smcx, smcy, S*0.026, 'rgba(200,160,255,', 'Small MC', S);
+
+  const lgEX = cx + AND_KX*S*0.55, lgEY = cy - AND_KY*S*0.55;
+  ctx.save(); ctx.setLineDash([6,6]);
+  ctx.strokeStyle = 'rgba(65,95,180,0.18)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(lgEX, lgEY, S*0.72, S*0.55, 0.08, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = `400 ${Math.round(S*0.022)}px var(--font-sans)`; ctx.fillStyle = 'rgba(75,105,195,0.38)'; ctx.textAlign = 'center';
+  ctx.fillText('Local Group', lgEX, lgEY - S*0.56); ctx.restore();
+
+  const [sx, sy] = tpRot(SOL_KX, SOL_KY, 0);
+  const pulse = 4 + 2.5 * Math.sin(frame * 0.045);
+  for(let r = pulse; r <= pulse*3.5; r += pulse){
+    ctx.beginPath(); ctx.arc(sx, sy, r*S*0.005, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(68,255,221,${Math.max(0, 0.5 - r/(pulse*7))})`; ctx.lineWidth = 1; ctx.stroke();
+  }
+  const sg = ctx.createRadialGradient(sx,sy,0,sx,sy,S*0.018);
+  sg.addColorStop(0,'rgba(255,255,255,1)'); sg.addColorStop(0.35,'rgba(68,255,220,0.95)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx,sy,S*0.018,0,Math.PI*2); ctx.fill();
+
+  const lx = sx - S*0.06, ly = sy - S*0.06;
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(lx,ly);
+  ctx.strokeStyle = 'rgba(68,255,221,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.font = `500 ${Math.round(S*0.028)}px var(--font-sans)`; ctx.fillStyle = '#44ffdd'; ctx.textAlign = 'right';
+  ctx.fillText('You are here', lx, ly - S*0.012);
+  ctx.font = `400 ${Math.round(S*0.022)}px var(--font-sans)`; ctx.fillStyle = 'rgba(68,220,180,0.80)';
+  ctx.fillText('26,000 ly from core', lx, ly + S*0.010);
+  ctx.restore();
+
+  const infoX = W*0.70, infoY = H*0.04, infoW = W*0.28, infoH = H*0.32;
+  ctx.save();
+  ctx.fillStyle = 'rgba(3,8,25,0.90)'; ctx.strokeStyle = 'rgba(80,110,195,0.25)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.roundRect(infoX,infoY,infoW,infoH,6); ctx.fill(); ctx.stroke();
+  const fs1 = Math.round(S*0.030), fs2 = Math.round(S*0.022);
+  const rows = [
+    ['Milky Way',null,'#ffd060',`500 ${fs1}px`],
+    ['Type','Barred Spiral (SBbc)','#556688',`400 ${fs2}px`],
+    ['Major arms','Scutum-Cen + Perseus','#ffdd88',`400 ${fs2}px`],
+    ['Bar tilt','~30° from Sun-centre line','#667788',`400 ${fs2}px`],
+    ['Diameter','~105,700 ly','#667788',`400 ${fs2}px`],
+    ['Stars','200–400 billion','#667788',`400 ${fs2}px`],
+    ['Our location','Orion Spur, 26k ly out','#44ffdd',`400 ${fs2}px`],
+  ];
+  let ry = infoY + infoH*0.12;
+  const rowH = infoH * 0.12;
+  for(const [lbl,val,col,fnt] of rows){
+    ctx.font = `${fnt} var(--font-sans)`; ctx.fillStyle = col; ctx.textAlign = 'left';
+    ctx.fillText(lbl, infoX + infoW*0.06, ry);
+    if(val){ ctx.fillStyle = 'rgba(140,160,185,0.95)'; ctx.font = `400 ${fs2}px var(--font-sans)`;
+      ctx.fillText(val, infoX + infoW*0.06, ry + rowH*0.6); ry += rowH*1.2; }
+    else { ry += rowH*0.8; }
+  }
+  ctx.restore();
+
+  rotation += INNER_ROT_RATE * dt * 0.001 * (Math.PI * 2);
+  frame++;
+  requestAnimationFrame(draw);
+}
+
+function drawAndromeda(ax, ay, S){
+  const h = ctx.createRadialGradient(ax,ay,0,ax,ay,S*0.10);
+  h.addColorStop(0,'rgba(255,195,115,0)'); h.addColorStop(0.35,'rgba(200,145,72,0.07)');
+  h.addColorStop(0.75,'rgba(160,100,50,0.08)'); h.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=h; ctx.beginPath(); ctx.ellipse(ax,ay,S*0.10,S*0.062,Math.PI*0.13,0,Math.PI*2); ctx.fill(); ctx.restore();
+  const dh = ctx.createRadialGradient(ax,ay,0,ax,ay,S*0.058);
+  dh.addColorStop(0,'rgba(255,230,165,0.90)'); dh.addColorStop(0.22,'rgba(240,192,110,0.72)');
+  dh.addColorStop(0.50,'rgba(200,148,72,0.38)'); dh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=dh; ctx.beginPath(); ctx.ellipse(ax,ay,S*0.058,S*0.036,Math.PI*0.13,0,Math.PI*2); ctx.fill(); ctx.restore();
+  for(let arm=0;arm<2;arm++){
+    ctx.save(); ctx.translate(ax,ay); ctx.rotate(Math.PI*0.13);
+    const base=arm===0?0.4:0.4+Math.PI, apts=[];
+    for(let i=0;i<=70;i++){ const t=i/70,r=(0.018+0.10*t)*S,a=base+0.70*t*Math.PI*2; apts.push([r*Math.cos(a),r*Math.sin(a)*0.40]); }
+    ctx.beginPath(); apts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    ctx.strokeStyle='rgba(255,175,90,0.28)'; ctx.lineWidth=S*0.006; ctx.stroke(); ctx.restore();
+  }
+  const cg=ctx.createRadialGradient(ax,ay,0,ax,ay,S*0.018);
+  cg.addColorStop(0,'rgba(255,255,225,1)'); cg.addColorStop(0.35,'rgba(255,215,135,0.92)'); cg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save(); ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(ax,ay,S*0.018,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.font=`500 ${Math.round(S*0.026)}px var(--font-sans)`; ctx.fillStyle='#ffaa66'; ctx.textAlign='left';
+  ctx.fillText('Andromeda (M31)', ax+S*0.025, ay-S*0.015);
+  ctx.font=`400 ${Math.round(S*0.020)}px var(--font-sans)`; ctx.fillStyle='rgba(190,140,80,0.85)';
+  ctx.fillText('2.537M ly · closing fast', ax+S*0.025, ay+S*0.005); ctx.restore();
+}
+
+function drawDwarf(px, py, r, col, name, S){
+  const g = ctx.createRadialGradient(px,py,0,px,py,r);
+  g.addColorStop(0,col+'0.90)'); g.addColorStop(0.5,col+'0.35)'); g.addColorStop(1,col+'0)');
+  ctx.save(); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(px,py,r,r*0.65,0.2,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.font=`400 ${Math.round(S*0.020)}px var(--font-sans)`; ctx.fillStyle='rgba(200,170,255,0.75)'; ctx.textAlign='left';
+  ctx.fillText(name, px+r+4, py+4); ctx.restore();
+}
+
+cv.addEventListener('mousemove', e => {
+  const rc = cv.getBoundingClientRect();
+  const mx = (e.clientX - rc.left) * (cv.width / rc.width);
+  const my = (e.clientY - rc.top)  * (cv.height / rc.height);
+  const W = cv.width, H = cv.height, S = Math.min(W,H)*0.44;
+  const cx2 = W*0.42, cy2 = H*0.50;
+  let hit = null;
+  for(const h of HOTSPOTS){
+    const [rx,ry] = rotPt(h.kx*S, -h.ky*S, rotation);
+    const hx = cx2+rx, hy = cy2+ry;
+    if(Math.hypot(mx-hx, my-hy) < h.rk*S + 10){ hit={...h,hx,hy}; break; }
+  }
+  if(hit){
+    tt.style.display = 'block';
+    tt.style.left = (e.clientX - cv.getBoundingClientRect().left + 16)+'px';
+    tt.style.top  = (e.clientY - cv.getBoundingClientRect().top  - 14)+'px';
+    ttt.textContent = hit.title; ttb.textContent = hit.body; tts.textContent = hit.sub;
+    cv.style.cursor = 'pointer';
+  } else {
+    tt.style.display = 'none'; cv.style.cursor = 'crosshair';
+  }
+});
+cv.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+requestAnimationFrame(draw);
+</script>
