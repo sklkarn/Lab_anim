@@ -183,8 +183,10 @@ function draw(frac) {
     ctx.strokeStyle = C.accent; ctx.lineWidth=1.5; ctx.stroke();
     ctx.fillStyle = C.accent;
     ctx.font='500 14px var(--font-sans,sans-serif)';
-    ctx.textAlign='left'; ctx.textBaseline='middle';
-    ctx.fillText('θ', APEX_X+10, APEX_Y - arcR + 4);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const midAngle = -Math.PI/2 + slantAngle/2;
+    const labelR = arcR + 14;
+    ctx.fillText('θ', APEX_X + Math.cos(midAngle)*labelR, APEX_Y + Math.sin(midAngle)*labelR);
     ctx.restore();
   }
 
