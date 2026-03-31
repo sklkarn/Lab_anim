@@ -1,0 +1,298 @@
+
+<style>
+  #wrap { background: #0f0f0f; border-radius: 12px; padding: 16px 12px 12px; }
+  canvas { display: block; margin: 0 auto; border-radius: 8px; }
+  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 12px 0 8px; flex-wrap: wrap; }
+  button { padding: 6px 18px; font-size: 13px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #d4d2c8; border-radius: 8px; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button:active { transform: scale(0.97); }
+  .sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 24px; margin: 0 0 12px; padding: 0 8px; }
+  .sl-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888780; }
+  .sl-row input[type=range] { flex: 1; accent-color: #FAC775; }
+  .sl-val { min-width: 38px; font-weight: 500; color: #d4d2c8; font-size: 13px; }
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; padding: 0 8px 10px; }
+  .mc { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px; border: 0.5px solid rgba(255,255,255,0.08); }
+  .mc-label { font-size: 11px; color: #666460; margin-bottom: 3px; }
+  .mc-val { font-size: 18px; font-weight: 500; color: #d4d2c8; }
+  .formula-box { margin: 0 8px 4px; padding: 10px 14px; border: 0.5px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 13px; color: #888780; line-height: 1.9; background: rgba(255,255,255,0.03); }
+  .formula-box span { color: #FAC775; font-weight: 500; }
+</style>
+
+<div id="wrap">
+<canvas id="c" width="580" height="370"></canvas>
+
+<div class="controls">
+  <button id="btnPlay">Pause</button>
+  <button id="btnReset">Restart</button>
+</div>
+
+<div class="sliders">
+  <div class="sl-row">
+    <span>Ladder l (m)</span>
+    <input type="range" id="slL" min="3" max="10" step="0.5" value="5">
+    <span class="sl-val" id="outL">5</span>
+  </div>
+  <div class="sl-row">
+    <span>Rate dx/dt (cm/s)</span>
+    <input type="range" id="slH" min="1" max="20" step="1" value="6">
+    <span class="sl-val" id="outH">6</span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="mc"><div class="mc-label">foot distance x</div><div class="mc-val" id="mX">0.00 m</div></div>
+  <div class="mc"><div class="mc-label">height y on wall</div><div class="mc-val" id="mY">— m</div></div>
+  <div class="mc"><div class="mc-label">dy/dt (rate ↓)</div><div class="mc-val" id="mDY">— cm/s</div></div>
+</div>
+
+<div class="formula-box">
+  Pythagoras: <span>x² + y² = l²</span> &nbsp;→&nbsp; differentiate:
+  <span>2x·(dx/dt) + 2y·(dy/dt) = 0</span><br>
+  Answer: <span>dy/dt = −(x · dx/dt) / √(l² − x²)</span>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const ox = 90, oy = H - 55;
+const SCENE_W = W - 120, SCENE_H = H - 85;
+
+let L = 5, dxdt = 6, x = 0.05;
+let paused = false, rafId, lastTime = null;
+
+function compute(xm) {
+  const y2 = L*L - xm*xm;
+  if (y2 <= 0) return null;
+  const y = Math.sqrt(y2);
+  return { y, dydt: -(xm * dxdt) / y };
+}
+
+function draw(xm) {
+  const res = compute(xm);
+  const scale = Math.min(SCENE_W, SCENE_H) * 0.88 / L;
+  const footX = ox + xm * scale;
+  const topY  = res ? oy - res.y * scale : oy;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0f0f0f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let gx = ox; gx < ox + SCENE_W; gx += 40) {
+    ctx.beginPath(); ctx.moveTo(gx, oy - SCENE_H); ctx.lineTo(gx, oy); ctx.stroke();
+  }
+  for (let gy = oy; gy > oy - SCENE_H; gy -= 40) {
+    ctx.beginPath(); ctx.moveTo(ox, gy); ctx.lineTo(ox + SCENE_W, gy); ctx.stroke();
+  }
+
+  // Floor
+  ctx.strokeStyle = 'rgba(200,198,188,0.6)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(ox - 10, oy); ctx.lineTo(ox + SCENE_W + 10, oy); ctx.stroke();
+
+  // Wall
+  ctx.beginPath(); ctx.moveTo(ox, oy + 10); ctx.lineTo(ox, oy - SCENE_H); ctx.stroke();
+
+  // Hatching — floor
+  ctx.strokeStyle = 'rgba(200,198,188,0.18)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const hx = ox + i * 26;
+    ctx.beginPath(); ctx.moveTo(hx, oy); ctx.lineTo(hx - 12, oy + 12); ctx.stroke();
+  }
+  // Hatching — wall
+  for (let i = 0; i <= 7; i++) {
+    const hy = oy - i * 36;
+    ctx.beginPath(); ctx.moveTo(ox, hy); ctx.lineTo(ox - 12, hy + 12); ctx.stroke();
+  }
+
+  // Right angle
+  const sq = 10;
+  ctx.strokeStyle = 'rgba(200,198,188,0.35)'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(ox+sq, oy); ctx.lineTo(ox+sq, oy-sq); ctx.lineTo(ox, oy-sq);
+  ctx.stroke();
+
+  // x dimension
+  const xCol = '#5DCAA5';
+  ctx.strokeStyle = xCol; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(ox, oy+26); ctx.lineTo(footX, oy+26); ctx.stroke();
+  ctx.setLineDash([]);
+  [ox, footX].forEach(px => {
+    ctx.beginPath(); ctx.moveTo(px, oy+21); ctx.lineTo(px, oy+31); ctx.stroke();
+  });
+  ctx.fillStyle = xCol; ctx.font = '500 13px var(--font-sans,sans-serif)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('x', (ox+footX)/2, oy+33);
+
+  // y dimension
+  const yCol = '#85B7EB';
+  if (res) {
+    ctx.strokeStyle = yCol; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(ox-30, topY); ctx.lineTo(ox-30, oy); ctx.stroke();
+    ctx.setLineDash([]);
+    [topY, oy].forEach(py => {
+      ctx.beginPath(); ctx.moveTo(ox-35, py); ctx.lineTo(ox-25, py); ctx.stroke();
+    });
+    ctx.fillStyle = yCol; ctx.font = '500 13px var(--font-sans,sans-serif)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('y', ox-46, (topY+oy)/2);
+  }
+
+  // Ladder glow effect
+  if (res) {
+    ctx.save();
+    ctx.shadowColor = '#FAC775';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#FAC775'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(footX, oy); ctx.lineTo(ox, topY); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Rungs
+    ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 1.5;
+    const rungs = 6;
+    for (let i = 1; i < rungs; i++) {
+      const t = i/rungs;
+      const rx = footX + (ox-footX)*t, ry = oy + (topY-oy)*t;
+      const dx = ox-footX, dy = topY-oy;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      const nx = -dy/len*5, ny = dx/len*5;
+      ctx.beginPath();
+      ctx.moveTo(rx-nx, ry-ny); ctx.lineTo(rx+nx, ry+ny); ctx.stroke();
+    }
+
+    // l label
+    const midLX = (footX+ox)/2, midLY = (oy+topY)/2;
+    const ang = Math.atan2(topY-oy, ox-footX);
+    ctx.save();
+    ctx.translate(midLX, midLY); ctx.rotate(ang);
+    ctx.fillStyle = '#FAC775'; ctx.font = '500 13px var(--font-sans,sans-serif)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('l', 0, -8);
+    ctx.restore();
+
+    // Foot dot
+    ctx.save();
+    ctx.shadowColor = '#FAC775'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(footX, oy, 5, 0, 2*Math.PI);
+    ctx.fillStyle = '#FAC775'; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Top dot
+    ctx.beginPath(); ctx.arc(ox, topY, 5, 0, 2*Math.PI);
+    ctx.fillStyle = '#FAC775'; ctx.fill();
+    ctx.restore();
+  }
+
+  // dx/dt arrow at foot
+  if (res && xm > 0.2) {
+    const arrowLen = Math.min(55, dxdt * 3);
+    ctx.save();
+    ctx.shadowColor = xCol; ctx.shadowBlur = 6;
+    ctx.strokeStyle = xCol; ctx.lineWidth = 1.8; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(footX, oy-20); ctx.lineTo(footX+arrowLen, oy-20); ctx.stroke();
+    ctx.fillStyle = xCol;
+    ctx.beginPath();
+    ctx.moveTo(footX+arrowLen+7, oy-20);
+    ctx.lineTo(footX+arrowLen, oy-25);
+    ctx.lineTo(footX+arrowLen, oy-15);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.font = '12px var(--font-sans,sans-serif)';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('dx/dt', footX+arrowLen+10, oy-20);
+    ctx.restore();
+  }
+
+  // dy/dt arrow at top
+  if (res && xm > 0.2) {
+    const arrowLen = Math.min(55, Math.abs(res.dydt)*2);
+    ctx.save();
+    ctx.shadowColor = yCol; ctx.shadowBlur = 6;
+    ctx.strokeStyle = yCol; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(ox+20, topY); ctx.lineTo(ox+20, topY+arrowLen); ctx.stroke();
+    ctx.fillStyle = yCol;
+    ctx.beginPath();
+    ctx.moveTo(ox+20, topY+arrowLen+7);
+    ctx.lineTo(ox+15, topY+arrowLen);
+    ctx.lineTo(ox+25, topY+arrowLen);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.font = '12px var(--font-sans,sans-serif)';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('dy/dt', ox+28, topY+arrowLen/2);
+    ctx.restore();
+  }
+
+  // theta arc
+  if (res && xm > 0.3) {
+    const theta = Math.atan2(res.y, xm);
+    const arcR = 32;
+    ctx.strokeStyle = '#F09595'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(footX, oy, arcR, -Math.PI/2 + (Math.PI/2 - theta), 0);
+    ctx.stroke();
+    ctx.fillStyle = '#F09595'; ctx.font = '12px var(--font-sans,sans-serif)';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('θ', footX + arcR + 4, oy - arcR/2 + 4);
+  }
+
+  // Metrics
+  document.getElementById('mX').textContent = xm.toFixed(2)+' m';
+  if (res) {
+    document.getElementById('mY').textContent = res.y.toFixed(2)+' m';
+    document.getElementById('mDY').textContent = res.dydt.toFixed(2)+' cm/s';
+  } else {
+    document.getElementById('mY').textContent = '—';
+    document.getElementById('mDY').textContent = '—';
+  }
+}
+
+function animate(ts) {
+  if (!paused) {
+    if (lastTime===null) lastTime=ts;
+    const dt=(ts-lastTime)/1000; lastTime=ts;
+    x = Math.min(L*0.998, x + (dxdt/100)*dt*0.3*8);
+    draw(x);
+    if (x < L*0.998) rafId = requestAnimationFrame(animate);
+    else { draw(L*0.998); paused=true; document.getElementById('btnPlay').textContent='Play'; }
+  } else {
+    lastTime=null;
+    rafId = requestAnimationFrame(animate);
+  }
+}
+
+function start() {
+  if(rafId) cancelAnimationFrame(rafId);
+  lastTime=null; rafId=requestAnimationFrame(animate);
+}
+
+document.getElementById('btnPlay').addEventListener('click',()=>{
+  paused=!paused;
+  document.getElementById('btnPlay').textContent = paused?'Play':'Pause';
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  x=0.05; paused=false;
+  document.getElementById('btnPlay').textContent='Pause';
+  start();
+});
+document.getElementById('slL').addEventListener('input',function(){
+  L=parseFloat(this.value);
+  document.getElementById('outL').textContent=L;
+  x=0.05; paused=false;
+  document.getElementById('btnPlay').textContent='Pause';
+  start();
+});
+document.getElementById('slH').addEventListener('input',function(){
+  dxdt=parseFloat(this.value);
+  document.getElementById('outH').textContent=dxdt;
+});
+
+draw(x); start();
+</script>

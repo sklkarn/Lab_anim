@@ -1,0 +1,298 @@
+
+<style>
+  #wrap { background: #0f0f0f; border-radius: 12px; padding: 16px 12px 12px; }
+  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 14px 0 0; flex-wrap: wrap; }
+  button { padding: 6px 20px; font-size: 13px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #d4d2c8; border-radius: 8px; transition: background 0.15s; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button:active { transform: scale(0.97); }
+  .info-row { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: #888780; }
+  .info-val { color: #d4d2c8; font-weight: 500; }
+  .speed-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888780; }
+  .speed-wrap input[type=range] { accent-color: #FAC775; }
+</style>
+
+<div id="wrap">
+<canvas id="c" width="620" height="480" style="display:block;margin:0 auto;background:#0f0f0f;border-radius:8px"></canvas>
+
+<div class="controls">
+  <button id="btnPause">Pause</button>
+  <button id="btnRestart">Restart</button>
+  <div class="speed-wrap">
+    Speed
+    <input type="range" id="speed" min="0.5" max="4" step="0.5" value="1" style="width:80px">
+    <span id="speedVal" style="color:#d4d2c8;font-weight:500">1×</span>
+  </div>
+</div>
+
+<div class="info-row">
+  <span>Volume filled: <span class="info-val" id="volPct">0%</span></span>
+  <span>Water height: <span class="info-val" id="wh">0.00</span></span>
+  <span>Water radius: <span class="info-val" id="wr">0.00</span></span>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const APEX_X = W / 2;
+const APEX_Y = 390;
+const CONE_H = 300;
+const CONE_R = 120;
+const TOP_Y = APEX_Y - CONE_H;
+
+const C = {
+  bg:           '#0f0f0f',
+  grid:         'rgba(255,255,255,0.04)',
+  cone_stroke:  'rgba(200,198,190,0.55)',
+  cone_fill:    'rgba(255,255,255,0.04)',
+  water_fill:   'rgba(52,140,210,0.55)',
+  water_stroke: 'rgba(100,185,255,0.9)',
+  water_surface:'rgba(130,210,255,0.95)',
+  dim_line:     'rgba(150,148,140,0.55)',
+  label:        'rgba(194,192,182,1)',
+  label_dim:    'rgba(120,118,110,1)',
+  accent:       '#FAC775',
+  accent2:      '#5DCAA5',
+  apex_dot:     '#FAC775',
+};
+
+let t = 0, paused = false, speed = 1, rafId, lastTime = null;
+
+function pixelWaterH(frac) { return CONE_H * Math.cbrt(frac); }
+function pixelWaterR(pH)   { return CONE_R * pH / CONE_H; }
+
+function drawDim(x1, y1, x2, y2, label, offset) {
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+  const nx=-dy/len*offset, ny=dx/len*offset;
+  ctx.save();
+  ctx.strokeStyle=C.dim_line; ctx.lineWidth=0.8; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+nx,y1+ny); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2+nx,y2+ny); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1+nx,y1+ny); ctx.lineTo(x2+nx,y2+ny); ctx.stroke();
+  const ex=dy/len*5, ey=-dx/len*5;
+  [[x1,y1],[x2,y2]].forEach(([x,y])=>{
+    ctx.beginPath(); ctx.moveTo(x+nx-ex,y+ny-ey); ctx.lineTo(x+nx+ex,y+ny+ey); ctx.stroke();
+  });
+  ctx.fillStyle=C.label; ctx.font='500 13px var(--font-sans,sans-serif)';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, mx+nx*1.5, my+ny*1.5);
+  ctx.restore();
+}
+
+function draw(frac) {
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0,0,W,H);
+
+  // Subtle grid
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 0.5;
+  for (let gx = 40; gx < W; gx += 40) {
+    ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke();
+  }
+  for (let gy = 40; gy < H; gy += 40) {
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+  }
+
+  const pH = pixelWaterH(frac);
+  const pR = pixelWaterR(pH);
+  const waterSurfaceY = APEX_Y - pH;
+
+  // === WATER ===
+  if (frac > 0.0005) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(APEX_X, APEX_Y);
+    ctx.lineTo(APEX_X - CONE_R, TOP_Y);
+    ctx.lineTo(APEX_X + CONE_R, TOP_Y);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.beginPath();
+    ctx.moveTo(APEX_X - pR, waterSurfaceY);
+    ctx.lineTo(APEX_X + pR, waterSurfaceY);
+    ctx.lineTo(APEX_X, APEX_Y);
+    ctx.closePath();
+    ctx.fillStyle = C.water_fill;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(APEX_X - pR, waterSurfaceY);
+    ctx.lineTo(APEX_X + pR, waterSurfaceY);
+    ctx.strokeStyle = C.water_surface;
+    ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // === CONE OUTLINE ===
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(APEX_X, APEX_Y);
+  ctx.lineTo(APEX_X - CONE_R, TOP_Y);
+  ctx.lineTo(APEX_X + CONE_R, TOP_Y);
+  ctx.closePath();
+  ctx.fillStyle = C.cone_fill; ctx.fill();
+  ctx.strokeStyle = C.cone_stroke; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+  ctx.stroke();
+
+  // Top ellipse
+  ctx.beginPath();
+  ctx.ellipse(APEX_X, TOP_Y, CONE_R, CONE_R*0.22, 0, 0, 2*Math.PI);
+  ctx.strokeStyle = C.cone_stroke; ctx.lineWidth = 1; ctx.stroke();
+
+  // Water surface ellipse
+  if (frac > 0.01) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(APEX_X, waterSurfaceY, pR, pR*0.22, 0, 0, 2*Math.PI);
+    ctx.strokeStyle = C.water_surface; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = C.water_fill; ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Apex dot with glow
+  ctx.save();
+  ctx.shadowColor = C.apex_dot; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.arc(APEX_X, APEX_Y, 3.5, 0, 2*Math.PI);
+  ctx.fillStyle = C.apex_dot; ctx.fill();
+  ctx.restore();
+
+  // === DIMENSION LINES ===
+  drawDim(APEX_X, APEX_Y, APEX_X, TOP_Y, 'h', 90);
+  drawDim(APEX_X, TOP_Y, APEX_X+CONE_R, TOP_Y, 'r', -22);
+  drawDim(APEX_X, APEX_Y, APEX_X-CONE_R, TOP_Y, 'l', -34);
+
+  // theta arc
+  {
+    const slantAngle = Math.atan2(CONE_R, CONE_H);
+    const arcR = 36;
+    ctx.save();
+    ctx.beginPath(); ctx.setLineDash([3,3]);
+    ctx.moveTo(APEX_X, APEX_Y); ctx.lineTo(APEX_X, APEX_Y - arcR - 14);
+    ctx.strokeStyle = C.dim_line; ctx.lineWidth=0.8; ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(APEX_X, APEX_Y, arcR, -Math.PI/2, -Math.PI/2 + slantAngle);
+    ctx.strokeStyle = C.accent; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle = C.accent;
+    ctx.font='500 14px var(--font-sans,sans-serif)';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText('θ', APEX_X+10, APEX_Y - arcR + 4);
+    ctx.restore();
+  }
+
+  // === WATER DIMENSION LINES ===
+  if (frac > 0.02) {
+    ctx.save();
+    ctx.strokeStyle = C.water_stroke; ctx.lineWidth=0.9; ctx.setLineDash([4,4]);
+    const hwX = APEX_X - CONE_R + 22;
+    ctx.beginPath(); ctx.moveTo(hwX, waterSurfaceY); ctx.lineTo(hwX, APEX_Y); ctx.stroke();
+    ctx.setLineDash([]);
+    [waterSurfaceY, APEX_Y].forEach(y=>{
+      ctx.beginPath(); ctx.moveTo(hwX-5,y); ctx.lineTo(hwX+5,y); ctx.stroke();
+    });
+    ctx.fillStyle = C.water_stroke;
+    ctx.font='500 12px var(--font-sans,sans-serif)';
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillText('y', hwX-7, (waterSurfaceY+APEX_Y)/2);
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = C.accent2; ctx.lineWidth=0.9; ctx.setLineDash([4,4]);
+    const rwY = waterSurfaceY - 14;
+    ctx.beginPath(); ctx.moveTo(APEX_X,rwY); ctx.lineTo(APEX_X+pR,rwY); ctx.stroke();
+    ctx.setLineDash([]);
+    [APEX_X, APEX_X+pR].forEach(x=>{
+      ctx.beginPath(); ctx.moveTo(x,rwY-4); ctx.lineTo(x,rwY+4); ctx.stroke();
+    });
+    ctx.fillStyle = C.accent2;
+    ctx.font='500 12px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('ρ', APEX_X+pR/2, rwY-5);
+    ctx.restore();
+  }
+
+  // === LABELS ===
+  ctx.save();
+  ctx.fillStyle = C.label_dim;
+  ctx.font='13px var(--font-sans,sans-serif)';
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('inverted cone tank', APEX_X, APEX_Y+38);
+
+  const pct = Math.round(frac*100);
+  ctx.save();
+  ctx.shadowColor = C.accent; ctx.shadowBlur = 10;
+  ctx.fillStyle = C.accent;
+  ctx.font='600 22px var(--font-sans,sans-serif)';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText(pct+'%', W-20, 18);
+  ctx.restore();
+  ctx.fillStyle = C.label_dim;
+  ctx.font='12px var(--font-sans,sans-serif)';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText('filled', W-20, 44);
+
+  ctx.fillStyle = C.label_dim;
+  ctx.font='12px var(--font-sans,sans-serif)';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('V = ⅓πr²h', 18, 18);
+  ctx.fillText('y = h·∛(V/V₀)', 18, 36);
+  ctx.restore();
+
+  if (frac >= 1) {
+    ctx.save();
+    ctx.shadowColor = C.accent2; ctx.shadowBlur = 12;
+    ctx.fillStyle = C.accent2;
+    ctx.font='500 15px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Tank full!', APEX_X, TOP_Y - 28);
+    ctx.restore();
+  }
+
+  document.getElementById('volPct').textContent = pct+'%';
+  document.getElementById('wh').textContent = frac.toFixed(3)+'h';
+  document.getElementById('wr').textContent = (frac<0.001?0:Math.cbrt(frac)).toFixed(3)+'r';
+}
+
+function animate(ts) {
+  if (!paused) {
+    if (lastTime===null) lastTime=ts;
+    const dt=(ts-lastTime)/1000; lastTime=ts;
+    t = Math.min(1, t + dt*speed/6);
+    draw(t);
+    if (t<1) rafId=requestAnimationFrame(animate);
+    else draw(1);
+  } else {
+    lastTime=null;
+    rafId=requestAnimationFrame(animate);
+  }
+}
+
+function start() {
+  if(rafId) cancelAnimationFrame(rafId);
+  lastTime=null; rafId=requestAnimationFrame(animate);
+}
+
+document.getElementById('btnPause').addEventListener('click',()=>{
+  paused=!paused;
+  document.getElementById('btnPause').textContent=paused?'Resume':'Pause';
+});
+document.getElementById('btnRestart').addEventListener('click',()=>{
+  t=0; paused=false;
+  document.getElementById('btnPause').textContent='Pause';
+  start();
+});
+document.getElementById('speed').addEventListener('input',function(){
+  speed=parseFloat(this.value);
+  document.getElementById('speedVal').textContent=speed+'×';
+});
+
+draw(0); start();
+</script>

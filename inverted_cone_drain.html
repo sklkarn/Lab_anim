@@ -1,0 +1,450 @@
+
+<style>
+  #wrap { background: #0f0f0f; border-radius: 12px; padding: 16px 12px 12px; }
+  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 14px 0 0; flex-wrap: wrap; }
+  button { padding: 6px 20px; font-size: 13px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #d4d2c8; border-radius: 8px; transition: background 0.15s; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button:active { transform: scale(0.97); }
+  .info-row { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: #888780; }
+  .info-val { color: #d4d2c8; font-weight: 500; }
+  .speed-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888780; }
+  .speed-wrap input[type=range] { accent-color: #FAC775; }
+</style>
+
+<div id="wrap">
+<canvas id="c" width="620" height="520" style="display:block;margin:0 auto;background:#0f0f0f;border-radius:8px"></canvas>
+<div class="controls">
+  <button id="btnPause">Pause</button>
+  <button id="btnRestart">Restart</button>
+  <div class="speed-wrap">
+    Speed
+    <input type="range" id="speed" min="0.5" max="4" step="0.5" value="1" style="width:80px">
+    <span id="speedVal" style="color:#d4d2c8;font-weight:500">1×</span>
+  </div>
+</div>
+<div class="info-row">
+  <span>Volume: <span class="info-val" id="volPct">100%</span></span>
+  <span>Water height: <span class="info-val" id="wh">1.000h</span></span>
+  <span>Water radius: <span class="info-val" id="wr">1.000r</span></span>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const APEX_X = W / 2;
+const APEX_Y = 400;
+const CONE_H = 300;
+const CONE_R = 120;
+const TOP_Y = APEX_Y - CONE_H;
+const FLOOR_Y = H - 22;
+
+const C = {
+  bg:           '#0f0f0f',
+  grid:         'rgba(255,255,255,0.035)',
+  cone_stroke:  'rgba(200,198,190,0.55)',
+  cone_fill:    'rgba(255,255,255,0.04)',
+  water_fill:   'rgba(52,140,210,0.55)',
+  water_stroke: 'rgba(100,185,255,0.9)',
+  water_surface:'rgba(130,210,255,0.95)',
+  dim_line:     'rgba(150,148,140,0.5)',
+  label:        'rgba(194,192,182,1)',
+  label_dim:    'rgba(120,118,110,1)',
+  accent:       '#FAC775',
+  accent2:      '#5DCAA5',
+  drop:         'rgba(80,170,255,0.88)',
+  drop_bright:  'rgba(160,220,255,1)',
+  splash:       'rgba(100,185,255,0.75)',
+  puddle:       'rgba(52,140,210,0.22)',
+};
+
+// t goes from 1 → 0 (draining)
+let t = 1.0, paused = false, speed = 1, rafId, lastTime = null;
+
+const drops = [], splashes = [];
+let puddleR = 0;
+let hangR = 0, hangGrowing = true;
+const HANG_MAX = 5.5;
+const DROP_GROW_SPEED = 14;
+
+function spawnDrop() {
+  drops.push({
+    x: APEX_X + (Math.random() - 0.5) * 5,
+    y: APEX_Y + 8,
+    vy: 18 + Math.random() * 10,
+    r: 3.2 + Math.random() * 1.8,
+  });
+}
+
+function spawnSplash(x, y) {
+  for (let i = 0; i < 9 + Math.floor(Math.random() * 5); i++) {
+    const angle = -Math.PI + Math.random() * Math.PI;
+    const spd = 55 + Math.random() * 95;
+    splashes.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd * 0.45 - 50,
+      r: 1 + Math.random() * 1.4,
+      life: 1,
+      decay: 1.6 + Math.random() * 1.2,
+    });
+  }
+  puddleR = Math.min(puddleR + 5, 68);
+}
+
+function pixelWaterH(frac) { return CONE_H * Math.cbrt(frac); }
+function pixelWaterR(pH)   { return CONE_R * pH / CONE_H; }
+
+function drawDim(x1, y1, x2, y2, label, offset) {
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+  const nx=-dy/len*offset, ny=dx/len*offset;
+  ctx.save();
+  ctx.strokeStyle=C.dim_line; ctx.lineWidth=0.8; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+nx,y1+ny); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2+nx,y2+ny); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1+nx,y1+ny); ctx.lineTo(x2+nx,y2+ny); ctx.stroke();
+  const ex=dy/len*5, ey=-dx/len*5;
+  [[x1,y1],[x2,y2]].forEach(([px,py])=>{
+    ctx.beginPath(); ctx.moveTo(px+nx-ex,py+ny-ey); ctx.lineTo(px+nx+ex,py+ny+ey); ctx.stroke();
+  });
+  ctx.fillStyle=C.label; ctx.font='500 13px var(--font-sans,sans-serif)';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, mx+nx*1.5, my+ny*1.5);
+  ctx.restore();
+}
+
+function updatePhysics(dt) {
+  // Hanging drop at apex
+  if (hangGrowing) {
+    hangR += DROP_GROW_SPEED * dt;
+    if (hangR >= HANG_MAX) {
+      hangR = HANG_MAX;
+      hangGrowing = false;
+    }
+  } else {
+    spawnDrop();
+    hangR = 0;
+    hangGrowing = true;
+  }
+
+  // Falling drops
+  const g = 500;
+  for (let i = drops.length - 1; i >= 0; i--) {
+    const d = drops[i];
+    d.vy += g * dt;
+    d.y  += d.vy * dt;
+    if (d.y >= FLOOR_Y) {
+      spawnSplash(d.x, FLOOR_Y);
+      drops.splice(i, 1);
+    }
+  }
+
+  // Splash particles
+  for (let i = splashes.length - 1; i >= 0; i--) {
+    const s = splashes[i];
+    s.x  += s.vx * dt;
+    s.y  += s.vy * dt;
+    s.vy += 220 * dt;
+    s.life -= s.decay * dt;
+    if (s.life <= 0) splashes.splice(i, 1);
+  }
+}
+
+function draw(frac) {
+  ctx.clearRect(0, 0, W, H);
+
+  // BG
+  ctx.fillStyle = C.bg; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 0.5;
+  for (let gx=40; gx<W; gx+=40){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for (let gy=40; gy<H; gy+=40){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  // Floor
+  ctx.strokeStyle='rgba(200,198,188,0.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(40,FLOOR_Y); ctx.lineTo(W-40,FLOOR_Y); ctx.stroke();
+
+  const pH = pixelWaterH(frac);
+  const pR = pixelWaterR(pH);
+  const waterSurfaceY = APEX_Y - pH;
+
+  // Puddle
+  if (puddleR > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(APEX_X, FLOOR_Y, puddleR, puddleR*0.2, 0, 0, 2*Math.PI);
+    ctx.fillStyle = C.puddle; ctx.fill();
+    ctx.strokeStyle='rgba(100,185,255,0.25)'; ctx.lineWidth=0.8; ctx.stroke();
+    ctx.restore();
+  }
+
+  // Splash particles
+  splashes.forEach(s => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, s.life);
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 2*Math.PI);
+    ctx.fillStyle = C.splash; ctx.fill();
+    ctx.restore();
+  });
+
+  // Falling drops
+  drops.forEach(d => {
+    const stretch = Math.min(1 + d.vy/200, 2.0);
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    ctx.scale(1/stretch, stretch);
+    ctx.shadowColor = C.drop_bright; ctx.shadowBlur = 7;
+    ctx.beginPath(); ctx.arc(0, 0, d.r, 0, 2*Math.PI);
+    ctx.fillStyle = C.drop; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(-d.r*0.28, -d.r*0.28, d.r*0.32, 0, 2*Math.PI);
+    ctx.fillStyle='rgba(210,240,255,0.65)'; ctx.fill();
+    ctx.restore();
+  });
+
+  // Hanging drop at apex
+  if (hangR > 0.5) {
+    ctx.save();
+    // thread from apex to top of drop
+    ctx.beginPath();
+    ctx.moveTo(APEX_X, APEX_Y);
+    ctx.lineTo(APEX_X, APEX_Y + hangR * 0.6);
+    ctx.strokeStyle='rgba(100,185,255,0.45)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.shadowColor=C.drop_bright; ctx.shadowBlur=9;
+    ctx.beginPath(); ctx.arc(APEX_X, APEX_Y + hangR, hangR, 0, 2*Math.PI);
+    ctx.fillStyle=C.drop; ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(APEX_X - hangR*0.28, APEX_Y + hangR - hangR*0.28, hangR*0.3, 0, 2*Math.PI);
+    ctx.fillStyle='rgba(210,240,255,0.65)'; ctx.fill();
+    ctx.restore();
+  }
+
+  // WATER fill
+  if (frac > 0.001) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(APEX_X, APEX_Y);
+    ctx.lineTo(APEX_X - CONE_R, TOP_Y);
+    ctx.lineTo(APEX_X + CONE_R, TOP_Y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(APEX_X - pR, waterSurfaceY);
+    ctx.lineTo(APEX_X + pR, waterSurfaceY);
+    ctx.lineTo(APEX_X, APEX_Y);
+    ctx.closePath();
+    ctx.fillStyle = C.water_fill; ctx.fill();
+    // animated shimmer line
+    ctx.beginPath();
+    ctx.moveTo(APEX_X - pR, waterSurfaceY);
+    ctx.lineTo(APEX_X + pR, waterSurfaceY);
+    ctx.strokeStyle = C.water_surface; ctx.lineWidth=2; ctx.setLineDash([]); ctx.stroke();
+    ctx.restore();
+  }
+
+  // CONE outline (drawn on top of water)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(APEX_X, APEX_Y);
+  ctx.lineTo(APEX_X - CONE_R, TOP_Y);
+  ctx.lineTo(APEX_X + CONE_R, TOP_Y);
+  ctx.closePath();
+  ctx.fillStyle = C.cone_fill; ctx.fill();
+  ctx.strokeStyle = C.cone_stroke; ctx.lineWidth=1.5; ctx.setLineDash([]); ctx.stroke();
+
+  // Top opening ellipse
+  ctx.beginPath();
+  ctx.ellipse(APEX_X, TOP_Y, CONE_R, CONE_R*0.22, 0, 0, 2*Math.PI);
+  ctx.strokeStyle = C.cone_stroke; ctx.lineWidth=1; ctx.stroke();
+
+  // Water surface ellipse
+  if (frac > 0.01) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(APEX_X, waterSurfaceY, pR, pR*0.22, 0, 0, 2*Math.PI);
+    ctx.strokeStyle=C.water_surface; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle=C.water_fill; ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Apex dot
+  ctx.save();
+  ctx.shadowColor=C.drop_bright; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(APEX_X, APEX_Y, 3.5, 0, 2*Math.PI);
+  ctx.fillStyle='rgba(80,170,255,0.95)'; ctx.fill();
+  ctx.restore();
+
+  // === DIMENSION LINES ===
+  // h: full height, right side
+  drawDim(APEX_X, APEX_Y, APEX_X, TOP_Y, 'h', 95);
+  // r: top radius
+  drawDim(APEX_X, TOP_Y, APEX_X+CONE_R, TOP_Y, 'r', -24);
+  // l: slant, left side
+  drawDim(APEX_X, APEX_Y, APEX_X-CONE_R, TOP_Y, 'l', -36);
+
+  // === THETA at apex — between vertical axis and RIGHT slant ===
+  {
+    const slantAngle = Math.atan2(CONE_R, CONE_H); // angle from vertical
+    const arcR = 42;
+    ctx.save();
+
+    // Vertical reference line upward from apex (inside cone)
+    ctx.beginPath();
+    ctx.setLineDash([3,3]);
+    ctx.moveTo(APEX_X, APEX_Y);
+    ctx.lineTo(APEX_X, APEX_Y - arcR - 18);
+    ctx.strokeStyle = C.dim_line; ctx.lineWidth=0.9; ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arc from vertical axis (-90°) sweeping right by slantAngle
+    // In canvas: 0° = right, -PI/2 = up, so vertical is -PI/2
+    // Right slant goes from apex toward top-right: angle = -PI/2 + slantAngle
+    ctx.beginPath();
+    ctx.arc(APEX_X, APEX_Y, arcR, -Math.PI/2, -Math.PI/2 + slantAngle);
+    ctx.strokeStyle = C.accent; ctx.lineWidth=1.6; ctx.stroke();
+
+    // θ label: place at bisector of arc, slightly outside
+    const bisector = -Math.PI/2 + slantAngle/2;
+    const labelR = arcR + 14;
+    const lx = APEX_X + Math.cos(bisector) * labelR;
+    const ly = APEX_Y + Math.sin(bisector) * labelR;
+    ctx.fillStyle = C.accent;
+    ctx.font='500 14px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('θ', lx, ly);
+
+    ctx.restore();
+  }
+
+  // Water level dim lines (y and ρ labels only)
+  if (frac > 0.02) {
+    // y: water height from apex
+    ctx.save();
+    ctx.strokeStyle=C.water_stroke; ctx.lineWidth=0.9; ctx.setLineDash([4,4]);
+    const hwX = APEX_X - CONE_R + 18;
+    ctx.beginPath(); ctx.moveTo(hwX, waterSurfaceY); ctx.lineTo(hwX, APEX_Y); ctx.stroke();
+    ctx.setLineDash([]);
+    [waterSurfaceY, APEX_Y].forEach(y=>{
+      ctx.beginPath(); ctx.moveTo(hwX-5,y); ctx.lineTo(hwX+5,y); ctx.stroke();
+    });
+    ctx.fillStyle=C.water_stroke;
+    ctx.font='500 12px var(--font-sans,sans-serif)';
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillText('y', hwX-8, (waterSurfaceY+APEX_Y)/2);
+    ctx.restore();
+
+    // ρ: water surface radius
+    ctx.save();
+    ctx.strokeStyle=C.accent2; ctx.lineWidth=0.9; ctx.setLineDash([4,4]);
+    const rwY = waterSurfaceY - 16;
+    ctx.beginPath(); ctx.moveTo(APEX_X,rwY); ctx.lineTo(APEX_X+pR,rwY); ctx.stroke();
+    ctx.setLineDash([]);
+    [APEX_X, APEX_X+pR].forEach(x=>{
+      ctx.beginPath(); ctx.moveTo(x,rwY-4); ctx.lineTo(x,rwY+4); ctx.stroke();
+    });
+    ctx.fillStyle=C.accent2;
+    ctx.font='500 12px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('ρ', APEX_X+pR/2, rwY-5);
+    ctx.restore();
+  }
+
+  // Static labels
+  ctx.save();
+  ctx.fillStyle=C.label_dim;
+  ctx.font='13px var(--font-sans,sans-serif)';
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('inverted cone tank', APEX_X, APEX_Y+42);
+
+  // Percentage
+  const pct = Math.round(frac*100);
+  ctx.save();
+  ctx.shadowColor = pct > 20 ? C.water_stroke : '#F09595';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = pct > 20 ? C.water_stroke : '#F09595';
+  ctx.font='600 22px var(--font-sans,sans-serif)';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText(pct+'%', W-20, 18);
+  ctx.restore();
+  ctx.fillStyle=C.label_dim;
+  ctx.font='12px var(--font-sans,sans-serif)';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText('remaining', W-20, 44);
+
+  ctx.fillStyle=C.label_dim;
+  ctx.font='12px var(--font-sans,sans-serif)';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('V = ⅓πr²h', 18, 18);
+  ctx.fillText('y = h·∛(V/V₀)', 18, 36);
+  ctx.restore();
+
+  if (frac <= 0.001) {
+    ctx.save();
+    ctx.shadowColor='#F09595'; ctx.shadowBlur=12;
+    ctx.fillStyle='#F09595';
+    ctx.font='500 15px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Tank empty!', APEX_X, TOP_Y - 28);
+    ctx.restore();
+  }
+
+  document.getElementById('volPct').textContent = pct+'%';
+  document.getElementById('wh').textContent = frac.toFixed(3)+'h';
+  document.getElementById('wr').textContent = (frac<0.001?0:Math.cbrt(frac)).toFixed(3)+'r';
+}
+
+function animate(ts) {
+  if (!paused) {
+    if (lastTime===null) lastTime=ts;
+    const rawDt = Math.min((ts-lastTime)/1000, 0.05);
+    lastTime = ts;
+    const dt = rawDt;
+
+    if (t > 0.001) {
+      t = Math.max(0, t - dt * speed / 9);
+      updatePhysics(dt);
+    } else {
+      t = 0;
+      updatePhysics(dt);
+    }
+
+    draw(t);
+    rafId = requestAnimationFrame(animate);
+  } else {
+    lastTime = null;
+    rafId = requestAnimationFrame(animate);
+  }
+}
+
+function start() {
+  if (rafId) cancelAnimationFrame(rafId);
+  t = 1.0;
+  paused = false;
+  lastTime = null;
+  drops.length = 0;
+  splashes.length = 0;
+  puddleR = 0;
+  hangR = 0;
+  hangGrowing = true;
+  document.getElementById('btnPause').textContent = 'Pause';
+  rafId = requestAnimationFrame(animate);
+}
+
+document.getElementById('btnPause').addEventListener('click', ()=>{
+  paused = !paused;
+  document.getElementById('btnPause').textContent = paused ? 'Resume' : 'Pause';
+});
+document.getElementById('btnRestart').addEventListener('click', start);
+document.getElementById('speed').addEventListener('input', function(){
+  speed = parseFloat(this.value);
+  document.getElementById('speedVal').textContent = speed+'×';
+});
+
+start();
+</script>
