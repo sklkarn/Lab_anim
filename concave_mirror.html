@@ -153,6 +153,35 @@
     ctx.restore();
   }
 
+  function drawMirrorHatching(mirrorX, arcCX, R, arcAngle, cy) {
+    ctx.save();
+    const hatchWidth = 14;
+    ctx.beginPath();
+    ctx.arc(arcCX, cy, R, -arcAngle, arcAngle);
+    ctx.arc(arcCX, cy, R + hatchWidth, arcAngle, -arcAngle, true);
+    ctx.closePath();
+    ctx.clip();
+
+    const x0 = mirrorX - 2;
+    const x1 = mirrorX + hatchWidth + 4;
+    const yTop = cy - R * Math.sin(arcAngle) - 2;
+    const yBot = cy + R * Math.sin(arcAngle) + 2;
+    const spacing = 7;
+
+    ctx.strokeStyle = '#4a5070';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([]);
+
+    const span = (yBot - yTop) + (x1 - x0);
+    for (let d = -20; d <= span + 20; d += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(x0, yTop + d);
+      ctx.lineTo(x1, yTop + d - (x1 - x0));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function draw() {
     const { u, oh, f } = getParams();
     const w = W(), h = H();
@@ -161,22 +190,28 @@
     ctx.clearRect(0,0,w,h);
     ctx.fillStyle = '#0d1117'; ctx.fillRect(0,0,w,h);
 
-    // Mirror placed at 70% of canvas width (shifted left from edge)
-    const mirrorX = Math.round(w * 0.68);
+    // Mirror placed at horizontal center of canvas
+    const mirrorX = Math.round(w * 0.50);
 
     const { v, m } = mirrorFormula(u, f);
 
-    // ── Principal axis ──
+    // Principal axis — full width
     ctx.setLineDash([4,5]); ctx.strokeStyle='#1e2535'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(w,cy); ctx.stroke();
     ctx.setLineDash([]);
 
-    // ── Concave mirror arc ──
+    // Mirror arc geometry
     const R = f * 2;
     const arcH = Math.min(130, h*0.42);
     const arcCX = mirrorX - R;
     const arcAngle = Math.asin(Math.min(arcH/R, 0.99));
+
+    // Hatching behind mirror
+    drawMirrorHatching(mirrorX, arcCX, R, arcAngle, cy);
+
+    // Concave mirror arc
     ctx.strokeStyle='#85B7EB'; ctx.lineWidth=3.5;
+    ctx.setLineDash([]);
     ctx.beginPath();
     ctx.arc(arcCX, cy, R, -arcAngle, arcAngle);
     ctx.stroke();
@@ -190,7 +225,7 @@
     tick(cX, cy, '#9FE1CB'); txt('C', cX, cy+18, '#9FE1CB');
     tick(mirrorX, cy, '#85B7EB');
 
-    // ── Object ──
+    // Object
     const objX = mirrorX - u;
     const objTipY = cy - oh;
     if (objX > 14) {
@@ -203,7 +238,6 @@
     const virtual = isFinite(v) && v > 0;
 
     if (atF) {
-      // Object at F → parallel reflected rays
       const hitY1 = objTipY;
       arrowLine(objX, objTipY, mirrorX, hitY1, '#EF9F27', false, false);
       arrowLine(mirrorX, hitY1, 14, hitY1, '#EF9F27', false, false);
@@ -218,12 +252,10 @@
     }
 
     if (isFinite(v)) {
-      // imgX: v<0 real (in front), v>0 virtual (behind mirror, right of mirrorX)
       const imgX = mirrorX - v;
-      const imgH = oh * m; // m<0 → inverted (imgH negative → tip above axis)
+      const imgH = oh * m;
 
-      // clamp for display — but now mirrorX is shifted left so there's room
-      // ── Ray 1: parallel to axis → reflects through F ──
+      // Ray 1: parallel to axis → reflects through F
       const hitY1 = objTipY;
       arrowLine(objX, objTipY, mirrorX, hitY1, '#EF9F27', false, false);
       if (!virtual) {
@@ -240,7 +272,7 @@
       ctx.beginPath(); ctx.moveTo(mirrorX,hitY1); ctx.lineTo(fX,cy); ctx.stroke();
       ctx.restore();
 
-      // ── Ray 2: through F → reflects parallel ──
+      // Ray 2: through F → reflects parallel
       const slope2 = (cy - objTipY)/(fX - objX);
       const hitY2  = objTipY + slope2*(mirrorX - objX);
       arrowLine(objX, objTipY, mirrorX, hitY2, '#9FE1CB', false, false);
@@ -253,7 +285,7 @@
         ctx.restore();
       }
 
-      // ── Ray 3: through C → reflects back ──
+      // Ray 3: through C → reflects back
       const slope3 = (cy - objTipY)/(cX - objX);
       const hitY3  = objTipY + slope3*(mirrorX - objX);
       arrowLine(objX, objTipY, mirrorX, hitY3, '#AFA9EC', false, false);
@@ -268,16 +300,14 @@
         ctx.restore();
       }
 
-      // ── Draw image ──
+      // Draw image
       const imgInView = imgX > 14 && imgX < w - 10;
       if (imgInView) {
         if (!virtual) {
-          // real image: solid arrow, inverted
           arrowLine(imgX, cy, imgX, cy - imgH, '#5DCAA5', false, false);
           txt("Image", imgX, cy+18, '#5DCAA5');
           txt("B'", imgX+8, cy-imgH-5, '#5DCAA5', 'left');
         } else {
-          // virtual image: dashed arrow, erect
           ctx.save();
           ctx.strokeStyle='#5DCAA5'; ctx.fillStyle='#5DCAA5';
           ctx.lineWidth=1.8; ctx.setLineDash([4,3]);
@@ -296,7 +326,7 @@
         txt("Image off-screen — reduce u or f", w/2, cy+38, '#8a8f9e');
       }
 
-      // ── Distance annotations ──
+      // Distance annotations
       const aY = cy + 52;
       ctx.strokeStyle='#2a3555'; ctx.lineWidth=0.8; ctx.setLineDash([]);
       if (objX > 14) {

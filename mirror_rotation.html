@@ -1,0 +1,232 @@
+
+<div style="background:#0f1117;border-radius:12px;padding:24px;font-family:var(--font-sans);color:#e2e8f0;min-height:520px">
+  <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+    <canvas id="c" width="460" height="420" style="border-radius:8px;background:#0f1117;flex-shrink:0"></canvas>
+    <div style="flex:1;min-width:180px">
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;color:#94a3b8;display:block;margin-bottom:6px">Mirror rotation θ</label>
+        <input type="range" id="theta" min="0" max="60" value="0" step="1" style="width:100%;accent-color:#60a5fa">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-top:2px"><span>0°</span><span>60°</span></div>
+      </div>
+      <div style="background:#1e2535;border-radius:8px;padding:16px;margin-bottom:16px;border:1px solid #2d3748">
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase">Angles</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:#94a3b8">Mirror rotated</span>
+            <span id="lbl-theta" style="font-size:15px;font-weight:500;color:#60a5fa;min-width:48px;text-align:right">0°</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:#94a3b8">Ray rotated</span>
+            <span id="lbl-2theta" style="font-size:15px;font-weight:500;color:#f97316;min-width:48px;text-align:right">0°</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #2d3748;font-size:13px;color:#a78bfa;text-align:center;letter-spacing:.02em">
+          Δray = 2 × Δmirror
+        </div>
+      </div>
+      <div style="background:#1e2535;border-radius:8px;padding:14px;border:1px solid #2d3748;font-size:12px;color:#64748b;line-height:1.7">
+        <span style="color:#94a3b8;font-weight:500">Why 2θ?</span><br>
+        Rotating the mirror by θ shifts the normal by θ. Since angle of incidence = angle of reflection, the reflected ray shifts by θ on both sides of the normal — giving a total rotation of <span style="color:#f97316">2θ</span>.
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:20px;margin-top:16px;font-size:12px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:28px;height:2px;background:#60a5fa"></span>Incident ray</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:28px;height:2px;background:#22c55e"></span>Original reflected ray</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:28px;height:2px;background:#f97316"></span>New reflected ray</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:28px;height:2px;border-top:2px dashed #ffffff44"></span>Normal</span>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('theta');
+const lblT = document.getElementById('lbl-theta');
+const lbl2T = document.getElementById('lbl-2theta');
+const W = 460, H = 420;
+const cx = 200, cy = 240;
+
+function rad(d){ return d * Math.PI / 180; }
+
+function drawMidArrow(x1, y1, x2, y2, color, width=2.0, dash=[]){
+  // Draw line
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Single arrowhead at midpoint
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const s = 10;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash([]);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(mx, my);
+  ctx.lineTo(mx - s*Math.cos(angle - 0.38), my - s*Math.sin(angle - 0.38));
+  ctx.moveTo(mx, my);
+  ctx.lineTo(mx - s*Math.cos(angle + 0.38), my - s*Math.sin(angle + 0.38));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function draw(){
+  const theta = Number(slider.value);
+  lblT.textContent = theta + '°';
+  lbl2T.textContent = (2*theta) + '°';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // subtle grid
+  ctx.save();
+  ctx.strokeStyle = '#1e2535'; ctx.lineWidth = 0.5;
+  for(let x=0;x<W;x+=40){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+  for(let y=0;y<H;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+  ctx.restore();
+
+  const mirrorAngle = rad(theta);
+  const mirrorLen = 110;
+  const rayLen = 160;
+
+  // Ghost mirror (original, dashed)
+  ctx.save();
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.moveTo(cx - mirrorLen, cy);
+  ctx.lineTo(cx + mirrorLen, cy);
+  ctx.stroke();
+  ctx.restore();
+
+  // Rotated mirror
+  ctx.save();
+  ctx.strokeStyle='#c0cadb'; ctx.lineWidth=3; ctx.setLineDash([]); ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(cx - mirrorLen*Math.cos(mirrorAngle), cy - mirrorLen*Math.sin(mirrorAngle));
+  ctx.lineTo(cx + mirrorLen*Math.cos(mirrorAngle), cy + mirrorLen*Math.sin(mirrorAngle));
+  ctx.stroke();
+  ctx.strokeStyle='#ffffff22'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(cx - mirrorLen*Math.cos(mirrorAngle)+1, cy - mirrorLen*Math.sin(mirrorAngle)+1);
+  ctx.lineTo(cx + mirrorLen*Math.cos(mirrorAngle)+1, cy + mirrorLen*Math.sin(mirrorAngle)+1);
+  ctx.stroke();
+  ctx.restore();
+
+  // θ arc at mirror
+  if(theta > 2){
+    ctx.save();
+    ctx.strokeStyle='#a78bfa55'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.arc(cx, cy, 32, 0, mirrorAngle, false); ctx.stroke();
+    ctx.fillStyle='#a78bfa'; ctx.font='12px var(--font-sans,sans-serif)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const ma = mirrorAngle/2;
+    ctx.fillText('θ', cx+44*Math.cos(ma), cy+44*Math.sin(ma));
+    ctx.restore();
+  }
+
+  // Incident ray (mid-arrow)
+  const ix = cx - rayLen*Math.cos(rad(45));
+  const iy = cy - rayLen*Math.sin(rad(45));
+  drawMidArrow(ix, iy, cx, cy, '#60a5fa', 2.0);
+
+  // Normals
+  const normalLen = 70;
+  ctx.save();
+  ctx.strokeStyle='#ffffff28'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - normalLen);
+  ctx.stroke();
+  ctx.restore();
+
+  const rotNormalAngle = mirrorAngle - rad(90);
+  const rnx = cx + normalLen*Math.cos(rotNormalAngle);
+  const rny = cy + normalLen*Math.sin(rotNormalAngle);
+  ctx.save();
+  ctx.strokeStyle='#ffffff55'; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(rnx,rny); ctx.stroke();
+  ctx.fillStyle='#94a3b8'; ctx.font='11px var(--font-sans,sans-serif)';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText("n'", rnx+5, rny-5);
+  ctx.restore();
+
+  function reflect(dirX, dirY, mAngle){
+    const nx = -Math.sin(mAngle);
+    const ny =  Math.cos(mAngle);
+    const dot = dirX*nx + dirY*ny;
+    return { x: dirX - 2*dot*nx, y: dirY - 2*dot*ny };
+  }
+
+  const incDir = { x: Math.cos(rad(45)), y: Math.sin(rad(45)) };
+
+  // Original reflected ray
+  const origRefl = reflect(incDir.x, incDir.y, 0);
+  const orx = cx + rayLen*origRefl.x;
+  const ory = cy + rayLen*origRefl.y;
+  drawMidArrow(cx, cy, orx, ory, '#22c55e', 2.0);
+
+  // New reflected ray
+  if(theta > 0){
+    const newRefl = reflect(incDir.x, incDir.y, mirrorAngle);
+    const nrx = cx + rayLen*newRefl.x;
+    const nry = cy + rayLen*newRefl.y;
+    drawMidArrow(cx, cy, nrx, nry, '#f97316', 2.2);
+
+    // 2θ arc
+    if(theta > 2){
+      const origReflAngle = Math.atan2(origRefl.y, origRefl.x);
+      const newReflAngle  = Math.atan2(newRefl.y,  newRefl.x);
+      ctx.save();
+      ctx.strokeStyle='#f9731688'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 55, origReflAngle, newReflAngle, false);
+      ctx.stroke();
+      const midA = (origReflAngle + newReflAngle)/2;
+      ctx.fillStyle='#f97316'; ctx.font='bold 12px var(--font-sans,sans-serif)';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('2θ', cx+72*Math.cos(midA), cy+72*Math.sin(midA));
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle='#f97316'; ctx.font='12px var(--font-sans,sans-serif)';
+      ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText('New reflected', nrx+5, nry+5);
+      ctx.restore();
+    }
+  }
+
+  // Reflection point dot
+  ctx.save();
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Labels
+  ctx.save();
+  ctx.fillStyle='#60a5fa'; ctx.font='12px var(--font-sans,sans-serif)';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('Incident ray', ix+8, iy+10);
+
+  ctx.fillStyle='#22c55e';
+  ctx.fillText('Original reflected', orx-80, ory+14);
+
+  ctx.fillStyle='#94a3b8'; ctx.font='11px var(--font-sans,sans-serif)';
+  const mlx = cx + (mirrorLen+8)*Math.cos(mirrorAngle);
+  const mly = cy + (mirrorLen+8)*Math.sin(mirrorAngle);
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('Mirror', mlx, mly);
+  ctx.restore();
+}
+
+slider.addEventListener('input', draw);
+draw();
+</script>

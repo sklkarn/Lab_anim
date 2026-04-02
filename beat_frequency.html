@@ -8,7 +8,7 @@
   .ctrl-card { background: #1c2030; border-radius: 8px; padding: 12px 16px; border: 0.5px solid #2e3347; }
   .ctrl-label { font-size: 13px; color: #8a8f9e; margin-bottom: 6px; }
   .ctrl-row { display: flex; align-items: center; gap: 10px; }
-  .ctrl-val { font-size: 14px; font-weight: 500; min-width: 52px; text-align: right; color: #e8e8e8; }
+  .ctrl-val { font-size: 14px; font-weight: 500; min-width: 64px; text-align: right; color: #e8e8e8; }
   .wave-panel { margin-bottom: 12px; }
   .wave-label { font-size: 12px; color: #8a8f9e; margin-bottom: 4px; padding-left: 4px; }
   canvas { width: 100%; display: block; border-radius: 6px; background: #1c2030; }
@@ -33,25 +33,25 @@
     <div class="ctrl-card">
       <div class="ctrl-label">Wave 1 frequency</div>
       <div class="ctrl-row">
-        <input type="range" id="f1" min="1" max="20" value="8" step="0.5" style="flex:1;">
-        <span class="ctrl-val" id="f1v">8.0 Hz</span>
+        <input type="range" id="f1" min="400" max="500" value="440" step="1" style="flex:1;">
+        <span class="ctrl-val" id="f1v">440 Hz</span>
       </div>
     </div>
     <div class="ctrl-card">
       <div class="ctrl-label">Wave 2 frequency</div>
       <div class="ctrl-row">
-        <input type="range" id="f2" min="1" max="20" value="10" step="0.5" style="flex:1;">
-        <span class="ctrl-val" id="f2v">10.0 Hz</span>
+        <input type="range" id="f2" min="400" max="500" value="446" step="1" style="flex:1;">
+        <span class="ctrl-val" id="f2v">446 Hz</span>
       </div>
     </div>
   </div>
 
   <div class="wave-panel">
-    <div class="wave-label">Wave 1 — <span id="lbl1">8.0 Hz</span></div>
+    <div class="wave-label">Wave 1 — <span id="lbl1">440 Hz</span></div>
     <canvas id="c1" height="80"></canvas>
   </div>
   <div class="wave-panel">
-    <div class="wave-label">Wave 2 — <span id="lbl2">10.0 Hz</span></div>
+    <div class="wave-label">Wave 2 — <span id="lbl2">446 Hz</span></div>
     <canvas id="c2" height="80"></canvas>
   </div>
   <div class="wave-panel">
@@ -59,7 +59,9 @@
     <canvas id="cr" height="130"></canvas>
   </div>
 
-  <div class="beat-freq">Beat frequency: <span id="beatHz">2.0 Hz</span> &nbsp;|&nbsp; Beat period: <span id="beatPer">0.50 s</span></div>
+  <div class="beat-freq">
+    Beat frequency: <span id="beatHz">6 Hz</span> &nbsp;|&nbsp; Beat period: <span id="beatPer">0.17 s</span>
+  </div>
 
   <div class="btn-row">
     <button id="btnPlay">▶ Play</button>
@@ -94,11 +96,6 @@
   const SPEED = 0.016;
 
   let audioCtx = null, osc1 = null, osc2 = null, gainNode = null;
-  const BASE_FREQ = 200, SCALE = 10;
-
-  function getAudioFreqs() {
-    return [BASE_FREQ + parseFloat(f1El.value) * SCALE, BASE_FREQ + parseFloat(f2El.value) * SCALE];
-  }
 
   function startAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -106,9 +103,8 @@
     gainNode = audioCtx.createGain();
     gainNode.gain.value = parseFloat(volCtrl.value) * 0.5;
     gainNode.connect(audioCtx.destination);
-    const [af1, af2] = getAudioFreqs();
-    osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = af1;
-    osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = af2;
+    osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = parseFloat(f1El.value);
+    osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = parseFloat(f2El.value);
     const g1 = audioCtx.createGain(); g1.gain.value = 0.5;
     const g2 = audioCtx.createGain(); g2.gain.value = 0.5;
     osc1.connect(g1); g1.connect(gainNode);
@@ -124,9 +120,8 @@
 
   function updateAudioFreqs() {
     if (!osc1 || !osc2 || !audioCtx) return;
-    const [af1, af2] = getAudioFreqs();
-    osc1.frequency.setTargetAtTime(af1, audioCtx.currentTime, 0.02);
-    osc2.frequency.setTargetAtTime(af2, audioCtx.currentTime, 0.02);
+    osc1.frequency.setTargetAtTime(parseFloat(f1El.value), audioCtx.currentTime, 0.02);
+    osc2.frequency.setTargetAtTime(parseFloat(f2El.value), audioCtx.currentTime, 0.02);
   }
 
   btnPlay.addEventListener('click', () => {
@@ -155,6 +150,13 @@
     env: 'rgba(240,153,123,0.18)', axis: 'rgba(255,255,255,0.12)',
   };
 
+  // For visualization we map the real Hz values to a normalised visual frequency
+  // so the waveforms remain readable (drawing 440 real cycles would be invisible).
+  // Visual freq = (real_Hz - 400) / 10 + 1, giving a 1–11 Hz visual range.
+  function visualFreq(hz) {
+    return (hz - 400) / 10 + 1;
+  }
+
   function drawWave(canvas, freq, amp, color, phase) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width / DPR, H = canvas.height / DPR;
@@ -170,30 +172,31 @@
     ctx.stroke();
   }
 
-  function drawResultant(canvas, f1, f2, phase) {
+  function drawResultant(canvas, vf1, vf2, beatHz, phase) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width / DPR, H = canvas.height / DPR;
     ctx.clearRect(0, 0, W, H);
     ctx.strokeStyle = COLORS.axis; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
     const amp = (H/2) * 0.4;
-    const fBeat = Math.abs(f1 - f2);
+    // Use a visual beat freq proportional to actual beat but scaled for visibility
+    const vBeat = beatHz / 10;
     const windowSecs = 4;
     const pts = [];
     for (let x = 0; x <= W; x++) {
       const tVal = phase + (x/W)*windowSecs;
-      pts.push({ x, y: Math.sin(2*Math.PI*f1*tVal) + Math.sin(2*Math.PI*f2*tVal) });
+      pts.push({ x, y: Math.sin(2*Math.PI*vf1*tVal) + Math.sin(2*Math.PI*vf2*tVal) });
     }
-    if (fBeat > 0.01) {
+    if (vBeat > 0.01) {
       ctx.fillStyle = COLORS.env;
       const envAmp = amp * 2;
       ctx.beginPath();
       for (let x = 0; x <= W; x++) {
-        const env = envAmp * Math.abs(Math.cos(Math.PI * fBeat * (phase + (x/W)*windowSecs)));
+        const env = envAmp * Math.abs(Math.cos(Math.PI * vBeat * (phase + (x/W)*windowSecs)));
         x === 0 ? ctx.moveTo(x, H/2 - env) : ctx.lineTo(x, H/2 - env);
       }
       for (let x = W; x >= 0; x--) {
-        const env = envAmp * Math.abs(Math.cos(Math.PI * fBeat * (phase + (x/W)*windowSecs)));
+        const env = envAmp * Math.abs(Math.cos(Math.PI * vBeat * (phase + (x/W)*windowSecs)));
         ctx.lineTo(x, H/2 + env);
       }
       ctx.closePath(); ctx.fill();
@@ -209,23 +212,25 @@
 
   function render() {
     const f1 = parseFloat(f1El.value), f2 = parseFloat(f2El.value);
+    const vf1 = visualFreq(f1), vf2 = visualFreq(f2);
+    const beatHz = Math.abs(f1 - f2);
     const amp = (c1.height / DPR / 2) * 0.72;
-    drawWave(c1, f1, amp, COLORS.w1, t);
-    drawWave(c2, f2, amp, COLORS.w2, t);
-    drawResultant(cr, f1, f2, t);
+    drawWave(c1, vf1, amp, COLORS.w1, t);
+    drawWave(c2, vf2, amp, COLORS.w2, t);
+    drawResultant(cr, vf1, vf2, beatHz, t);
     if (running) t += SPEED;
     requestAnimationFrame(render);
   }
 
   function updateLabels() {
     const f1 = parseFloat(f1El.value), f2 = parseFloat(f2El.value);
-    f1vEl.textContent = f1.toFixed(1) + ' Hz';
-    f2vEl.textContent = f2.toFixed(1) + ' Hz';
-    lbl1.textContent = f1.toFixed(1) + ' Hz';
-    lbl2.textContent = f2.toFixed(1) + ' Hz';
+    f1vEl.textContent = f1 + ' Hz';
+    f2vEl.textContent = f2 + ' Hz';
+    lbl1.textContent = f1 + ' Hz';
+    lbl2.textContent = f2 + ' Hz';
     const beat = Math.abs(f1 - f2);
-    beatHzEl.textContent = beat.toFixed(1) + ' Hz';
-    beatPerEl.textContent = beat > 0 ? (1/beat).toFixed(2) + ' s' : '∞';
+    beatHzEl.textContent = beat.toFixed(0) + ' Hz';
+    beatPerEl.textContent = beat > 0 ? (1/beat).toFixed(3) + ' s' : '∞';
     updateAudioFreqs();
   }
 

@@ -1,0 +1,854 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laws of Reflection — Plane Mirror Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --panel: #0f1521;
+    --border: #1e2d45;
+    --mirror: #4fc3f7;
+    --object: #ff7043;
+    --image: #ff7043;
+    --ray1: #ffd740;
+    --ray2: #69f0ae;
+    --normal: #e040fb;
+    --eye: #ef5350;
+    --text: #cdd6f4;
+    --muted: #6c7a9c;
+    --accent: #4fc3f7;
+    --grid: rgba(78,120,200,0.07);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .lab-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 300;
+    letter-spacing: 1px;
+    color: #e8eeff;
+    line-height: 1.2;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1100px;
+    align-items: flex-start;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    cursor: crosshair;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .drag-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .side-panel {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    opacity: 0.9;
+  }
+
+  .measurements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .meas-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .meas-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .meas-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .meas-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e8eeff;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .verify-box {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(79,195,247,0.05);
+    border: 1px solid rgba(79,195,247,0.2);
+    text-align: center;
+  }
+
+  .verify-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+  }
+
+  .verify-status.ok { color: #69f0ae; }
+  .verify-status.check { color: #ffd740; }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+  }
+
+  .legend-line {
+    width: 28px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .legend-dash {
+    width: 28px;
+    height: 2px;
+    flex-shrink: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      currentColor 0, currentColor 5px,
+      transparent 5px, transparent 9px
+    );
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .principles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .principle {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .principle strong {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  label span { display: flex; justify-content: space-between; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  input[type=checkbox] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 800px) {
+    .main-layout { flex-direction: column; }
+    .side-panel { width: 100%; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="lab-tag">Physics Laboratory</div>
+  <h1>Laws of <em>Reflection</em></h1>
+  <p class="subtitle">Verification using a plane mirror — drag the object or observer</p>
+  <p class="subtitle" style="margin-top:4px; font-style:normal; font-size:0.9rem; color:var(--accent); opacity:0.85;">Instructor: Dr. S Karna</p>
+</header>
+
+<div class="main-layout">
+  <div class="canvas-wrap">
+    <div class="canvas-label">Experiment Diagram</div>
+    <canvas id="c" width="700" height="520"></canvas>
+    <div class="drag-hint">drag object (●) or observer eye (👁) to explore</div>
+  </div>
+
+  <div class="side-panel">
+
+    <div class="card">
+      <div class="card-title">Measurements</div>
+      <div class="measurements">
+        <div class="meas-row">
+          <div class="meas-dot" style="background:var(--ray1)"></div>
+          <div class="meas-label">Ray 1 — Angle of Incidence</div>
+          <div class="meas-val" id="i1">—</div>
+        </div>
+        <div class="meas-row">
+          <div class="meas-dot" style="background:var(--ray1)"></div>
+          <div class="meas-label">Ray 1 — Angle of Reflection</div>
+          <div class="meas-val" id="r1">—</div>
+        </div>
+        <div class="meas-row">
+          <div class="meas-dot" style="background:var(--ray2)"></div>
+          <div class="meas-label">Ray 2 — Angle of Incidence</div>
+          <div class="meas-val" id="i2">—</div>
+        </div>
+        <div class="meas-row">
+          <div class="meas-dot" style="background:var(--ray2)"></div>
+          <div class="meas-label">Ray 2 — Angle of Reflection</div>
+          <div class="meas-val" id="r2">—</div>
+        </div>
+        <div class="meas-row">
+          <div class="meas-dot" style="background:#ab47bc"></div>
+          <div class="meas-label">Object distance to mirror</div>
+          <div class="meas-val" id="dobj">—</div>
+        </div>
+        <div class="meas-row">
+          <div class="meas-dot" style="background:#ab47bc;opacity:0.4;border:1px dashed #ab47bc"></div>
+          <div class="meas-label">Image distance to mirror</div>
+          <div class="meas-val" id="dimg">—</div>
+        </div>
+      </div>
+      <div class="verify-box">
+        <div class="verify-status ok" id="law1-status">✓ LAW I: ∠i = ∠r (verified for both rays)</div>
+        <div class="verify-status ok" id="law2-status" style="margin-top:6px">✓ LAW II: Object dist = Image dist</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-line" style="background:var(--mirror)"></div> Plane mirror</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--object)"></div> Object (light source)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--object);opacity:0.3;border:2px dashed var(--object)"></div> Virtual image</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--ray1)"></div> Incident / Reflected Ray 1</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--ray2)"></div> Incident / Reflected Ray 2</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--normal);opacity:0.7;height:2px;border-top:2px dashed var(--normal)"></div> Normal to mirror</div>
+        <div class="legend-dot" style="display:none"></div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--object);opacity:0.3;height:1px;border-top: 2px dashed var(--object)"></div> Virtual ray (extended)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--eye);border-radius:3px;width:18px;height:12px"></div> Observer's eye</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Laws of Reflection</div>
+      <div class="principles">
+        <div class="principle">
+          <strong>FIRST LAW</strong>
+          The angle of incidence equals the angle of reflection, both measured from the normal at the point of incidence.
+        </div>
+        <div class="principle">
+          <strong>SECOND LAW</strong>
+          The incident ray, reflected ray, and normal all lie in the same plane. The image is as far behind the mirror as the object is in front.
+        </div>
+        <div class="principle">
+          <strong>THIRD LAW</strong>
+          The image formed is virtual, erect, and laterally inverted, of the same size as the object.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Controls</div>
+      <div class="controls">
+        <label>
+          <span>Ray spread <span id="spread-val">45°</span></span>
+          <input type="range" id="spread" min="10" max="70" value="45">
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="show-normals" checked> Show normals
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="show-angles" checked> Show angle arcs
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="show-virtual" checked> Show virtual rays
+        </label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// --- State ---
+let W = 700, H = 520;
+const MIRROR_Y = 320; // mirror is horizontal
+const MIRROR_X1 = 80, MIRROR_X2 = 620;
+
+let obj = { x: 280, y: 160 };   // object above mirror
+let eye = { x: 500, y: 200 };   // observer eye above mirror
+
+let spread = 45;
+let showNormals = true;
+let showAngles = true;
+let showVirtual = true;
+
+let dragging = null;
+
+// DPR scaling
+function setupCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width;
+  H = 520;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+}
+
+function clampObj() {
+  obj.x = Math.max(MIRROR_X1+20, Math.min(MIRROR_X2-20, obj.x));
+  obj.y = Math.max(30, Math.min(MIRROR_Y - 30, obj.y));
+  eye.x = Math.max(MIRROR_X1+20, Math.min(MIRROR_X2-20, eye.x));
+  eye.y = Math.max(30, Math.min(MIRROR_Y - 30, eye.y));
+}
+
+// Reflect point across mirror (horizontal line at MIRROR_Y)
+function imagePoint(p) {
+  return { x: p.x, y: 2 * MIRROR_Y - p.y };
+}
+
+// Find intersection of line (p1->p2) with y = MIRROR_Y
+function mirrorIntersect(px, py, tx, ty) {
+  // parametric: y = py + t*(ty-py) = MIRROR_Y
+  const t = (MIRROR_Y - py) / (ty - py);
+  return { x: px + t * (tx - px), y: MIRROR_Y };
+}
+
+// Angle from normal (vertical = normal to horizontal mirror)
+function angleFromNormal(px, py, mx, my) {
+  // vector from mirror point to px,py
+  const dx = px - mx, dy = py - my;
+  // normal is (0,-1) pointing up
+  const dot = -dy; // dot with (0,-1)
+  const mag = Math.sqrt(dx*dx+dy*dy);
+  return Math.acos(Math.abs(dot/mag)) * 180 / Math.PI;
+}
+
+// draw dashed line
+function dashedLine(x1,y1,x2,y2, color, dash=[6,5], alpha=0.6, lw=1.5) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+
+function solidLine(x1,y1,x2,y2,color,lw=2,alpha=1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+
+function drawArrowhead(x, y, ang, color, sz=9) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - sz*Math.cos(ang-0.4), y - sz*Math.sin(ang-0.4));
+  ctx.lineTo(x - sz*Math.cos(ang+0.4), y - sz*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function arrow(x1,y1,x2,y2,color,lw=2) {
+  solidLine(x1,y1,x2,y2,color,lw);
+  const ang = Math.atan2(y2-y1,x2-x1);
+  drawArrowhead(x2, y2, ang, color, 9);
+  // Mid arrowhead to show direction clearly
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  drawArrowhead(mx, my, ang, color, 7);
+}
+
+function angleArc(mx,my, px,py, qx,qy, color, radius=28) {
+  // arc between two vectors from (mx,my)
+  const a1 = Math.atan2(py-my, px-mx);
+  const a2 = Math.atan2(qy-my, qx-mx);
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  // draw smaller arc
+  let start = a1, end = a2;
+  ctx.arc(mx, my, radius, start, end, false);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function label(txt, x, y, color='#cdd6f4', size=12, align='left') {
+  ctx.save();
+  ctx.font = `${size}px "Space Mono", monospace`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.globalAlpha = 0.92;
+  ctx.fillText(txt, x, y);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.save();
+  ctx.strokeStyle = 'rgba(79,120,200,0.07)';
+  ctx.lineWidth = 1;
+  for (let x=0; x<W; x+=30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.restore();
+
+  // --- Image point (virtual) ---
+  const img = imagePoint(obj);
+
+  // --- Two incident points on mirror ---
+  // Ray 1: from obj, hits mirror between obj.x and eye.x
+  // We want ray from image to eye, intersect mirror = incident point
+  const m1 = mirrorIntersect(img.x, img.y, eye.x, eye.y);
+  // Ray 2: offset by spread
+  const spreadRad = (spread / 2) * Math.PI / 180;
+  // second ray from eye, going at a different angle
+  const eyeAngleToMirror = Math.atan2(MIRROR_Y - eye.y, m1.x - eye.x);
+  const angle2 = eyeAngleToMirror + spreadRad;
+  // second hit on mirror: from eye along angle2
+  const t2 = (MIRROR_Y - eye.y) / Math.sin(angle2);
+  const m2x = eye.x + t2 * Math.cos(angle2);
+  const m2 = { x: Math.max(MIRROR_X1+5, Math.min(MIRROR_X2-5, m2x)), y: MIRROR_Y };
+
+  // clamp m1
+  m1.x = Math.max(MIRROR_X1+5, Math.min(MIRROR_X2-5, m1.x));
+
+  // ===================== DRAW BELOW-MIRROR REGION =====================
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,20,40,0.5)';
+  ctx.fillRect(0, MIRROR_Y, W, H - MIRROR_Y);
+  ctx.restore();
+
+  // "Below mirror" label
+  label('MIRROR PLANE', MIRROR_X1 + 5, MIRROR_Y + 18, 'rgba(79,195,247,0.3)', 9);
+
+  // ===================== VIRTUAL RAYS (behind mirror) =====================
+  if (showVirtual) {
+    // extend reflected ray 1 behind mirror (from m1 through eye, going backward from m1 down)
+    // virtual = from image to m1, continue to m1 mirrored side direction = image->m1 extended below
+    const ext1x = m1.x + (m1.x - img.x) * 0.35;
+    const ext1y = m1.y + (m1.y - img.y) * 0.35;
+    dashedLine(m1.x, m1.y, img.x, img.y, '#ff7043', [5,4], 0.35, 1.5);
+
+    const ext2x = m2.x + (m2.x - img.x) * 0.35;
+    const ext2y = m2.y + (m2.y - img.y) * 0.35;
+    dashedLine(m2.x, m2.y, img.x, img.y, '#ff7043', [5,4], 0.35, 1.5);
+  }
+
+  // ===================== MIRROR =====================
+  ctx.save();
+  const mg = ctx.createLinearGradient(MIRROR_X1, MIRROR_Y, MIRROR_X2, MIRROR_Y);
+  mg.addColorStop(0, 'transparent');
+  mg.addColorStop(0.15, '#4fc3f7');
+  mg.addColorStop(0.85, '#4fc3f7');
+  mg.addColorStop(1, 'transparent');
+  ctx.strokeStyle = mg;
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#4fc3f7';
+  ctx.shadowBlur = 10;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(MIRROR_X1, MIRROR_Y); ctx.lineTo(MIRROR_X2, MIRROR_Y); ctx.stroke();
+  ctx.restore();
+
+  // Mirror hatching
+  ctx.save();
+  ctx.strokeStyle = 'rgba(79,195,247,0.18)';
+  ctx.lineWidth = 1;
+  for (let x = MIRROR_X1; x < MIRROR_X2; x += 18) {
+    ctx.beginPath(); ctx.moveTo(x, MIRROR_Y); ctx.lineTo(x - 10, MIRROR_Y + 12); ctx.stroke();
+  }
+  ctx.restore();
+
+  // ===================== NORMALS =====================
+  if (showNormals) {
+    const nH = 55;
+    dashedLine(m1.x, MIRROR_Y - nH, m1.x, MIRROR_Y + nH/2, '#e040fb', [5,4], 0.65, 1.5);
+    dashedLine(m2.x, MIRROR_Y - nH, m2.x, MIRROR_Y + nH/2, '#e040fb', [5,4], 0.65, 1.5);
+    label('N', m1.x + 4, MIRROR_Y - nH + 4, '#e040fb', 10);
+    label('N', m2.x + 4, MIRROR_Y - nH + 4, '#e040fb', 10);
+  }
+
+  // ===================== INCIDENT RAYS (obj -> mirror) =====================
+  arrow(obj.x, obj.y, m1.x, m1.y, '#ffd740', 2);
+  arrow(obj.x, obj.y, m2.x, m2.y, '#69f0ae', 2);
+
+  // ===================== REFLECTED RAYS (mirror -> eye) =====================
+  arrow(m1.x, m1.y, eye.x, eye.y, '#ffd740', 2);
+  arrow(m2.x, m2.y, eye.x, eye.y, '#69f0ae', 2);
+
+  // ===================== ANGLE ARCS =====================
+  if (showAngles) {
+    // Ray 1: angle between normal-up and incident ray at m1
+    // normal-up direction: (m1.x, MIRROR_Y-50)
+    const ni1x = m1.x, ni1y = MIRROR_Y - 50;
+    // incident dir at m1 points from obj to m1, but we need "incoming to m1"
+    // so direction is m1->obj (for angle arc at m1)
+    angleArc(m1.x, MIRROR_Y, ni1x, ni1y, obj.x, obj.y, '#ffd740', 30);
+    angleArc(m1.x, MIRROR_Y, ni1x, ni1y, eye.x, eye.y, '#ffd740', 30);
+
+    // Ray 2
+    const ni2x = m2.x, ni2y = MIRROR_Y - 50;
+    angleArc(m2.x, MIRROR_Y, ni2x, ni2y, obj.x, obj.y, '#69f0ae', 30);
+    angleArc(m2.x, MIRROR_Y, ni2x, ni2y, eye.x, eye.y, '#69f0ae', 30);
+  }
+
+  // ===================== ANGLE LABELS =====================
+  const ang1i = angleFromNormal(obj.x, obj.y, m1.x, MIRROR_Y);
+  const ang1r = angleFromNormal(eye.x, eye.y, m1.x, MIRROR_Y);
+  const ang2i = angleFromNormal(obj.x, obj.y, m2.x, MIRROR_Y);
+  const ang2r = angleFromNormal(eye.x, eye.y, m2.x, MIRROR_Y);
+
+  // Place angle labels between normal and ray
+  const off = 44;
+  const midAngle1i = Math.atan2((obj.y-MIRROR_Y)/2, (obj.x-m1.x)/2);
+  ctx.save();
+  ctx.font = '11px Space Mono, monospace';
+  ctx.fillStyle = '#ffd740';
+  ctx.globalAlpha = 0.95;
+  ctx.fillText(`i₁=${ang1i.toFixed(1)}°`, m1.x - 56, MIRROR_Y - 38);
+  ctx.fillText(`r₁=${ang1r.toFixed(1)}°`, m1.x + 4, MIRROR_Y - 38);
+  ctx.fillStyle = '#69f0ae';
+  ctx.fillText(`i₂=${ang2i.toFixed(1)}°`, m2.x - 56, MIRROR_Y - 38);
+  ctx.fillText(`r₂=${ang2r.toFixed(1)}°`, m2.x + 4, MIRROR_Y - 38);
+  ctx.restore();
+
+  // ===================== OBJECT =====================
+  ctx.save();
+  ctx.shadowColor = '#ff7043';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = '#ff7043';
+  ctx.beginPath(); ctx.arc(obj.x, obj.y, 11, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(obj.x, obj.y, 5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  label('Object (O)', obj.x + 14, obj.y + 5, '#ff7043', 11);
+
+  // Object height line to mirror
+  dashedLine(obj.x, obj.y, obj.x, MIRROR_Y, '#9c8a7a', [3,4], 0.3, 1);
+
+  // ===================== VIRTUAL IMAGE =====================
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.shadowColor = '#ff7043';
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = '#ff7043';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.arc(img.x, img.y, 11, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = '#ff7043';
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(img.x, img.y, 11, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  label("Image (O')", img.x + 14, img.y + 5, 'rgba(255,112,67,0.6)', 11);
+  dashedLine(img.x, img.y, img.x, MIRROR_Y, '#9c8a7a', [3,4], 0.3, 1);
+
+  // Distance arrows
+  const distCol = 'rgba(171,71,188,0.6)';
+  const xd = obj.x - 20;
+  ctx.save();
+  ctx.strokeStyle = distCol; ctx.lineWidth = 1.5; ctx.globalAlpha=0.7;
+  ctx.setLineDash([]);
+  // obj to mirror
+  ctx.beginPath(); ctx.moveTo(xd, obj.y); ctx.lineTo(xd, MIRROR_Y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xd-4, obj.y); ctx.lineTo(xd+4, obj.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xd-4, MIRROR_Y); ctx.lineTo(xd+4, MIRROR_Y); ctx.stroke();
+  // image to mirror
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(xd, MIRROR_Y); ctx.lineTo(xd, img.y); ctx.stroke();
+  ctx.restore();
+
+  // ===================== OBSERVER EYE =====================
+  ctx.save();
+  ctx.shadowColor = '#ef5350';
+  ctx.shadowBlur = 14;
+  // eye shape
+  ctx.fillStyle = '#1a2535';
+  ctx.strokeStyle = '#ef5350';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  const ew = 18, eh = 12;
+  ctx.beginPath();
+  ctx.ellipse(eye.x, eye.y, ew, eh, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ef5350';
+  ctx.beginPath(); ctx.arc(eye.x, eye.y, 5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#0a0e17';
+  ctx.beginPath(); ctx.arc(eye.x, eye.y, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  label('Eye', eye.x + 22, eye.y + 5, '#ef5350', 11);
+
+  // ===================== INCIDENT POINTS =====================
+  [m1, m2].forEach((m, i) => {
+    ctx.save();
+    ctx.fillStyle = i===0 ? '#ffd740' : '#69f0ae';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    label(`P${i+1}`, m.x + 6, m.y - 6, i===0?'#ffd740':'#69f0ae', 10);
+  });
+
+  // ===================== UPDATE SIDEBAR =====================
+  const fmt = v => v.toFixed(1) + '°';
+  document.getElementById('i1').textContent = fmt(ang1i);
+  document.getElementById('r1').textContent = fmt(ang1r);
+  document.getElementById('i2').textContent = fmt(ang2i);
+  document.getElementById('r2').textContent = fmt(ang2r);
+
+  const dobj = (MIRROR_Y - obj.y);
+  const dimg = (img.y - MIRROR_Y);
+  const scale = 1; // pixel-based
+  document.getElementById('dobj').textContent = Math.abs(dobj).toFixed(0) + ' px';
+  document.getElementById('dimg').textContent = Math.abs(dimg).toFixed(0) + ' px';
+
+  const law1ok = Math.abs(ang1i - ang1r) < 1 && Math.abs(ang2i - ang2r) < 1;
+  const law2ok = Math.abs(dobj - dimg) < 1;
+  document.getElementById('law1-status').textContent = law1ok
+    ? '✓ LAW I: ∠i = ∠r (verified for both rays)'
+    : `⚠ Ray 1: ${fmt(ang1i)} ≠ ${fmt(ang1r)}`;
+  document.getElementById('law1-status').className = 'verify-status ' + (law1ok ? 'ok' : 'check');
+  document.getElementById('law2-status').textContent = law2ok
+    ? '✓ LAW II: Object dist = Image dist'
+    : `⚠ d_obj(${Math.abs(dobj).toFixed(0)}) ≠ d_img(${Math.abs(dimg).toFixed(0)})`;
+  document.getElementById('law2-status').className = 'verify-status ' + (law2ok ? 'ok' : 'check');
+}
+
+// ===================== INTERACTION =====================
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: (touch.clientX - rect.left) * (W / rect.width),
+    y: (touch.clientY - rect.top) * (H / rect.height)
+  };
+}
+
+function dist(a, b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
+
+canvas.addEventListener('mousedown', e => {
+  const p = getPos(e);
+  if (dist(p, obj) < 20) dragging = 'obj';
+  else if (dist(p, eye) < 22) dragging = 'eye';
+});
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const p = getPos(e);
+  if (dragging === 'obj') { obj.x = p.x; obj.y = p.y; }
+  else { eye.x = p.x; eye.y = p.y; }
+  clampObj(); draw();
+});
+canvas.addEventListener('mouseup', () => dragging = null);
+canvas.addEventListener('touchstart', e => {
+  const p = getPos(e);
+  if (dist(p, obj) < 24) dragging = 'obj';
+  else if (dist(p, eye) < 26) dragging = 'eye';
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const p = getPos(e);
+  if (dragging === 'obj') { obj.x = p.x; obj.y = p.y; }
+  else { eye.x = p.x; eye.y = p.y; }
+  clampObj(); draw();
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', () => dragging = null);
+
+// Controls
+document.getElementById('spread').addEventListener('input', function() {
+  spread = +this.value;
+  document.getElementById('spread-val').textContent = spread + '°';
+  draw();
+});
+document.getElementById('show-normals').addEventListener('change', function() {
+  showNormals = this.checked; draw();
+});
+document.getElementById('show-angles').addEventListener('change', function() {
+  showAngles = this.checked; draw();
+});
+document.getElementById('show-virtual').addEventListener('change', function() {
+  showVirtual = this.checked; draw();
+});
+
+window.addEventListener('resize', () => { setupCanvas(); draw(); });
+setupCanvas();
+draw();
+</script>
+</body>
+</html>
