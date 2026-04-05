@@ -123,8 +123,8 @@ const MATERIALS = {
     behaviour: 'Weakly repelled',
     Binside: 'B < B_external',
     deflect: -1,        // field lines push OUTWARD (expelled)
-    deflectStrength: 26,
-    lineAlphaInside: 0.06,
+    deflectStrength: 34,
+    lineAlphaInside: 0.03,
     lineWidthMult: 1.0,
     dipoleDir: -1,       // dipoles oppose field (←)
     dipoleColor: '#ef5350',
@@ -248,11 +248,20 @@ function getFieldLinePath(iy, mat) {
       const bell = Math.sin(slabFrac*Math.PI);
 
       if (mat.deflect === -1) {
-        // DIAMAGNETIC: push lines outward
-        if (absDy < CH/2+32) {
-          const push = (1 - absDy/(CH/2+32)) * mat.deflectStrength * bell;
-          fy = yBase + Math.sign(dy===0 ? 0.01:dy) * push;
-          if (absDy < 8) fy = yBase + (dy>=0?1:-1)*push*2.1;
+        // DIAMAGNETIC: push lines outward (away from slab centre)
+        // Lines above centre bow upward, lines below bow downward.
+        // Lines that would pass through the slab body are pushed hardest.
+        const outerZone = CH/2 + 36;
+        if (absDy < outerZone) {
+          // Normalised distance from slab edge: 0 at edge, 1 at centre
+          const depthFrac = Math.max(0, 1 - absDy / outerZone);
+          const push = depthFrac * mat.deflectStrength * bell;
+          // Always push away from centreline — sign follows dy,
+          // and for the exact centre line we nudge slightly outward both ways
+          // by using a minimum offset so it reads as diverging not converging.
+          const signOut = dy === 0 ? (iy < (NUM_LINES-1)/2 ? -1 : 1)
+                                   : Math.sign(dy);
+          fy = yBase + signOut * push;
         }
       } else {
         // PARAMAGNETIC / FERROMAGNETIC: pull lines inward (toward center)
