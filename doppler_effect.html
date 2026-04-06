@@ -183,7 +183,12 @@ canvas.waveform{width:100%;height:60px;border-radius:6px;background:#060d1a;bord
   <button class="tab-btn" data-mode="stationary">⏸ Both Stationary</button>
 </div>
 
-<!-- Controls -->
+<!-- Pause Button -->
+<div style="display:flex;justify-content:center;margin-bottom:16px;">
+  <button id="pauseBtn" class="tab-btn" onclick="togglePause()" style="min-width:160px;font-size:15px;padding:11px 32px;border-color:var(--yellow);color:var(--yellow);background:rgba(255,215,0,0.08);">
+    ⏸ Pause
+  </button>
+</div>
 <div class="controls">
   <div class="ctrl-grid">
     <!-- Source -->
@@ -293,6 +298,7 @@ const WAVE_INTERVAL = 0.045; // seconds between wave emissions (at F0=440 not re
 
 let lastTime = null;
 let animId;
+let isPaused = false;
 
 // ══════════════════════════════════════════════════════
 //  CANVAS SETUP
@@ -440,54 +446,24 @@ function draw() {
   const srcPx = srcX * W;
   const srcPy = H * 0.55;
 
+  const maxR = Math.max(W, H) * 1.05;
   waves.forEach(w => {
-    const t = w.age / w.maxAge;
-    const alpha = Math.max(0, 1 - t);
-    if (alpha <= 0.02) return;
+    // Fade based on radius: stay bright while small, fade as ring grows large
+    const alpha = Math.max(0, 1 - Math.pow(w.r / maxR, 1.4));
+    if (alpha < 0.03) return;
 
-    // Color: ahead of source = compressed (red/orange), behind = stretched (cyan/blue)
-    // We split the circle: left half behind, right half ahead (relative to source motion)
-    // For simplicity color whole ring by position relative to source at emit time
-    const isAhead = (srcDir >= 0)
-      ? w.cx <= srcX * W   // source moved right → ahead is left of emit point... actually use current src
-      : w.cx >= srcX * W;
-
-    // Outer glow ring
-    ctx.beginPath();
-    ctx.arc(w.cx, srcPy, w.r + 3, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255,180,80,${alpha * 0.25})`;
-    ctx.lineWidth = 7;
-    ctx.stroke();
-
-    // Main ring — bright and thick
+    // Soft glow halo
     ctx.beginPath();
     ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
-
-    // Draw left half (behind source if moving right) in cyan, right half in red
-    // Use two arcs: right semicircle = ahead (compressed, red), left = behind (stretched, cyan)
-    // Ahead = direction source is moving toward (srcDir > 0 → right side compressed)
-    const aheadColor = `rgba(255, 80, 60, ${alpha * 0.95})`;
-    const behindColor = `rgba(0, 210, 255, ${alpha * 0.95})`;
-
-    // Right semicircle
-    ctx.beginPath();
-    ctx.arc(w.cx, srcPy, w.r, -Math.PI/2, Math.PI/2);
-    ctx.strokeStyle = srcDir >= 0 ? aheadColor : behindColor;
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = `rgba(80, 190, 255, ${alpha * 0.28})`;
+    ctx.lineWidth = 10;
     ctx.stroke();
 
-    // Left semicircle
-    ctx.beginPath();
-    ctx.arc(w.cx, srcPy, w.r, Math.PI/2, -Math.PI/2);
-    ctx.strokeStyle = srcDir >= 0 ? behindColor : aheadColor;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Inner highlight ring (thin white core)
+    // Crisp ripple ring
     ctx.beginPath();
     ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.18})`;
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(210, 240, 255, ${alpha * 0.92})`;
+    ctx.lineWidth = 2;
     ctx.stroke();
   });
 
@@ -651,48 +627,47 @@ function drawWavelengthIndicator() {
 //  ANIMATION LOOP
 // ══════════════════════════════════════════════════════
 function animate(ts) {
+  if (isPaused) return;
   if (!lastTime) lastTime = ts;
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
 
-  const SCALE = 300; // pixels per 343 m/s
+  // Source visual speed scaled so compression is clearly visible
+  const srcSpeedPx = (srcSpeed / 343) * 160; // px/s visual
+  const obsSpeedPx = (obsSpeed / 343) * 160;
 
   // Move source
   if (srcDir !== 0 && (mode === 'source' || mode === 'both')) {
-    srcX += (srcDir * srcSpeed / 343) * (soundSpeed / 343) * dt * 0.4;
+    srcX += (srcDir * srcSpeedPx / W) * dt;
     srcX = Math.max(0.05, Math.min(0.9, srcX));
   }
 
   // Move observer
   if (obsDir !== 0 && (mode === 'observer' || mode === 'both')) {
-    obsX += (obsDir * obsSpeed / 343) * (soundSpeed / 343) * dt * 0.4;
+    obsX += (obsDir * obsSpeedPx / W) * dt;
     obsX = Math.max(0.05, Math.min(0.95, obsX));
   }
 
-  // Emit wave — fewer, well-spaced rings
+  // Emit a new ripple at fixed intervals
+  // cx is snapshotted at emit time: as source moves toward observer,
+  // successive cx values shift that way, causing rings to bunch up on that side
   waveTimer += dt;
-  const emitInterval = 1 / F0 * 14; // wider spacing = fewer rings on screen at once
+  const emitInterval = 0.20;
   if (waveTimer >= emitInterval) {
     waveTimer = 0;
-    if (waves.length < 10) { // hard cap: max 10 rings visible
-      waves.push({
-        cx: srcX * W,
-        r: 0,
-        age: 0,
-        maxAge: 3.4,
-      });
-    }
+    waves.push({ cx: srcX * W, r: 2, age: 0 });
+    if (waves.length > 20) waves.shift();
   }
 
-  // Expand waves — slightly slower so rings are visible longer
-  const speedPx = (soundSpeed / 343) * 90; // visual speed in px/s
+  // All rings expand at same constant speed (Doppler compression is purely geometric)
+  const soundPx = 120; // px/s
   waves.forEach(w => {
-    w.r += speedPx * dt;
+    w.r += soundPx * dt;
     w.age += dt;
   });
 
-  // Remove old waves
-  waves = waves.filter(w => w.age < w.maxAge && w.r < Math.max(W, H) * 0.85);
+  // Remove rings that have left canvas
+  waves = waves.filter(w => w.r < Math.max(W, H) * 1.05);
 
   draw();
   updateStats();
@@ -782,6 +757,25 @@ function updateObsBtns() {
   if (obsDir === -1) document.getElementById('obsLeft').classList.add('on-left');
   else if (obsDir === 1) document.getElementById('obsRight').classList.add('on-right');
   else document.getElementById('obsStop').classList.add('stopped');
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  const btn = document.getElementById('pauseBtn');
+  if (isPaused) {
+    btn.textContent = '▶ Resume';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(57,255,20,0.08)';
+    cancelAnimationFrame(animId);
+  } else {
+    btn.textContent = '⏸ Pause';
+    btn.style.borderColor = 'var(--yellow)';
+    btn.style.color = 'var(--yellow)';
+    btn.style.background = 'rgba(255,215,0,0.08)';
+    lastTime = null;
+    animId = requestAnimationFrame(animate);
+  }
 }
 
 // Init
