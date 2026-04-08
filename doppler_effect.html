@@ -282,13 +282,13 @@ canvas.waveform{width:100%;height:60px;border-radius:6px;background:#060d1a;bord
 const F0 = 440; // Hz source frequency
 let soundSpeed = 343;
 let srcSpeed = 80;
-let srcDir = -1;   // -1=left, 0=stop, 1=right
+let srcDir = 1;    // -1=left, 0=stop, 1=right
 let obsSpeed = 0;
 let obsDir = 0;    // -1=left, 0=stop, 1=right
 let mode = 'source';
 
 // Positions (0-1 normalised)
-let srcX = 0.5;
+let srcX = 0.2;
 let obsX = 0.78;
 
 // Waves array: each {x, y, r, age, maxR}
@@ -632,42 +632,47 @@ function animate(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
 
-  // Source visual speed scaled so compression is clearly visible
-  const srcSpeedPx = (srcSpeed / 343) * 160; // px/s visual
-  const obsSpeedPx = (obsSpeed / 343) * 160;
+  // Sound travels at fixed visual speed. Source travels slower (sub-sonic) so Doppler is clear.
+  const soundPx = 130;                          // px/s — visual sound speed (constant)
+  const srcSpeedPx = (srcSpeed / 343) * 90;     // px/s — source speed (always < soundPx for sub-sonic)
+  const obsSpeedPx = (obsSpeed / 343) * 90;
 
-  // Move source
+  // Move source — bounce off edges so the effect is always visible
   if (srcDir !== 0 && (mode === 'source' || mode === 'both')) {
     srcX += (srcDir * srcSpeedPx / W) * dt;
-    srcX = Math.max(0.05, Math.min(0.9, srcX));
+    if (srcX <= 0.08) { srcX = 0.08; srcDir = 1;  updateSrcBtns(); waves = []; waveTimer = 0; }
+    if (srcX >= 0.88) { srcX = 0.88; srcDir = -1; updateSrcBtns(); waves = []; waveTimer = 0; }
   }
 
-  // Move observer
+  // Move observer — bounce off edges
   if (obsDir !== 0 && (mode === 'observer' || mode === 'both')) {
     obsX += (obsDir * obsSpeedPx / W) * dt;
-    obsX = Math.max(0.05, Math.min(0.95, obsX));
+    if (obsX <= 0.08) { obsX = 0.08; obsDir = 1;  updateObsBtns(); }
+    if (obsX >= 0.92) { obsX = 0.92; obsDir = -1; updateObsBtns(); }
   }
 
-  // Emit a new ripple at fixed intervals
-  // cx is snapshotted at emit time: as source moves toward observer,
-  // successive cx values shift that way, causing rings to bunch up on that side
+  // Emit a new ripple ring at regular intervals.
+  // The Doppler compression/expansion is PURELY GEOMETRIC:
+  //   - Source moving RIGHT: each new ring emits from a cx slightly further right
+  //     → on right side rings are closer together (compressed)
+  //     → on left side rings are further apart (expanded)
+  //   - Source moving LEFT: opposite
   waveTimer += dt;
-  const emitInterval = 0.20;
+  const emitInterval = 0.22;
   if (waveTimer >= emitInterval) {
     waveTimer = 0;
     waves.push({ cx: srcX * W, r: 2, age: 0 });
-    if (waves.length > 20) waves.shift();
+    if (waves.length > 22) waves.shift();
   }
 
-  // All rings expand at same constant speed (Doppler compression is purely geometric)
-  const soundPx = 120; // px/s
+  // Expand all rings at same constant sound speed
   waves.forEach(w => {
     w.r += soundPx * dt;
     w.age += dt;
   });
 
-  // Remove rings that have left canvas
-  waves = waves.filter(w => w.r < Math.max(W, H) * 1.05);
+  // Remove rings fully off canvas
+  waves = waves.filter(w => w.r < Math.max(W, H) * 1.1);
 
   draw();
   updateStats();
@@ -725,12 +730,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     // Reset positions
-    srcX = 0.35; obsX = 0.72;
+    srcX = 0.18; obsX = 0.78;
     waves = []; waveTimer = 0;
     if (mode === 'stationary') { srcDir = 0; obsDir = 0; }
-    if (mode === 'source') { srcDir = -1; updateSrcBtns(); }
+    if (mode === 'source') { srcDir = 1; updateSrcBtns(); }
     if (mode === 'observer') { obsDir = -1; updateObsBtns(); }
-    if (mode === 'both') { srcDir = -1; obsDir = 1; updateSrcBtns(); updateObsBtns(); }
+    if (mode === 'both') { srcDir = 1; obsDir = -1; updateSrcBtns(); updateObsBtns(); }
   });
 });
 
