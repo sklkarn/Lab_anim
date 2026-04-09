@@ -3,162 +3,167 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Doppler Effect – Sound Wave Animation</title>
+<title>Doppler Effect</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#050a14;
-  --panel:#0a1628;
-  --border:#1a2d4a;
-  --cyan:#00e5ff;
-  --yellow:#ffd700;
-  --green:#39ff14;
-  --red:#ff4444;
-  --orange:#ff8c00;
-  --purple:#bf5fff;
-  --text:#c8ddf0;
-  --muted:#4a6080;
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --bg:     #050a14;
+  --panel:  #0a1628;
+  --border: #1a2d4a;
+  --cyan:   #00e5ff;
+  --yellow: #ffd700;
+  --green:  #39ff14;
+  --red:    #ff4444;
+  --orange: #ff8c00;
+  --purple: #bf5fff;
+  --text:   #c8ddf0;
+  --muted:  #4a6080;
 }
-body{
-  background:var(--bg);
-  font-family:'Rajdhani',sans-serif;
-  color:var(--text);
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:20px 12px 40px;
-  overflow-x:hidden;
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 12px 40px;
+  overflow-x: hidden;
 }
 
-/* ── Header ── */
-.header{text-align:center;margin-bottom:22px}
-.header-sub{font-size:11px;letter-spacing:.5em;color:var(--orange);text-transform:uppercase;margin-bottom:6px}
-h1{
+/* Header */
+.header { text-align:center; margin-bottom:20px; }
+.header-sub { font-size:11px; letter-spacing:.5em; color:var(--orange); text-transform:uppercase; margin-bottom:6px; }
+h1 {
   font-family:'Orbitron',sans-serif;
-  font-size:clamp(20px,4.5vw,36px);
+  font-size: clamp(20px,4.5vw,34px);
   font-weight:900;
-  background:linear-gradient(90deg,var(--cyan),var(--purple));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   letter-spacing:.06em;
 }
-.header-formula{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.12em}
-.instructor{
-  display:inline-block;margin-top:8px;
-  font-size:11px;letter-spacing:.25em;color:var(--orange);
-  border:1px solid rgba(255,140,0,.25);padding:4px 14px;border-radius:20px;
+.header-formula { font-size:12px; color:var(--muted); margin-top:6px; letter-spacing:.12em; }
+.instructor {
+  display:inline-block; margin-top:8px;
+  font-size:11px; letter-spacing:.25em; color:var(--orange);
+  border:1px solid rgba(255,140,0,.25); padding:4px 14px; border-radius:20px;
 }
 
-/* ── Canvas area ── */
-.canvas-wrap{
-  width:100%;max-width:820px;
+/* Canvas */
+.canvas-wrap {
+  width:100%; max-width:820px;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:16px;
   overflow:hidden;
-  position:relative;
-  margin-bottom:18px;
-  box-shadow:0 0 40px rgba(0,229,255,.05);
+  margin-bottom:14px;
+  box-shadow: 0 0 40px rgba(0,229,255,.05);
 }
-canvas{display:block;width:100%;height:auto}
+canvas { display:block; width:100%; height:auto; }
 
-/* ── Mode tabs ── */
-.mode-tabs{
-  display:flex;gap:8px;justify-content:center;
-  flex-wrap:wrap;margin-bottom:16px;
-  width:100%;max-width:820px;
+/* Tabs */
+.mode-tabs {
+  display:flex; gap:8px; justify-content:center;
+  flex-wrap:wrap; margin-bottom:10px;
+  width:100%; max-width:820px;
 }
-.tab-btn{
+.tab-btn {
   font-family:'Rajdhani',sans-serif;
-  font-size:13px;font-weight:600;
-  letter-spacing:.12em;text-transform:uppercase;
-  padding:9px 20px;border-radius:8px;cursor:pointer;
+  font-size:13px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase;
+  padding:9px 18px; border-radius:8px; cursor:pointer;
   border:1px solid var(--border);
-  background:var(--panel);color:var(--muted);
+  background:var(--panel); color:var(--muted);
   transition:all .2s;
-  touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;
 }
-.tab-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.07)}
-.tab-btn:active{transform:scale(.96)}
-.tab-btn.active{background:rgba(0,229,255,.13);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.2)}
+.tab-btn:hover  { border-color:var(--cyan); color:var(--cyan); background:rgba(0,229,255,.07); }
+.tab-btn.active { background:rgba(0,229,255,.13); border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 12px rgba(0,229,255,.2); }
 
-/* ── Controls panel ── */
-.controls{
-  width:100%;max-width:820px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:20px 22px;
-  margin-bottom:16px;
+/* Pause */
+.pause-row { display:flex; justify-content:center; margin-bottom:14px; }
+#pauseBtn {
+  font-family:'Rajdhani',sans-serif;
+  font-size:14px; font-weight:700; letter-spacing:.15em;
+  padding:10px 36px; border-radius:8px; cursor:pointer;
+  transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
 }
-.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.ctrl-group{}
-.ctrl-label{font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
-.ctrl-label span{color:var(--yellow);font-size:13px;font-weight:700}
-input[type=range]{
-  width:100%;height:5px;
-  -webkit-appearance:none;appearance:none;
-  background:var(--border);border-radius:99px;outline:none;cursor:pointer;
-}
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:16px;height:16px;
-  border-radius:50%;cursor:pointer;
-}
-.slider-source::-webkit-slider-thumb{background:var(--cyan)}
-.slider-observer::-webkit-slider-thumb{background:var(--green)}
-.slider-sound::-webkit-slider-thumb{background:var(--yellow)}
+#pauseBtn.playing { border:1px solid var(--yellow); color:var(--yellow); background:rgba(255,215,0,.08); }
+#pauseBtn.paused  { border:1px solid var(--green);  color:var(--green);  background:rgba(57,255,20,.08); }
 
-/* ── Direction buttons ── */
-.dir-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.dir-btn{
-  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;
-  letter-spacing:.1em;padding:7px 14px;border-radius:7px;cursor:pointer;
-  border:1px solid var(--border);background:var(--panel);color:var(--muted);
-  transition:all .18s;touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;flex:1;min-width:70px;text-align:center;
+/* Controls */
+.controls {
+  width:100%; max-width:820px;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:14px; padding:18px 20px; margin-bottom:14px;
 }
-.dir-btn:hover{color:var(--text);border-color:#3a5070}
-.dir-btn:active{transform:scale(.95)}
-.dir-btn.on-left{background:rgba(0,229,255,.12);border-color:var(--cyan);color:var(--cyan)}
-.dir-btn.on-right{background:rgba(57,255,20,.1);border-color:var(--green);color:var(--green)}
-.dir-btn.stopped{background:rgba(255,68,68,.1);border-color:var(--red);color:var(--red)}
+.ctrl-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+.ctrl-label {
+  font-size:11px; letter-spacing:.2em; color:var(--muted);
+  text-transform:uppercase; margin-bottom:6px;
+  display:flex; justify-content:space-between;
+}
+.ctrl-label span { color:var(--yellow); font-size:13px; font-weight:700; }
+input[type=range] {
+  width:100%; height:5px;
+  -webkit-appearance:none; appearance:none;
+  background:var(--border); border-radius:99px; outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px; height:16px;
+  border-radius:50%; cursor:pointer;
+}
+.s-src::-webkit-slider-thumb  { background:var(--cyan); }
+.s-obs::-webkit-slider-thumb  { background:var(--green); }
+.s-spd::-webkit-slider-thumb  { background:var(--yellow); }
+.dir-row { display:flex; gap:8px; margin-top:8px; }
+.dir-btn {
+  flex:1; font-family:'Rajdhani',sans-serif;
+  font-size:12px; font-weight:600; letter-spacing:.08em;
+  padding:7px 0; border-radius:7px; cursor:pointer; text-align:center;
+  border:1px solid var(--border); background:var(--panel); color:var(--muted);
+  transition:all .15s; -webkit-tap-highlight-color:transparent;
+}
+.dir-btn.al { border-color:var(--cyan);  color:var(--cyan);  background:rgba(0,229,255,.12); }
+.dir-btn.ar { border-color:var(--green); color:var(--green); background:rgba(57,255,20,.10); }
+.dir-btn.as { border-color:var(--red);   color:var(--red);   background:rgba(255,68,68,.10); }
 
-/* ── Stats row ── */
-.stats-row{
-  width:100%;max-width:820px;
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;margin-bottom:16px;
+/* Stats */
+.stats-row {
+  width:100%; max-width:820px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px; margin-bottom:14px;
 }
-.stat-box{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:10px;padding:12px 14px;text-align:center;
+.stat-box {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px; text-align:center;
 }
-.stat-box-label{font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
-.stat-box-val{font-size:18px;font-weight:700}
+.stat-label { font-size:10px; letter-spacing:.2em; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+.stat-val   { font-size:18px; font-weight:700; }
 
-/* ── Waveform panel ── */
-.wave-panel{
-  width:100%;max-width:820px;
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:14px;padding:16px 18px;margin-bottom:16px;
+/* Waveforms */
+.wave-panel {
+  width:100%; max-width:820px;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:14px; padding:14px 18px; margin-bottom:14px;
 }
-.wave-panel-title{font-size:11px;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
-.wave-canvas-wrap{display:flex;gap:10px;flex-wrap:wrap}
-.wave-item{flex:1;min-width:200px}
-.wave-item-label{font-size:10px;letter-spacing:.15em;margin-bottom:4px}
-canvas.waveform{width:100%;height:60px;border-radius:6px;background:#060d1a;border:1px solid var(--border)}
+.wave-title { font-size:11px; letter-spacing:.25em; color:var(--muted); text-transform:uppercase; margin-bottom:10px; }
+.wave-row   { display:flex; gap:10px; flex-wrap:wrap; }
+.wave-item  { flex:1; min-width:200px; }
+.wave-lbl   { font-size:10px; letter-spacing:.15em; margin-bottom:4px; }
+canvas.wf   { width:100%; height:60px; border-radius:6px; background:#060d1a; border:1px solid var(--border); display:block; }
 
-/* ── Legend ── */
-.legend{
-  display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
-  font-size:11px;color:var(--muted);margin-bottom:16px;
+/* Legend */
+.legend {
+  display:flex; gap:16px; flex-wrap:wrap; justify-content:center;
+  font-size:11px; color:var(--muted); margin-bottom:14px;
 }
-.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
 
-/* ── Note ── */
-.note{font-size:10px;color:var(--muted);text-align:center;max-width:600px;line-height:1.8;letter-spacing:.05em}
+/* Note */
+.note { font-size:10px; color:var(--muted); text-align:center; max-width:600px; line-height:1.8; letter-spacing:.05em; }
 </style>
 </head>
 <body>
@@ -166,626 +171,554 @@ canvas.waveform{width:100%;height:60px;border-radius:6px;background:#060d1a;bord
 <div class="header">
   <div class="header-sub">Physics Simulation</div>
   <h1>DOPPLER EFFECT</h1>
-  <div class="header-formula">f' = f₀ · (v ± v_obs) / (v ∓ v_src)</div>
+  <div class="header-formula">f' = f&#x2080; &middot; (v &plusmn; v_obs) / (v &mnplus; v_src)</div>
   <div class="instructor">Instructor: Dr. S Karna</div>
 </div>
 
-<!-- Main simulation canvas -->
 <div class="canvas-wrap">
-  <canvas id="simCanvas" width="820" height="320"></canvas>
+  <canvas id="simCanvas" width="820" height="300"></canvas>
 </div>
 
-<!-- Mode tabs -->
 <div class="mode-tabs">
-  <button class="tab-btn active" data-mode="source">🔊 Source Moving</button>
-  <button class="tab-btn" data-mode="observer">👁 Observer Moving</button>
-  <button class="tab-btn" data-mode="both">⚡ Both Moving</button>
-  <button class="tab-btn" data-mode="stationary">⏸ Both Stationary</button>
+  <button class="tab-btn active" data-mode="source">&#x1F50A; Source Moving</button>
+  <button class="tab-btn" data-mode="observer">&#x1F441; Observer Moving</button>
+  <button class="tab-btn" data-mode="both">&#x26A1; Both Moving</button>
+  <button class="tab-btn" data-mode="stationary">&#x23F8; Both Stationary</button>
 </div>
 
-<!-- Pause Button -->
-<div style="display:flex;justify-content:center;margin-bottom:16px;">
-  <button id="pauseBtn" class="tab-btn" onclick="togglePause()" style="min-width:160px;font-size:15px;padding:11px 32px;border-color:var(--yellow);color:var(--yellow);background:rgba(255,215,0,0.08);">
-    ⏸ Pause
-  </button>
+<div class="pause-row">
+  <button id="pauseBtn" class="playing" onclick="togglePause()">&#x23F8; PAUSE</button>
 </div>
+
 <div class="controls">
   <div class="ctrl-grid">
-    <!-- Source -->
-    <div class="ctrl-group">
+    <div>
       <div class="ctrl-label">Source Velocity <span id="srcVelVal">80 m/s</span></div>
-      <input type="range" class="slider-source" id="srcVel" min="0" max="320" step="1" value="80"/>
+      <input type="range" class="s-src" id="srcVel" min="0" max="330" value="80"/>
       <div class="dir-row">
-        <button class="dir-btn on-left" id="srcLeft" onclick="setSrcDir('left')">◀ Left</button>
-        <button class="dir-btn stopped" id="srcStop" onclick="setSrcDir('stop')">■ Stop</button>
-        <button class="dir-btn" id="srcRight" onclick="setSrcDir('right')">Right ▶</button>
+        <button class="dir-btn" id="srcLeft"  onclick="setSrcDir(-1)">&#x25C4; Left</button>
+        <button class="dir-btn" id="srcStop"  onclick="setSrcDir(0)">&#x25A0; Stop</button>
+        <button class="dir-btn" id="srcRight" onclick="setSrcDir(1)">Right &#x25BA;</button>
       </div>
     </div>
-    <!-- Observer -->
-    <div class="ctrl-group">
+    <div>
       <div class="ctrl-label">Observer Velocity <span id="obsVelVal">0 m/s</span></div>
-      <input type="range" class="slider-observer" id="obsVel" min="0" max="200" step="1" value="0"/>
+      <input type="range" class="s-obs" id="obsVel" min="0" max="200" value="0"/>
       <div class="dir-row">
-        <button class="dir-btn" id="obsLeft" onclick="setObsDir('left')">◀ Left</button>
-        <button class="dir-btn on-left stopped" id="obsStop" onclick="setObsDir('stop')">■ Stop</button>
-        <button class="dir-btn" id="obsRight" onclick="setObsDir('right')">Right ▶</button>
+        <button class="dir-btn" id="obsLeft"  onclick="setObsDir(-1)">&#x25C4; Left</button>
+        <button class="dir-btn" id="obsStop"  onclick="setObsDir(0)">&#x25A0; Stop</button>
+        <button class="dir-btn" id="obsRight" onclick="setObsDir(1)">Right &#x25BA;</button>
       </div>
     </div>
-    <!-- Sound speed -->
-    <div class="ctrl-group">
-      <div class="ctrl-label">Speed of Sound <span id="soundSpeedVal">343 m/s</span></div>
-      <input type="range" class="slider-sound" id="soundSpeed" min="200" max="500" step="1" value="343"/>
+    <div>
+      <div class="ctrl-label">Speed of Sound <span id="sndSpeedVal">343 m/s</span></div>
+      <input type="range" class="s-spd" id="sndSpeed" min="200" max="500" value="343"/>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
-        <span>200 m/s</span><span>343 m/s (air)</span><span>500 m/s</span>
+        <span>200</span><span>343 (air)</span><span>500</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Stats -->
 <div class="stats-row">
-  <div class="stat-box" style="border-color:rgba(0,229,255,.2)">
-    <div class="stat-box-label">Source Freq (f₀)</div>
-    <div class="stat-box-val" id="statF0" style="color:var(--cyan)">440 Hz</div>
+  <div class="stat-box" style="border-color:rgba(0,229,255,.25)">
+    <div class="stat-label">Source Freq f&#x2080;</div>
+    <div class="stat-val" id="stF0" style="color:var(--cyan)">440 Hz</div>
   </div>
-  <div class="stat-box" style="border-color:rgba(57,255,20,.2)">
-    <div class="stat-box-label">Observed Freq (f')</div>
-    <div class="stat-box-val" id="statFobs" style="color:var(--green)">— Hz</div>
+  <div class="stat-box" style="border-color:rgba(57,255,20,.25)">
+    <div class="stat-label">Observed f'</div>
+    <div class="stat-val" id="stFobs" style="color:var(--green)">440 Hz</div>
   </div>
-  <div class="stat-box" style="border-color:rgba(255,215,0,.2)">
-    <div class="stat-box-label">Wavelength (λ)</div>
-    <div class="stat-box-val" id="statLambda" style="color:var(--yellow)">— m</div>
+  <div class="stat-box" style="border-color:rgba(255,215,0,.25)">
+    <div class="stat-label">Wavelength &lambda;</div>
+    <div class="stat-val" id="stLam" style="color:var(--yellow)">0.780 m</div>
   </div>
-  <div class="stat-box" style="border-color:rgba(191,95,255,.2)">
-    <div class="stat-box-label">Mach Number</div>
-    <div class="stat-box-val" id="statMach" style="color:var(--purple)">—</div>
+  <div class="stat-box" style="border-color:rgba(191,95,255,.25)">
+    <div class="stat-label">Mach Number</div>
+    <div class="stat-val" id="stMach" style="color:var(--purple)">0.233</div>
   </div>
-  <div class="stat-box" style="border-color:rgba(255,140,0,.2)">
-    <div class="stat-box-label">Doppler Shift</div>
-    <div class="stat-box-val" id="statShift" style="color:var(--orange)">— Hz</div>
+  <div class="stat-box" style="border-color:rgba(255,140,0,.25)">
+    <div class="stat-label">Doppler Shift</div>
+    <div class="stat-val" id="stShift" style="color:var(--orange)">0 Hz</div>
   </div>
 </div>
 
-<!-- Waveforms -->
 <div class="wave-panel">
-  <div class="wave-panel-title">Waveform Comparison (Ahead vs Behind)</div>
-  <div class="wave-canvas-wrap">
+  <div class="wave-title">Waveform Comparison &mdash; Ahead vs Behind</div>
+  <div class="wave-row">
     <div class="wave-item">
-      <div class="wave-item-label" style="color:var(--red)">▶ Ahead of Source (Compressed)</div>
-      <canvas class="waveform" id="waveAhead" width="360" height="60"></canvas>
+      <div class="wave-lbl" style="color:#ff5555">&#x25BA; Ahead (Compressed)</div>
+      <canvas class="wf" id="wfAhead" width="360" height="60"></canvas>
     </div>
     <div class="wave-item">
-      <div class="wave-item-label" style="color:var(--cyan)">◀ Behind Source (Stretched)</div>
-      <canvas class="waveform" id="waveBehind" width="360" height="60"></canvas>
+      <div class="wave-lbl" style="color:var(--cyan)">&#x25C4; Behind (Stretched)</div>
+      <canvas class="wf" id="wfBehind" width="360" height="60"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Legend -->
 <div class="legend">
-  <span><span class="legend-dot" style="background:var(--cyan)"></span>Sound Source</span>
-  <span><span class="legend-dot" style="background:var(--green)"></span>Observer</span>
-  <span><span class="legend-dot" style="background:rgba(255,100,100,.6);border:1px solid #f66"></span>Wavefronts</span>
-  <span><span class="legend-dot" style="background:var(--yellow)"></span>Emitted waves</span>
+  <span><span class="dot" style="background:var(--cyan)"></span>Sound Source</span>
+  <span><span class="dot" style="background:var(--green)"></span>Observer</span>
+  <span><span class="dot" style="background:rgba(180,220,255,.7)"></span>Wavefronts</span>
 </div>
 
 <div class="note">
-  The Doppler Effect occurs when a source of sound and an observer move relative to each other.
-  Waves compress (higher pitch) when approaching and stretch (lower pitch) when receding.
-  At Mach 1 a sonic boom occurs. Formula: f' = f₀ · (v ± v_obs) / (v ∓ v_src)
+  Wavefronts compress ahead of a moving source (higher pitch) and stretch behind it (lower pitch).
+  At Mach 1 a sonic boom forms. &nbsp; f' = f&#x2080; &middot; (v &plusmn; v_obs) / (v &mnplus; v_src)
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════
+// ============================================================
+//  CONSTANTS
+// ============================================================
+const F0 = 440;           // source frequency (Hz)
+const W  = 820;           // canvas width
+const H  = 300;           // canvas height
+const CY = H * 0.50;      // vertical centre for source & observer
+
+// Visual speeds in px/s
+// SOUND_PX must stay larger than max source speed (SPEED_SCALE * 330 = ~75px/s)
+// so source is always sub-sonic visually and Doppler pattern shows correctly.
+const SOUND_PX    = 120;  // sound expands at this speed (constant, all rings)
+const SPEED_SCALE = 0.23; // maps real m/s -> visual px/s
+
+const EMIT_PERIOD = 0.28; // seconds between ring emissions
+
+// ============================================================
 //  STATE
-// ══════════════════════════════════════════════════════
-const F0 = 440; // Hz source frequency
-let soundSpeed = 343;
-let srcSpeed = 80;
-let srcDir = 1;    // -1=left, 0=stop, 1=right
-let obsSpeed = 0;
-let obsDir = 0;    // -1=left, 0=stop, 1=right
-let mode = 'source';
+// ============================================================
+let soundSpeed = 343;   // m/s (physics calc only)
+let srcSpeed   = 80;    // m/s
+let srcDir     = 1;     // -1=left  0=stop  1=right
+let obsSpeed   = 0;
+let obsDir     = 0;
+let mode       = 'source';
 
-// Positions (0-1 normalised)
-let srcX = 0.2;
-let obsX = 0.78;
+let srcX = 0.15;        // normalised 0-1
+let obsX = 0.80;
 
-// Waves array: each {x, y, r, age, maxR}
-let waves = [];
-let waveTimer = 0;
-const WAVE_INTERVAL = 0.045; // seconds between wave emissions (at F0=440 not realistic but visual)
+let waves     = [];     // [ { cx, r }, ... ]
+let emitTimer = 0;
 
-let lastTime = null;
-let animId;
-let isPaused = false;
+let lastTime  = null;
+let animId    = null;
+let paused    = false;
 
-// ══════════════════════════════════════════════════════
-//  CANVAS SETUP
-// ══════════════════════════════════════════════════════
+// ============================================================
+//  CANVAS REFS
+// ============================================================
 const canvas = document.getElementById('simCanvas');
-const ctx = canvas.getContext('2d');
-const W = 820, H = 320;
+const ctx    = canvas.getContext('2d');
+const wfA    = document.getElementById('wfAhead');
+const ctxA   = wfA.getContext('2d');
+const wfB    = document.getElementById('wfBehind');
+const ctxB   = wfB.getContext('2d');
 
-const wAhead = document.getElementById('waveAhead');
-const ctxA = wAhead.getContext('2d');
-const wBehind = document.getElementById('waveBehind');
-const ctxB = wBehind.getContext('2d');
-
-// ══════════════════════════════════════════════════════
+// ============================================================
 //  PHYSICS
-// ══════════════════════════════════════════════════════
-function dopplerFreq() {
-  const vs = srcDir * srcSpeed;   // positive = rightward
-  const vo = obsDir * obsSpeed;
-  const v  = soundSpeed;
-
-  // Observer is to the right of source in default layout
-  // For simplified 1D: observer on right side of source
-  // f' = f0 * (v + vo_towards) / (v - vs_towards)
-  // "towards" from observer's perspective (observer moving left = towards source if source is left)
-  const srcToObs = obsX > srcX ? 1 : -1; // +1 if obs is to the right
-
-  // Component of source velocity toward observer
-  const vSrcToward = vs * srcToObs;
-  // Component of observer velocity toward source
-  const vObsToward = -vo * srcToObs;  // obs moving right when src is left = moving away
-
-  const denom = v - vSrcToward;
+// ============================================================
+function dopplerFreq(sideSign) {
+  // sideSign: +1 = right side, -1 = left side
+  // Positive velocity = rightward
+  const vs    = srcDir * srcSpeed;
+  const vo    = obsDir * obsSpeed;
+  const vSrc  = vs * sideSign;   // source vel component toward that side
+  const vObs  = -vo * sideSign;  // observer vel component toward source (from that side)
+  const denom = soundSpeed - vSrc;
   if (denom <= 0) return Infinity; // sonic boom
-  return F0 * (v + vObsToward) / denom;
+  return F0 * (soundSpeed + vObs) / denom;
+}
+
+function dopplerFreqToObs() {
+  // Frequency observed by the observer (uses actual relative positions)
+  const sign  = obsX > srcX ? 1 : -1;
+  const vs    = srcDir * srcSpeed * sign;
+  const vo    = -obsDir * obsSpeed * sign;
+  const denom = soundSpeed - vs;
+  if (denom <= 0) return Infinity;
+  return F0 * (soundSpeed + vo) / denom;
 }
 
 function lambdaAhead() {
-  // wavelength in direction of motion
-  const vs = srcDir * srcSpeed;
-  const srcToObs = obsX > srcX ? 1 : -1;
-  const vSrcToward = vs * srcToObs;
-  const denom = soundSpeed - vSrcToward;
+  const sign  = obsX > srcX ? 1 : -1;
+  const denom = soundSpeed - srcDir * srcSpeed * sign;
   if (denom <= 0) return 0;
   return denom / F0;
 }
 
-function lambdaBehind() {
-  const vs = srcDir * srcSpeed;
-  const srcToObs = obsX > srcX ? 1 : -1;
-  const vSrcAway = -vs * srcToObs;
-  return (soundSpeed + vSrcAway) / F0;
-}
-
-function machNumber() {
-  return (srcSpeed / soundSpeed).toFixed(3);
-}
-
-// ══════════════════════════════════════════════════════
-//  UPDATE STATS
-// ══════════════════════════════════════════════════════
-function updateStats() {
-  const fObs = dopplerFreq();
-  const fStr = isFinite(fObs) ? fObs.toFixed(1) + ' Hz' : '∞ (Boom!)';
-  const shift = isFinite(fObs) ? (fObs - F0).toFixed(1) + ' Hz' : '—';
-  const lam   = lambdaAhead();
-  const mach  = machNumber();
-
-  document.getElementById('statF0').textContent    = F0 + ' Hz';
-  document.getElementById('statFobs').textContent  = fStr;
-  document.getElementById('statLambda').textContent = lam > 0 ? lam.toFixed(3) + ' m' : '0 m';
-  document.getElementById('statMach').textContent  = mach;
-  document.getElementById('statShift').textContent = shift;
-
-  // Colour shift indicator
-  const el = document.getElementById('statFobs');
-  if (!isFinite(fObs)) { el.style.color = '#fff'; }
-  else if (fObs > F0 + 5) { el.style.color = 'var(--red)'; }
-  else if (fObs < F0 - 5) { el.style.color = 'var(--cyan)'; }
-  else { el.style.color = 'var(--green)'; }
-}
-
-// ══════════════════════════════════════════════════════
-//  WAVEFORM CANVASES
-// ══════════════════════════════════════════════════════
-function drawWaveform(c, ctx2, freq, color) {
-  const w = c.width, h = c.height;
-  ctx2.clearRect(0,0,w,h);
-  ctx2.fillStyle = '#060d1a';
-  ctx2.fillRect(0,0,w,h);
-
-  // baseline
-  ctx2.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx2.lineWidth = 1;
-  ctx2.beginPath(); ctx2.moveTo(0,h/2); ctx2.lineTo(w,h/2); ctx2.stroke();
-
-  if (!isFinite(freq) || freq <= 0) return;
-
-  // scale: fit ~3 cycles of source freq into canvas, compressed/stretched for observed
-  const cyclesShown = 3;
-  const basePixPerCycle = w / cyclesShown;
-  const ratio = F0 / freq; // >1 = stretched, <1 = compressed
-  const pixPerCycle = basePixPerCycle * ratio;
-
-  ctx2.beginPath();
-  ctx2.strokeStyle = color;
-  ctx2.lineWidth = 2;
-
-  for (let px = 0; px < w; px++) {
-    const angle = (px / pixPerCycle) * Math.PI * 2;
-    const y = h/2 + Math.sin(angle) * (h * 0.38);
-    if (px === 0) ctx2.moveTo(px, y);
-    else ctx2.lineTo(px, y);
-  }
-  ctx2.stroke();
-
-  // label
-  ctx2.fillStyle = color;
-  ctx2.font = '11px Rajdhani, monospace';
-  ctx2.fillText(freq.toFixed(0) + ' Hz', 6, 14);
-}
-
-// ══════════════════════════════════════════════════════
-//  MAIN DRAW
-// ══════════════════════════════════════════════════════
-function draw() {
-  ctx.clearRect(0,0,W,H);
-
-  // Background grid
-  ctx.strokeStyle = 'rgba(26,45,74,0.5)';
+// ============================================================
+//  DRAW — GRID
+// ============================================================
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(26,45,74,0.40)';
   ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  for (let x = 0; x <= W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  for (let y = 0; y <= H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
+  // ground line
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.moveTo(0, H * 0.80); ctx.lineTo(W, H * 0.80); ctx.stroke();
+}
 
-  // Ground line
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0, H*0.72); ctx.lineTo(W, H*0.72); ctx.stroke();
+// ============================================================
+//  DRAW — WAVEFRONTS
+// ============================================================
+function drawWaves() {
+  const diagR = Math.sqrt(W * W + H * H);
+  for (let i = 0; i < waves.length; i++) {
+    const w     = waves[i];
+    const alpha = Math.max(0, 1 - Math.pow(w.r / diagR, 1.2));
+    if (alpha < 0.02) continue;
 
-  // ── Draw wavefronts ──
-  const srcPx = srcX * W;
-  const srcPy = H * 0.55;
-
-  const maxR = Math.max(W, H) * 1.05;
-  waves.forEach(w => {
-    // Fade based on radius: stay bright while small, fade as ring grows large
-    const alpha = Math.max(0, 1 - Math.pow(w.r / maxR, 1.4));
-    if (alpha < 0.03) return;
-
-    // Soft glow halo
+    // Glow halo
     ctx.beginPath();
-    ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(80, 190, 255, ${alpha * 0.28})`;
+    ctx.arc(w.cx, CY, w.r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(70,180,255,' + (alpha * 0.22).toFixed(3) + ')';
     ctx.lineWidth = 10;
     ctx.stroke();
 
-    // Crisp ripple ring
+    // Crisp ring
     ctx.beginPath();
-    ctx.arc(w.cx, srcPy, w.r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(210, 240, 255, ${alpha * 0.92})`;
+    ctx.arc(w.cx, CY, w.r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(195,232,255,' + (alpha * 0.88).toFixed(3) + ')';
     ctx.lineWidth = 2;
     ctx.stroke();
-  });
+  }
+}
 
-  // ── Source ──
+// ============================================================
+//  DRAW — SOURCE
+// ============================================================
+function drawSource() {
   const sx = srcX * W;
-  // glow
-  const glowSrc = ctx.createRadialGradient(sx, srcPy, 0, sx, srcPy, 28);
-  glowSrc.addColorStop(0, 'rgba(0,229,255,0.35)');
-  glowSrc.addColorStop(1, 'rgba(0,229,255,0)');
-  ctx.fillStyle = glowSrc;
-  ctx.beginPath(); ctx.arc(sx, srcPy, 28, 0, Math.PI*2); ctx.fill();
 
-  // source body (speaker)
-  ctx.fillStyle = '#00c8e0';
+  // Glow
+  const g = ctx.createRadialGradient(sx, CY, 0, sx, CY, 32);
+  g.addColorStop(0, 'rgba(0,229,255,0.28)');
+  g.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(sx, CY, 32, 0, Math.PI * 2); ctx.fill();
+
+  // Body
+  ctx.fillStyle   = '#00b8cc';
   ctx.strokeStyle = '#00e5ff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(sx-16, srcPy-12, 32, 24, 4);
-  ctx.fill(); ctx.stroke();
+  ctx.lineWidth   = 2;
+  ctx.beginPath(); ctx.roundRect(sx - 16, CY - 12, 32, 24, 4); ctx.fill(); ctx.stroke();
 
-  // speaker cone
-  ctx.fillStyle = '#003344';
-  ctx.beginPath(); ctx.arc(sx, srcPy, 8, 0, Math.PI*2); ctx.fill();
+  // Speaker cone
+  ctx.fillStyle = '#002233';
+  ctx.beginPath(); ctx.arc(sx, CY, 8, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(sx, srcPy, 8, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx, CY, 8, 0, Math.PI * 2); ctx.stroke();
 
-  // velocity arrow for source
+  // Velocity arrow
   if (srcDir !== 0 && srcSpeed > 0) {
-    drawArrow(ctx, sx, srcPy + 24, srcDir * Math.min(srcSpeed * 0.25, 55), '#00e5ff', 'SRC');
+    drawArrow(sx, CY + 26, srcDir * Math.min(srcSpeed * 0.20, 50), '#00e5ff');
   }
 
-  // label
+  // Labels
   ctx.fillStyle = '#00e5ff';
-  ctx.font = 'bold 11px Rajdhani, monospace';
+  ctx.font = 'bold 11px Rajdhani,sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('SOURCE', sx, srcPy - 20);
-  ctx.fillText(F0 + ' Hz', sx, srcPy - 8);
+  ctx.fillText('SOURCE', sx, CY - 20);
+  ctx.fillText(F0 + ' Hz', sx, CY - 9);
+}
 
-  // ── Observer ──
+// ============================================================
+//  DRAW — OBSERVER
+// ============================================================
+function drawObserver() {
   const ox = obsX * W;
-  const oy = H * 0.55;
 
-  const glowObs = ctx.createRadialGradient(ox, oy, 0, ox, oy, 22);
-  glowObs.addColorStop(0, 'rgba(57,255,20,0.3)');
-  glowObs.addColorStop(1, 'rgba(57,255,20,0)');
-  ctx.fillStyle = glowObs;
-  ctx.beginPath(); ctx.arc(ox, oy, 22, 0, Math.PI*2); ctx.fill();
+  // Glow
+  const g = ctx.createRadialGradient(ox, CY, 0, ox, CY, 26);
+  g.addColorStop(0, 'rgba(57,255,20,0.25)');
+  g.addColorStop(1, 'rgba(57,255,20,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(ox, CY, 26, 0, Math.PI * 2); ctx.fill();
 
-  // observer (person silhouette - simple)
+  // Head
   ctx.fillStyle = '#39ff14';
-  ctx.strokeStyle = '#5fff40';
-  ctx.lineWidth = 2;
-  // body
-  ctx.beginPath(); ctx.arc(ox, oy-10, 7, 0, Math.PI*2); ctx.fill(); // head
+  ctx.beginPath(); ctx.arc(ox, CY - 10, 7, 0, Math.PI * 2); ctx.fill();
+
+  // Body
+  ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(ox, oy-3); ctx.lineTo(ox, oy+10);
-  ctx.moveTo(ox-8, oy+2); ctx.lineTo(ox+8, oy+2);  // arms
-  ctx.moveTo(ox, oy+10); ctx.lineTo(ox-6, oy+20);
-  ctx.moveTo(ox, oy+10); ctx.lineTo(ox+6, oy+20);  // legs
-  ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.moveTo(ox, CY - 3);   ctx.lineTo(ox, CY + 10);
+  ctx.moveTo(ox - 8, CY + 2); ctx.lineTo(ox + 8, CY + 2);
+  ctx.moveTo(ox, CY + 10);  ctx.lineTo(ox - 6, CY + 20);
+  ctx.moveTo(ox, CY + 10);  ctx.lineTo(ox + 6, CY + 20);
+  ctx.stroke();
 
-  // ear indicator
+  // Ear
   ctx.fillStyle = '#ffd700';
-  ctx.beginPath(); ctx.arc(ox+6, oy-11, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ox + 6, CY - 11, 3, 0, Math.PI * 2); ctx.fill();
 
+  // Velocity arrow
   if (obsDir !== 0 && obsSpeed > 0) {
-    drawArrow(ctx, ox, oy + 30, obsDir * Math.min(obsSpeed * 0.25, 45), '#39ff14', 'OBS');
+    drawArrow(ox, CY + 32, obsDir * Math.min(obsSpeed * 0.20, 44), '#39ff14');
   }
 
+  // Labels
   ctx.fillStyle = '#39ff14';
-  ctx.font = 'bold 11px Rajdhani, monospace';
+  ctx.font = 'bold 11px Rajdhani,sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('OBSERVER', ox, oy - 26);
+  ctx.fillText('OBSERVER', ox, CY - 26);
 
-  // ── Doppler info overlay ──
-  const fObs = dopplerFreq();
+  const fObs = dopplerFreqToObs();
   const fStr = isFinite(fObs) ? fObs.toFixed(0) + ' Hz' : 'SONIC BOOM';
-  ctx.fillStyle = isFinite(fObs) ? (fObs > F0+5 ? '#ff4444' : fObs < F0-5 ? '#00e5ff' : '#ffffff') : '#ffffff';
-  ctx.font = 'bold 14px Orbitron, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText("f' = " + fStr, ox, oy + 46);
+  ctx.fillStyle = !isFinite(fObs) ? '#fff'
+    : fObs > F0 + 5 ? '#ff4444'
+    : fObs < F0 - 5 ? '#00e5ff'
+    : '#ffffff';
+  ctx.font = 'bold 13px Orbitron,monospace';
+  ctx.fillText("f' = " + fStr, ox, CY + 46);
+}
 
-  // wavelength compression visual (arrow between wavefronts ahead/behind)
-  drawWavelengthIndicator();
+// ============================================================
+//  DRAW — MACH CONE
+// ============================================================
+function drawMachCone() {
+  if (srcSpeed < soundSpeed) return;
+  const sx  = srcX * W;
+  const ang = Math.asin(Math.min(1, soundSpeed / srcSpeed));
+  const len = 200;
+  const tip = Math.tan(ang) * len;
 
-  // ── Mach cone if supersonic ──
-  if (srcSpeed >= soundSpeed) {
-    const halfAngle = Math.asin(soundSpeed / Math.max(srcSpeed, soundSpeed + 1));
-    const coneLen = 180;
-    ctx.strokeStyle = 'rgba(255,215,0,0.5)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6,4]);
-    ctx.beginPath();
-    ctx.moveTo(sx, srcPy);
-    ctx.lineTo(sx - coneLen, srcPy - Math.tan(halfAngle)*coneLen);
-    ctx.moveTo(sx, srcPy);
-    ctx.lineTo(sx - coneLen, srcPy + Math.tan(halfAngle)*coneLen);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 12px Orbitron';
-    ctx.textAlign = 'left';
-    ctx.fillText('MACH CONE', sx - coneLen + 4, srcPy - Math.tan(halfAngle)*coneLen - 6);
+  ctx.strokeStyle = 'rgba(255,215,0,0.45)';
+  ctx.lineWidth   = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(sx, CY); ctx.lineTo(sx - len, CY - tip);
+  ctx.moveTo(sx, CY); ctx.lineTo(sx - len, CY + tip);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 11px Orbitron,monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('MACH CONE', sx - len + 4, CY - tip - 5);
+}
+
+// ============================================================
+//  DRAW — ARROW
+// ============================================================
+function drawArrow(x, y, len, color) {
+  const ex = x + len;
+  const d  = len >= 0 ? 1 : -1;
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+  ctx.lineWidth   = 2;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, y); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ex, y);
+  ctx.lineTo(ex - d * 8, y - 4);
+  ctx.lineTo(ex - d * 8, y + 4);
+  ctx.closePath(); ctx.fill();
+}
+
+// ============================================================
+//  DRAW — WAVEFORMS
+// ============================================================
+function drawWaveform(cvs, c2, freq, color) {
+  const cw = cvs.width, ch = cvs.height;
+  c2.fillStyle = '#060d1a';
+  c2.fillRect(0, 0, cw, ch);
+
+  // Baseline
+  c2.strokeStyle = 'rgba(255,255,255,0.06)';
+  c2.lineWidth = 1;
+  c2.beginPath(); c2.moveTo(0, ch / 2); c2.lineTo(cw, ch / 2); c2.stroke();
+
+  if (!isFinite(freq) || freq <= 0) return;
+
+  const pxPerCycle = (cw / 3) * (F0 / freq);  // 3 base cycles
+  c2.beginPath();
+  c2.strokeStyle = color;
+  c2.lineWidth   = 2;
+  for (let px = 0; px <= cw; px++) {
+    const y = ch / 2 + Math.sin((px / pxPerCycle) * Math.PI * 2) * ch * 0.38;
+    px === 0 ? c2.moveTo(px, y) : c2.lineTo(px, y);
   }
+  c2.stroke();
 
+  c2.fillStyle = color;
+  c2.font = '11px Rajdhani,monospace';
+  c2.fillText(freq.toFixed(0) + ' Hz', 6, 14);
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function updateStats() {
+  const fObs  = dopplerFreqToObs();
+  const shift = isFinite(fObs) ? (fObs - F0).toFixed(1) + ' Hz' : '—';
+  const lam   = lambdaAhead();
+  const mach  = (srcSpeed / soundSpeed).toFixed(3);
+
+  document.getElementById('stF0').textContent    = F0 + ' Hz';
+  document.getElementById('stFobs').textContent  = isFinite(fObs) ? fObs.toFixed(1) + ' Hz' : '∞ (Boom!)';
+  document.getElementById('stLam').textContent   = lam > 0 ? lam.toFixed(3) + ' m' : '0 m';
+  document.getElementById('stMach').textContent  = mach;
+  document.getElementById('stShift').textContent = shift;
+
+  const el = document.getElementById('stFobs');
+  el.style.color = !isFinite(fObs) ? '#fff'
+    : fObs > F0 + 5 ? 'var(--red)'
+    : fObs < F0 - 5 ? 'var(--cyan)'
+    : 'var(--green)';
+}
+
+// ============================================================
+//  MAIN DRAW
+// ============================================================
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+  drawWaves();       // wavefronts behind source & observer
+  drawMachCone();
+  drawSource();
+  drawObserver();
   ctx.textAlign = 'left'; // reset
 }
 
-function drawArrow(ctx2, x, y, len, color, label) {
-  const ex = x + len;
-  ctx2.strokeStyle = color;
-  ctx2.fillStyle = color;
-  ctx2.lineWidth = 2;
-  ctx2.beginPath(); ctx2.moveTo(x, y); ctx2.lineTo(ex, y); ctx2.stroke();
-  // arrowhead
-  const dir = len > 0 ? 1 : -1;
-  ctx2.beginPath();
-  ctx2.moveTo(ex, y);
-  ctx2.lineTo(ex - dir*8, y-4);
-  ctx2.lineTo(ex - dir*8, y+4);
-  ctx2.closePath(); ctx2.fill();
-}
-
-function drawWavelengthIndicator() {
-  const la = lambdaAhead();
-  const lb = lambdaBehind();
-  const srcPx = srcX * W;
-  const srcPy = H * 0.55;
-  const y = H * 0.85;
-
-  if (la > 0 && lb > 0) {
-    // Scale: show relative widths
-    const scale = 80; // pixels per unit lambda
-    const laDisp = Math.min(la * scale * 12, 120);
-    const lbDisp = Math.min(lb * scale * 12, 140);
-
-    // Ahead annotation
-    ctx.strokeStyle = 'rgba(255,80,80,0.7)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([3,3]);
-    ctx.beginPath(); ctx.moveTo(srcPx - 8, y); ctx.lineTo(srcPx - 8 - laDisp, y); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,80,80,0.8)';
-    ctx.font = '10px Rajdhani, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('λ ahead = ' + la.toFixed(2)+'m', srcPx - 8 - laDisp/2, y - 6);
-
-    // Behind annotation
-    ctx.strokeStyle = 'rgba(0,229,255,0.7)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([3,3]);
-    ctx.beginPath(); ctx.moveTo(srcPx + 8, y); ctx.lineTo(srcPx + 8 + lbDisp, y); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(0,229,255,0.8)';
-    ctx.textAlign = 'center';
-    ctx.fillText('λ behind = ' + lb.toFixed(2)+'m', srcPx + 8 + lbDisp/2, y - 6);
-  }
-}
-
-// ══════════════════════════════════════════════════════
+// ============================================================
 //  ANIMATION LOOP
-// ══════════════════════════════════════════════════════
+// ============================================================
 function animate(ts) {
-  if (isPaused) return;
+  if (paused) return;
   if (!lastTime) lastTime = ts;
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
 
-  // Sound travels at fixed visual speed. Source travels slower (sub-sonic) so Doppler is clear.
-  const soundPx = 130;                          // px/s — visual sound speed (constant)
-  const srcSpeedPx = (srcSpeed / 343) * 90;     // px/s — source speed (always < soundPx for sub-sonic)
-  const obsSpeedPx = (obsSpeed / 343) * 90;
-
-  // Move source — bounce off edges so the effect is always visible
+  // ── Move source ──
   if (srcDir !== 0 && (mode === 'source' || mode === 'both')) {
-    srcX += (srcDir * srcSpeedPx / W) * dt;
-    if (srcX <= 0.08) { srcX = 0.08; srcDir = 1;  updateSrcBtns(); waves = []; waveTimer = 0; }
-    if (srcX >= 0.88) { srcX = 0.88; srcDir = -1; updateSrcBtns(); waves = []; waveTimer = 0; }
+    srcX += (srcDir * srcSpeed * SPEED_SCALE) / W * dt;
+    if (srcX < 0.05) { srcX = 0.05; srcDir =  1; refreshSrcBtns(); resetWaves(); }
+    if (srcX > 0.93) { srcX = 0.93; srcDir = -1; refreshSrcBtns(); resetWaves(); }
   }
 
-  // Move observer — bounce off edges
+  // ── Move observer ──
   if (obsDir !== 0 && (mode === 'observer' || mode === 'both')) {
-    obsX += (obsDir * obsSpeedPx / W) * dt;
-    if (obsX <= 0.08) { obsX = 0.08; obsDir = 1;  updateObsBtns(); }
-    if (obsX >= 0.92) { obsX = 0.92; obsDir = -1; updateObsBtns(); }
+    obsX += (obsDir * obsSpeed * SPEED_SCALE) / W * dt;
+    if (obsX < 0.05) { obsX = 0.05; obsDir =  1; refreshObsBtns(); }
+    if (obsX > 0.95) { obsX = 0.95; obsDir = -1; refreshObsBtns(); }
   }
 
-  // Emit a new ripple ring at regular intervals.
-  // The Doppler compression/expansion is PURELY GEOMETRIC:
-  //   - Source moving RIGHT: each new ring emits from a cx slightly further right
-  //     → on right side rings are closer together (compressed)
-  //     → on left side rings are further apart (expanded)
-  //   - Source moving LEFT: opposite
-  waveTimer += dt;
-  const emitInterval = 0.22;
-  if (waveTimer >= emitInterval) {
-    waveTimer = 0;
-    waves.push({ cx: srcX * W, r: 2, age: 0 });
-    if (waves.length > 22) waves.shift();
+  // ── Emit new ring ──
+  // HOW DOPPLER WORKS GEOMETRICALLY:
+  //   Each ring stores the source position (cx) at the moment it was emitted.
+  //   All rings then expand at the same constant speed (SOUND_PX).
+  //   When source moves RIGHT:
+  //     - newer rings have cx further right than older rings
+  //     - on the RIGHT side: newer ring centres are close to older ring edges → BUNCHED (compressed)
+  //     - on the LEFT side:  newer ring centres are far from older ring edges → SPREAD OUT (expanded)
+  //   This produces compression ahead and expansion behind — the Doppler effect.
+  emitTimer += dt;
+  if (emitTimer >= EMIT_PERIOD) {
+    emitTimer -= EMIT_PERIOD;
+    waves.push({ cx: srcX * W, r: 1 });
   }
 
-  // Expand all rings at same constant sound speed
-  waves.forEach(w => {
-    w.r += soundPx * dt;
-    w.age += dt;
-  });
-
-  // Remove rings fully off canvas
-  waves = waves.filter(w => w.r < Math.max(W, H) * 1.1);
+  // ── Expand all rings ──
+  const diagR = Math.sqrt(W * W + H * H) + 20;
+  for (let i = waves.length - 1; i >= 0; i--) {
+    waves[i].r += SOUND_PX * dt;
+    if (waves[i].r > diagR) waves.splice(i, 1);
+  }
 
   draw();
   updateStats();
 
-  // Waveforms
-  const fA = (() => {
-    const srcToObs = 1;
-    const vs = srcDir * srcSpeed;
-    const vo = obsDir * obsSpeed;
-    const vSrcToward = vs * srcToObs;
-    const vObsToward = -vo * srcToObs;
-    const d = soundSpeed - vSrcToward;
-    if (d <= 0) return Infinity;
-    return F0 * (soundSpeed + vObsToward) / d;
-  })();
-  const fB = (() => {
-    const srcToObs = -1;
-    const vs = srcDir * srcSpeed;
-    const vo = obsDir * obsSpeed;
-    const vSrcToward = vs * srcToObs;
-    const vObsToward = -vo * srcToObs;
-    const d = soundSpeed - vSrcToward;
-    if (d <= 0) return 0;
-    return F0 * (soundSpeed + vObsToward) / d;
-  })();
-
-  drawWaveform(wAhead, ctxA, fA, '#ff5555');
-  drawWaveform(wBehind, ctxB, fB, '#00e5ff');
+  // ── Waveform canvases ──
+  drawWaveform(wfA, ctxA, dopplerFreq(obsX > srcX ? 1 : -1),  '#ff5555');
+  drawWaveform(wfB, ctxB, dopplerFreq(obsX > srcX ? -1 : 1),  '#00e5ff');
 
   animId = requestAnimationFrame(animate);
 }
 
-requestAnimationFrame(animate);
+function resetWaves() {
+  waves     = [];
+  emitTimer = 0;
+}
 
-// ══════════════════════════════════════════════════════
+// ============================================================
 //  CONTROLS
-// ══════════════════════════════════════════════════════
+// ============================================================
 document.getElementById('srcVel').addEventListener('input', e => {
-  srcSpeed = parseInt(e.target.value);
+  srcSpeed = +e.target.value;
   document.getElementById('srcVelVal').textContent = srcSpeed + ' m/s';
 });
 document.getElementById('obsVel').addEventListener('input', e => {
-  obsSpeed = parseInt(e.target.value);
+  obsSpeed = +e.target.value;
   document.getElementById('obsVelVal').textContent = obsSpeed + ' m/s';
 });
-document.getElementById('soundSpeed').addEventListener('input', e => {
-  soundSpeed = parseInt(e.target.value);
-  document.getElementById('soundSpeedVal').textContent = soundSpeed + ' m/s';
+document.getElementById('sndSpeed').addEventListener('input', e => {
+  soundSpeed = +e.target.value;
+  document.getElementById('sndSpeedVal').textContent = soundSpeed + ' m/s';
 });
 
-// Mode tabs
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.tab-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     mode = btn.dataset.mode;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn[data-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Reset positions
-    srcX = 0.18; obsX = 0.78;
-    waves = []; waveTimer = 0;
-    if (mode === 'stationary') { srcDir = 0; obsDir = 0; }
-    if (mode === 'source') { srcDir = 1; updateSrcBtns(); }
-    if (mode === 'observer') { obsDir = -1; updateObsBtns(); }
-    if (mode === 'both') { srcDir = 1; obsDir = -1; updateSrcBtns(); updateObsBtns(); }
+    srcX = 0.15; obsX = 0.80;
+    if (mode === 'stationary') { srcDir = 0;  obsDir = 0;  }
+    if (mode === 'source')     { srcDir = 1;  obsDir = 0;  }
+    if (mode === 'observer')   { srcDir = 0;  obsDir = -1; }
+    if (mode === 'both')       { srcDir = 1;  obsDir = -1; }
+    refreshSrcBtns(); refreshObsBtns();
+    resetWaves();
   });
 });
 
 function setSrcDir(d) {
-  srcDir = d === 'left' ? -1 : d === 'right' ? 1 : 0;
-  updateSrcBtns();
+  srcDir = d;
+  resetWaves();
+  refreshSrcBtns();
 }
 function setObsDir(d) {
-  obsDir = d === 'left' ? -1 : d === 'right' ? 1 : 0;
-  updateObsBtns();
+  obsDir = d;
+  refreshObsBtns();
 }
-function updateSrcBtns() {
-  ['srcLeft','srcStop','srcRight'].forEach(id => {
-    document.getElementById(id).className = 'dir-btn';
-  });
-  if (srcDir === -1) document.getElementById('srcLeft').classList.add('on-left');
-  else if (srcDir === 1) document.getElementById('srcRight').classList.add('on-right');
-  else document.getElementById('srcStop').classList.add('stopped');
+
+function refreshSrcBtns() {
+  document.getElementById('srcLeft').className  = 'dir-btn' + (srcDir === -1 ? ' al' : '');
+  document.getElementById('srcStop').className  = 'dir-btn' + (srcDir ===  0 ? ' as' : '');
+  document.getElementById('srcRight').className = 'dir-btn' + (srcDir ===  1 ? ' ar' : '');
 }
-function updateObsBtns() {
-  ['obsLeft','obsStop','obsRight'].forEach(id => {
-    document.getElementById(id).className = 'dir-btn';
-  });
-  if (obsDir === -1) document.getElementById('obsLeft').classList.add('on-left');
-  else if (obsDir === 1) document.getElementById('obsRight').classList.add('on-right');
-  else document.getElementById('obsStop').classList.add('stopped');
+function refreshObsBtns() {
+  document.getElementById('obsLeft').className  = 'dir-btn' + (obsDir === -1 ? ' al' : '');
+  document.getElementById('obsStop').className  = 'dir-btn' + (obsDir ===  0 ? ' as' : '');
+  document.getElementById('obsRight').className = 'dir-btn' + (obsDir ===  1 ? ' ar' : '');
 }
 
 function togglePause() {
-  isPaused = !isPaused;
+  paused = !paused;
   const btn = document.getElementById('pauseBtn');
-  if (isPaused) {
-    btn.textContent = '▶ Resume';
-    btn.style.borderColor = 'var(--green)';
-    btn.style.color = 'var(--green)';
-    btn.style.background = 'rgba(57,255,20,0.08)';
+  if (paused) {
+    btn.textContent = '▶ RESUME';
+    btn.className   = 'paused';
     cancelAnimationFrame(animId);
   } else {
-    btn.textContent = '⏸ Pause';
-    btn.style.borderColor = 'var(--yellow)';
-    btn.style.color = 'var(--yellow)';
-    btn.style.background = 'rgba(255,215,0,0.08)';
+    btn.textContent = '⏸ PAUSE';
+    btn.className   = 'playing';
     lastTime = null;
-    animId = requestAnimationFrame(animate);
+    animId   = requestAnimationFrame(animate);
   }
 }
 
-// Init
-updateSrcBtns();
-updateObsBtns();
+// ============================================================
+//  INIT
+// ============================================================
+refreshSrcBtns();
+refreshObsBtns();
+animId = requestAnimationFrame(animate);
 </script>
 </body>
 </html>

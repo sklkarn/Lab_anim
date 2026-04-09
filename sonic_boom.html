@@ -31,8 +31,8 @@
     </div>
     <div class="sb-ctrl">
       <span class="sb-label">Volume</span>
-      <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5" style="width:90px;">
-      <span class="sb-val" id="volVal">50%</span>
+      <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.8" style="width:90px;">
+      <span class="sb-val" id="volVal">80%</span>
     </div>
   </div>
   <div class="sb-info">Mach angle: <span id="machAngle">41.8°</span> &nbsp;|&nbsp; Cone half-angle: <span id="coneAngle">41.8°</span> &nbsp;|&nbsp; <span id="regime">Supersonic</span></div>
@@ -70,14 +70,14 @@
     if (AC.state === 'suspended') AC.resume();
 
     masterGain = AC.createGain();
-    masterGain.gain.value = parseFloat(volSlider.value);
+    masterGain.gain.value = parseFloat(volSlider.value) * 2.0;
     masterGain.connect(AC.destination);
 
     const mach = getMach();
 
     // ── Rumble (always on when playing) ──
     rumbleGain = AC.createGain();
-    rumbleGain.gain.value = mach >= 1 ? 0.35 : 0.12;
+    rumbleGain.gain.value = mach >= 1 ? 0.85 : 0.45;
     rumbleGain.connect(masterGain);
 
     rumble1 = AC.createOscillator();
@@ -114,22 +114,22 @@
 
     const env = AC.createGain();
     env.gain.setValueAtTime(0.0001, now);
-    env.gain.exponentialRampToValueAtTime(0.9, now + 0.015);
-    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    env.gain.exponentialRampToValueAtTime(2.5, now + 0.015);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.80);
     env.connect(masterGain);
 
     const osc = AC.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(85, now);
-    osc.frequency.exponentialRampToValueAtTime(28, now + 0.55);
+    osc.frequency.exponentialRampToValueAtTime(22, now + 0.80);
     osc.connect(env);
     osc.start(now);
-    osc.stop(now + 0.6);
+    osc.stop(now + 0.85);
 
     // High crack layer
     const crackEnv = AC.createGain();
     crackEnv.gain.setValueAtTime(0.0001, now);
-    crackEnv.gain.exponentialRampToValueAtTime(0.5, now + 0.005);
+    crackEnv.gain.exponentialRampToValueAtTime(1.5, now + 0.005);
     crackEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
     crackEnv.connect(masterGain);
 
@@ -155,7 +155,7 @@
   function updateRumbleIntensity() {
     if (!rumbleGain || !AC) return;
     const mach = getMach();
-    rumbleGain.gain.setTargetAtTime(mach >= 1 ? 0.35 : 0.12, AC.currentTime, 0.1);
+    rumbleGain.gain.setTargetAtTime(mach >= 1 ? 0.85 : 0.45, AC.currentTime, 0.1);
   }
 
   // ── Simulation ─────────────────────────────────────────
@@ -208,19 +208,55 @@
       const age = animT - wf.t;
       const r = WAVE_SPEED * age;
       const cx = wf.ex;
+      // Fade: bright when fresh, fades as ring expands
+      const maxR = Math.sqrt(w * w + h * h);
+      const fade = Math.max(0, 1 - Math.pow(r / maxR, 0.9));
 
       if (mach >= 1) {
         const mu = Math.asin(Math.min(1, 1 / mach));
+        const startA = Math.PI + mu;
+        const endA = -mu;
+
+        // Outer glow
         ctx.beginPath();
-        ctx.arc(cx, cy, r, Math.PI + mu, -mu, false);
-        ctx.strokeStyle = 'rgba(56,138,221,0.20)';
-        ctx.lineWidth = 1;
+        ctx.arc(cx, cy, r, startA, endA, false);
+        ctx.strokeStyle = `rgba(80,180,255,${(fade * 0.45).toFixed(3)})`;
+        ctx.lineWidth = 7;
+        ctx.stroke();
+
+        // Mid glow
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startA, endA, false);
+        ctx.strokeStyle = `rgba(120,210,255,${(fade * 0.55).toFixed(3)})`;
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // Crisp bright core
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startA, endA, false);
+        ctx.strokeStyle = `rgba(200,235,255,${(fade * 0.95).toFixed(3)})`;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       } else {
+        // Outer glow
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(56,138,221,0.18)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(80,180,255,${(fade * 0.40).toFixed(3)})`;
+        ctx.lineWidth = 7;
+        ctx.stroke();
+
+        // Mid glow
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(120,210,255,${(fade * 0.50).toFixed(3)})`;
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // Crisp bright core
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(200,235,255,${(fade * 0.90).toFixed(3)})`;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       }
     });
@@ -360,7 +396,7 @@
   volSlider.addEventListener('input', () => {
     const v = parseFloat(volSlider.value);
     volVal.textContent = Math.round(v * 100) + '%';
-    if (masterGain && AC) masterGain.gain.setTargetAtTime(v, AC.currentTime, 0.02);
+    if (masterGain && AC) masterGain.gain.setTargetAtTime(v * 2.0, AC.currentTime, 0.02);
   });
 
   function initCanvas() {
