@@ -780,7 +780,7 @@ const BASE=0.006;
 function tick(ts){
   if(!lastT) lastT=ts;
   const dt=ts-lastT; lastT=ts;
-  if(!paused) moonAngle+=(dt/16)*BASE*speed;
+  if(!paused) moonAngle-=(dt/16)*BASE*speed;
   drawStars();
   drawOrbital(moonAngle);
   drawCloseup(moonAngle);

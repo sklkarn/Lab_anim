@@ -1,0 +1,206 @@
+
+<style>
+  #cvs { display:block; width:100%; }
+  .stat { background:var(--color-background-secondary); border-radius:8px; padding:10px 14px; min-width:100px; }
+  .stat-label { font-size:12px; color:var(--color-text-secondary); margin:0 0 2px; }
+  .stat-val { font-size:20px; font-weight:500; color:var(--color-text-primary); margin:0; }
+  .controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:10px 0 14px; }
+  button { cursor:pointer; }
+</style>
+<h2 class="sr-only">Animated searchlight rotation problem: a man walks along a path while a searchlight tracks him, showing the angle rate of change.</h2>
+<canvas id="cvs" height="320"></canvas>
+<div class="controls">
+  <button id="btn" onclick="toggleAnim()">Pause</button>
+  <label style="font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:8px;flex:1">
+    Speed
+    <input type="range" id="spd" min="0.5" max="4" step="0.5" value="1" style="flex:1" oninput="document.getElementById('spd-out').textContent=this.value+'x'">
+    <span id="spd-out" style="font-size:13px;min-width:28px">1x</span>
+  </label>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+  <div class="stat"><p class="stat-label">x — distance from P</p><p class="stat-val" id="s-x">0.0 ft</p></div>
+  <div class="stat"><p class="stat-label">θ — beam angle</p><p class="stat-val" id="s-t">0.0°</p></div>
+  <div class="stat"><p class="stat-label">dθ/dt — rotation rate</p><p class="stat-val" id="s-r">0.000 rad/s</p></div>
+  <div class="stat" style="border:1.5px solid #EF9F27"><p class="stat-label">At x = 15 ft</p><p class="stat-val" style="color:#BA7517">4/25 rad/s</p></div>
+</div>
+<script>
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d');
+let running = true;
+let t = 0;
+const D = 20;
+const SPEED = 4;
+const MAX_X = 60;
+
+function toggleAnim() {
+  running = !running;
+  document.getElementById('btn').textContent = running ? 'Pause' : 'Play';
+  if (running) requestAnimationFrame(frame);
+}
+
+function getColors() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    text:   s.getPropertyValue('--color-text-primary').trim()   || '#111',
+    muted:  s.getPropertyValue('--color-text-secondary').trim() || '#666',
+    border: s.getPropertyValue('--color-border-tertiary').trim()|| 'rgba(0,0,0,0.15)',
+    bg2:    s.getPropertyValue('--color-background-secondary').trim() || '#f5f5f5',
+  };
+}
+
+function draw(x) {
+  const W = cvs.offsetWidth || 600;
+  cvs.width  = W * devicePixelRatio;
+  cvs.height = 320 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const w = W, h = 320;
+
+  const C = getColors();
+
+  const SX = w * 0.18;
+  const SY = h * 0.78;
+  const PX = SX;
+  const PY = h * 0.24;
+  const scale = (PY - SY) / (-D);
+
+  const MX = SX + x * scale;
+  const MY = PY;
+
+  const theta = Math.atan2(x, D);
+  const dthetadt = (SPEED / 20) / (1 + (x/20)**2);
+
+  document.getElementById('s-x').textContent = x.toFixed(1) + ' ft';
+  document.getElementById('s-t').textContent = (theta * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('s-r').textContent = dthetadt.toFixed(4) + ' rad/s';
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(SX, SY); ctx.lineTo(SX, PY - 4); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = C.muted;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w * 0.06, PY); ctx.lineTo(w * 0.88, PY); ctx.stroke();
+
+  ctx.fillStyle = C.muted;
+  ctx.font = '12px sans-serif';
+  ctx.fillText("Man's path", w * 0.06, PY - 7);
+
+  const brace_x = SX - 18;
+  ctx.strokeStyle = C.muted;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(brace_x, PY); ctx.lineTo(brace_x, SY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(brace_x - 4, PY); ctx.lineTo(brace_x + 4, PY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(brace_x - 4, SY); ctx.lineTo(brace_x + 4, SY); ctx.stroke();
+  ctx.fillStyle = C.muted;
+  ctx.textAlign = 'right';
+  ctx.fillText('20 ft', brace_x - 6, (PY + SY) / 2 + 4);
+
+  if (x > 1) {
+    ctx.strokeStyle = C.muted;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(SX, PY - 18); ctx.lineTo(MX, PY - 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(SX, PY - 22); ctx.lineTo(SX, PY - 14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(MX, PY - 22); ctx.lineTo(MX, PY - 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillText('x = ' + x.toFixed(1) + ' ft', (SX + MX) / 2, PY - 24);
+  }
+
+  const beam_len = Math.sqrt((MX - SX)**2 + (MY - SY)**2) + 20;
+  const beam_angle = Math.atan2(MY - SY, MX - SX);
+  ctx.save();
+  ctx.translate(SX, SY);
+  ctx.rotate(beam_angle);
+  const grad = ctx.createLinearGradient(0, 0, beam_len, 0);
+  grad.addColorStop(0, 'rgba(239,159,39,0.85)');
+  grad.addColorStop(1, 'rgba(239,159,39,0.05)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(beam_len, -12);
+  ctx.lineTo(beam_len,  12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#EF9F27';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(SX, SY); ctx.lineTo(MX, MY); ctx.stroke();
+
+  const arcR = 36;
+  ctx.strokeStyle = '#EF9F27';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(SX, SY, arcR, -Math.PI/2, beam_angle);
+  ctx.stroke();
+  ctx.fillStyle = '#BA7517';
+  ctx.font = '13px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('θ', SX + arcR * 0.55, SY - arcR * 0.6);
+
+  const hyp = Math.sqrt(D*D + x*x);
+  ctx.fillStyle = C.muted;
+  ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  const mx2 = (SX + MX) / 2 + 12, my2 = (SY + MY) / 2;
+  ctx.fillText('r = ' + hyp.toFixed(1) + ' ft', mx2 + 16, my2);
+
+  ctx.fillStyle = '#EF9F27';
+  ctx.beginPath(); ctx.arc(SX, SY, 9, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(SX, SY, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.font = '12px sans-serif';
+  ctx.fillText('Searchlight', SX, SY + 20);
+
+  ctx.fillStyle = '#378ADD';
+  ctx.beginPath(); ctx.arc(MX, MY, 6, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#185FA5'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(MX, MY - 6); ctx.lineTo(MX, MY - 14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MX, MY - 11); ctx.lineTo(MX - 5, MY - 8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MX, MY - 11); ctx.lineTo(MX + 5, MY - 8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MX, MY - 14); ctx.lineTo(MX - 3, MY - 18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MX, MY - 14); ctx.lineTo(MX + 3, MY - 18); ctx.stroke();
+
+  ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(MX + 8, MY - 2);
+  ctx.lineTo(MX + 18, MY - 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(MX + 14, MY - 2);
+  ctx.lineTo(MX + 10, MY - 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(MX + 14, MY - 2);
+  ctx.lineTo(MX + 10, MY + 2);
+  ctx.stroke();
+
+  if (Math.abs(x - 15) < 1.5) {
+    ctx.fillStyle = 'rgba(239,159,39,0.13)';
+    ctx.beginPath(); ctx.arc(SX, SY, arcR + 8, -Math.PI/2, beam_angle); ctx.arc(SX, SY, arcR - 8, beam_angle, -Math.PI/2, true); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#BA7517'; ctx.font = '500 13px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('x = 15 ft  →  dθ/dt = 4/25 rad/s', SX + arcR + 20, SY + 4);
+  }
+
+  ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.font = '12px sans-serif';
+  ctx.fillText('P', PX, PY + 14);
+  ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PX - 5, PY); ctx.lineTo(PX, PY - 5); ctx.lineTo(PX + 5, PY); ctx.stroke();
+}
+
+let last = null;
+function frame(ts) {
+  if (!running) return;
+  const spd = parseFloat(document.getElementById('spd').value);
+  if (last !== null) t += (ts - last) / 1000 * spd;
+  last = ts;
+  const x = (t * SPEED) % (MAX_X * 2);
+  const xi = x > MAX_X ? MAX_X * 2 - x : x;
+  draw(xi);
+  requestAnimationFrame(frame);
+}
+
+draw(0);
+requestAnimationFrame(frame);
+</script>

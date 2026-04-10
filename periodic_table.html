@@ -25,7 +25,7 @@
   }
   .subtitle {
     text-align: center;
-    color: #5555aa;
+    color: #7777bb;
     font-size: 11px;
     letter-spacing: 4px;
     margin-bottom: 16px;
@@ -62,7 +62,7 @@
     grid-template-columns: repeat(18, 54px);
     gap: 3px; margin-bottom: 3px;
   }
-  .group-num { text-align: center; font-size: 9px; color: #444; font-weight: 700; }
+  .group-num { text-align: center; font-size: 9px; color: #666; font-weight: 700; }
   .spacer-row { height: 10px; }
   .series-label {
     display: flex; align-items: center; justify-content: flex-end;
@@ -83,11 +83,11 @@
   .el-cell:hover { transform: scale(1.13); z-index: 10; }
   .el-cell.active { transform: scale(1.13); z-index: 10; }
   .el-cell.dimmed { opacity: 0.2; background: #1e1e2e !important; }
-  .el-num  { font-size: 9px; color: #aaa; line-height: 1; }
+  .el-num  { font-size: 9px; color: #bbb; line-height: 1; }
   .el-sym  { font-size: 16px; font-weight: 800; line-height: 1.1; }
-  .el-name { font-size: 7px; color: #888; line-height: 1.2; text-align: center; max-width: 50px; }
-  .el-wt   { font-size: 7px; color: #666; }
-  .footer  { text-align: center; margin-top: 12px; color: #333; font-size: 10px; }
+  .el-name { font-size: 7px; color: #aaa; line-height: 1.2; text-align: center; max-width: 50px; }
+  .el-wt   { font-size: 7px; color: #888; }
+  .footer  { text-align: center; margin-top: 12px; color: #666; font-size: 10px; }
 </style>
 </head>
 <body>
@@ -227,16 +227,16 @@ const elements = [
 ];
 
 const colors = {
-  "alkali-metal":     {bg:"#ff6b6b",text:"#7a0000"},
-  "alkaline-earth":   {bg:"#ffa94d",text:"#6b3800"},
-  "transition-metal": {bg:"#ffd43b",text:"#5c4400"},
-  "post-transition":  {bg:"#a9e34b",text:"#2e5500"},
-  "metalloid":        {bg:"#38d9a9",text:"#00503c"},
-  "nonmetal":         {bg:"#74c0fc",text:"#003a6e"},
-  "halogen":          {bg:"#a78bfa",text:"#3b0082"},
-  "noble-gas":        {bg:"#f783ac",text:"#70003a"},
-  "lanthanide":       {bg:"#66d9e8",text:"#004a56"},
-  "actinide":         {bg:"#e599f7",text:"#50006b"},
+  "alkali-metal":     {bg:"#ff9a9a",text:"#1a0000"},
+  "alkaline-earth":   {bg:"#ffbe85",text:"#1a0e00"},
+  "transition-metal": {bg:"#ffe680",text:"#1a1200"},
+  "post-transition":  {bg:"#c5f078",text:"#0d1f00"},
+  "metalloid":        {bg:"#6ee7c4",text:"#001a14"},
+  "nonmetal":         {bg:"#93d4ff",text:"#001833"},
+  "halogen":          {bg:"#c4abff",text:"#150033"},
+  "noble-gas":        {bg:"#ffaac8",text:"#1f0010"},
+  "lanthanide":       {bg:"#8decf7",text:"#001a20"},
+  "actinide":         {bg:"#efb8fc",text:"#1a0022"},
 };
 
 const catLabels = {
@@ -298,10 +298,10 @@ function clearActive() {
     cell.style.background = '#1a1a2e';
     cell.style.borderColor = c.bg + '55';
     cell.style.boxShadow = 'none';
-    cell.querySelector('.el-num').style.color = '#aaa';
+    cell.querySelector('.el-num').style.color = '#bbb';
     cell.querySelector('.el-sym').style.color = c.bg;
-    cell.querySelector('.el-name').style.color = '#888';
-    cell.querySelector('.el-wt').style.color = '#666';
+    cell.querySelector('.el-name').style.color = '#aaa';
+    cell.querySelector('.el-wt').style.color = '#888';
   });
 }
 

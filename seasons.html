@@ -423,11 +423,13 @@ function drawEarth(ex, ey, r, orbitAngle, spin, sx, sy) {
   ctx.fillStyle = dayGrad; ctx.fill();
 
   // ── Spinning continents (clipped to Earth circle) ──
+  // Globe-axis spin: each continent's longitude is offset by `spin`,
+  // then projected onto the sphere so it moves left/right like a real globe.
   ctx.save();
   ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
-  ctx.rotate(-spin); // negated for counterclockwise rotation
   ctx.fillStyle = 'rgba(55,135,65,0.80)';
-  // Stylized continent shapes
+  // [lon_norm, lat_norm, half-width in lon, half-height in lat, tiltAngle]
+  // lon_norm / lat_norm are -1..1 fractions of π (lon) and π/2 (lat)
   const lands = [
     [0.10,-0.16, 0.27,0.37, 0.08],
     [-0.36,-0.10, 0.21,0.30, -0.2],
@@ -436,14 +438,32 @@ function drawEarth(ex, ey, r, orbitAngle, spin, sx, sy) {
     [-0.16,-0.36, 0.31,0.19, -0.4],
     [0.38, -0.28, 0.13,0.16,  0.5],
   ];
-  lands.forEach(([lx,ly,lw,lh,rot]) => {
+  lands.forEach(([lx, ly, lw, lh, rot]) => {
+    // lx is in [-1,1] representing longitude on the globe.
+    // Apply spin as a longitude offset (counterclockwise = increasing lon).
+    const lonAngle = lx * Math.PI + spin;   // longitude in radians
+    // Project: x on screen = sin(lon), depth = cos(lon)
+    const sinLon = Math.sin(lonAngle);
+    const cosLon = Math.cos(lonAngle);
+    // Only draw if on the front hemisphere (cosLon > -0.15 for soft fade)
+    if (cosLon < -0.15) return;
+    const px = sinLon * r;          // horizontal screen position
+    const py = ly * r;              // vertical stays as latitude
+    // Foreshorten width based on depth (cos of longitude)
+    const visibleW = lw * r * Math.abs(cosLon);
+    const visibleH = lh * r;
+    // Fade out near the limb
+    const alpha = Math.min(1, (cosLon + 0.15) / 0.4);
+    ctx.globalAlpha = 0.80 * alpha;
     ctx.save();
+    ctx.translate(px, py);
     ctx.rotate(rot);
     ctx.beginPath();
-    ctx.ellipse(lx*r, ly*r, lw*r, lh*r, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 0, Math.max(1, visibleW), visibleH, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
   });
+  ctx.globalAlpha = 1;
   // Ice-cap tints at poles (spin with Earth)
   ctx.fillStyle = 'rgba(220,240,255,0.45)';
   ctx.beginPath(); ctx.ellipse(0,-r*0.78, r*0.38,r*0.18, 0,0,Math.PI*2); ctx.fill();
@@ -535,21 +555,32 @@ function drawSolarRays(sx,sy,ex,ey,earthR) {
 
 function drawSeasonMarkers(cx,cy,rx,ry) {
   const markers = [
-    {a:0,           label:'SUMMER\nSOLSTICE', color:'#f7c948'},
+    {a:0,           label:'SUMMER\nSOLSTICE', color:'#f7c948'},  // right = far from Sun
     {a:Math.PI/2,   label:'AUTUMN\nEQUINOX',  color:'#e07030'},
-    {a:Math.PI,     label:'WINTER\nSOLSTICE', color:'#88c0e8'},
+    {a:Math.PI,     label:'WINTER\nSOLSTICE', color:'#88c0e8'},  // left = close to Sun
     {a:Math.PI*1.5, label:'SPRING\nEQUINOX',  color:'#7ecf6b'},
   ];
   markers.forEach(m => {
     const mx=cx+Math.cos(m.a)*(rx*1.16);
     const my=cy+Math.sin(m.a)*(ry*1.22);
     ctx.save();
-    ctx.font=`${Math.max(7,W()*0.011)}px Cinzel, serif`;
+    const fontSize = Math.max(9, W()*0.013);
+    ctx.font=`600 ${fontSize}px Cinzel, serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle=m.color+'60';
-    const lines=m.label.split('\n'), lh=W()*0.015;
+    const lines=m.label.split('\n'), lh=fontSize*1.45;
     lines.forEach((line,i) => {
-      ctx.fillText(line, mx, my+(i-(lines.length-1)/2)*lh);
+      const ty = my+(i-(lines.length-1)/2)*lh;
+      // Dark halo for contrast against space background
+      ctx.shadowColor = 'rgba(0,0,0,0.95)';
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillText(line, mx, ty);
+      // Bright coloured text on top
+      ctx.shadowColor = m.color;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = m.color;
+      ctx.globalAlpha = 0.95;
+      ctx.fillText(line, mx, ty);
     });
     ctx.restore();
   });
@@ -594,14 +625,23 @@ function draw() {
   drawStars();
 
   const sunR=Math.max(20,w*0.055);
-  const sx=w*0.5, sy=h*0.5;
-  const orbitRx=w*0.355, orbitRy=h*0.30;
+  // Smaller orbit to keep Earth on canvas with focal offset
+  const orbitRx=w*0.33, orbitRy=h*0.18;
+  // Sun at LEFT focus: shift ellipse center RIGHT by focalC.
+  // angle=PI → Earth at leftmost = orbitCx - orbitRx = w/2+focalC-orbitRx
+  //   distance to Sun (w/2) = orbitRx - focalC  ← CLOSEST (perihelion = winter) ✓
+  // angle=0  → Earth at rightmost = orbitCx + orbitRx = w/2+focalC+orbitRx
+  //   distance to Sun (w/2) = orbitRx + focalC  ← FARTHEST (aphelion = summer) ✓
+  const focalC = orbitRx * 0.25;
+  const orbitCx = w*0.5 + focalC;  // ellipse center shifted RIGHT
+  const orbitCy = h*0.5;
+  const sx = w*0.5, sy = h*0.5;    // Sun at LEFT focus
 
-  drawOrbit(sx,sy,orbitRx,orbitRy);
-  drawSeasonMarkers(sx,sy,orbitRx,orbitRy);
+  drawOrbit(orbitCx,orbitCy,orbitRx,orbitRy);
+  drawSeasonMarkers(orbitCx,orbitCy,orbitRx,orbitRy);
 
-  const ex=sx+Math.cos(angle)*orbitRx;
-  const ey=sy+Math.sin(angle)*orbitRy;
+  const ex=orbitCx+Math.cos(angle)*orbitRx;
+  const ey=orbitCy+Math.sin(angle)*orbitRy;
   const earthR=Math.max(16,w*0.048);
 
   drawSolarRays(sx,sy,ex,ey,earthR);

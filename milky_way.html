@@ -1,5 +1,29 @@
 
 <canvas id="mw" style="display:block;width:100%;background:#00000e;border-radius:8px;cursor:crosshair"></canvas>
+<div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;background:rgba(4,10,30,0.85);border:0.5px solid rgba(100,150,255,0.25);border-radius:8px;font-family:var(--font-sans);font-size:13px;color:#aaccff;">
+  <span style="white-space:nowrap;color:#667799;">⟳ Rotation speed</span>
+  <input id="speedSlider" type="range" min="0" max="5" step="0.1" value="1.0"
+    style="flex:1;accent-color:#44ffdd;cursor:pointer;">
+  <span id="speedLabel" style="color:#44ffdd;min-width:32px;text-align:right;">1×</span>
+  <button id="pauseBtn" style="background:rgba(68,255,221,0.12);border:0.5px solid rgba(68,255,221,0.40);border-radius:6px;color:#44ffdd;font-size:12px;padding:3px 10px;cursor:pointer;">Pause</button>
+</div>
+<script>
+  const slider = document.getElementById('speedSlider');
+  const label  = document.getElementById('speedLabel');
+  const btn    = document.getElementById('pauseBtn');
+  let paused = false, savedSpeed = 1.0;
+
+  slider.addEventListener('input', () => {
+    rotSpeed = parseFloat(slider.value);
+    label.textContent = rotSpeed.toFixed(1) + '×';
+    if(paused){ paused = false; btn.textContent = 'Pause'; }
+  });
+  btn.addEventListener('click', () => {
+    paused = !paused;
+    if(paused){ savedSpeed = rotSpeed; rotSpeed = 0; btn.textContent = 'Resume'; }
+    else { rotSpeed = savedSpeed; slider.value = savedSpeed; label.textContent = savedSpeed.toFixed(1)+'×'; btn.textContent = 'Pause'; }
+  });
+</script>
 <div id="tt" style="position:absolute;display:none;background:rgba(4,10,30,0.97);border:0.5px solid rgba(100,150,255,0.4);border-radius:8px;padding:10px 16px;font-family:var(--font-sans);font-size:13px;color:#ccdeff;max-width:230px;line-height:1.55;pointer-events:none;z-index:9">
   <div id="ttt" style="font-size:14px;font-weight:500;color:#fff;margin-bottom:3px"></div>
   <div id="ttb" style="font-size:12px"></div>
@@ -8,6 +32,7 @@
 <script>
 const cv = document.getElementById('mw');
 const ctx = cv.getContext('2d');
+let rotSpeed = 1.0; // multiplier controlled by slider
 const tt = document.getElementById('tt');
 const ttt = document.getElementById('ttt');
 const ttb = document.getElementById('ttb');
@@ -137,7 +162,7 @@ const HOTSPOTS = [
 let rotation = 0;
 let frame = 0;
 let lastTs = null;
-const INNER_ROT_RATE = 0.00022;
+const INNER_ROT_RATE = 0.0003;
 
 function draw(ts){
   if(!lastTs) lastTs = ts;
@@ -325,7 +350,7 @@ function draw(ts){
   }
   ctx.restore();
 
-  rotation += INNER_ROT_RATE * dt * 0.001 * (Math.PI * 2);
+  rotation += INNER_ROT_RATE * dt * rotSpeed;
   frame++;
   requestAnimationFrame(draw);
 }
