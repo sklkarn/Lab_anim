@@ -1,17 +1,32 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Searchlight Animation</title>
 <style>
-  #cvs { display:block; width:100%; }
-  .stat { background:var(--color-background-secondary); border-radius:8px; padding:10px 14px; min-width:100px; }
-  .stat-label { font-size:12px; color:var(--color-text-secondary); margin:0 0 2px; }
-  .stat-val { font-size:20px; font-weight:500; color:var(--color-text-primary); margin:0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background: #0f1117; color: #e2e8f0; font-family: sans-serif; margin: 0; padding: 16px; }
+  #cvs { display:block; width:100%; border-radius: 10px; background: #161b27; }
+  .stat { background: #1e2433; border-radius:8px; padding:10px 14px; min-width:100px; }
+  .stat-label { font-size:12px; color:#8a9bb8; margin:0 0 2px; }
+  .stat-val { font-size:20px; font-weight:500; color:#e2e8f0; margin:0; }
   .controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:10px 0 14px; }
-  button { cursor:pointer; }
+  button {
+    cursor:pointer; background:#2a3249; color:#e2e8f0; border:1px solid #3a4460;
+    border-radius:6px; padding:6px 14px; font-size:13px;
+  }
+  button:hover { background:#3a4460; }
+  label { color: #8a9bb8; }
+  input[type=range] { accent-color: #EF9F27; }
 </style>
-<h2 class="sr-only">Animated searchlight rotation problem: a man walks along a path while a searchlight tracks him, showing the angle rate of change.</h2>
+</head>
+<body>
+<h2 style="display:none">Animated searchlight rotation problem: a man walks along a path while a searchlight tracks him, showing the angle rate of change.</h2>
 <canvas id="cvs" height="320"></canvas>
 <div class="controls">
   <button id="btn" onclick="toggleAnim()">Pause</button>
-  <label style="font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:8px;flex:1">
+  <label style="font-size:13px;display:flex;align-items:center;gap:8px;flex:1">
     Speed
     <input type="range" id="spd" min="0.5" max="4" step="0.5" value="1" style="flex:1" oninput="document.getElementById('spd-out').textContent=this.value+'x'">
     <span id="spd-out" style="font-size:13px;min-width:28px">1x</span>
@@ -21,7 +36,7 @@
   <div class="stat"><p class="stat-label">x — distance from P</p><p class="stat-val" id="s-x">0.0 ft</p></div>
   <div class="stat"><p class="stat-label">θ — beam angle</p><p class="stat-val" id="s-t">0.0°</p></div>
   <div class="stat"><p class="stat-label">dθ/dt — rotation rate</p><p class="stat-val" id="s-r">0.000 rad/s</p></div>
-  <div class="stat" style="border:1.5px solid #EF9F27"><p class="stat-label">At x = 15 ft</p><p class="stat-val" style="color:#BA7517">4/25 rad/s</p></div>
+  <div class="stat" style="border:1.5px solid #EF9F27"><p class="stat-label">At x = 15 ft</p><p class="stat-val" style="color:#EF9F27">4/25 rad/s</p></div>
 </div>
 <script>
 const cvs = document.getElementById('cvs');
@@ -39,12 +54,12 @@ function toggleAnim() {
 }
 
 function getColors() {
-  const s = getComputedStyle(document.documentElement);
   return {
-    text:   s.getPropertyValue('--color-text-primary').trim()   || '#111',
-    muted:  s.getPropertyValue('--color-text-secondary').trim() || '#666',
-    border: s.getPropertyValue('--color-border-tertiary').trim()|| 'rgba(0,0,0,0.15)',
-    bg2:    s.getPropertyValue('--color-background-secondary').trim() || '#f5f5f5',
+    text:   '#e2e8f0',
+    muted:  '#8a9bb8',
+    border: 'rgba(255,255,255,0.12)',
+    bg2:    '#1e2433',
+    canvasBg: '#161b27',
   };
 }
 
@@ -56,6 +71,10 @@ function draw(x) {
   const w = W, h = 320;
 
   const C = getColors();
+
+  // Canvas background
+  ctx.fillStyle = C.canvasBg;
+  ctx.fillRect(0, 0, w, h);
 
   const SX = w * 0.18;
   const SY = h * 0.78;
@@ -72,8 +91,6 @@ function draw(x) {
   document.getElementById('s-x').textContent = x.toFixed(1) + ' ft';
   document.getElementById('s-t').textContent = (theta * 180 / Math.PI).toFixed(1) + '°';
   document.getElementById('s-r').textContent = dthetadt.toFixed(4) + ' rad/s';
-
-  ctx.clearRect(0, 0, w, h);
 
   ctx.strokeStyle = C.border;
   ctx.lineWidth = 1;
@@ -115,13 +132,13 @@ function draw(x) {
   ctx.translate(SX, SY);
   ctx.rotate(beam_angle);
   const grad = ctx.createLinearGradient(0, 0, beam_len, 0);
-  grad.addColorStop(0, 'rgba(239,159,39,0.85)');
-  grad.addColorStop(1, 'rgba(239,159,39,0.05)');
+  grad.addColorStop(0, 'rgba(239,159,39,0.95)');
+  grad.addColorStop(1, 'rgba(239,159,39,0.03)');
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.lineTo(beam_len, -12);
-  ctx.lineTo(beam_len,  12);
+  ctx.lineTo(beam_len, -14);
+  ctx.lineTo(beam_len,  14);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -136,7 +153,7 @@ function draw(x) {
   ctx.beginPath();
   ctx.arc(SX, SY, arcR, -Math.PI/2, beam_angle);
   ctx.stroke();
-  ctx.fillStyle = '#BA7517';
+  ctx.fillStyle = '#EF9F27';
   ctx.font = '13px sans-serif'; ctx.textAlign = 'left';
   ctx.fillText('θ', SX + arcR * 0.55, SY - arcR * 0.6);
 
@@ -148,21 +165,21 @@ function draw(x) {
 
   ctx.fillStyle = '#EF9F27';
   ctx.beginPath(); ctx.arc(SX, SY, 9, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = '#161b27';
   ctx.beginPath(); ctx.arc(SX, SY, 4, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.font = '12px sans-serif';
   ctx.fillText('Searchlight', SX, SY + 20);
 
-  ctx.fillStyle = '#378ADD';
+  ctx.fillStyle = '#4fa3e8';
   ctx.beginPath(); ctx.arc(MX, MY, 6, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = '#185FA5'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#7bc4f5'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(MX, MY - 6); ctx.lineTo(MX, MY - 14); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(MX, MY - 11); ctx.lineTo(MX - 5, MY - 8); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(MX, MY - 11); ctx.lineTo(MX + 5, MY - 8); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(MX, MY - 14); ctx.lineTo(MX - 3, MY - 18); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(MX, MY - 14); ctx.lineTo(MX + 3, MY - 18); ctx.stroke();
 
-  ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#4fa3e8'; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(MX + 8, MY - 2);
   ctx.lineTo(MX + 18, MY - 2);
@@ -177,9 +194,9 @@ function draw(x) {
   ctx.stroke();
 
   if (Math.abs(x - 15) < 1.5) {
-    ctx.fillStyle = 'rgba(239,159,39,0.13)';
+    ctx.fillStyle = 'rgba(239,159,39,0.18)';
     ctx.beginPath(); ctx.arc(SX, SY, arcR + 8, -Math.PI/2, beam_angle); ctx.arc(SX, SY, arcR - 8, beam_angle, -Math.PI/2, true); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#BA7517'; ctx.font = '500 13px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#EF9F27'; ctx.font = '500 13px sans-serif'; ctx.textAlign = 'left';
     ctx.fillText('x = 15 ft  →  dθ/dt = 4/25 rad/s', SX + arcR + 20, SY + 4);
   }
 
@@ -204,3 +221,5 @@ function frame(ts) {
 draw(0);
 requestAnimationFrame(frame);
 </script>
+</body>
+</html>

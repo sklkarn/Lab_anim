@@ -1,0 +1,309 @@
+<canvas id="c" width="700" height="420" style="display:block;width:100%;border-radius:12px 12px 0 0;background:#060610;"></canvas>
+<div style="background:#08081a;border-radius:0 0 12px 12px;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(120,80,255,0.18);">
+  <span style="font-size:13px;color:rgba(180,160,255,0.9);font-family:sans-serif;white-space:nowrap;font-weight:500;">Balls to lift:</span>
+  <div style="display:flex;gap:10px;" id="btnRow"></div>
+  <button onclick="toggleSound()" id="soundBtn" style="margin-left:8px;padding:0 14px;height:38px;border-radius:20px;border:2px solid rgba(120,200,120,0.5);background:rgba(40,80,40,0.5);color:rgba(140,230,140,0.9);font-size:12px;font-weight:600;cursor:pointer;">🔊 ON</button>
+  <div style="margin-left:auto;font-size:12px;color:rgba(160,130,255,0.8);font-family:sans-serif;">Dr. Karna &nbsp;|&nbsp; Newton's Cradle</div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 700, H = 420;
+canvas.width = W; canvas.height = H;
+
+const N = 5, R = 22, pivotY = 110, L = 160, spacing = 48, cx = W/2;
+let lifted = 1;
+let soundEnabled = true;
+let audioCtx = null;
+
+// Physics: two pendulum angles
+// LEFT group  = balls [0 .. lifted-1]
+// RIGHT group = balls [N-lifted .. N-1]
+// MIDDLE      = balls [lifted .. N-lifted-1]  (may be empty when lifted >= ceil(N/2))
+//
+// Key fix: when lifted >= ceil(N/2), left and right groups overlap in index space.
+// We resolve this by giving priority: if a ball is in BOTH left and right ranges,
+// it belongs to whichever group is currently active/moving.
+// We track which group "owns" shared balls via a simple ownership flag.
+
+let lAngle = 0, lVel = 0;
+let rAngle = 0, rVel = 0;
+const AMP = Math.PI / 4;
+const G = 9.81;
+
+let cooldown = 0;
+let flashX = 0, flashY = 0, flash = 0;
+const trails = Array.from({length:N},()=>[]);
+
+// For each ball, compute which group it belongs to:
+// Returns 'left', 'right', or 'mid'
+// When groups overlap (lifted > N/2 is impossible with N=5,max=4,
+// but lifted=3 means left=[0,1,2], right=[2,3,4], overlap at ball 2)
+// We handle overlap by: ball 2 follows LEFT if left is moving toward center,
+// follows RIGHT if right is moving toward center.
+// Simple rule: ball index < lifted => check left; index >= N-lifted => check right;
+// overlap index: belongs to the group that is NOT at rest (angle!=0 or vel!=0)
+// If both are moving (brief moment), give priority to right.
+function ballGroup(i) {
+  const inLeft  = i < lifted;
+  const inRight = i >= (N - lifted);
+  if (inLeft && inRight) {
+    // overlap ball — follow whichever group is swinging
+    // right group takes priority when both are moving
+    return (Math.abs(rAngle) > 0.001 || Math.abs(rVel) > 0.001) ? 'right' : 'left';
+  }
+  if (inLeft)  return 'left';
+  if (inRight) return 'right';
+  return 'mid';
+}
+
+function ballAngle(i) {
+  const g = ballGroup(i);
+  if (g === 'left')  return lAngle;
+  if (g === 'right') return rAngle;
+  return 0;
+}
+
+function isMoving(i) {
+  return ballGroup(i) !== 'mid';
+}
+
+// Build buttons
+const btnRow = document.getElementById('btnRow');
+for(let i=1;i<=4;i++){
+  const b=document.createElement('button');
+  b.id='b'+i; b.textContent=i;
+  b.style.cssText='width:38px;height:38px;border-radius:50%;font-size:14px;font-weight:600;cursor:pointer;';
+  b.onclick=()=>setBalls(i);
+  btnRow.appendChild(b);
+}
+
+function styleButtons(){
+  for(let i=1;i<=4;i++){
+    const b=document.getElementById('b'+i);
+    if(i===lifted){
+      b.style.border='2px solid #7c5cfc';
+      b.style.background='rgba(124,92,252,0.25)';
+      b.style.color='#c4b0ff';
+      b.style.boxShadow='0 0 14px rgba(124,92,252,0.7)';
+    } else {
+      b.style.border='2px solid rgba(100,70,200,0.4)';
+      b.style.background='rgba(30,20,60,0.6)';
+      b.style.color='#6655aa';
+      b.style.boxShadow='none';
+    }
+  }
+}
+
+function setBalls(num){
+  lifted=num;
+  lAngle=-AMP; lVel=0;
+  rAngle=0;    rVel=0;
+  cooldown=0; flash=0;
+  trails.forEach(t=>t.length=0);
+  styleButtons();
+}
+setBalls(1);
+
+function getPX(i){ return cx+(i-(N-1)/2)*spacing; }
+function getPos(i){
+  const a=ballAngle(i), px=getPX(i);
+  return {x: px+Math.sin(a)*L, y: pivotY+Math.cos(a)*L};
+}
+
+function getAC(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playClack(cnt){
+  if(!soundEnabled) return;
+  try{
+    const ac=getAC(), now=ac.currentTime;
+    for(let k=0;k<cnt;k++){
+      const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='square';
+      o.frequency.setValueAtTime(1800+k*100,now+k*.007);
+      o.frequency.exponentialRampToValueAtTime(500,now+k*.007+.07);
+      f.type='bandpass'; f.frequency.value=2000; f.Q.value=6;
+      g.gain.setValueAtTime(.3/cnt,now+k*.007);
+      g.gain.exponentialRampToValueAtTime(.001,now+k*.007+.2);
+      o.connect(f);f.connect(g);g.connect(ac.destination);
+      o.start(now+k*.007);o.stop(now+k*.007+.25);
+      const buf=ac.createBuffer(1,ac.sampleRate*.05,ac.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*Math.exp(-j/(ac.sampleRate*.007));
+      const s=ac.createBufferSource(),g2=ac.createGain(),lp=ac.createBiquadFilter();
+      lp.type='lowpass';lp.frequency.value=700;
+      s.buffer=buf;
+      g2.gain.setValueAtTime(.2/cnt,now+k*.007);
+      g2.gain.exponentialRampToValueAtTime(.001,now+k*.007+.09);
+      s.connect(lp);lp.connect(g2);g2.connect(ac.destination);
+      s.start(now+k*.007);
+    }
+  }catch(e){}
+}
+function toggleSound(){
+  soundEnabled=!soundEnabled;
+  const b=document.getElementById('soundBtn');
+  b.textContent=soundEnabled?'🔊 ON':'🔇 OFF';
+  b.style.borderColor=soundEnabled?'rgba(120,200,120,0.5)':'rgba(200,80,80,0.4)';
+  b.style.background=soundEnabled?'rgba(40,80,40,0.5)':'rgba(60,20,20,0.5)';
+  b.style.color=soundEnabled?'rgba(140,230,140,0.9)':'rgba(220,120,120,0.9)';
+}
+
+function update(){
+  const dt=0.016, k=G/L*55;
+
+  lVel += -k*Math.sin(lAngle)*dt;
+  lVel *= 0.9998;
+  lAngle += lVel*dt*55*0.016;
+
+  rVel += -k*Math.sin(rAngle)*dt;
+  rVel *= 0.9998;
+  rAngle += rVel*dt*55*0.016;
+
+  if(cooldown>0){ cooldown--; return; }
+
+  // Left group arrives at center (angle near 0, moving rightward)
+  if(lAngle > -0.06 && lVel > 0.005){
+    const spd = Math.abs(lVel);
+    lAngle = 0; lVel = 0;
+    rAngle = 0; rVel = spd;
+    cooldown = 25;
+    // Flash at contact point between last left ball and first right ball
+    // When groups overlap (e.g. lifted=3), contact is in the middle
+    const contactBall = Math.min(lifted - 1, N - lifted - 1);
+    const cp = getPos(Math.max(0, contactBall));
+    flashX = cx; flashY = cp.y; flash = 1;
+    playClack(lifted);
+  }
+  // Right group arrives at center (angle near 0, moving leftward)
+  else if(rAngle < 0.06 && rVel < -0.005){
+    const spd = Math.abs(rVel);
+    rAngle = 0; rVel = 0;
+    lAngle = 0; lVel = -spd;
+    cooldown = 25;
+    const contactBall = Math.min(lifted - 1, N - lifted - 1);
+    const cp = getPos(Math.max(0, contactBall));
+    flashX = cx; flashY = cp.y; flash = 1;
+    playClack(lifted);
+  }
+
+  if(flash>0) flash-=0.05;
+
+  for(let i=0;i<N;i++){
+    if(!isMoving(i)){trails[i]=[];continue;}
+    const p=getPos(i);
+    trails[i].push({x:p.x,y:p.y});
+    if(trails[i].length>16) trails[i].shift();
+  }
+}
+
+function glow(x,y,r,cr,cg,cb,a){
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,`rgba(${cr},${cg},${cb},${a})`);
+  g.addColorStop(1,`rgba(${cr},${cg},${cb},0)`);
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#060610';ctx.fillRect(0,0,W,H);
+
+  const bg=ctx.createRadialGradient(cx,H*.6,10,cx,H*.6,300);
+  bg.addColorStop(0,'rgba(70,35,160,0.2)');bg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  if(flash>0){
+    glow(flashX,flashY,75,255,215,80,flash*.85);
+    glow(flashX,flashY,28,255,255,180,flash*.7);
+  }
+
+  ctx.strokeStyle='rgba(120,80,255,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(60,H-30);ctx.lineTo(W-60,H-30);ctx.stroke();
+
+  const bx=cx-(N-1)*spacing/2-34, bw=(N-1)*spacing+68;
+  ctx.fillStyle='#1a1535';
+  ctx.beginPath();ctx.roundRect(bx,pivotY-16,bw,16,5);ctx.fill();
+  ctx.strokeStyle='rgba(140,100,255,0.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(bx,pivotY-16,bw,16,5);ctx.stroke();
+
+  ctx.lineWidth=5;ctx.lineCap='round';
+  [[bx+14,pivotY],[bx+bw-14,pivotY]].forEach(([lx,ly])=>{
+    const lg=ctx.createLinearGradient(lx,ly,lx,ly+100);
+    lg.addColorStop(0,'#2a2050');lg.addColorStop(1,'#0e0c20');
+    ctx.strokeStyle=lg;
+    ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx-22,ly+100);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx+22,ly+100);ctx.stroke();
+  });
+
+  for(let i=0;i<N;i++){
+    const px=getPX(i), mv=isMoving(i);
+    ctx.beginPath();ctx.arc(px,pivotY,3.5,0,Math.PI*2);
+    ctx.fillStyle=mv?'#aa88ff':'#443366';ctx.fill();
+    if(mv){ctx.beginPath();ctx.arc(px,pivotY,7,0,Math.PI*2);ctx.fillStyle='rgba(170,136,255,0.18)';ctx.fill();}
+  }
+
+  for(let i=0;i<N;i++){
+    if(!isMoving(i)) continue;
+    const tr=trails[i];
+    for(let k=0;k<tr.length-1;k++){
+      const a=(k/tr.length)*0.28, sz=R*(k/tr.length)*0.6;
+      ctx.beginPath();ctx.arc(tr[k].x,tr[k].y,sz,0,Math.PI*2);
+      ctx.fillStyle=`rgba(140,100,255,${a})`;ctx.fill();
+    }
+  }
+
+  for(let i=0;i<N;i++){
+    const px=getPX(i), {x,y}=getPos(i), mv=isMoving(i);
+    if(mv){
+      const sg=ctx.createLinearGradient(px,pivotY,x,y);
+      sg.addColorStop(0,'rgba(200,160,255,0.95)');
+      sg.addColorStop(1,'rgba(120,80,220,0.55)');
+      ctx.strokeStyle=sg;ctx.lineWidth=1.8;
+    } else {
+      ctx.strokeStyle='rgba(80,70,120,0.45)';ctx.lineWidth=1;
+    }
+    ctx.beginPath();ctx.moveTo(px,pivotY);ctx.lineTo(x,y);ctx.stroke();
+
+    if(mv){glow(x,y,R*3.5,120,80,255,0.22);glow(x,y,R*2,160,120,255,0.3);}
+
+    ctx.beginPath();ctx.arc(x+4,y+5,R,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fill();
+
+    const g=ctx.createRadialGradient(x-R*.32,y-R*.38,R*.06,x,y,R);
+    if(mv){
+      g.addColorStop(0,'#ffffff');g.addColorStop(.15,'#e0d0ff');
+      g.addColorStop(.5,'#9060f0');g.addColorStop(.85,'#3010a0');g.addColorStop(1,'#120830');
+    } else {
+      g.addColorStop(0,'#c0b8e8');g.addColorStop(.4,'#5040a0');g.addColorStop(1,'#0e0a28');
+    }
+    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);
+    ctx.strokeStyle=mv?'rgba(200,180,255,0.7)':'rgba(100,80,180,0.3)';
+    ctx.lineWidth=mv?1.5:.8;ctx.stroke();
+    ctx.beginPath();ctx.arc(x-R*.32,y-R*.38,R*.28,0,Math.PI*2);
+    ctx.fillStyle=mv?'rgba(255,255,255,0.55)':'rgba(200,190,255,0.18)';ctx.fill();
+    ctx.font='600 11px sans-serif';
+    ctx.fillStyle=mv?'rgba(240,230,255,0.8)':'rgba(140,120,200,0.5)';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(i+1,x,y+1);
+  }
+
+  ctx.font='600 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillStyle='rgba(100,60,200,0.4)';ctx.fillText("Newton's Cradle",W/2+1,30);
+  ctx.fillStyle='rgba(210,190,255,0.95)';ctx.fillText("Newton's Cradle",W/2,29);
+  ctx.font='400 12px sans-serif';ctx.fillStyle='rgba(160,130,255,0.75)';
+  ctx.fillText('Dr. Karna',W/2,53);
+
+  const midCount = Math.max(0, N - 2*lifted);
+  ctx.font='400 12px sans-serif';ctx.fillStyle='rgba(160,130,255,0.65)';ctx.textAlign='left';
+  const label = `${lifted} ball${lifted>1?'s':''} swing in  →  ${lifted} ball${lifted>1?'s':''} swing out` +
+    (midCount > 0 ? `  (${midCount} stationary)` : '  (all balls moving)');
+  ctx.fillText(label, 22, H-22);
+}
+
+function loop(){update();draw();requestAnimationFrame(loop);}
+loop();
+</script>
