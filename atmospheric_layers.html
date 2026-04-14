@@ -153,12 +153,31 @@
   .layer:hover { filter: brightness(1.15); }
 
   /* Layer heights — tallest = thermosphere */
-  .layer-space    { flex: 0.6; background: linear-gradient(180deg, #000814 0%, #020d20 100%); border-bottom: 1px dashed rgba(200,220,255,0.2); }
-  .layer-thermo   { flex: 2.8; background: linear-gradient(180deg, #130020 0%, #2b0042 60%, #3d0060 100%); }
-  .layer-meso     { flex: 1.6; background: linear-gradient(180deg, #1a003a 0%, #2e1060 60%, #3a1878 100%); }
-  .layer-strato   { flex: 2.0; background: linear-gradient(180deg, #082060 0%, #0c3080 60%, #1050a0 100%); }
+  .layer-space    { flex: 1.4; background: linear-gradient(180deg, #000814 0%, #020d20 100%); border-bottom: 1px dashed rgba(200,220,255,0.2); justify-content: flex-start; padding-top: 0.85rem; }
+  .layer-thermo   { flex: 3.8; background: linear-gradient(180deg, #130020 0%, #2b0042 60%, #3d0060 100%); justify-content: flex-start; padding-top: 0.85rem; }
+  .layer-meso     { flex: 1.6; background: linear-gradient(180deg, #1a003a 0%, #2e1060 60%, #3a1878 100%); justify-content: flex-start; padding-top: 0.85rem; }
+  .layer-strato   { flex: 2.8; background: linear-gradient(180deg, #082060 0%, #0c3080 60%, #1050a0 100%); justify-content: flex-start; padding-top: 0.85rem; }
   .layer-ozone    { flex: 0.45; background: linear-gradient(180deg, #1a5010 0%, #2a7018 60%, #3a9020 100%); position: relative; }
-  .layer-tropo    { flex: 1.3; background: linear-gradient(180deg, #064020 0%, #0a5c2e 60%, #126e38 100%); border-radius: 0 0 0 16px; }
+  .layer-tropo    { flex: 1.8; background: linear-gradient(180deg, #064020 0%, #0a5c2e 60%, #126e38 100%); border-radius: 0 0 0 16px; justify-content: flex-start; padding-top: 0.85rem; }
+
+  .layer-vehicle {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 0.22rem 0.45rem;
+  }
+  .layer-vehicle .v-icon { font-size: 0.85rem; }
+  .layer-vehicle .v-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: #d0eeff;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+  }
 
   .layer-name {
     font-family: 'Orbitron', monospace;
@@ -395,6 +414,8 @@
     <div class="layer layer-space">
       <span class="layer-name" style="color:#aaccff;">⬛ OUTER SPACE</span>
       <span class="layer-alt" style="color:#6688aa;">Above 700 km</span>
+      <div class="layer-vehicle"><span class="v-icon">🛰️</span><span class="v-label">GPS Satellites<br>~20,200 km (MEO)</span></div>
+      <div class="layer-vehicle"><span class="v-icon">📡</span><span class="v-label">Geostationary Sats<br>~35,786 km (GEO)</span></div>
     </div>
 
     <div class="layer layer-thermo" id="lyr-thermo">
@@ -406,18 +427,25 @@
       <span class="layer-name">🔴 THERMOSPHERE</span>
       <span class="layer-alt">80 – 700 km</span>
       <span class="layer-temp">−90°C → +2,500°C</span>
+      <div class="layer-vehicle"><span class="v-icon">🛰️</span><span class="v-label">ISS &amp; Low Earth<br>Orbit Satellites<br>~200–700 km</span></div>
+      <div class="layer-vehicle"><span class="v-icon">🌌</span><span class="v-label">Aurora Borealis /<br>Australis Zone</span></div>
     </div>
 
     <div class="layer layer-meso" id="lyr-meso">
       <span class="layer-name">🟣 MESOSPHERE</span>
       <span class="layer-alt">50 – 80 km</span>
       <span class="layer-temp">−2°C → −90°C</span>
+      <div class="layer-vehicle"><span class="v-icon">☄️</span><span class="v-label">Meteors burn up<br>here (Shooting Stars)</span></div>
+      <div class="layer-vehicle"><span class="v-icon">🚀</span><span class="v-label">Sounding Rockets<br>(research flights)</span></div>
     </div>
 
     <div class="layer layer-strato" id="lyr-strato">
       <span class="layer-name">🔵 STRATOSPHERE</span>
       <span class="layer-alt">12 – 50 km</span>
       <span class="layer-temp">−56°C → −2°C</span>
+      <div class="layer-vehicle"><span class="v-icon">✈️</span><span class="v-label">Commercial Jets<br>cruise at 10–12 km</span></div>
+      <div class="layer-vehicle"><span class="v-icon">🛦</span><span class="v-label">Military / Spy Planes<br>(SR-71) ~25–30 km</span></div>
+      <div class="layer-vehicle"><span class="v-icon">🎈</span><span class="v-label">Weather Balloons<br>up to ~35 km</span></div>
     </div>
 
     <div class="layer layer-ozone" id="lyr-ozone">
@@ -430,6 +458,8 @@
       <span class="layer-name">🟩 TROPOSPHERE</span>
       <span class="layer-alt">0 – 12 km</span>
       <span class="layer-temp">+15°C → −56°C</span>
+      <div class="layer-vehicle"><span class="v-icon">🛩️</span><span class="v-label">Small Aircraft &amp;<br>Helicopters ~3–6 km</span></div>
+      <div class="layer-vehicle"><span class="v-icon">🪂</span><span class="v-label">Drones &amp; Hot Air<br>Balloons ~0.5–3 km</span></div>
     </div>
 
   </div><!-- /atmo-column -->
@@ -622,7 +652,7 @@
 
       <div class="fact-card thermo">
         <div class="fact-layer">🔴 Thermosphere</div>
-        <div class="fact-text">Despite extreme temperatures, the gas is so thin that it feels cold. Home to the ISS (~400 km) and auroras. Absorbs X-rays and UV from the Sun.</div>
+        <div class="fact-text">Despite extreme temperatures, the gas is so thin that it feels cold. Home to the ISS (~400 km) and auroras. Low Earth Orbit (LEO) satellites, including Starlink, orbit here (200–700 km). Absorbs X-rays and UV from the Sun.</div>
       </div>
 
       <div class="fact-card meso">
@@ -632,7 +662,7 @@
 
       <div class="fact-card strato">
         <div class="fact-layer">🔵 Stratosphere</div>
-        <div class="fact-text">Temperature increases with altitude due to UV absorption. Very stable — no weather here. Commercial aircraft cruise at its lower boundary (~10–12 km).</div>
+        <div class="fact-text">Temperature increases with altitude due to UV absorption. Very stable — no weather here. Commercial jets cruise at its lower boundary (~10–12 km). High-altitude spy planes like the SR-71 Blackbird flew at ~25–30 km. Weather balloons can reach up to ~35 km.</div>
       </div>
 
       <div class="fact-card ozone">
@@ -642,7 +672,7 @@
 
       <div class="fact-card tropo">
         <div class="fact-layer">🟩 Troposphere</div>
-        <div class="fact-text">Contains ~80% of atmospheric mass and nearly all water vapour. All weather occurs here. Temperature drops ~6.5°C per km of altitude gain (lapse rate).</div>
+        <div class="fact-text">Contains ~80% of atmospheric mass and nearly all water vapour. All weather occurs here. Small aircraft &amp; helicopters fly at 3–6 km; commercial jets take off and land through it. Drones and hot-air balloons stay in the lower 3 km. Temperature drops ~6.5°C per km of altitude gain (lapse rate).</div>
       </div>
 
     </div>

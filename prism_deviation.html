@@ -1,0 +1,364 @@
+
+<style>
+  * { box-sizing: border-box; }
+  body { background: #0f1117; }
+  .wrap { background: #0f1117; min-height: 100vh; padding: 1rem; color: #d1d0cb; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px; border-bottom:0.5px solid #2a2d3a; padding-bottom:10px; }
+  .header .title { font-size:15px; font-weight:500; color:#e8e7e2; letter-spacing:0.01em; }
+  .header .meta { font-size:11px; color:#5f6278; text-align:right; line-height:1.6; }
+  .meta span { color:#888aaa; }
+  .ctrl { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:13px; color:#888780; }
+  .ctrl label { min-width:130px; }
+  .ctrl span { min-width:38px; font-weight:500; color:#e8e7e2; font-size:13px; }
+  .ctrl input[type=range] { flex:1; accent-color:#378ADD; }
+  .vcard { background:#181b26; border:0.5px solid #2a2d3a; border-radius:8px; padding:8px 12px; text-align:center; }
+  .vcard .n { font-size:20px; font-weight:500; color:#e8e7e2; }
+  .vcard .l { font-size:11px; color:#5f6278; margin-top:1px; }
+  .legend { display:flex; flex-wrap:wrap; gap:12px; margin:6px 0 10px; font-size:12px; color:#5f6278; align-items:center; }
+  .leg-dot { width:28px; height:3px; display:inline-block; border-radius:2px; vertical-align:middle; margin-right:4px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { background:#181b26; color:#5f6278; padding:4px 7px; text-align:left; font-weight:500; border-bottom:0.5px solid #2a2d3a; }
+  td { padding:3px 7px; border-bottom:0.5px solid #1e2030; color:#c8c7c2; }
+  tr.hi td { background:#0d2240; color:#7ab8f5; font-weight:500; }
+  button { cursor:pointer; border:0.5px solid #2a2d3a; border-radius:8px; background:transparent; color:#c8c7c2; padding:5px 12px; font-size:12px; }
+  button:hover { background:#181b26; }
+  .footer { margin-top:12px; border-top:0.5px solid #2a2d3a; padding-top:8px; display:flex; justify-content:space-between; font-size:10px; color:#3d3f55; }
+  .footer span { color:#5a5c78; }
+</style>
+
+<div class="wrap">
+
+<div class="header">
+  <div class="title">Prism Ray Diagram — Interactive Simulation</div>
+  <div class="meta">
+    Instructor: <span>Dr. S Karna</span><br>
+    Source: <span>Claude</span>
+  </div>
+</div>
+
+<h2 class="sr-only">Prism rotation simulation showing incident ray, refracted ray and emergent ray with angle of deviation graph</h2>
+
+<div style="display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr); gap:16px; align-items:start;">
+
+<div>
+  <div class="ctrl"><label>Apex angle A</label><input type="range" id="sA" min="30" max="70" value="60" step="1"><span id="vA">60°</span></div>
+  <div class="ctrl"><label>Refractive index n</label><input type="range" id="sN" min="1.30" max="1.90" value="1.50" step="0.01"><span id="vN">1.50</span></div>
+  <div class="ctrl"><label>Incidence angle i</label><input type="range" id="sI" min="15" max="80" value="45" step="1"><span id="vI">45°</span></div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:10px 0;">
+    <div class="vcard"><div class="n" id="cDev">—</div><div class="l">deviation δ (°)</div></div>
+    <div class="vcard"><div class="n" id="cMin">—</div><div class="l">min δ_m (°)</div></div>
+    <div class="vcard"><div class="n" id="cIm">—</div><div class="l">i at δ_min (°)</div></div>
+  </div>
+
+  <canvas id="prismCanvas" width="480" height="320" style="width:100%; border:0.5px solid #2a2d3a; border-radius:10px; display:block; background:#13161f;"></canvas>
+
+  <div class="legend" style="margin-top:8px;">
+    <span><span class="leg-dot" style="background:#E24B4A;"></span>Incident ray</span>
+    <span><span class="leg-dot" style="background:#1D9E75;"></span>Refracted ray (inside)</span>
+    <span><span class="leg-dot" style="background:#EF9F27;"></span>Emergent ray</span>
+    <span><span class="leg-dot" style="background:#555; height:1px; border-top:1.5px dashed #666;"></span>Normal</span>
+  </div>
+</div>
+
+<div>
+  <div style="position:relative; height:240px; margin-bottom:10px; background:#13161f; border:0.5px solid #2a2d3a; border-radius:8px; padding:6px;">
+    <canvas id="graphCanvas" role="img" aria-label="Angle of deviation vs angle of incidence curve"></canvas>
+  </div>
+
+  <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+    <button id="btnRec">Record reading</button>
+    <button id="btnAuto">Auto-scan</button>
+    <button id="btnClr">Clear</button>
+  </div>
+
+  <div style="max-height:200px; overflow-y:auto; border:0.5px solid #2a2d3a; border-radius:8px;">
+    <table>
+      <thead><tr><th>#</th><th>i (°)</th><th>r₁</th><th>r₂</th><th>e</th><th>δ (°)</th></tr></thead>
+      <tbody id="tBody"><tr><td colspan="6" style="text-align:center;color:#3d3f55;padding:10px;">No readings yet</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  <div>Prism Optics Simulation — i + e − δ = A &nbsp;|&nbsp; r₁ + r₂ = A</div>
+  <div>Instructor: <span>Dr. S Karna</span> &nbsp;·&nbsp; Source: <span>Claude</span></div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const D2R = Math.PI/180, R2D = 180/Math.PI;
+let readings = [], chart = null;
+
+function calc(i_d, A_d, n) {
+  const i = i_d*D2R, A = A_d*D2R;
+  const s1 = Math.sin(i)/n;
+  if(Math.abs(s1)>0.9999) return null;
+  const r1 = Math.asin(s1);
+  const r2 = A - r1;
+  if(r2 < 0.001 || r2 > Math.PI/2-0.001) return null;
+  const se = n*Math.sin(r2);
+  if(Math.abs(se)>0.9999) return null;
+  const e = Math.asin(se);
+  return { r1:r1*R2D, r2:r2*R2D, e:e*R2D, delta:(i_d + e*R2D - A_d) };
+}
+
+function findMin(A,n) {
+  let bi=null, bd=1e9;
+  for(let i=10;i<=80;i+=0.2){ const r=calc(i,A,n); if(r&&r.delta<bd){bd=r.delta;bi=i;} }
+  return {iMin:bi?+bi.toFixed(1):null, dMin:bd<1e9?+bd.toFixed(1):null};
+}
+
+function segIntersect(p1, d1, p2, d2) {
+  const cross = d1.x*d2.y - d1.y*d2.x;
+  if(Math.abs(cross)<1e-10) return null;
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const t = (dx*d2.y - dy*d2.x)/cross;
+  return {x: p1.x + t*d1.x, y: p1.y + t*d1.y, t};
+}
+
+function drawPrism() {
+  const A_d = +document.getElementById('sA').value;
+  const n   = +document.getElementById('sN').value;
+  const i_d = +document.getElementById('sI').value;
+  const cv  = document.getElementById('prismCanvas');
+  const ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#13161f'; ctx.fillRect(0,0,W,H);
+
+  const textClr   = '#d1d0cb';
+  const mutedClr  = '#555870';
+  const glassFill = 'rgba(55,138,221,0.18)';
+  const glassStr  = '#378ADD';
+
+  const A_r = A_d*D2R;
+  const cx = W*0.5, cy = H*0.52;
+  const side = Math.min(W,H)*0.58;
+  const cosH = Math.cos(A_r/2), sinH = Math.sin(A_r/2);
+  const bLen = side * 0.72;
+  const apex = {x:cx, y:cy - side*cosH*0.62};
+  const BL = {x: cx - bLen*sinH, y: cy + bLen*cosH*0.48};
+  const BR = {x: cx + bLen*sinH, y: cy + bLen*cosH*0.48};
+
+  ctx.beginPath();
+  ctx.moveTo(apex.x,apex.y); ctx.lineTo(BL.x,BL.y); ctx.lineTo(BR.x,BR.y);
+  ctx.closePath();
+  ctx.fillStyle = glassFill; ctx.fill();
+  ctx.strokeStyle = glassStr; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.fillStyle = textClr; ctx.font = '12px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('A='+A_d+'°', apex.x, apex.y-12);
+  ctx.fillStyle = mutedClr; ctx.font='11px sans-serif';
+  ctx.fillText('n='+n.toFixed(2), cx, BL.y+18);
+
+  const res = calc(i_d, A_d, n);
+
+  const lFaceDir = {x: BL.x-apex.x, y: BL.y-apex.y};
+  const lFaceLen = Math.hypot(lFaceDir.x, lFaceDir.y);
+  lFaceDir.x/=lFaceLen; lFaceDir.y/=lFaceLen;
+  const lNorm = {x: -lFaceDir.y, y: lFaceDir.x};
+  const lNormSign = (lNorm.x*(BL.x-BR.x)+lNorm.y*(BL.y-BR.y)) > 0 ? 1 : -1;
+  const lNormOut = {x: lNorm.x*lNormSign, y: lNorm.y*lNormSign};
+
+  const rFaceDir = {x: BR.x-apex.x, y: BR.y-apex.y};
+  const rFaceLen = Math.hypot(rFaceDir.x, rFaceDir.y);
+  rFaceDir.x/=rFaceLen; rFaceDir.y/=rFaceLen;
+  const rNorm = {x: rFaceDir.y, y: -rFaceDir.x};
+  const rNormSign = (rNorm.x*(BR.x-BL.x)+rNorm.y*(BR.y-BL.y)) > 0 ? 1 : -1;
+  const rNormOut = {x: rNorm.x*rNormSign, y: rNorm.y*rNormSign};
+
+  const entryPt = {
+    x: apex.x + (BL.x-apex.x)*0.5,
+    y: apex.y + (BL.y-apex.y)*0.5
+  };
+
+  function drawDashed(x1,y1,x2,y2) {
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle=mutedClr; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+  }
+  function arrowHead(ctx, x, y, angle, color) {
+    const s=8;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(angle);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s,-s*0.4); ctx.lineTo(-s,s*0.4);
+    ctx.closePath(); ctx.fillStyle=color; ctx.fill(); ctx.restore();
+  }
+
+  const normLen = 55;
+  drawDashed(entryPt.x+lNormOut.x*normLen, entryPt.y+lNormOut.y*normLen,
+             entryPt.x-lNormOut.x*normLen, entryPt.y-lNormOut.y*normLen);
+
+  if(!res) {
+    ctx.fillStyle='#E24B4A'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Total internal reflection', cx, cy);
+    return;
+  }
+
+  const inNorm = {x:-lNormOut.x, y:-lNormOut.y};
+  const i_r = i_d*D2R;
+  const incDir = {
+    x:  inNorm.x*Math.cos(i_r) + inNorm.y*Math.sin(i_r),
+    y: -inNorm.x*Math.sin(i_r) + inNorm.y*Math.cos(i_r)
+  };
+  const incLen = 85;
+  const incStart = {x: entryPt.x - incDir.x*incLen, y: entryPt.y - incDir.y*incLen};
+
+  ctx.beginPath(); ctx.moveTo(incStart.x, incStart.y); ctx.lineTo(entryPt.x, entryPt.y);
+  ctx.strokeStyle='#E24B4A'; ctx.lineWidth=2.5; ctx.setLineDash([]); ctx.stroke();
+  arrowHead(ctx, entryPt.x, entryPt.y, Math.atan2(incDir.y, incDir.x), '#E24B4A');
+
+  const r1_r = res.r1*D2R;
+  const refractDir = {
+    x: inNorm.x*Math.cos(r1_r) + inNorm.y*Math.sin(r1_r),
+    y:-inNorm.x*Math.sin(r1_r) + inNorm.y*Math.cos(r1_r)
+  };
+
+  let exitPt = segIntersect(entryPt, refractDir, BR, rFaceDir);
+  if(!exitPt || exitPt.t < 1) {
+    exitPt = { x: apex.x + (BR.x-apex.x)*0.5, y: apex.y + (BR.y-apex.y)*0.5 };
+  }
+
+  drawDashed(exitPt.x+rNormOut.x*normLen, exitPt.y+rNormOut.y*normLen,
+             exitPt.x-rNormOut.x*normLen, exitPt.y-rNormOut.y*normLen);
+
+  ctx.beginPath(); ctx.moveTo(entryPt.x, entryPt.y); ctx.lineTo(exitPt.x, exitPt.y);
+  ctx.strokeStyle='#1D9E75'; ctx.lineWidth=2.5; ctx.setLineDash([]); ctx.stroke();
+  arrowHead(ctx, exitPt.x, exitPt.y, Math.atan2(exitPt.y-entryPt.y, exitPt.x-entryPt.x), '#1D9E75');
+
+  const e_r = res.e*D2R;
+  const emDir = {
+    x: rNormOut.x*Math.cos(e_r) - rNormOut.y*Math.sin(e_r),
+    y: rNormOut.x*Math.sin(e_r) + rNormOut.y*Math.cos(e_r)
+  };
+  const emLen = 90;
+  const emEnd = {x: exitPt.x+emDir.x*emLen, y: exitPt.y+emDir.y*emLen};
+
+  ctx.beginPath(); ctx.moveTo(exitPt.x, exitPt.y); ctx.lineTo(emEnd.x, emEnd.y);
+  ctx.strokeStyle='#EF9F27'; ctx.lineWidth=2.5; ctx.setLineDash([]); ctx.stroke();
+  arrowHead(ctx, emEnd.x, emEnd.y, Math.atan2(emDir.y, emDir.x), '#EF9F27');
+
+  const extEnd = {x: entryPt.x+incDir.x*80, y: entryPt.y+incDir.y*80};
+  ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle='rgba(239,159,39,0.35)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(entryPt.x, entryPt.y); ctx.lineTo(extEnd.x, extEnd.y); ctx.stroke(); ctx.restore();
+
+  function arcBetween(ctx, ox, oy, r, dir1, dir2, color) {
+    const a1 = Math.atan2(dir1.y, dir1.x);
+    const a2 = Math.atan2(dir2.y, dir2.x);
+    let diff = a2-a1;
+    while(diff > Math.PI) diff -= 2*Math.PI;
+    while(diff < -Math.PI) diff += 2*Math.PI;
+    ctx.beginPath(); ctx.arc(ox, oy, r, a1, a1+diff);
+    ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.setLineDash([]); ctx.stroke();
+  }
+
+  arcBetween(ctx, entryPt.x, entryPt.y, 28, {x:-incDir.x,y:-incDir.y}, lNormOut, '#E24B4A');
+  arcBetween(ctx, entryPt.x, entryPt.y, 22, {x:-inNorm.x,y:-inNorm.y}, refractDir, '#1D9E75');
+  const inNormRight = {x:-rNormOut.x, y:-rNormOut.y};
+  const ibd = {x:entryPt.x-exitPt.x, y:entryPt.y-exitPt.y};
+  const ibd_len = Math.hypot(ibd.x, ibd.y);
+  ibd.x/=ibd_len; ibd.y/=ibd_len;
+  arcBetween(ctx, exitPt.x, exitPt.y, 22, inNormRight, ibd, '#1D9E75');
+  arcBetween(ctx, exitPt.x, exitPt.y, 26, rNormOut, emDir, '#EF9F27');
+
+  ctx.font='11px sans-serif'; ctx.setLineDash([]);
+  ctx.fillStyle='#E24B4A'; ctx.textAlign='right';
+  ctx.fillText('i='+i_d+'°', incStart.x-4, incStart.y-4);
+  ctx.fillStyle='#1D9E75'; ctx.textAlign='center';
+  ctx.fillText('r₁='+res.r1.toFixed(1)+'°  r₂='+res.r2.toFixed(1)+'°', (entryPt.x+exitPt.x)/2, (entryPt.y+exitPt.y)/2-10);
+  ctx.fillStyle='#EF9F27'; ctx.textAlign='left';
+  ctx.fillText('e='+res.e.toFixed(1)+'°', emEnd.x+4, emEnd.y-4);
+  ctx.fillStyle='#9a94e8'; ctx.textAlign='center'; ctx.font='12px sans-serif';
+  ctx.fillText('δ = '+res.delta.toFixed(1)+'°', cx, BL.y-14);
+  ctx.fillStyle=mutedClr; ctx.font='10px sans-serif';
+  ctx.fillText('i + e − δ = A', cx, BL.y-2);
+}
+
+function buildGraph(A,n) {
+  const lbl=[], dat=[];
+  for(let i=10;i<=80;i+=1){ const r=calc(i,A,n); if(r){ lbl.push(i); dat.push(+r.delta.toFixed(2)); } }
+  return {lbl,dat};
+}
+
+function updateChart(A,n,curI) {
+  const {lbl,dat} = buildGraph(A,n);
+  const {iMin,dMin} = findMin(A,n);
+  const curRes = calc(curI,A,n);
+  const readPts = readings.map(r=>({x:r.i,y:r.delta}));
+
+  if(!chart) {
+    chart = new Chart(document.getElementById('graphCanvas'),{
+      type:'line',
+      data:{labels:lbl, datasets:[
+        {label:'δ vs i', data:dat, borderColor:'#378ADD', backgroundColor:'rgba(55,138,221,0.08)', borderWidth:2, pointRadius:0, tension:0.35, fill:true},
+        {label:'Min δ', data: iMin?[{x:iMin,y:dMin}]:[], borderColor:'#9a94e8', backgroundColor:'#9a94e8', pointRadius:8, pointStyle:'star', showLine:false, parsing:{xAxisKey:'x',yAxisKey:'y'}},
+        {label:'Recorded', data:readPts, borderColor:'#D85A30', backgroundColor:'#D85A30', pointRadius:4, showLine:false, parsing:{xAxisKey:'x',yAxisKey:'y'}},
+        {label:'Current', data: curRes?[{x:curI,y:+curRes.delta.toFixed(2)}]:[], borderColor:'#1D9E75', backgroundColor:'#1D9E75', pointRadius:6, showLine:false, parsing:{xAxisKey:'x',yAxisKey:'y'}}
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'δ='+c.parsed.y?.toFixed(1)+'° at i='+c.parsed.x+'°'}} },
+        scales:{
+          x:{title:{display:true,text:'Angle of incidence i (°)',color:'#555870',font:{size:11}}, ticks:{color:'#555870',font:{size:10}}, grid:{color:'rgba(255,255,255,0.05)'}},
+          y:{title:{display:true,text:'Deviation δ (°)',color:'#555870',font:{size:11}}, ticks:{color:'#555870',font:{size:10}}, grid:{color:'rgba(255,255,255,0.05)'}}
+        }
+      }
+    });
+  } else {
+    chart.data.labels=lbl;
+    chart.data.datasets[0].data=dat;
+    chart.data.datasets[1].data=iMin?[{x:iMin,y:dMin}]:[];
+    chart.data.datasets[2].data=readPts;
+    chart.data.datasets[3].data=curRes?[{x:curI,y:+curRes.delta.toFixed(2)}]:[];
+    chart.update('none');
+  }
+}
+
+function renderTable() {
+  if(!readings.length){ document.getElementById('tBody').innerHTML='<tr><td colspan="6" style="text-align:center;color:#3d3f55;padding:10px;">No readings yet</td></tr>'; return; }
+  const minD = Math.min(...readings.map(r=>r.delta));
+  document.getElementById('tBody').innerHTML = readings.map((r,i)=>`
+    <tr class="${Math.abs(r.delta-minD)<0.05?'hi':''}">
+      <td>${i+1}</td><td>${r.i}</td><td>${r.r1.toFixed(1)}</td><td>${r.r2.toFixed(1)}</td><td>${r.e.toFixed(1)}</td>
+      <td>${r.delta.toFixed(1)}${Math.abs(r.delta-minD)<0.05?' ★':''}</td>
+    </tr>`).join('');
+}
+
+function updateAll() {
+  const A=+document.getElementById('sA').value;
+  const n=+document.getElementById('sN').value;
+  const i=+document.getElementById('sI').value;
+  document.getElementById('vA').textContent=A+'°';
+  document.getElementById('vN').textContent=n.toFixed(2);
+  document.getElementById('vI').textContent=i+'°';
+  const res = calc(i,A,n);
+  const {iMin,dMin} = findMin(A,n);
+  document.getElementById('cDev').textContent = res ? res.delta.toFixed(1)+'°' : 'TIR';
+  document.getElementById('cMin').textContent = dMin ? dMin+'°' : '—';
+  document.getElementById('cIm').textContent  = iMin ? iMin+'°' : '—';
+  drawPrism();
+  updateChart(A,n,i);
+}
+
+document.getElementById('btnRec').addEventListener('click',()=>{
+  const A=+document.getElementById('sA').value, n=+document.getElementById('sN').value, i=+document.getElementById('sI').value;
+  const res=calc(i,A,n);
+  if(!res){alert('TIR at this angle — try a larger i.');return;}
+  readings.push({i, r1:res.r1, r2:res.r2, e:res.e, delta:res.delta});
+  renderTable(); updateAll();
+});
+
+document.getElementById('btnAuto').addEventListener('click',()=>{
+  const A=+document.getElementById('sA').value, n=+document.getElementById('sN').value;
+  readings=[];
+  for(let i=20;i<=75;i+=5){ const r=calc(i,A,n); if(r) readings.push({i,r1:r.r1,r2:r.r2,e:r.e,delta:r.delta}); }
+  renderTable(); updateAll();
+});
+
+document.getElementById('btnClr').addEventListener('click',()=>{ readings=[]; renderTable(); updateAll(); });
+['sA','sN','sI'].forEach(id=>document.getElementById(id).addEventListener('input',updateAll));
+updateAll();
+</script>

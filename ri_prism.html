@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Manual: Refractive Index of a Prism</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* Define Color Variables */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --header-color: #2c3e50;
+            --border-color: #ccc;
+            --box-bg: #f9f9f9;
+            --table-header: #ecf0f1;
+            --formula-bg: #f4f4f4;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #3498db;
+            --border-color: #444;
+            --box-bg: #2d2d2d;
+            --table-header: #333;
+            --formula-bg: #252525;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: var(--text-color); 
+            background-color: var(--bg-color);
+            max-width: 800px; 
+            margin: auto; 
+            padding: 20px; 
+            border: 1px solid var(--border-color); 
+            transition: all 0.3s ease;
+        }
+
+        h1, h2 { 
+            color: var(--header-color); 
+            border-bottom: 2px solid var(--header-color); 
+            padding-bottom: 5px; 
+        }
+
+        .experiment-header { text-align: center; margin-bottom: 30px; position: relative; }
+        
+        .instructor-tag { 
+            text-align: right; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+            color: var(--header-color);
+        }
+
+        .figure-container { 
+            text-align: center; 
+            margin: 20px 0; 
+            padding: 15px; 
+            background: var(--box-bg); 
+            border: 1px dashed var(--border-color); 
+            min-height: 100px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+        }
+
+        .figure-caption { font-style: italic; font-size: 0.9em; margin-top: 10px; color: #888; }
+
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
+        th { background-color: var(--table-header); }
+
+        .formula-box { 
+            background: var(--formula-bg); 
+            padding: 20px; 
+            border-radius: 5px; 
+            text-align: center; 
+            margin: 20px 0; 
+            font-size: 1.3em; 
+            border: 1px solid var(--border-color);
+        }
+
+        /* Toggle Button Styling */
+        #theme-toggle {
+            float: right;
+            padding: 8px 12px;
+            cursor: pointer;
+            background: var(--header-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="theme-toggle">🌙 Switch Theme</button>
+    <div class="instructor-tag">Instructor: Dr. S Karna</div>
+
+    <div class="experiment-header">
+        <h1>PHYSICS LABORATORY MANUAL</h1>
+        <p><strong>Experiment: Determination of Refractive Index of a Glass Prism</strong></p>
+    </div>
+
+    <h2>1. Aim</h2>
+    <p>To determine the angle of minimum deviation for a given glass prism by plotting a graph between the angle of incidence and the angle of deviation, and to calculate the refractive index of the material of the prism.</p>
+
+    <h2>2. Apparatus</h2>
+    <ul>
+        <li>Glass Prism</li>
+        <li>Drawing board, white paper, and drawing pins</li>
+        <li>Office pins (Alpins)</li>
+        <li>Protractor, ruler, and sharp pencil</li>
+    </ul>
+
+    <h2>3. Ray Diagram & Setup</h2>
+    <div class="figure-container">
+        <p>[Diagram of Light Path: Incident ray, Refracted ray, Emergent ray]</p>
+        <p class="figure-caption">Figure 1: Path of light through the prism (A=Angle of Prism, i=Incidence, e=Emergence, &delta;=Deviation)</p>
+    </div>
+
+    <div class="figure-container">
+        <p>[Illustration: Prism boundary ABC with pins P1, P2, P3, and P4]</p>
+        <p class="figure-caption">Figure 2: Practical placement of pins P1, P2, P3, and P4 on the drawing board</p>
+    </div>
+
+    <h2>4. Theory</h2>
+    <p>The refractive index \(\mu\) of the material of the prism is calculated using the prism formula:</p>
+    
+    <div class="formula-box">
+        $$\mu = \frac{\sin\left(\frac{A + \delta_m}{2}\right)}{\sin\left(\frac{A}{2}\right)}$$
+    </div>
+    
+    <p>Where <strong>A</strong> is the angle of the prism and <strong>\(\delta\)<sub>m</sub></strong> is the angle of minimum deviation obtained from the graph.</p>
+
+    <h2>5. Procedure</h2>
+    <ol>
+        <li>Fix a sheet of white paper on the drawing board.</li>
+        <li>Place the prism in the center and trace its boundary <strong>ABC</strong>.</li>
+        <li>Draw a normal at a point on face AB and draw an incident ray at an angle <strong>i = 35&deg;</strong>.</li>
+        <li>Fix two pins <strong>P1</strong> and <strong>P2</strong> on the incident ray.</li>
+        <li>Look for the images of these pins through face AC and fix pins <strong>P3</strong> and <strong>P4</strong> such that all four pins appear in a straight line.</li>
+        <li>Remove the prism and join the pin marks to trace the emergent ray.</li>
+        <li>Extend the incident and emergent rays to measure the angle of deviation <strong>&delta;</strong>.</li>
+        <li>Repeat for angles 40&deg;, 45&deg;, 50&deg;, 55&deg;, and 60&deg;.</li>
+    </ol>
+
+    <h2>6. Observation Table</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Serial No.</th>
+                <th>Angle of Incidence (i)</th>
+                <th>Angle of Deviation (&delta;)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td>35&deg;</td><td></td></tr>
+            <tr><td>2</td><td>40&deg;</td><td></td></tr>
+            <tr><td>3</td><td>45&deg;</td><td></td></tr>
+            <tr><td>4</td><td>50&deg;</td><td></td></tr>
+            <tr><td>5</td><td>55&deg;</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <div class="figure-container">
+        <p>[Graph: i on x-axis vs &delta; on y-axis showing U-curve]</p>
+        <p class="figure-caption">Figure 3: Typical i-&delta; graph used to find \(\delta\)<sub>m</sub></p>
+    </div>
+
+    <script>
+        const btn = document.getElementById("theme-toggle");
+        btn.addEventListener("click", function() {
+            if (document.documentElement.getAttribute("data-theme") === "dark") {
+                document.documentElement.setAttribute("data-theme", "light");
+                btn.textContent = "🌙 Dark Mode";
+            } else {
+                document.documentElement.setAttribute("data-theme", "dark");
+                btn.textContent = "☀️ Light Mode";
+            }
+        });
+    </script>
+</body>
+</html>
