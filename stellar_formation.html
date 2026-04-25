@@ -1,0 +1,230 @@
+
+<style>
+  #sfx-wrap { position: relative; width: 100%; background: #020205; border-radius: 12px; overflow: hidden; }
+  #sfx-canvas { display: block; width: 100%; }
+  #sfx-info { position: absolute; top: 16px; left: 16px; font-family: 'Courier New', monospace; font-size: 13px; pointer-events: none; }
+  .sfx-stage { color: #555; margin: 4px 0; transition: color 0.3s; }
+  .sfx-stage.active { color: #00d4ff; font-weight: bold; }
+  #sfx-ui { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  #sfx-ui button { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+  #sfx-ui button:hover { background: rgba(255,255,255,0.22); }
+  #sfx-label { position: absolute; top: 16px; right: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: rgba(255,255,255,0.3); }
+</style>
+
+<div id="sfx-wrap">
+  <canvas id="sfx-canvas"></canvas>
+  <div id="sfx-info">
+    <div id="ss1" class="sfx-stage">1. swirling dust inward</div>
+    <div id="ss2" class="sfx-stage">2. gravitational collapse</div>
+    <div id="ss3" class="sfx-stage">3. core blast &amp; ignition</div>
+    <div id="ss4" class="sfx-stage">4. stable star</div>
+  </div>
+  <div id="sfx-label">stellar formation</div>
+  <div id="sfx-ui">
+    <button id="sfx-play">Pause</button>
+    <button id="sfx-reset">Restart</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('sfx-canvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('sfx-wrap');
+
+  const W = 680, H = 420;
+  canvas.width = W; canvas.height = H;
+  canvas.style.height = H + 'px';
+
+  const cx = W / 2, cy = H / 2;
+  const DURATION = 1400;
+  const STAGES = [
+    { start: 0,    end: 0.28, id: 1, label: 'ss1' },
+    { start: 0.28, end: 0.58, id: 2, label: 'ss2' },
+    { start: 0.58, end: 0.72, id: 3, label: 'ss3' },
+    { start: 0.72, end: 1.0,  id: 4, label: 'ss4' },
+  ];
+
+  let particles = [], frame = 0, isPaused = false, rafId = null;
+  let blastWave = 0, starAge = 0;
+
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 60 + Math.random() * Math.min(W, H) * 0.38;
+      this.x = cx + Math.cos(angle) * r;
+      this.y = cy + Math.sin(angle) * r;
+      this.vx = Math.sin(angle) * (1.2 + Math.random() * 1.2);
+      this.vy = -Math.cos(angle) * (1.2 + Math.random() * 1.2);
+      this.size = 0.4 + Math.random() * 1.8;
+      this.hue = Math.random() > 0.75 ? 195 : 320;
+      this.alpha = 0.6 + Math.random() * 0.4;
+      this.blasted = false;
+    }
+  }
+
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < 2200; i++) particles.push(new Particle());
+    blastWave = 0;
+    starAge = 0;
+  }
+
+  function getStage(p) {
+    for (let s of STAGES) if (p >= s.start && p < s.end) return s.id;
+    return 4;
+  }
+
+  function updateUI(stageId) {
+    for (let s of STAGES) {
+      const el = document.getElementById(s.label);
+      if (el) el.className = 'sfx-stage' + (s.id === stageId ? ' active' : '');
+    }
+  }
+
+  function drawLoop() {
+    if (isPaused) return;
+
+    const progress = frame / DURATION;
+    const stage = getStage(progress);
+    updateUI(stage);
+
+    ctx.fillStyle = 'rgba(2, 2, 5, 0.18)';
+    ctx.fillRect(0, 0, W, H);
+
+    let gravity = stage === 1 ? 0.09 : stage === 2 ? 0.85 : 0;
+
+    particles.forEach(p => {
+      const dx = cx - p.x, dy = cy - p.y;
+      const d = Math.sqrt(dx * dx + dy * dy) + 1;
+
+      if (stage <= 2) {
+        const force = gravity / d;
+        p.vx += (dx / d) * force;
+        p.vy += (dy / d) * force;
+        p.vx *= 0.99; p.vy *= 0.99;
+      } else if (stage === 3) {
+        if (!p.blasted && d < blastWave) {
+          p.blasted = true;
+          p.vx -= (dx / d) * (2 + Math.random() * 2);
+          p.vy -= (dy / d) * (2 + Math.random() * 2);
+        }
+        if (p.blasted) p.alpha *= 0.985;
+      } else {
+        if (d < 80) {
+          p.alpha *= 0.97;
+        } else {
+          p.vx *= 0.98; p.vy *= 0.98;
+        }
+      }
+
+      p.x += p.vx; p.y += p.vy;
+
+      if (p.alpha < 0.05) return;
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = `hsl(${p.hue}, 80%, 65%)`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.globalAlpha = 1;
+
+    // Stage 3: expanding blast wave ring
+    if (stage === 3) {
+      blastWave += 9;
+      const flashT = (progress - 0.58) / 0.14;
+      const flashAlpha = Math.max(0, 0.85 * (1 - flashT * 1.6));
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(255,240,200,${flashAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.strokeStyle = `rgba(255,200,80,${Math.max(0, 0.6 - flashT * 0.5)})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, blastWave, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Stage 3+: draw star
+    if (stage >= 3) {
+      starAge++;
+      const starR = stage === 3 ? Math.min(32, starAge * 2) : 32;
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, starR * 2.2);
+      glow.addColorStop(0, 'rgba(255,255,255,1)');
+      glow.addColorStop(0.15, 'rgba(255,252,200,0.95)');
+      glow.addColorStop(0.45, 'rgba(255,200,60,0.6)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, starR * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, starR * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Stage 4: corona rays + prominences
+    if (stage === 4) {
+      const t = frame * 0.018;
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + t;
+        const len = 44 + Math.sin(t * 1.3 + i * 0.9) * 14;
+        ctx.strokeStyle = `rgba(255,200,60,${0.15 + 0.1 * Math.sin(t + i)})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * 20, cy + Math.sin(a) * 20);
+        ctx.lineTo(cx + Math.cos(a) * (20 + len), cy + Math.sin(a) * (20 + len));
+        ctx.stroke();
+      }
+
+      // Orbiting particles (protoplanetary disk hint)
+      for (let i = 0; i < 6; i++) {
+        const oa = (i / 6) * Math.PI * 2 + t * 0.3;
+        const or = 90 + i * 15;
+        const ox = cx + Math.cos(oa) * or;
+        const oy = cy + Math.sin(oa) * (or * 0.35);
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = '#aad4ff';
+        ctx.beginPath();
+        ctx.arc(ox, oy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    frame++;
+    if (frame >= DURATION) {
+      frame = 0;
+      blastWave = 0;
+      starAge = 0;
+      particles.forEach(p => p.reset());
+    }
+
+    rafId = requestAnimationFrame(drawLoop);
+  }
+
+  document.getElementById('sfx-play').addEventListener('click', function() {
+    isPaused = !isPaused;
+    this.textContent = isPaused ? 'Play' : 'Pause';
+    if (!isPaused) drawLoop();
+  });
+
+  document.getElementById('sfx-reset').addEventListener('click', function() {
+    frame = 0;
+    initParticles();
+    if (isPaused) {
+      isPaused = false;
+      document.getElementById('sfx-play').textContent = 'Pause';
+      cancelAnimationFrame(rafId);
+      drawLoop();
+    }
+  });
+
+  initParticles();
+  drawLoop();
+})();
+</script>

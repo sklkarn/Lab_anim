@@ -1,0 +1,254 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#wrap { background: #000; border-radius: 14px; overflow: hidden; font-family: sans-serif; }
+canvas { display: block; width: 100%; background: #000; }
+#controls { background: #0a0a12; border-top: 0.5px solid rgba(255,255,255,0.08); padding: 14px 20px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.cg { display: flex; align-items: center; gap: 8px; }
+label { font-size: 12px; color: rgba(255,255,255,0.4); }
+.val { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.8); min-width: 32px; }
+input[type=range] { width: 100px; accent-color: #a78bfa; }
+button { background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); font-size: 12px; padding: 5px 14px; border-radius: 7px; cursor: pointer; }
+button:hover { background: rgba(255,255,255,0.13); }
+#infoline { background: #06060f; border-top: 0.5px solid rgba(255,255,255,0.06); padding: 10px 20px; font-size: 12px; color: rgba(255,255,255,0.35); }
+#infoline span { color: rgba(180,160,255,0.9); font-weight: 500; }
+h2.sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
+</style>
+
+<h2 class="sr-only">Balloon model of universe expansion — galaxies on the surface of an inflating sphere move apart as the balloon grows, illustrating Hubble's Law.</h2>
+
+<div id="wrap">
+<canvas id="c"></canvas>
+<div id="controls">
+  <div class="cg"><label>Expansion speed</label><input type="range" id="spd" min="0.1" max="3" step="0.1" value="1"><span class="val" id="spdv">1.0×</span></div>
+  <div class="cg"><label>Tilt view</label><input type="range" id="tilt" min="5" max="80" step="1" value="28"><span class="val" id="tiltv">28°</span></div>
+  <button onclick="togglePause()" id="btn">Pause</button>
+  <button onclick="resetBalloon()">Reset</button>
+</div>
+<div id="infoline">Balloon radius: <span id="rval">—</span> &nbsp;·&nbsp; Galaxies: 24 &nbsp;·&nbsp; No galaxy is the centre — every point sees all others receding</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 460;
+canvas.width = W; canvas.height = H;
+
+let paused = false, t = 0;
+let radius = 90, maxR = 310, minR = 90;
+let expanding = true;
+
+function togglePause(){ paused=!paused; document.getElementById('btn').textContent=paused?'Resume':'Pause'; if(!paused) requestAnimationFrame(loop); }
+function resetBalloon(){ radius=minR; t=0; }
+
+document.getElementById('spd').oninput=e=>document.getElementById('spdv').textContent=parseFloat(e.target.value).toFixed(1)+'×';
+document.getElementById('tilt').oninput=e=>document.getElementById('tiltv').textContent=e.target.value+'°';
+
+const NUM_GALAXIES = 24;
+const galaxySeeds = Array.from({length:NUM_GALAXIES},(_,i)=>{
+  const phi = Math.acos(1 - 2*(i+0.5)/NUM_GALAXIES);
+  const theta = Math.PI*(1+Math.sqrt(5))*i;
+  return { phi, theta,
+    colorH: Math.floor(Math.random()*60+160),
+    size: 2.5 + Math.random()*2
+  };
+});
+
+const STARS = Array.from({length:180},()=>({
+  x: Math.random()*W, y: Math.random()*H,
+  s: Math.random()*1+0.3, a: Math.random()*0.35+0.1
+}));
+
+const cx=W/2, cy=H/2+20;
+
+function project3D(x3,y3,z3, tiltRad){
+  const cosT=Math.cos(tiltRad), sinT=Math.sin(tiltRad);
+  const yR = y3*cosT - z3*sinT;
+  const zR = y3*sinT + z3*cosT;
+  const scale = 1 + zR/(radius*4.5);
+  return { px: cx + x3*scale, py: cy + yR*scale, z: zR, scale };
+}
+
+function rotate3D(x,y,z, ayaw){
+  const c=Math.cos(ayaw), s=Math.sin(ayaw);
+  return { x: x*c - z*s, y, z: x*s + z*c };
+}
+
+function drawBalloon(r, tiltRad, yaw){
+  const SEGS=48, RINGS=24;
+  for(let ri=0;ri<=RINGS;ri++){
+    const phi = (ri/RINGS)*Math.PI;
+    const y3 = r*Math.cos(phi);
+    const ringR = r*Math.sin(phi);
+    ctx.beginPath();
+    let first=true;
+    for(let si=0;si<=SEGS;si++){
+      const theta=(si/SEGS)*2*Math.PI;
+      let p={x:ringR*Math.cos(theta), y:y3, z:ringR*Math.sin(theta)};
+      p=rotate3D(p.x,p.y,p.z,yaw);
+      const {px,py,z,scale}=project3D(p.x,p.y,p.z,tiltRad);
+      if(z < -r*0.05) { first=true; continue; }
+      first ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+      first=false;
+    }
+    const alpha = 0.04 + 0.08*(r/maxR);
+    ctx.strokeStyle=`rgba(120,80,220,${alpha})`;
+    ctx.lineWidth=0.5;
+    ctx.stroke();
+  }
+  for(let si=0;si<SEGS;si++){
+    const theta=(si/SEGS)*2*Math.PI;
+    ctx.beginPath();
+    let first=true;
+    for(let ri=0;ri<=RINGS;ri++){
+      const phi=(ri/RINGS)*Math.PI;
+      const y3=r*Math.cos(phi), ringR=r*Math.sin(phi);
+      let p={x:ringR*Math.cos(theta),y:y3,z:ringR*Math.sin(theta)};
+      p=rotate3D(p.x,p.y,p.z,yaw);
+      const {px,py,z,scale}=project3D(p.x,p.y,p.z,tiltRad);
+      if(z< -r*0.05){first=true;continue;}
+      first?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      first=false;
+    }
+    ctx.strokeStyle=`rgba(100,60,200,${0.03+0.05*(r/maxR)})`;
+    ctx.lineWidth=0.4;
+    ctx.stroke();
+  }
+
+  const faceAlpha = 0.08 + 0.10*(r/maxR);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r*1.005, r*0.72, 0, 0, Math.PI*2);
+  ctx.fillStyle=`rgba(60,20,120,${faceAlpha})`;
+  ctx.fill();
+
+  const rimAlpha = 0.18 + 0.22*(r/maxR);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r*1.005, r*0.72, 0, 0, Math.PI*2);
+  ctx.strokeStyle=`rgba(140,80,255,${rimAlpha})`;
+  ctx.lineWidth=1.2;
+  ctx.stroke();
+}
+
+let prevPositions={};
+
+function drawGalaxies(r, tiltRad, yaw){
+  const points=[];
+  galaxySeeds.forEach((g,i)=>{
+    const x3=r*Math.sin(g.phi)*Math.cos(g.theta+yaw*0.3);
+    const y3=r*Math.cos(g.phi);
+    const z3=r*Math.sin(g.phi)*Math.sin(g.theta+yaw*0.3);
+    const rot=rotate3D(x3,y3,z3,yaw*0.7);
+    const {px,py,z,scale}=project3D(rot.x,rot.y,rot.z,tiltRad);
+    const visible = z > -r*0.08;
+    const depth=(z+r)/(2*r);
+    points.push({px,py,z,scale,g,i,visible,depth});
+  });
+
+  points.sort((a,b)=>a.z-b.z);
+
+  points.forEach(({px,py,z,scale,g,i,visible,depth})=>{
+    if(!visible) return;
+    const prev=prevPositions[i];
+    if(prev && radius>minR+5){
+      ctx.beginPath();
+      ctx.moveTo(prev.px,prev.py);
+      ctx.lineTo(px,py);
+      ctx.strokeStyle=`hsla(${g.colorH},70%,70%,0.18)`;
+      ctx.lineWidth=0.8;
+      ctx.stroke();
+    }
+
+    const glow=Math.max(3,g.size*scale*2.5);
+    const core=Math.max(2,g.size*scale*1.1);
+    ctx.beginPath();
+    ctx.arc(px,py,glow,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${g.colorH},80%,65%,0.15)`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(px,py,core,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${g.colorH},90%,78%,${0.7+0.3*depth})`;
+    ctx.fill();
+
+    ctx.font=`${Math.max(9,11*scale)}px sans-serif`;
+    ctx.fillStyle=`rgba(255,255,255,${0.3+0.3*depth})`;
+    ctx.textAlign='center';
+    ctx.fillText(`G${i+1}`,px,py-core-4);
+
+    prevPositions[i]={px,py};
+  });
+}
+
+function drawString(r, tiltRad){
+  const bottom=cy+r*0.72+4;
+  ctx.beginPath();
+  ctx.moveTo(cx,bottom);
+  ctx.bezierCurveTo(cx-10,bottom+20,cx+10,bottom+30,cx,bottom+45);
+  ctx.strokeStyle='rgba(140,80,255,0.4)';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx,bottom+48,4,0,Math.PI*2);
+  ctx.fillStyle='rgba(140,80,255,0.55)';
+  ctx.fill();
+}
+
+function drawTimeline(r){
+  const barX=30, barY=H-28, barW=200;
+  const pct=(r-minR)/(maxR-minR);
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.roundRect(barX,barY-6,barW,8,4); ctx.fill();
+  ctx.fillStyle='rgba(140,80,255,0.7)';
+  ctx.beginPath(); ctx.roundRect(barX,barY-6,barW*pct,8,4); ctx.fill();
+  ctx.font='11px sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.textAlign='left';
+  ctx.fillText('Big Bang',barX,barY-12);
+  ctx.textAlign='right';
+  ctx.fillText('Now',barX+barW,barY-12);
+
+  ctx.font='11px sans-serif';
+  ctx.fillStyle='rgba(180,150,255,0.7)';
+  ctx.textAlign='left';
+  ctx.fillText(`Scale factor: ${(r/minR).toFixed(2)}×`, barX+barW+16, barY);
+}
+
+function loop(){
+  if(paused) return;
+  const spd=parseFloat(document.getElementById('spd').value);
+  const tiltDeg=parseInt(document.getElementById('tilt').value);
+  const tiltRad=(90-tiltDeg)*Math.PI/180;
+  const yaw=t*0.004;
+
+  if(expanding){
+    radius += 0.45*spd;
+    if(radius>=maxR){ expanding=false; }
+  } else {
+    radius -= 0.45*spd;
+    if(radius<=minR){ expanding=true; prevPositions={}; }
+  }
+
+  t++;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,W,H);
+
+  STARS.forEach(s=>{
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.s,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${s.a})`;
+    ctx.fill();
+  });
+
+  drawBalloon(radius, tiltRad, yaw);
+  drawGalaxies(radius, tiltRad, yaw);
+  drawString(radius, tiltRad);
+  drawTimeline(radius);
+
+  document.getElementById('rval').textContent = Math.round(radius)+'u';
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>

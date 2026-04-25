@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Light Dispersion — Dark Mode</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #070710;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', Courier, monospace;
+      color: #c8d0e0;
+      padding: 1.5rem 1rem;
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #556688;
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 760px;
+      background: #0b0b16;
+      border: 1px solid #181e32;
+      border-radius: 14px;
+      padding: 1.2rem 1.4rem 0.8rem;
+      box-shadow: 0 0 80px rgba(0,160,255,0.05), 0 4px 50px rgba(0,0,0,0.7);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      padding-bottom: 6px;
+    }
+
+    .controls label {
+      white-space: nowrap;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: #3a4a66;
+      text-transform: uppercase;
+    }
+
+    .controls input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      background: linear-gradient(to right, #111828, #0066bb);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .controls input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px; height: 15px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #44ccff 0%, #0088cc 100%);
+      box-shadow: 0 0 10px rgba(0,180,255,0.8);
+      cursor: pointer;
+    }
+    .controls input[type=range]::-moz-range-thumb {
+      width: 15px; height: 15px; border-radius: 50%; border: none;
+      background: radial-gradient(circle, #44ccff 0%, #0088cc 100%);
+      box-shadow: 0 0 10px rgba(0,180,255,0.8); cursor: pointer;
+    }
+
+    .angle-val {
+      min-width: 38px; text-align: right;
+      font-size: 15px; font-weight: 700;
+      color: #33aaff; letter-spacing: 0.04em;
+    }
+
+    #info {
+      font-size: 10.5px; color: #2e3e56;
+      text-align: center; letter-spacing: 0.07em;
+      padding-bottom: 4px; min-height: 18px;
+    }
+
+    .meter-row {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 4px 0 6px;
+    }
+    .meter-label { font-size: 10px; color: #2e3e56; letter-spacing: 0.08em; white-space: nowrap; text-transform: uppercase; }
+    .meter-track {
+      flex: 1; height: 6px;
+      background: #0e1220;
+      border-radius: 3px;
+      border: 1px solid #1a2236;
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(to right, #ff2200, #ff8800, #ffe000, #00ee55, #0088ff, #5533dd, #bb00ff);
+      transition: width 0.12s ease;
+      width: 0%;
+    }
+    .meter-val { font-size: 10px; color: #3a5080; min-width: 44px; text-align: right; letter-spacing: 0.05em; }
+
+    svg { width: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+
+<h1>Dispersion of Light</h1>
+
+<div class="card">
+  <div class="controls">
+    <label>Angle of incidence</label>
+    <input type="range" id="angle-slider" min="10" max="65" value="38" step="1" oninput="updateScene(+this.value)">
+    <span class="angle-val"><span id="angle-out">38</span>°</span>
+  </div>
+
+  <div class="meter-row">
+    <span class="meter-label">Spectral spread</span>
+    <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+    <span class="meter-val" id="meter-val">—</span>
+  </div>
+
+  <div id="info"></div>
+
+  <svg id="main-svg" viewBox="0 0 700 520" role="img">
+    <title>Light dispersion — physics-accurate separation</title>
+    <defs>
+      <filter id="gs">
+        <feGaussianBlur stdDeviation="2.5" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <clipPath id="prism-clip">
+        <polygon id="clip-poly" points=""/>
+      </clipPath>
+    </defs>
+
+    <!-- Screen -->
+    <rect x="624" y="10" width="13" height="495" rx="5"
+      fill="#0d1020" stroke="#1e2840" stroke-width="1.2"/>
+    <text font-family="'Courier New',monospace" font-size="9" fill="#1e2e3e" letter-spacing="1.5"
+      x="630" y="512" text-anchor="middle">SCREEN</text>
+
+    <!-- Prism fill drawn first -->
+    <polygon id="prism-fill" points="" fill="rgba(80,160,220,0.07)" stroke="none"/>
+    <!-- Rays inside (clipped) -->
+    <g id="rays-inside" clip-path="url(#prism-clip)"></g>
+    <!-- Prism border on top -->
+    <polygon id="prism-border" points="" fill="none" stroke="#007fa0" stroke-width="3.5" opacity="0.25"/>
+    <polygon id="prism-border2" points="" fill="none" stroke="#00c8ef" stroke-width="1.6" filter="url(#gs)"/>
+
+    <!-- Outside everything -->
+    <g id="rays-outside"></g>
+
+    <!-- Normal & arc -->
+    <line id="normal-line" stroke="#1e3050" stroke-width="0.9" stroke-dasharray="5 4"/>
+    <path id="arc-path" fill="none" stroke="#2a4060" stroke-width="1.1"/>
+    <text id="arc-label" font-family="'Courier New',monospace" font-size="11" fill="#4466aa" text-anchor="middle"></text>
+
+    <!-- Screen bands, labels, separation markers -->
+    <g id="sep-lines"></g>
+    <g id="screen-bands"></g>
+    <g id="screen-labels"></g>
+  </svg>
+</div>
+
+<script>
+const COLORS = [
+  { name:'Red',    hex:'#ff2200', n:1.5130, lw:2.6 },
+  { name:'Orange', hex:'#ff8800', n:1.5160, lw:2.3 },
+  { name:'Yellow', hex:'#ffe000', n:1.5190, lw:2.2 },
+  { name:'Green',  hex:'#00ee55', n:1.5220, lw:2.2 },
+  { name:'Blue',   hex:'#0088ff', n:1.5260, lw:2.3 },
+  { name:'Indigo', hex:'#5533dd', n:1.5300, lw:2.3 },
+  { name:'Violet', hex:'#bb00ff', n:1.5340, lw:2.6 },
+];
+
+const P = { ax:205, ay:90, blx:75, bly:390, brx:335, bry:390 };
+const SCREEN_X = 626;
+const MAX_SPREAD_REF = 55; // px — used for meter scaling
+
+function faceNormal(x1,y1,x2,y2,outX){
+  let dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy),nx=-dy/l,ny=dx/l;
+  if(nx*outX<0){nx=-nx;ny=-ny;}return[nx,ny];
+}
+function raySegIntersect(rx,ry,rdx,rdy,ax,ay,bx,by){
+  let dx=bx-ax,dy=by-ay,d=rdx*dy-rdy*dx;
+  if(Math.abs(d)<1e-9)return null;
+  let t=((ax-rx)*dy-(ay-ry)*dx)/d,s=((ax-rx)*rdy-(ay-ry)*rdx)/d;
+  if(t>0.001&&s>0.001&&s<0.999)return{x:rx+rdx*t,y:ry+rdy*t};return null;
+}
+function refract(dx,dy,nx,ny,n1,n2){
+  let r=n1/n2,ci=-(dx*nx+dy*ny),s2=r*r*(1-ci*ci);
+  if(s2>1)return null;
+  let ct=Math.sqrt(1-s2),rx=r*dx+(r*ci-ct)*nx,ry=r*dy+(r*ci-ct)*ny,l=Math.hypot(rx,ry);
+  return[rx/l,ry/l];
+}
+
+function updateScene(angle){
+  document.getElementById('angle-out').textContent = angle;
+
+  const pStr=`${P.ax},${P.ay} ${P.blx},${P.bly} ${P.brx},${P.bry}`;
+  document.getElementById('clip-poly').setAttribute('points',pStr);
+  document.getElementById('prism-fill').setAttribute('points',pStr);
+  document.getElementById('prism-border').setAttribute('points',pStr);
+  document.getElementById('prism-border2').setAttribute('points',pStr);
+
+  const entT=0.43;
+  const ex=P.ax+(P.blx-P.ax)*entT, ey=P.ay+(P.bly-P.ay)*entT;
+
+  const[lnx,lny]=faceNormal(P.ax,P.ay,P.blx,P.bly,-1);
+  const rad=angle*Math.PI/180;
+  const inNx=-lnx,inNy=-lny,perpx=-lny;
+  let idx=inNx*Math.cos(rad)+perpx*Math.sin(rad);
+  let idy=inNy*Math.cos(rad)+(-lnx)*Math.sin(rad);
+  // recompute cleanly
+  idx = inNx*Math.cos(rad) + (-lny)*Math.sin(rad);
+  idy = inNy*Math.cos(rad) + (lnx)*Math.sin(rad);
+  const il=Math.hypot(idx,idy); idx/=il; idy/=il;
+  const startX=ex-idx*160, startY=ey-idy*160;
+
+  // Normal line outside
+  const nl=document.getElementById('normal-line');
+  nl.setAttribute('x1',(ex+lnx*65).toFixed(1));nl.setAttribute('y1',(ey+lny*65).toFixed(1));
+  nl.setAttribute('x2',(ex-lnx*18).toFixed(1));nl.setAttribute('y2',(ey-lny*18).toFixed(1));
+
+  // Arc outside
+  const arcR=36;
+  const normA=Math.atan2(lny,lnx), inA=Math.atan2(-idy,-idx);
+  let diff=inA-normA;
+  while(diff>Math.PI)diff-=2*Math.PI; while(diff<-Math.PI)diff+=2*Math.PI;
+  const sw=diff>0?1:0;
+  document.getElementById('arc-path').setAttribute('d',
+    `M${(ex+Math.cos(normA)*arcR).toFixed(1)} ${(ey+Math.sin(normA)*arcR).toFixed(1)} A${arcR} ${arcR} 0 0 ${sw} ${(ex+Math.cos(inA)*arcR).toFixed(1)} ${(ey+Math.sin(inA)*arcR).toFixed(1)}`);
+  const midA=normA+diff*0.5, lR=arcR+13;
+  const al=document.getElementById('arc-label');
+  al.setAttribute('x',(ex+Math.cos(midA)*lR).toFixed(1));
+  al.setAttribute('y',(ey+Math.sin(midA)*lR).toFixed(1));
+  al.textContent=angle+'°';
+
+  const[rnx,rny]=faceNormal(P.ax,P.ay,P.brx,P.bry,1);
+
+  // Compute physics hits — pure Snell's law, no artificial gaps
+  let physHits=[];
+  for(let c of COLORS){
+    const ri=refract(idx,idy,lnx,lny,1.0,c.n);
+    if(!ri)continue;
+    const[rdx,rdy]=ri;
+    let hit=raySegIntersect(ex,ey,rdx,rdy,P.ax,P.ay,P.brx,P.bry);
+    if(!hit)hit=raySegIntersect(ex,ey,rdx,rdy,P.blx,P.bly,P.brx,P.bry);
+    if(!hit)continue;
+    const{x:hx,y:hy}=hit;
+    const ro=refract(rdx,rdy,-rnx,-rny,c.n,1.0);
+    if(!ro)continue;
+    const[odx,ody]=ro;
+    const tx=(SCREEN_X-hx)/odx;
+    const sy=hy+ody*tx;
+    if(sy<10||sy>505)continue;
+    physHits.push({physY:sy,hx,hy,rdx,rdy,c});
+  }
+
+  // White ray
+  let outsideHTML=`
+    <line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}"
+      stroke="rgba(255,255,255,0.10)" stroke-width="12"/>
+    <line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}"
+      stroke="white" stroke-width="2.2" opacity="0.93"/>
+    <text font-family="'Courier New',monospace" font-size="10" fill="#445566" letter-spacing="0.5"
+      x="${(startX-8).toFixed(1)}" y="${(startY-9).toFixed(1)}" text-anchor="end">WHITE LIGHT</text>
+    <text font-family="'Courier New',monospace" font-size="9" fill="#1e2a38"
+      x="${P.ax}" y="${P.bly+14}" text-anchor="middle">GLASS PRISM  n = 1.513 – 1.534</text>`;
+
+  let insideHTML='', bandsHTML='', labelsHTML='', sepHTML='';
+
+  if(physHits.length>=2){
+    const spread=Math.abs(physHits[physHits.length-1].physY - physHits[0].physY);
+
+    // Map physics Y → display Y: keep proportional spacing, scale range with spread
+    const physMin=physHits[0].physY, physMax=physHits[physHits.length-1].physY;
+    const physRange=Math.max(physMax-physMin, 0.1);
+    // Display range grows with physics spread
+    const pct=Math.min(spread/MAX_SPREAD_REF, 1.0);
+    const displayRange=70 + pct*270; // 70px tight → 340px wide
+    const displayMid=255;
+    const dMin=displayMid-displayRange/2, dMax=displayMid+displayRange/2;
+    const mapY=(py)=>dMin+((py-physMin)/physRange)*(dMax-dMin);
+
+    // Inside rays (clipped)
+    for(const h of physHits){
+      insideHTML+=`<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${h.hx.toFixed(1)}" y2="${h.hy.toFixed(1)}"
+        stroke="${h.c.hex}" stroke-width="2.0" opacity="0.78"/>`;
+    }
+
+    const bandH=20;
+    const mappedYs=physHits.map(h=>mapY(h.physY));
+
+    for(let i=0;i<physHits.length;i++){
+      const h=physHits[i];
+      const sy=mappedYs[i];
+
+      // Outside ray: exit point → mapped screen position
+      outsideHTML+=`<line x1="${h.hx.toFixed(1)}" y1="${h.hy.toFixed(1)}" x2="${SCREEN_X}" y2="${sy.toFixed(1)}"
+        stroke="${h.c.hex}" stroke-width="${h.c.lw+5}" opacity="0.09"/>`;
+      outsideHTML+=`<line x1="${h.hx.toFixed(1)}" y1="${h.hy.toFixed(1)}" x2="${SCREEN_X}" y2="${sy.toFixed(1)}"
+        stroke="${h.c.hex}" stroke-width="${h.c.lw+0.4}" opacity="0.93"/>`;
+
+      // Screen bands — triple-glow
+      bandsHTML+=`
+        <rect x="618" y="${(sy-bandH/2-7).toFixed(1)}" width="20" height="${(bandH+14).toFixed(1)}" rx="7" fill="${h.c.hex}" opacity="0.12"/>
+        <rect x="621" y="${(sy-bandH/2-3).toFixed(1)}" width="14" height="${(bandH+6).toFixed(1)}" rx="4" fill="${h.c.hex}" opacity="0.35"/>
+        <rect x="624" y="${(sy-bandH/2).toFixed(1)}" width="11" height="${bandH.toFixed(1)}" rx="2" fill="${h.c.hex}" opacity="1"/>`;
+
+      // Label
+      labelsHTML+=`
+        <line x1="635" y1="${sy.toFixed(1)}" x2="646" y2="${sy.toFixed(1)}" stroke="${h.c.hex}" stroke-width="1" opacity="0.55"/>
+        <text font-family="'Courier New',monospace" font-size="11" font-weight="700"
+          fill="${h.c.hex}" x="650" y="${sy.toFixed(1)}" dominant-baseline="central">${h.c.name}</text>`;
+
+      // Gap between adjacent bands — show separation in px
+      if(i>0){
+        const prevSY=mappedYs[i-1];
+        const gap=sy-prevSY;
+        const midSY=(prevSY+sy)/2;
+        // Physical gap between these two colors
+        const physGap=Math.abs(physHits[i].physY-physHits[i-1].physY).toFixed(2);
+        sepHTML+=`
+          <line x1="610" y1="${prevSY.toFixed(1)}" x2="610" y2="${sy.toFixed(1)}"
+            stroke="#182238" stroke-width="0.8"/>
+          <line x1="607" y1="${prevSY.toFixed(1)}" x2="613" y2="${prevSY.toFixed(1)}"
+            stroke="#182238" stroke-width="0.8"/>
+          <line x1="607" y1="${sy.toFixed(1)}" x2="613" y2="${sy.toFixed(1)}"
+            stroke="#182238" stroke-width="0.8"/>
+          <text font-family="'Courier New',monospace" font-size="8" fill="#253545"
+            x="609" y="${midSY.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+            transform="rotate(-90,609,${midSY.toFixed(1)})">${physGap}px</text>`;
+      }
+    }
+
+    // Outer brace (total spread)
+    const sy0=mappedYs[0], sy1=mappedYs[mappedYs.length-1];
+    sepHTML+=`
+      <line x1="638" y1="${sy0.toFixed(1)}" x2="638" y2="${sy1.toFixed(1)}" stroke="#1a2e48" stroke-width="0.8"/>
+      <line x1="635" y1="${sy0.toFixed(1)}" x2="641" y2="${sy0.toFixed(1)}" stroke="#1a2e48" stroke-width="0.8"/>
+      <line x1="635" y1="${sy1.toFixed(1)}" x2="641" y2="${sy1.toFixed(1)}" stroke="#1a2e48" stroke-width="0.8"/>`;
+
+    // Meter
+    const mPct=Math.min(100,(spread/MAX_SPREAD_REF)*100);
+    document.getElementById('meter-fill').style.width=mPct.toFixed(1)+'%';
+    document.getElementById('meter-val').textContent=spread.toFixed(2)+'px';
+
+    // Snell info
+    const rA=(Math.asin(Math.sin(rad)/COLORS[0].n)*180/Math.PI).toFixed(3);
+    const vA=(Math.asin(Math.sin(rad)/COLORS[6].n)*180/Math.PI).toFixed(3);
+    const delta=(parseFloat(rA)-parseFloat(vA)).toFixed(4);
+    document.getElementById('info').textContent=
+      `Red θᵣ=${rA}°  ·  Violet θᵣ=${vA}°  ·  Δθ=${delta}°  ·  Total spread = ${spread.toFixed(2)}px`;
+
+  } else {
+    document.getElementById('meter-fill').style.width='0%';
+    document.getElementById('meter-val').textContent='—';
+    document.getElementById('info').textContent='TOTAL INTERNAL REFLECTION — TRY A SMALLER ANGLE';
+  }
+
+  document.getElementById('rays-inside').innerHTML=insideHTML;
+  document.getElementById('rays-outside').innerHTML=outsideHTML;
+  document.getElementById('sep-lines').innerHTML=sepHTML;
+  document.getElementById('screen-bands').innerHTML=bandsHTML;
+  document.getElementById('screen-labels').innerHTML=labelsHTML;
+}
+
+updateScene(38);
+</script>
+</body>
+</html>

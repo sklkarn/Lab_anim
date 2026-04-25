@@ -1,0 +1,252 @@
+
+<style>
+  * { box-sizing: border-box; }
+  body, html { background: #000; }
+  #wrap { background: #030712; border-radius: 14px; padding: 20px; border: 0.5px solid rgba(255,255,255,0.08); }
+  canvas { display: block; border-radius: 10px; background: #000; width: 100%; }
+  .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin: 14px 0 8px; }
+  .ctrl-group { display: flex; align-items: center; gap: 8px; }
+  label { font-size: 13px; color: rgba(255,255,255,0.45); font-family: sans-serif; }
+  .val { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); min-width: 52px; font-family: sans-serif; }
+  input[type=range] { accent-color: #6ab0ff; }
+  button { background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); font-size: 13px; padding: 5px 14px; border-radius: 7px; cursor: pointer; font-family: sans-serif; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  .legend { display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.4); font-family: sans-serif; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .info-bar { background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; font-family: sans-serif; }
+  .info-bar span { color: rgba(255,255,255,0.85); font-weight: 500; }
+  h2.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+</style>
+
+<h2 class="sr-only">Interactive Hubble's Law animation on a dark background showing galaxies receding faster with distance.</h2>
+
+<div id="wrap">
+  <canvas id="c" width="640" height="390"></canvas>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <label for="h0">Hubble constant H₀</label>
+      <input type="range" id="h0" min="40" max="120" value="70" step="1" style="width:110px">
+      <span class="val" id="h0val">70 km/s/Mpc</span>
+    </div>
+    <div class="ctrl-group">
+      <label for="speed">Speed</label>
+      <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1" style="width:90px">
+      <span class="val" id="speedval">1.0×</span>
+    </div>
+    <button onclick="togglePause()" id="btn">Pause</button>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#fff;"></div>Milky Way (us)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#6ab0ff;"></div>Near — slow</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ffb347;"></div>Mid — medium</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ff5a7a;"></div>Far — fast</div>
+  </div>
+
+  <div class="info-bar" id="infobar">
+    Hubble's Law: <span>v = H₀ × d</span> — galaxies recede at speeds proportional to their distance.
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 640, H = 390;
+const cx = W/2, cy = H/2;
+
+let H0 = 70, animSpeed = 1, paused = false;
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btn').textContent = paused ? 'Resume' : 'Pause';
+  if (!paused) requestAnimationFrame(loop);
+}
+
+document.getElementById('h0').oninput = e => {
+  H0 = +e.target.value;
+  document.getElementById('h0val').textContent = H0 + ' km/s/Mpc';
+};
+document.getElementById('speed').oninput = e => {
+  animSpeed = +e.target.value;
+  document.getElementById('speedval').textContent = animSpeed.toFixed(1) + '×';
+};
+
+const NUM = 52;
+const galaxies = [];
+const MAX_R = 250;
+
+const COLORS = ['#6ab0ff', '#ffb347', '#ff5a7a'];
+const TRAIL_ALPHA = [0.15, 0.14, 0.13];
+
+function makeGalaxy() {
+  const angle = Math.random() * Math.PI * 2;
+  const r = 38 + Math.random() * 200;
+  return { angle, r, trail: [] };
+}
+for (let i = 0; i < NUM; i++) galaxies.push(makeGalaxy());
+
+const STARS = Array.from({length: 200}, () => ({
+  x: Math.random() * W, y: Math.random() * H,
+  s: Math.random() * 1.1 + 0.2,
+  a: Math.random() * 0.4 + 0.1,
+  twinkle: Math.random() * Math.PI * 2
+}));
+
+let t = 0;
+
+function zone(r) { return r < 105 ? 0 : r < 175 ? 1 : 2; }
+
+function drawArrow(x, y, nx, ny, len, color, headSize) {
+  const ex = x + nx * len, ey = y + ny * len;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+  const a = Math.atan2(ny, nx);
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - headSize*Math.cos(a-0.45), ey - headSize*Math.sin(a-0.45));
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - headSize*Math.cos(a+0.45), ey - headSize*Math.sin(a+0.45));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawGalaxy(x, y, r, color, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle * 1.8 + t * 0.002);
+  const arms = 2;
+  for (let arm = 0; arm < arms; arm++) {
+    ctx.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const frac = i / 20;
+      const theta = frac * Math.PI * 1.5 + arm * Math.PI;
+      const rad = frac * r;
+      const px = rad * Math.cos(theta);
+      const py = rad * 0.5 * Math.sin(theta);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = r * 0.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.9;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function loop() {
+  if (paused) return;
+  t++;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  STARS.forEach(s => {
+    const twinkle = 0.7 + 0.3 * Math.sin(s.twinkle + t * 0.025);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${(s.a * twinkle).toFixed(2)})`;
+    ctx.fill();
+  });
+
+  [105, 175, 250].forEach((r, i) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    const c = COLORS[i];
+    ctx.strokeStyle = c + '28';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([3, 7]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  const velScale = (H0 / 70) * animSpeed;
+
+  galaxies.forEach(g => {
+    const z = zone(g.r);
+    const speed = (g.r / MAX_R) * 0.5 * velScale;
+    g.r += speed;
+
+    if (g.r > MAX_R + 10) {
+      g.r = 38 + Math.random() * 30;
+      g.angle = Math.random() * Math.PI * 2;
+      g.trail = [];
+    }
+
+    const x = cx + Math.cos(g.angle) * g.r;
+    const y = cy + Math.sin(g.angle) * g.r;
+
+    g.trail.push({x, y});
+    if (g.trail.length > 22) g.trail.shift();
+
+    const col = COLORS[zone(g.r)];
+
+    if (g.trail.length > 2) {
+      for (let i = 1; i < g.trail.length; i++) {
+        const a = (i / g.trail.length) * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(g.trail[i-1].x, g.trail[i-1].y);
+        ctx.lineTo(g.trail[i].x, g.trail[i].y);
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = a * 0.6;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    const gSize = z === 0 ? 4.5 : z === 1 ? 5.5 : 6.5;
+    drawGalaxy(x, y, gSize, col, g.angle);
+
+    const dx = x - cx, dy = y - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 0) {
+      const nx = dx/dist, ny = dy/dist;
+      const arrowLen = Math.min(speed * 38, 30);
+      drawArrow(x + nx*gSize*1.1, y + ny*gSize*1.1, nx, ny, arrowLen, col, 4);
+    }
+  });
+
+  const glowGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,18);
+  glowGrad.addColorStop(0,'rgba(255,255,230,1)');
+  glowGrad.addColorStop(0.4,'rgba(255,255,200,0.6)');
+  glowGrad.addColorStop(1,'rgba(255,255,180,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 18, 0, Math.PI*2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#fffef0';
+  ctx.fill();
+
+  ctx.font = '400 11px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.textAlign = 'center';
+  ctx.fillText('Milky Way', cx, cy + 22);
+
+  const vN = (H0 * 0.42).toFixed(0);
+  const vM = (H0 * 0.70).toFixed(0);
+  const vF = (H0 * 1.00).toFixed(0);
+  document.getElementById('infobar').innerHTML =
+    `Hubble's Law: <span>v = H₀ × d</span> &nbsp;·&nbsp; Near <span>~${vN} km/s</span> &nbsp;·&nbsp; Mid <span>~${vM} km/s</span> &nbsp;·&nbsp; Far <span>~${vF} km/s</span>`;
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
