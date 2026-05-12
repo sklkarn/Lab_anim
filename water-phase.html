@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Water Phase Change</title>
+<title>Water Phase Change · Heating Curve</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,6 +22,11 @@
   --text: #e0eaf8;
   --muted: #5a7a9a;
   --accent: #4fc3f7;
+  --c-ice: #80d8ff;
+  --c-melt: #4fc3f7;
+  --c-water: #29b6f6;
+  --c-boil: #ff8a65;
+  --c-steam: #ef5350;
 }
 
 body {
@@ -34,7 +39,6 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  overflow: hidden;
 }
 
 /* ── STARFIELD BG ── */
@@ -80,16 +84,36 @@ body::before {
   border-radius: 20px;
   padding: 28px 30px 24px;
   width: 100%;
-  max-width: 720px;
+  max-width: 1180px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  position: relative;
+  z-index: 1;
 }
 
-/* ── LAYOUT ── */
+/* ── MAIN GRID (sim + plot side by side) ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: stretch;
+}
+
+@media (max-width: 940px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+/* ── SIM SIDE (existing scene + thermo) ── */
+.sim-side {
+  display: flex;
+  flex-direction: column;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 1fr 72px;
   gap: 20px;
   align-items: end;
+  flex: 1;
 }
 
 /* ── SCENE ── */
@@ -116,7 +140,7 @@ body::before {
 .scene {
   position: relative;
   width: 100%;
-  height: 280px;
+  height: 310px;
   background: linear-gradient(180deg, #0a0f1c 0%, #111827 100%);
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -167,7 +191,7 @@ body::before {
   bottom: 2px; left: 2px; right: 2px;
   border-radius: 0 0 14px 14px;
   overflow: hidden;
-  transition: height 1.4s cubic-bezier(0.4,0,0.2,1), opacity 0.8s;
+  transition: height 0.25s linear, opacity 0.5s;
 }
 
 .water-body {
@@ -176,7 +200,6 @@ body::before {
   background: linear-gradient(180deg, rgba(58,155,220,0.7), rgba(20,90,160,0.9));
 }
 
-/* Animated wave surface */
 .wave-wrap {
   position: absolute;
   top: -12px; left: -20px; right: -20px;
@@ -229,7 +252,7 @@ body::before {
   left: 50%; transform: translateX(-50%);
   display: flex;
   gap: 6px;
-  transition: opacity 0.7s, transform 0.9s;
+  transition: opacity 0.4s;
 }
 
 .cube {
@@ -243,7 +266,7 @@ body::before {
     inset 3px 3px 8px rgba(255,255,255,0.55),
     inset -2px -2px 6px rgba(80,160,220,0.3),
     0 4px 14px rgba(0,80,180,0.25);
-  transition: all 0.6s ease;
+  transition: all 0.3s linear;
 }
 
 .cube::before {
@@ -278,7 +301,7 @@ body::before {
   0%   { transform: translateY(0) scaleX(1);    opacity: 0; }
   12%  { opacity: 0.75; }
   70%  { opacity: 0.4; }
-  100% { transform: translateY(-220px) scaleX(2.2); opacity: 0; }
+  100% { transform: translateY(-240px) scaleX(2.2); opacity: 0; }
 }
 
 /* ── FLAME ── */
@@ -306,7 +329,7 @@ body::before {
   gap: 3px;
   height: 50px;
   opacity: 0;
-  transition: opacity 0.7s;
+  transition: opacity 0.5s;
   position: relative;
 }
 
@@ -379,7 +402,7 @@ body::before {
 .thermo {
   position: relative;
   width: 26px;
-  height: 210px;
+  height: 235px;
 }
 
 .thermo-glass {
@@ -387,7 +410,7 @@ body::before {
   left: 50%; transform: translateX(-50%);
   top: 0;
   width: 16px;
-  height: 180px;
+  height: 200px;
   border: 2px solid rgba(180,210,240,0.4);
   border-radius: 8px 8px 0 0;
   background: rgba(255,255,255,0.04);
@@ -397,7 +420,7 @@ body::before {
 .thermo-mercury {
   position: absolute;
   bottom: 0; left: 1px; right: 1px;
-  transition: height 0.9s cubic-bezier(0.4,0,0.2,1), background 0.9s;
+  transition: height 0.2s linear, background 0.4s;
   border-radius: 5px 5px 0 0;
 }
 
@@ -408,14 +431,13 @@ body::before {
   width: 28px; height: 28px;
   border-radius: 50%;
   border: 2px solid rgba(180,210,240,0.4);
-  transition: background 0.9s, box-shadow 0.9s;
+  transition: background 0.4s, box-shadow 0.4s;
 }
 
-/* Tick marks */
 .tick-marks {
   position: absolute;
   right: -14px; top: 0;
-  height: 180px;
+  height: 200px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -442,9 +464,83 @@ body::before {
   font-size: 17px;
   font-weight: 700;
   text-align: center;
-  transition: color 0.7s;
+  transition: color 0.4s;
   text-shadow: 0 0 14px currentColor;
   line-height: 1;
+}
+
+/* ── PLOT SIDE ── */
+.plot-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(180deg, #0a0f1c 0%, #0e1422 100%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+}
+
+.plot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+
+.plot-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.plot-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.plot-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  flex: 1;
+}
+
+.plot-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px 4px 0;
+  border-top: 1px solid rgba(79,195,247,0.1);
+}
+
+.readout-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.readout-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.readout-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 8px currentColor;
+  transition: color 0.4s;
 }
 
 /* ── CONTROLS ── */
@@ -567,7 +663,7 @@ input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
   border-radius: 2px;
   box-shadow: 0 0 6px #fff;
   transform: translateX(-50%);
-  transition: left 0.9s cubic-bezier(0.4,0,0.2,1);
+  transition: left 0.2s linear;
 }
 
 .scale-tags {
@@ -586,84 +682,245 @@ input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
 </head>
 <body>
 
-<p class="title">H₂O Phase Transitions</p>
-<p class="subtitle">Solid · Liquid · Gas</p>
+<p class="title">H₂O Phase Transitions · Heating Curve</p>
+<p class="subtitle">Solid · Liquid · Gas · Latent Heat</p>
 
 <div class="card">
-  <div class="layout">
+  <div class="main-grid">
 
-    <!-- ── SCENE COLUMN ── -->
-    <div class="scene-area">
-      <div class="phase-badge" id="phaseBadge">❄ Solid — Ice</div>
-      <div class="scene" id="scene">
+    <!-- ════════════════════════════════════ -->
+    <!-- ══════════ LEFT: SIMULATION ══════════ -->
+    <!-- ════════════════════════════════════ -->
+    <div class="sim-side">
+      <div class="layout">
 
-        <!-- Steam puffs -->
-        <div class="steam-wrap" id="steamWrap"></div>
+        <!-- ── SCENE COLUMN ── -->
+        <div class="scene-area">
+          <div class="phase-badge" id="phaseBadge">❄ Solid — Ice</div>
+          <div class="scene" id="scene">
 
-        <!-- Beaker -->
-        <div class="beaker">
-          <div class="beaker-top"></div>
-          <div class="beaker-body">
-            <div class="beaker-shine"></div>
+            <!-- Steam puffs -->
+            <div class="steam-wrap" id="steamWrap"></div>
 
-            <!-- Water layer -->
-            <div class="water-fill" id="waterFill" style="height:0;opacity:0">
-              <div class="water-body"></div>
-              <div class="wave-wrap">
-                <svg class="wave" viewBox="0 0 800 20" preserveAspectRatio="none">
-                  <path d="M0,10 C100,0 200,20 300,10 C400,0 500,20 600,10 C700,0 800,20 800,10 L800,20 L0,20Z"/>
-                </svg>
-                <svg class="wave2" viewBox="0 0 800 16" preserveAspectRatio="none" style="position:absolute;top:3px;left:-20px;width:200%;height:16px;">
-                  <path d="M0,8 C100,0 200,16 300,8 C400,0 500,16 600,8 C700,0 800,16 800,8 L800,16 L0,16Z"/>
-                </svg>
+            <!-- Beaker -->
+            <div class="beaker">
+              <div class="beaker-top"></div>
+              <div class="beaker-body">
+                <div class="beaker-shine"></div>
+
+                <!-- Water layer -->
+                <div class="water-fill" id="waterFill" style="height:0;opacity:0">
+                  <div class="water-body"></div>
+                  <div class="wave-wrap">
+                    <svg class="wave" viewBox="0 0 800 20" preserveAspectRatio="none">
+                      <path d="M0,10 C100,0 200,20 300,10 C400,0 500,20 600,10 C700,0 800,20 800,10 L800,20 L0,20Z"/>
+                    </svg>
+                    <svg class="wave2" viewBox="0 0 800 16" preserveAspectRatio="none">
+                      <path d="M0,8 C100,0 200,16 300,8 C400,0 500,16 600,8 C700,0 800,16 800,8 L800,16 L0,16Z"/>
+                    </svg>
+                  </div>
+                  <div id="bubblesWrap"></div>
+                </div>
+
+                <!-- Ice cubes -->
+                <div class="ice-group" id="iceGroup">
+                  <div class="cube" id="c0"></div>
+                  <div class="cube" id="c1"></div>
+                  <div class="cube" id="c2"></div>
+                </div>
               </div>
-              <!-- Bubbles -->
-              <div id="bubblesWrap"></div>
             </div>
 
-            <!-- Ice cubes -->
-            <div class="ice-group" id="iceGroup">
-              <div class="cube" id="c0"></div>
-              <div class="cube" id="c1"></div>
-              <div class="cube" id="c2"></div>
+            <!-- Flame -->
+            <div class="burner">
+              <div class="flame-group" id="flameGroup">
+                <div class="flame flame-outer"></div>
+                <div class="flame flame-mid"></div>
+                <div class="flame flame-inner2"></div>
+                <div class="flame-glow"></div>
+              </div>
+              <div class="burner-ring"></div>
             </div>
+
+          </div><!-- /scene -->
+        </div>
+
+        <!-- ── THERMOMETER COLUMN ── -->
+        <div class="thermo-col">
+          <div class="thermo-label">Temp</div>
+          <div class="thermo">
+            <div class="thermo-glass">
+              <div class="thermo-mercury" id="mercury"></div>
+            </div>
+            <div class="thermo-bulb" id="bulb"></div>
+            <div class="tick-marks" id="ticks"></div>
           </div>
+          <div class="temp-num" id="tempNum">-25°C</div>
         </div>
 
-        <!-- Flame -->
-        <div class="burner">
-          <div class="flame-group" id="flameGroup">
-            <div class="flame flame-outer"></div>
-            <div class="flame flame-mid"></div>
-            <div class="flame flame-inner2"></div>
-            <div class="flame-glow"></div>
-          </div>
-          <div class="burner-ring"></div>
-        </div>
+      </div><!-- /layout -->
+    </div><!-- /sim-side -->
 
-      </div><!-- /scene -->
-    </div>
-
-    <!-- ── THERMOMETER COLUMN ── -->
-    <div class="thermo-col">
-      <div class="thermo-label">Temp</div>
-      <div class="thermo">
-        <div class="thermo-glass">
-          <div class="thermo-mercury" id="mercury"></div>
-        </div>
-        <div class="thermo-bulb" id="bulb"></div>
-        <div class="tick-marks" id="ticks"></div>
+    <!-- ════════════════════════════════════ -->
+    <!-- ══════════ RIGHT: PLOTS ══════════ -->
+    <!-- ════════════════════════════════════ -->
+    <div class="plot-side">
+      <div class="plot-header">
+        <span class="plot-title">▣ Heating Curve</span>
+        <span class="plot-sub">1 g H₂O · 100 J/s</span>
       </div>
-      <div class="temp-num" id="tempNum">-20°</div>
-    </div>
 
-  </div><!-- /layout -->
+      <svg class="plot-svg" viewBox="0 0 460 320" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5"/>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <filter id="markerGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3"/>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
 
-  <!-- ── CONTROLS ── -->
+        <!-- ── PLOT 1: TEMPERATURE vs TIME (top) ── -->
+        <!-- Plot area: x[55,445], y[40,180] -->
+
+        <!-- Phase region backgrounds -->
+        <rect x="55"     y="40" width="6.56"   height="140" fill="#80d8ff" opacity="0.05"/>
+        <rect x="61.56"  y="40" width="41.96"  height="140" fill="#4fc3f7" opacity="0.10"/>
+        <rect x="103.52" y="40" width="52.51"  height="140" fill="#29b6f6" opacity="0.05"/>
+        <rect x="156.03" y="40" width="283.92" height="140" fill="#ff8a65" opacity="0.10"/>
+        <rect x="439.95" y="40" width="5.05"   height="140" fill="#ef5350" opacity="0.05"/>
+
+        <!-- Reference lines at T=0 and T=100 -->
+        <line x1="55" y1="149.69" x2="445" y2="149.69" stroke="#4fc3f7" stroke-opacity="0.25" stroke-dasharray="2 3"/>
+        <line x1="55" y1="65.31"  x2="445" y2="65.31"  stroke="#ff8a65" stroke-opacity="0.25" stroke-dasharray="2 3"/>
+
+        <!-- Axes -->
+        <line x1="55" y1="40"  x2="55"  y2="180" stroke="#3a4a5e" stroke-width="1"/>
+        <line x1="55" y1="180" x2="445" y2="180" stroke="#3a4a5e" stroke-width="1"/>
+
+        <!-- Y-axis labels (T) -->
+        <text x="50" y="173"    text-anchor="end" fill="#5a7a9a" font-size="8" font-family="Space Mono">-25°</text>
+        <text x="50" y="152.5"  text-anchor="end" fill="#4fc3f7" font-size="8" font-family="Space Mono" font-weight="700">0°</text>
+        <text x="50" y="68"     text-anchor="end" fill="#ff8a65" font-size="8" font-family="Space Mono" font-weight="700">100°</text>
+        <text x="50" y="50"     text-anchor="end" fill="#5a7a9a" font-size="8" font-family="Space Mono">120°</text>
+
+        <!-- Plot 1 axis title -->
+        <text x="60" y="32" fill="#4fc3f7" font-size="9" font-family="Space Mono" letter-spacing="1.5" font-weight="700">TEMPERATURE  (°C)</text>
+
+        <!-- Static curve segments (dim, behind trail) -->
+        <g opacity="0.32">
+          <polyline points="55,170.78 61.56,149.69"       fill="none" stroke="#80d8ff" stroke-width="2.2" stroke-linecap="round"/>
+          <polyline points="61.56,149.69 103.52,149.69"   fill="none" stroke="#4fc3f7" stroke-width="2.2" stroke-linecap="round"/>
+          <polyline points="103.52,149.69 156.03,65.31"   fill="none" stroke="#29b6f6" stroke-width="2.2" stroke-linecap="round"/>
+          <polyline points="156.03,65.31 439.95,65.31"    fill="none" stroke="#ff8a65" stroke-width="2.2" stroke-linecap="round"/>
+          <polyline points="439.95,65.31 445,48.44"       fill="none" stroke="#ef5350" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+
+        <!-- Animated trail (drawn on top of static) -->
+        <polyline id="trail1" points="55,170.78"
+                  fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.6"
+                  stroke-linecap="round" stroke-linejoin="round"
+                  filter="url(#glow)"/>
+
+        <!-- Segment annotations (latent heats) -->
+        <text x="82.5" y="163" fill="#4fc3f7" font-size="7" font-family="Space Mono" opacity="0.85" font-weight="700">+334 J</text>
+        <text x="82.5" y="171" fill="#4fc3f7" font-size="6" font-family="Space Mono" opacity="0.6">FUSION</text>
+        <text x="298"  y="60"  fill="#ff8a65" font-size="7" font-family="Space Mono" opacity="0.85" font-weight="700" text-anchor="middle">+ 2,260 J  ·  LATENT HEAT OF VAPORIZATION</text>
+
+        <!-- Plot 1 marker -->
+        <g id="marker1" transform="translate(55, 170.78)">
+          <circle r="8"   fill="#fff"     opacity="0.25" filter="url(#markerGlow)"/>
+          <circle r="4.5" id="m1dot"      fill="#80d8ff" stroke="#fff" stroke-width="1.5"/>
+        </g>
+
+        <!-- ── PLOT 2: HEAT ADDED vs TIME (bottom) ── -->
+        <!-- Plot area: x[55,445], y[215,285] -->
+
+        <!-- Axes -->
+        <line x1="55" y1="215" x2="55"  y2="285" stroke="#3a4a5e" stroke-width="1"/>
+        <line x1="55" y1="285" x2="445" y2="285" stroke="#3a4a5e" stroke-width="1"/>
+
+        <!-- Y-axis labels (Q) -->
+        <text x="50" y="288" text-anchor="end" fill="#5a7a9a" font-size="8" font-family="Space Mono">0</text>
+        <text x="50" y="253" text-anchor="end" fill="#5a7a9a" font-size="8" font-family="Space Mono">1.5k</text>
+        <text x="50" y="218" text-anchor="end" fill="#5a7a9a" font-size="8" font-family="Space Mono">3.1k</text>
+
+        <!-- Plot 2 axis title -->
+        <text x="60" y="207" fill="#ce93d8" font-size="9" font-family="Space Mono" letter-spacing="1.5" font-weight="700">HEAT ADDED  (J)</text>
+
+        <!-- Static linear ramp (Q = P·t) -->
+        <line x1="55" y1="285" x2="445" y2="215" stroke="#ce93d8" stroke-width="2.2" stroke-linecap="round" opacity="0.32"/>
+
+        <!-- Animated trail for plot 2 -->
+        <polyline id="trail2" points="55,285"
+                  fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.6"
+                  stroke-linecap="round"
+                  filter="url(#glow)"/>
+
+        <!-- Annotation -->
+        <text x="445" y="232" text-anchor="end" fill="#ce93d8" font-size="7" font-family="Space Mono" opacity="0.6">CONSTANT POWER</text>
+
+        <!-- Plot 2 marker -->
+        <g id="marker2" transform="translate(55, 285)">
+          <circle r="8"   fill="#fff"     opacity="0.25" filter="url(#markerGlow)"/>
+          <circle r="4.5" id="m2dot"      fill="#80d8ff" stroke="#fff" stroke-width="1.5"/>
+        </g>
+
+        <!-- ── SHARED X-AXIS (time) ── -->
+        <text x="55"  y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">0s</text>
+        <text x="113" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">5</text>
+        <text x="172" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">10</text>
+        <text x="231" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">15</text>
+        <text x="290" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">20</text>
+        <text x="349" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">25</text>
+        <text x="408" y="300" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono">30s</text>
+
+        <text x="250" y="315" text-anchor="middle" fill="#5a7a9a" font-size="8" font-family="Space Mono" letter-spacing="2" opacity="0.75">→  TIME  (seconds)  →</text>
+
+        <!-- Tiny x-ticks -->
+        <g stroke="#3a4a5e" stroke-width="1">
+          <line x1="113" y1="285" x2="113" y2="288"/>
+          <line x1="172" y1="285" x2="172" y2="288"/>
+          <line x1="231" y1="285" x2="231" y2="288"/>
+          <line x1="290" y1="285" x2="290" y2="288"/>
+          <line x1="349" y1="285" x2="349" y2="288"/>
+          <line x1="408" y1="285" x2="408" y2="288"/>
+        </g>
+      </svg>
+
+      <div class="plot-readout">
+        <div class="readout-item">
+          <div class="readout-label">Time</div>
+          <div class="readout-val" id="timeVal">0.0 s</div>
+        </div>
+        <div class="readout-item">
+          <div class="readout-label">Heat Added</div>
+          <div class="readout-val" id="heatVal">0 J</div>
+        </div>
+        <div class="readout-item">
+          <div class="readout-label">% Complete</div>
+          <div class="readout-val" id="pctVal">0%</div>
+        </div>
+      </div>
+    </div><!-- /plot-side -->
+
+  </div><!-- /main-grid -->
+
+  <!-- ════════════════════════════════════ -->
+  <!-- ══════════ CONTROLS ══════════ -->
+  <!-- ════════════════════════════════════ -->
   <div class="controls">
     <div class="slider-wrap">
       <span class="slider-lbl">🌡 Temperature</span>
-      <input type="range" id="slider" min="-30" max="120" value="-20" step="1">
+      <input type="range" id="slider" min="-25" max="120" value="-25" step="1">
     </div>
 
     <div class="scale-bar">
@@ -678,38 +935,133 @@ input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-ice"  onclick="goTo(-20)">❄ Freeze  (-20°)</button>
-      <button class="btn btn-ice"  onclick="goTo(0)">Melt (0°)</button>
-      <button class="btn btn-warm" onclick="goTo(50)">Warm (50°)</button>
-      <button class="btn btn-boil" onclick="goTo(100)">Boil (100°)</button>
-      <button class="btn btn-boil" onclick="goTo(115)">☁ Steam (115°)</button>
-      <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">▶ Auto Cycle</button>
+      <button class="btn btn-ice"  onclick="goToQ(BTN_Q.freeze)">❄ Freeze  (-20°)</button>
+      <button class="btn btn-ice"  onclick="goToQ(BTN_Q.melt)">💧 Melt (0°)</button>
+      <button class="btn btn-warm" onclick="goToQ(BTN_Q.warm)">Warm (50°)</button>
+      <button class="btn btn-boil" onclick="goToQ(BTN_Q.boil)">♨ Boil (100°)</button>
+      <button class="btn btn-boil" onclick="goToQ(BTN_Q.steam)">☁ Steam (115°)</button>
+      <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">▶ Full Heating Cycle</button>
     </div>
 
     <div class="info-strip">
       <div class="info-phase-name" id="infoName">Solid Phase</div>
-      <div class="info-desc" id="infoDesc">Water molecules are locked in a rigid hexagonal crystalline lattice. Hydrogen bonds hold them in fixed positions. Kinetic energy is minimal.</div>
+      <div class="info-desc" id="infoDesc">Water molecules lock into a rigid hexagonal crystal lattice. Adding heat raises kinetic energy (vibration) and temperature; specific heat of ice ≈ 2.09 J/g·°C.</div>
     </div>
   </div>
 </div>
 
 <script>
-// ── STATE ──
-let temp = -20;
-let targetTemp = -20;
+// ═══════════════════════════════════════════════════════
+//  HEATING CURVE PHYSICS  ·  1 g H₂O from -25°C to 120°C
+// ═══════════════════════════════════════════════════════
+//
+//   Segment           Q added (J)   Cumulative Q   T range
+//   ──────────────────────────────────────────────────────
+//   Heat ice          52.25         0  → 52.25     -25 → 0
+//   Melt ice          334.00        52.25 → 386.25   0
+//   Heat water        418.00        386.25 → 804.25  0 → 100
+//   Boil water       2260.00        804.25 → 3064.25 100
+//   Heat steam         40.20        3064.25 → 3104.45 100→120
+//   ──────────────────────────────────────────────────────
+//   TOTAL            3104.45 J
+//
+//   At 100 J/s heater  →  31.0 seconds total
+
+const HEATING_POWER = 100; // J/s
+const Q_MAX         = 3104.45;
+const Q_RATE        = 11;   // J per animation frame (≈ 660 J/s display)
+
+// (Q, T) breakpoints
+const CURVE_PTS = [
+  { Q: 0,       T: -25 },  // start: cold ice
+  { Q: 52.25,   T: 0   },  // end of ice heating
+  { Q: 386.25,  T: 0   },  // end of melting plateau
+  { Q: 804.25,  T: 100 },  // end of water heating
+  { Q: 3064.25, T: 100 },  // end of boiling plateau
+  { Q: 3104.45, T: 120 }   // end: hot steam
+];
+
+// Target Q values for the preset buttons
+const BTN_Q = {
+  freeze: 10.45,   // -20°C  (still inside ice region)
+  melt:   386.25,  // 0°C    (just finished melting → liquid)
+  warm:   595.25,  // 50°C water
+  boil:   804.25,  // 100°C  (just started boiling)
+  steam:  3094.4   // 115°C steam
+};
+const AUTO_STEPS_Q = [
+  BTN_Q.freeze, BTN_Q.melt, BTN_Q.warm,
+  BTN_Q.boil, BTN_Q.steam,
+  BTN_Q.warm, BTN_Q.melt, BTN_Q.freeze
+];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let heatQ     = 0;          // current heat (J)
+let targetQ   = 0;          // animation target
 let animFrame = null;
 let autoTimer = null;
 let autoCycleOn = false;
-const AUTO_STEPS = [-20, 0, 50, 100, 115, 50, 0, -20];
-let autoIdx = 0;
+let autoIdx     = 0;
 
-// ── THERMOMETER TICKS ──
-const TICK_VALS = [-20, 0, 20, 40, 60, 80, 100, 120];
+// ═══════════════════════════════════════════════════════
+//  HEAT ↔ TEMPERATURE CONVERSIONS
+// ═══════════════════════════════════════════════════════
+function tempFromQ(Q) {
+  Q = Math.max(0, Math.min(Q_MAX, Q));
+  for (let i = 0; i < CURVE_PTS.length - 1; i++) {
+    if (Q <= CURVE_PTS[i+1].Q) {
+      const dQ = CURVE_PTS[i+1].Q - CURVE_PTS[i].Q;
+      if (dQ < 0.001) return CURVE_PTS[i+1].T;
+      const f  = (Q - CURVE_PTS[i].Q) / dQ;
+      return CURVE_PTS[i].T + f * (CURVE_PTS[i+1].T - CURVE_PTS[i].T);
+    }
+  }
+  return CURVE_PTS[CURVE_PTS.length - 1].T;
+}
+
+// For slider interaction: snap to end-of-plateau when T is a plateau temp
+function qFromTemp(T) {
+  if (T <= -25) return 0;
+  if (T >=  120) return Q_MAX;
+  if (T <    0) return 2.09 * (T + 25);
+  if (T <=   0.0001) return CURVE_PTS[2].Q; // end of melting
+  if (T <  100) return CURVE_PTS[2].Q + 4.18 * T;
+  if (T <= 100.0001) return CURVE_PTS[4].Q; // end of boiling
+  return CURVE_PTS[4].Q + 2.01 * (T - 100);
+}
+
+function getPhaseColor(Q) {
+  if (Q < 52.25)   return '#80d8ff';
+  if (Q < 386.25)  return '#4fc3f7';
+  if (Q < 804.25)  return '#29b6f6';
+  if (Q < 3064.25) return '#ff8a65';
+  return '#ef5350';
+}
+
+// ═══════════════════════════════════════════════════════
+//  PLOT COORDINATES  (matches static SVG)
+// ═══════════════════════════════════════════════════════
+const P = {
+  p1: { x0: 55, x1: 445, y0: 40,  y1: 180 },   // T vs t
+  p2: { x0: 55, x1: 445, y0: 215, y1: 285 },   // Q vs t
+  t_max: Q_MAX / HEATING_POWER,                 // ~31.04 s
+};
+
+function xq(Q)   { return P.p1.x0 + (Q / Q_MAX) * (P.p1.x1 - P.p1.x0); }
+function ty1(T)  { return P.p1.y1 - ((T + 30) / 160) * (P.p1.y1 - P.p1.y0); }
+function ty2(Q)  { return P.p2.y1 - (Q / Q_MAX) * (P.p2.y1 - P.p2.y0); }
+
+// ═══════════════════════════════════════════════════════
+//  THERMOMETER TICKS  (now spans -25 to 120)
+// ═══════════════════════════════════════════════════════
+const TICK_VALS = [-25, 0, 25, 50, 75, 100, 120];
 function buildTicks() {
   const tc = document.getElementById('ticks');
-  const H = 180;
+  const H = 200;
   TICK_VALS.slice().reverse().forEach(v => {
-    const pct = (v + 30) / 150;
+    const pct = (v + 25) / 145;
     const top = (1 - pct) * H;
     const d = document.createElement('div');
     d.className = 'tick';
@@ -719,12 +1071,14 @@ function buildTicks() {
   });
 }
 
-// ── INIT PARTICLES ──
+// ═══════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════
 function buildBubbles() {
   const w = document.getElementById('bubblesWrap');
   w.innerHTML = '';
-  for (let i = 0; i < 14; i++) {
-    const b = document.createElement('div');
+  for (let i = 0; i < 16; i++) {
+    const b  = document.createElement('div');
     b.className = 'bubble';
     const sz = 4 + Math.random() * 7;
     b.style.cssText = `
@@ -742,10 +1096,10 @@ function buildBubbles() {
 function buildSteam() {
   const w = document.getElementById('steamWrap');
   w.innerHTML = '';
-  for (let i = 0; i < 16; i++) {
-    const p = document.createElement('div');
+  for (let i = 0; i < 18; i++) {
+    const p  = document.createElement('div');
     p.className = 'puff';
-    const sz = 28 + Math.random() * 36;
+    const sz = 30 + Math.random() * 38;
     p.style.cssText = `
       width:${sz}px;height:${sz * 1.5}px;
       left:${15 + Math.random() * 65}%;
@@ -758,84 +1112,135 @@ function buildSteam() {
   }
 }
 
-// ── RENDER AT TEMPERATURE ──
-function render(t) {
-  const pct = Math.max(0, Math.min(1, (t + 30) / 150)); // 0 at -30°, 1 at 120°
+// ═══════════════════════════════════════════════════════
+//  PLOT UPDATE
+// ═══════════════════════════════════════════════════════
+function buildTrail1Points(Q) {
+  const T = tempFromQ(Q);
+  const pts = [`${xq(0).toFixed(2)},${ty1(-25).toFixed(2)}`];
+  for (let i = 1; i < CURVE_PTS.length; i++) {
+    const p = CURVE_PTS[i];
+    if (p.Q >= Q) break;
+    pts.push(`${xq(p.Q).toFixed(2)},${ty1(p.T).toFixed(2)}`);
+  }
+  pts.push(`${xq(Q).toFixed(2)},${ty1(T).toFixed(2)}`);
+  return pts.join(' ');
+}
 
-  // Thermometer mercury
-  const mercH = pct * 176;
+function updatePlot(Q) {
+  const T = tempFromQ(Q);
+  const color = getPhaseColor(Q);
+
+  // Marker 1 (T vs t)
+  const m1x = xq(Q), m1y = ty1(T);
+  document.getElementById('marker1').setAttribute('transform', `translate(${m1x.toFixed(2)}, ${m1y.toFixed(2)})`);
+  document.getElementById('m1dot').setAttribute('fill', color);
+
+  // Marker 2 (Q vs t)
+  const m2x = xq(Q), m2y = ty2(Q);
+  document.getElementById('marker2').setAttribute('transform', `translate(${m2x.toFixed(2)}, ${m2y.toFixed(2)})`);
+  document.getElementById('m2dot').setAttribute('fill', color);
+
+  // Trail 1 — segmented path tracing the heating curve
+  document.getElementById('trail1').setAttribute('points', buildTrail1Points(Q));
+
+  // Trail 2 — straight line from origin
+  document.getElementById('trail2').setAttribute(
+    'points',
+    `${xq(0).toFixed(2)},${ty2(0).toFixed(2)} ${m2x.toFixed(2)},${m2y.toFixed(2)}`
+  );
+
+  // Readouts
+  document.getElementById('timeVal').textContent = (Q / HEATING_POWER).toFixed(1) + ' s';
+  document.getElementById('heatVal').textContent = Math.round(Q).toLocaleString() + ' J';
+  document.getElementById('pctVal').textContent  = Math.round(Q / Q_MAX * 100) + '%';
+  document.getElementById('timeVal').style.color = color;
+  document.getElementById('heatVal').style.color = color;
+  document.getElementById('pctVal').style.color  = color;
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAIN RENDER  (everything sync'd to current heat Q)
+// ═══════════════════════════════════════════════════════
+function render(Q) {
+  Q = Math.max(0, Math.min(Q_MAX, Q));
+  const T = tempFromQ(Q);
+  const pct_T = Math.max(0, Math.min(1, (T + 25) / 145));
+
+  // Phase-progress fractions (0 → 1 within a plateau)
+  let meltFrac = 0, boilFrac = 0;
+  if (Q >= 52.25)  meltFrac = Math.min(1, (Q - 52.25)  / 334);
+  if (Q >= 804.25) boilFrac = Math.min(1, (Q - 804.25) / 2260);
+
+  // ── THERMOMETER ──
+  const mercH = pct_T * 196;
   const mercury = document.getElementById('mercury');
-  // Color: cold=cyan → warm=blue → hot=orange → red
   let r, g, b;
-  if (pct < 0.2)       { r=0;   g=200+pct*200; b=255; }
-  else if (pct < 0.5)  { r=pct*400; g=160; b=255-pct*500; }
-  else                  { r=255; g=Math.max(0,150-pct*200); b=0; }
-  r = Math.min(255,Math.max(0,Math.round(r)));
-  g = Math.min(255,Math.max(0,Math.round(g)));
-  b = Math.min(255,Math.max(0,Math.round(b)));
+  if (pct_T < 0.2)      { r = 0;          g = 200 + pct_T * 200; b = 255; }
+  else if (pct_T < 0.5) { r = pct_T * 400; g = 160;              b = 255 - pct_T * 500; }
+  else                  { r = 255;         g = Math.max(0,150-pct_T*200); b = 0; }
+  r = Math.min(255, Math.max(0, Math.round(r)));
+  g = Math.min(255, Math.max(0, Math.round(g)));
+  b = Math.min(255, Math.max(0, Math.round(b)));
   const col = `rgb(${r},${g},${b})`;
   mercury.style.height = mercH + 'px';
   mercury.style.background = `linear-gradient(180deg, ${col}, rgb(${Math.min(255,r+40)},${Math.max(0,g-40)},${Math.max(0,b-30)}))`;
   document.getElementById('bulb').style.background = `radial-gradient(circle at 35% 30%, rgba(255,220,200,0.5), ${col})`;
   document.getElementById('bulb').style.boxShadow = `0 0 12px ${col}88`;
   document.getElementById('tempNum').style.color = col;
-  document.getElementById('tempNum').textContent = Math.round(t) + '°C';
+  document.getElementById('tempNum').textContent = Math.round(T) + '°C';
 
   // Scale cursor
-  document.getElementById('scaleCursor').style.left = (pct * 100) + '%';
+  document.getElementById('scaleCursor').style.left = (pct_T * 100) + '%';
 
-  // ── ICE ──
+  // ── ICE  (driven by meltFrac during plateau) ──
   const iceGroup = document.getElementById('iceGroup');
   const cubes = [document.getElementById('c0'), document.getElementById('c1'), document.getElementById('c2')];
-  if (t <= -2) {
-    const mPct = Math.max(0, (t + 10) / 8); // 0 at -2, 1 at -10
-    iceGroup.style.opacity = '1';
-    iceGroup.style.transform = 'translateX(-50%)';
+  if (Q < 386.25) {
+    iceGroup.style.opacity = String(1 - meltFrac * 0.95);
     cubes.forEach(c => {
-      c.style.height = '46px';
-      c.style.borderRadius = '7px';
-      c.style.opacity = '1';
-    });
-  } else if (t < 10) {
-    // Melting
-    const mp = (t + 2) / 12;
-    iceGroup.style.opacity = String(1 - mp * 0.85);
-    cubes.forEach((c, i) => {
-      c.style.height = (46 - mp * 22) + 'px';
-      c.style.borderRadius = `${7 + mp * 40}% ${7 + mp * 40}% ${7 + mp * 50}% ${7 + mp * 50}%`;
+      c.style.height = (46 - meltFrac * 32) + 'px';
+      c.style.borderRadius = `${7 + meltFrac * 45}% ${7 + meltFrac * 45}% ${7 + meltFrac * 50}% ${7 + meltFrac * 50}%`;
     });
   } else {
     iceGroup.style.opacity = '0';
   }
 
-  // ── WATER ──
+  // ── WATER (grows during melt, stays during liquid, shrinks during boil) ──
   const wf = document.getElementById('waterFill');
-  let wH = 0;
-  if (t > -4 && t < 104) {
-    wH = Math.min(128, ((t + 4) / 108) * 136);
-    wf.style.opacity = '1';
-  } else if (t >= 104) {
-    wH = Math.max(0, 128 - (t - 104) * 16);
-    wf.style.opacity = wH > 0 ? '1' : '0';
+  let wH = 0;     // pixels
+  let wOp = 0;
+  if (Q < 52.25) {
+    wH = 0; wOp = 0;
+  } else if (Q < 386.25) {
+    wH = meltFrac * 118; wOp = 1;
+  } else if (Q < 804.25) {
+    wH = 118; wOp = 1;
+  } else if (Q < 3064.25) {
+    wH = 118 * (1 - boilFrac); wOp = wH > 1 ? 1 : 0;
   } else {
-    wf.style.opacity = '0';
+    wH = 0; wOp = 0;
   }
-  wf.style.height = wH + 'px';
+  wf.style.height  = wH + 'px';
+  wf.style.opacity = wOp;
 
   // ── BUBBLES ──
   const bubbles = document.querySelectorAll('.bubble');
+  const bubblesOn = (T > 35 && Q < 804.25) || (Q >= 804.25 && Q < 3064.25);
   bubbles.forEach(b => {
-    const on = t > 35 && t < 108;
-    b.style.animationPlayState = on ? 'running' : 'paused';
-    if (!on) b.style.opacity = '0';
-    const spd = t > 90 ? '0.8s' : t > 60 ? '1.4s' : '2.4s';
+    b.style.animationPlayState = bubblesOn ? 'running' : 'paused';
+    if (!bubblesOn) b.style.opacity = '0';
+    const spd = (Q >= 804.25) ? '0.7s' : T > 70 ? '1.2s' : '2.2s';
     b.style.setProperty('--bd', spd);
   });
 
   // ── STEAM ──
   const puffs = document.querySelectorAll('.puff');
-  const steamOn = t > 80;
-  const steamIntensity = Math.min(1, (t - 80) / 35);
+  const steamOn = Q >= 700; // a little before boiling starts, slight vapor
+  let steamIntensity = 0;
+  if (Q >= 804.25 && Q < 3064.25) steamIntensity = boilFrac;
+  else if (Q >= 3064.25)          steamIntensity = 1;
+  else if (Q >= 700)              steamIntensity = (Q - 700) / 104 * 0.3;
   puffs.forEach(p => {
     p.style.animationPlayState = steamOn ? 'running' : 'paused';
     if (!steamOn) p.style.opacity = '0';
@@ -844,51 +1249,69 @@ function render(t) {
 
   // ── FLAME ──
   const fg = document.getElementById('flameGroup');
-  const flameOn = t > 10;
-  const fi = Math.min(1, (t - 10) / 90);
+  // Flame is always "on" once we are heating, intensity scales with T
+  const flameOn = T > -20;
+  const fi = Math.max(0.25, Math.min(1, (T + 20) / 130));
   fg.style.opacity = flameOn ? String(fi) : '0';
-  // Flame height scales with heat
   if (flameOn) {
     fg.querySelectorAll('.flame-outer, .flame-mid, .flame-inner2').forEach(f => {
-      f.style.transform = `scaleY(${0.7 + fi * 0.6})`;
+      f.style.transform = `scaleY(${0.6 + fi * 0.7})`;
     });
   }
 
   // ── PHASE BADGE + INFO ──
-  updatePhaseUI(t);
+  updatePhaseUI(Q);
+
+  // ── SLIDER DISPLAY (don't trigger events) ──
+  const slider = document.getElementById('slider');
+  if (document.activeElement !== slider) slider.value = T;
+
+  // ── PLOT ──
+  updatePlot(Q);
 }
 
-function updatePhaseUI(t) {
+// ═══════════════════════════════════════════════════════
+//  PHASE BADGE + INFO TEXT
+// ═══════════════════════════════════════════════════════
+function updatePhaseUI(Q) {
   let phase, badgeColor, badgeBg, name, desc;
 
-  if (t < 0) {
+  if (Q < 52.25) {
     phase = 'ice';
     badgeColor = '#80d8ff'; badgeBg = 'rgba(128,216,255,0.12)';
     name = 'Solid Phase — Ice';
-    desc = 'Molecules lock into a rigid hexagonal lattice. Hydrogen bonds hold fixed positions. Low kinetic energy; molecules only vibrate.';
-  } else if (t === 0) {
+    desc = 'Molecules lock into a rigid hexagonal lattice. Adding heat raises kinetic energy and temperature. Specific heat of ice ≈ 2.09 J/g·°C — the curve rises steeply.';
+  } else if (Q < 386.25) {
     phase = 'melting';
     badgeColor = '#4fc3f7'; badgeBg = 'rgba(79,195,247,0.12)';
-    name = 'Phase Change: Melting (0°C)';
-    desc = 'At 0°C, absorbed heat (latent heat of fusion: 334 J/g) breaks the crystal lattice — without raising temperature — until all ice becomes liquid.';
-  } else if (t < 100) {
+    name = 'Phase Change · Melting (0°C)';
+    const pctMelt = Math.round((Q - 52.25) / 334 * 100);
+    desc = `Absorbing the latent heat of fusion (334 J/g). Crystal bonds break — temperature stays pinned at 0°C until all ice has melted. Plateau ${pctMelt}% complete.`;
+  } else if (Q < 804.25) {
     phase = 'water';
     badgeColor = '#29b6f6'; badgeBg = 'rgba(41,182,246,0.12)';
     name = 'Liquid Phase — Water';
-    desc = 'Molecules move freely. Hydrogen bonds constantly break and reform. Surface tension and viscosity decrease as kinetic energy rises with temperature.';
-  } else if (t === 100) {
+    desc = 'Molecules flow freely; hydrogen bonds constantly break and reform. Specific heat ≈ 4.18 J/g·°C — twice that of ice, so the curve is less steep.';
+  } else if (Q < 3064.25) {
     phase = 'boiling';
     badgeColor = '#ff8a65'; badgeBg = 'rgba(255,138,101,0.12)';
-    name = 'Phase Change: Boiling (100°C)';
-    desc = 'Vapor pressure equals atmospheric pressure. Latent heat of vaporization (2,260 J/g) is absorbed — temperature stays at 100°C until all water vaporizes.';
+    name = 'Phase Change · Boiling (100°C)';
+    const pctBoil = Math.round((Q - 804.25) / 2260 * 100);
+    desc = `Absorbing the latent heat of vaporization (2,260 J/g) — over 6× the energy of melting. Temperature holds at 100°C. Plateau ${pctBoil}% complete.`;
   } else {
     phase = 'steam';
     badgeColor = '#ef9a9a'; badgeBg = 'rgba(239,154,154,0.12)';
     name = 'Gas Phase — Water Vapor';
-    desc = 'Molecules move rapidly and independently with almost no intermolecular forces. Cooling below 100°C will cause condensation and release of latent heat.';
+    desc = 'Molecules move freely with negligible intermolecular forces. Specific heat ≈ 2.01 J/g·°C. Total energy absorbed since -25°C: ~3,104 J/g.';
   }
 
-  const labels = { ice: '❄ Solid — Ice', melting: '💧 Melting', water: '💧 Liquid — Water', boiling: '♨ Boiling', steam: '☁ Gas — Steam' };
+  const labels = {
+    ice: '❄ Solid — Ice',
+    melting: '💧 Melting',
+    water: '💧 Liquid — Water',
+    boiling: '♨ Boiling',
+    steam: '☁ Gas — Steam'
+  };
   const badge = document.getElementById('phaseBadge');
   badge.textContent = labels[phase];
   badge.style.color = badgeColor;
@@ -900,47 +1323,52 @@ function updatePhaseUI(t) {
   document.getElementById('infoDesc').textContent = desc;
 }
 
-// ── SMOOTH ANIMATION ──
-function animateTo(target) {
-  targetTemp = Math.max(-30, Math.min(120, target));
+// ═══════════════════════════════════════════════════════
+//  ANIMATION  ·  constant heat rate (mimics constant power)
+// ═══════════════════════════════════════════════════════
+function animateToQ(target) {
+  targetQ = Math.max(0, Math.min(Q_MAX, target));
   if (animFrame) cancelAnimationFrame(animFrame);
 
   function step() {
-    const diff = targetTemp - temp;
-    if (Math.abs(diff) < 0.15) {
-      temp = targetTemp;
-      document.getElementById('slider').value = temp;
-      render(temp);
+    const diff = targetQ - heatQ;
+    if (Math.abs(diff) < Q_RATE) {
+      heatQ = targetQ;
+      render(heatQ);
+      animFrame = null;
       return;
     }
-    temp += diff * 0.055;
-    document.getElementById('slider').value = temp;
-    render(temp);
+    heatQ += Math.sign(diff) * Q_RATE;
+    render(heatQ);
     animFrame = requestAnimationFrame(step);
   }
   animFrame = requestAnimationFrame(step);
 }
 
-function goTo(t) { animateTo(t); }
+function goToQ(qTarget) { animateToQ(qTarget); }
 
-// ── SLIDER ──
+// ═══════════════════════════════════════════════════════
+//  SLIDER  ·  scrub directly (no animation)
+// ═══════════════════════════════════════════════════════
 document.getElementById('slider').addEventListener('input', function() {
-  if (animFrame) cancelAnimationFrame(animFrame);
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
   if (autoCycleOn) stopAuto();
-  temp = parseFloat(this.value);
-  targetTemp = temp;
-  render(temp);
+  heatQ = qFromTemp(parseFloat(this.value));
+  targetQ = heatQ;
+  render(heatQ);
 });
 
-// ── AUTO CYCLE ──
+// ═══════════════════════════════════════════════════════
+//  AUTO CYCLE
+// ═══════════════════════════════════════════════════════
 function toggleAuto() {
   if (autoCycleOn) stopAuto();
-  else startAuto();
+  else            startAuto();
 }
 
 function startAuto() {
   autoCycleOn = true;
-  autoIdx = 0;
+  autoIdx     = 0;
   document.getElementById('autoBtn').classList.add('active');
   document.getElementById('autoBtn').textContent = '⏹ Stop Cycle';
   runAutoStep();
@@ -950,24 +1378,25 @@ function stopAuto() {
   autoCycleOn = false;
   if (autoTimer) clearTimeout(autoTimer);
   document.getElementById('autoBtn').classList.remove('active');
-  document.getElementById('autoBtn').textContent = '▶ Auto Cycle';
+  document.getElementById('autoBtn').textContent = '▶ Full Heating Cycle';
 }
 
 function runAutoStep() {
   if (!autoCycleOn) return;
-  const target = AUTO_STEPS[autoIdx % AUTO_STEPS.length];
-  animateTo(target);
+  const target = AUTO_STEPS_Q[autoIdx % AUTO_STEPS_Q.length];
+  animateToQ(target);
   autoIdx++;
-  // Dwell time depends on step gap
-  const dwell = 3500;
-  autoTimer = setTimeout(runAutoStep, dwell);
+  // dwell sized to accommodate the longest transition (~3.8s)
+  autoTimer = setTimeout(runAutoStep, 4800);
 }
 
-// ── INIT ──
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
 buildTicks();
 buildBubbles();
 buildSteam();
-render(-20);
+render(0);
 </script>
 </body>
 </html>
